@@ -71,7 +71,7 @@ La aplicación opera sobre **tablets iOS/Android** en entornos clínicos bajo su
 
 ## Características Principales
 
-- 🎮 **Baterías gamificadas** — 5 módulos de evaluación adaptados al paciente pediátrico
+- 🎮 **Baterías gamificadas** — 9 módulos de evaluación adaptados al paciente pediátrico
 - 🔇 **Offline-first** — Operación completa sin conexión en entornos clínicos aislados
 - 🔐 **Seguridad robusta** — AES-256 en reposo · TLS 1.3 en tránsito · Seudonimización
 - 📋 **Consentimiento informado digital** — Gestión legal obligatoria para tutores legales
@@ -130,13 +130,17 @@ VIA+ App
 │
 ├── /evaluation
 │   ├── session/           # Gestión de sesión de evaluación
-│   ├── games/
-│   │   ├── game01-audiometry/     # Audiometría condicionada gamificada
-│   │   ├── game02-logoaudiometry/ # Logoaudiometría
-│   │   ├── game03-discrimination/ # Discriminación auditiva
-│   │   ├── game04-verbal/         # Repetición verbal (captura de audio)
-│   │   └── game05-inhibition/     # Control inhibitorio (Toca Solo Si…)
-│   └── audio/             # Captura, calibración y procesamiento de audio
+│   ├── modules/
+│   │   ├── clinical-assessment/    # Evaluación Clínica Previa (anamnesis + firma)
+│   │   ├── autism-mchat/           # Cuestionario de Autismo M-CHAT-R (cribado TEA)
+│   │   ├── room-noise-check/       # Sonómetro Ambiental (gate de sala, sin persistencia)
+│   │   ├── audiometry/             # Audiometría Infantil (tonal liminar, Hughson-Westlake)
+│   │   ├── audiometry-conditioned/ # Audiometría Condicionada — El Tren del Sonido (CRA)
+│   │   ├── voice-analysis/         # Análisis Acústico de Voz (F0, jitter, shimmer, HNR)
+│   │   ├── dysphagia-test/         # Test de Disfagia MECV-V (pulsioximetría BLE)
+│   │   ├── sahs-screening/         # Cribado SAHS Infantil (PSQ de Chervin)
+│   │   └── articulation-tar/       # Articulación · T.A.R. (repetición + SODA)
+│   └── audio/             # AudioEngineProvider + PermissionsProvider (captura, síntesis, calibración)
 │
 ├── /results
 │   ├── viewer/            # Visualización de resultados por test
@@ -182,7 +186,7 @@ El siguiente flujo es **obligatorio** y no puede omitirse. Cada fase es un prere
       │  → CAP NO APTO: bloqueo + sugerencia de metodologías alternativas
       ▼
 [4] BATERÍA DE EVALUACIÓN GAMIFICADA
-      │  5 módulos de juegos adaptados al perfil del paciente
+      │  9 módulos adaptados al perfil del paciente (clínicos + gamificados)
       │  Modo Niño: interfaz lúdica sin elementos clínicos visibles
       ▼
 [5] GENERACIÓN DE RESULTADOS
@@ -244,14 +248,25 @@ clinical_sessions:
 
 | Capa | Tecnología | Justificación |
 |---|---|---|
-| **Frontend / App** | React Native · Flutter *(decisión pendiente)* | Multiplataforma iOS/Android; optimizado para tablet |
-| **Persistencia local** | SQLite + SQLCipher | Offline-first; AES-256 en reposo |
-| **Captura de audio** | react-native-audio-recorder-player · flutter_sound | Estéreo L/R independiente; latencia controlada |
-| **Generación PDF** | react-native-pdf-lib · pdf_flutter | Informes clínicos y CAP |
+| **Frontend / App** | React Native 0.80.1 · TypeScript 5.4 | Multiplataforma iOS/Android (prioritario); optimizado para tablet |
+| **UI / Design system** | Gluestack UI v1 + `lucide-react-native` | Sistema de diseño consistente, tokens propios (`Theme/gluestack-ui.config.ts`) |
+| **Estado** | Redux Toolkit + redux-persist | Estado global offline-first (whitelist `theme`) |
+| **Persistencia local** | TypeORM 0.3.27 + `react-native-nitro-sqlite` (SQLite) | Offline-first; `synchronize: true`; repositorios singleton |
+| **Navegación** | React Navigation v7 (Native Stack + Bottom Tabs) | Flujo Home → Paciente → Evaluación → Módulo → Resultado |
+| **Formularios** | react-hook-form + Yup | Validación de cuestionarios y formularios clínicos |
+| **Síntesis de tono + DSP de audio** | `react-native-audio-api` (Software Mansion, sobre Oboe en Android) | Tonos puros (audiometrías) y captura/análisis PCM (voz) |
+| **Captura de nivel sonoro** | `react-native-live-audio-stream` + `buffer` | Sonómetro Ambiental (RMS → dBFS → dB) |
+| **Grabación/reproducción + voz** | `react-native-audio-recorder-player` · `@react-native-voice/voice` · `react-native-tts` | Articulación T.A.R. (modelo hablado, repetición, auto-evaluación) |
+| **Permisos runtime** | `react-native-permissions` | Micrófono, Bluetooth, cámara, unificados Android/iOS |
+| **Pulsioximetría BLE** | `react-native-ble-plx` (perfil Pulse Oximeter 0x1822) | Test de Disfagia MECV-V |
+| **Firma digital** | `react-native-signature-canvas` | Consentimiento informado en Evaluación Clínica |
+| **Vídeo / foto clínica** | `react-native-vision-camera` · `react-native-image-picker` | Disfagia y Evaluación Clínica |
+| **Generación PDF** | `pdf-lib` | Informes clínicos estructurados por módulo |
 | **Sincronización HCE** | HL7 FHIR R4 REST API | Interoperabilidad con sistemas hospitalarios |
 | **Cifrado en tránsito** | TLS 1.3 | Obligatorio por GDPR para datos sanitarios |
 | **Cifrado en reposo** | AES-256-GCM | Obligatorio por LOPDGDD |
 | **Autenticación** | JWT + refresh tokens (corta caducidad) | Gestión segura de sesiones de profesionales |
+| **i18n / Errores** | i18next (es) · Sentry React Native | Localización y monitorización de errores en producción |
 
 ---
 
@@ -338,36 +353,69 @@ npm run test:coverage
 
 ## Módulos de la Aplicación
 
-### Juego 01 — Audiometría Condicionada Gamificada
+> Leyenda de hardware: 🟢 sin hardware adicional · 🎙️ requiere micrófono · 🔊 requiere síntesis de tono ·
+> 🗣️ requiere TTS/reconocimiento de voz · 📶 requiere Bluetooth LE.
 
-- **Dominio:** Audiología
-- **Objetivo:** Evaluar umbrales de detección tonal mediante respuesta condicionada operante
-- **Estímulos:** Tonos puros L/R independientes (250 Hz – 8 kHz)
-- **Respuesta del niño:** Acción táctil ante detección del sonido
+### 1 — Evaluación Clínica Previa 🟢 (`ClinicalAssessment`)
 
-### Juego 02 — Logoaudiometría
+- **Dominio:** Anamnesis / cuestionario clínico estructurado previo a las pruebas
+- **Nativo:** formularios + firma de consentimiento (`react-native-signature-canvas`) + foto
+- **Datos:** entidad `ClinicalAssessment` · informe PDF `ClinicalAssessmentDetail`
 
-- **Dominio:** Audiología + Lenguaje
-- **Objetivo:** Evaluar discriminación de palabras en diferentes relaciones señal/ruido
-- **Estímulos:** Material verbal grabado y calibrado
+### 2 — Cuestionario de Autismo M-CHAT-R 🟢 (`Mchat`)
 
-### Juego 03 — Discriminación y Comprensión Auditiva
+- **Dominio:** Cribado de TEA, 16–30 meses
+- **Objetivo:** 20 ítems, scoring 0–20, bandas de riesgo bajo/medio/alto + entrevista de seguimiento
+- **Datos:** entidad genérica `Screening` (`instrument: 'autism-tea'`) · informe PDF `ScreeningDetail`
 
-- **Dominio:** Lenguaje receptivo
-- **Objetivo:** Evaluar comprensión de instrucciones verbales simples y complejas
-- **Respuesta del niño:** Selección de imagen correspondiente
+### 3 — Sonómetro Ambiental 🎙️ (`RoomNoiseCheck`)
 
-### Juego 04 — Repetición Verbal
+- **Dominio:** Gate de prerrequisito de sala
+- **Objetivo:** Medir ruido de fondo y solo permitir continuar si está bajo umbral (45 dB por defecto) y la checklist está completa
+- **Nativo:** captura real de micrófono (`react-native-live-audio-stream` + `buffer`); degrada a modo demo solo sin permiso/lib
+- **Datos:** no persiste — navega directamente a `GameMenu`
 
-- **Dominio:** Lenguaje expresivo + biomarcadores vocales
-- **Objetivo:** Captura de producción verbal para análisis espectrográfico
-- **Datos generados:** Archivos de audio cifrados para revisión clínica diferida
+### 4 — Audiometría Infantil 🔊 (`Audiometry`) · *paquete base*
 
-### Juego 05 — Control Inhibitorio (Toca Solo Si…)
+- **Dominio:** Audiología pediátrica
+- **Objetivo:** Audiometría tonal liminar, motor Hughson-Westlake guiado (250–4000 Hz)
+- **Nativo:** síntesis de tono real (`react-native-audio-api`: `OscillatorNode` + `GainNode` + `StereoPannerNode`); requiere calibración dB HL → dB SPL por transductor
+- **Datos:** entidad `AudiometryTest` · informe PDF `AudiometryDetail`
 
-- **Dominio:** Neurodesarrollo · Funciones ejecutivas
-- **Objetivo:** Evaluar control inhibitorio y atención selectiva
-- **Datos generados:** Aciertos, errores perseverativos, tiempos de reacción
+### 5 — Audiometría Condicionada — El Tren del Sonido 🔊 (`AudiometryConditioned`)
+
+- **Dominio:** Audiología pediátrica con refuerzo lúdico (CRA)
+- **Objetivo:** Un tren avanza por estaciones (frecuencias) al confirmar umbrales; el niño pulsa el silbato al oír
+- **Nativo:** reutiliza el motor de audio de Audiometría Infantil + `react-native-reanimated`
+- **Datos:** comparte la entidad `AudiometryTest` (`method: 'conditioned'`)
+
+### 6 — Análisis Acústico de Voz 🎙️ (`VoiceAnalysis`)
+
+- **Dominio:** Biomarcadores vocales infantiles
+- **Objetivo:** F0, jitter, shimmer y HNR de voz sostenida (/a/), con formantes F1–F3 vía LPC
+- **Nativo:** captura PCM real (`react-native-audio-api`) + módulo nativo de DSP (fallback JS: `pitchfinder` + `fft.js`)
+- **Datos:** entidad `VoiceAnalysis` · informe PDF `VoiceAnalysisDetail`
+
+### 7 — Test de Disfagia MECV-V 📶 (`DysphagiaTest`)
+
+- **Dominio:** Método de Exploración Clínica Volumen-Viscosidad
+- **Objetivo:** 9 bolos con bifurcación seguro/inseguro, desaturación de SpO₂ ≥3% y motor de recomendación de dieta
+- **Nativo:** pulsioxímetro real por Bluetooth LE (`react-native-ble-plx`, perfil 0x1822) + vídeo clínico opcional
+- **Datos:** entidad `DysphagiaTest` · informe PDF `DysphagiaDetail`
+
+### 8 — Cribado SAHS Infantil 🟢 (`SahsScreening`)
+
+- **Dominio:** Trastornos respiratorios del sueño
+- **Objetivo:** PSQ de Chervin (SRBD-22) + exploración (Brodsky, IMC, signos) + factores de riesgo
+- **Datos:** entidad `SahsScreening` · informe PDF `SahsScreeningDetail`
+- **Aviso clínico:** orientativo; el diagnóstico de SAHS exige polisomnografía en Unidad de Sueño
+
+### 9 — Articulación · T.A.R. (Test de Articulación a la Repetición) 🎙️🗣️ (`Articulation`)
+
+- **Dominio:** Logopedia — registro descriptivo SODA por fonema
+- **Objetivo:** El niño repite el modelo hablado; clasificación Correcto/Sustitución/Omisión/Distorsión/Adición por ítem, con % de acierto y fonemas a intervenir
+- **Nativo:** modelo hablado (`react-native-tts`) + grabación (`react-native-audio-recorder-player`) + reconocimiento de voz es-ES (`@react-native-voice/voice`) que auto-evalúa la repetición; degrada a SODA manual sin hardware/permiso
+- **Datos:** entidad `ArticulationTest` · informe PDF `ArticulationDetail`
 
 ---
 
@@ -443,16 +491,38 @@ Earlify Health
 
 ## Estado del Proyecto
 
+> Estado de integración según el Contrato de Compilación v3 (2026-06-25/26). La fuente de
+> verdad es cada paquete `VIA+ <Módulo> (React Native)` (pantalla + `integration/`).
+
 | Componente | Estado |
 |---|---|
 | Módulo de Consentimiento Informado | 🟡 En diseño |
 | Pre-screening clínico (CAP) | 🟡 En diseño |
 | Autenticación profesional | 🟢 Documentado |
 | Identificación de paciente | 🟢 Documentado |
-| Batería de juegos (5 módulos) | 🟢 Documentado |
 | Generación de informes PDF | 🟢 Documentado |
 | Sincronización HL7-FHIR | 🔴 Pendiente |
 | Certificación MDR Clase IIa | 🔴 En proceso |
+
+### Batería de evaluación — 9 módulos
+
+| # | Módulo | Pantalla + `integration/` | Servicio local | Hardware nativo |
+|---|---|---|---|---|
+| 1 | Evaluación Clínica Previa | 🟢 Construido | 🟡 Crear (`clinicalAssessments`) | 🟢 ninguno |
+| 2 | Autismo M-CHAT-R | 🟢 Construido | 🟡 Crear (`screenings`) | 🟢 ninguno |
+| 3 | Sonómetro Ambiental | 🟢 Construido | — (sin persistencia) | 🟢 micrófono real integrado |
+| 4 | Audiometría Infantil | 🟢 Construido | 🟢 OK (`audiometry`) | 🟢 síntesis de tono (`audio-api`) |
+| 5 | Audiometría Condicionada | 🟢 Construido | 🟢 Reutiliza `audiometry` | 🟢 síntesis de tono + reanimated |
+| 6 | Análisis Acústico de Voz | 🟢 Construido | 🟡 Crear (`voiceAnalysis`) | 🟢 mic + DSP (LPC nativo/fallback JS) |
+| 7 | Test de Disfagia MECV-V | 🟢 Construido | 🟡 Crear (`dysphagiaTest`) | 🟢 BLE pulsioxímetro (`ble-plx`) |
+| 8 | Cribado SAHS Infantil | 🟢 Construido | 🟢 OK (`sahsScreenings`) | 🟢 ninguno |
+| 9 | Articulación · T.A.R. | 🟢 Construido | 🟢 Provista (`articulationTests`) | 🟢 mic + voz + TTS (degrada a SODA manual) |
+
+> Los 9 paquetes `VIA+ <Módulo> (React Native)` están construidos (pantalla + `integration/`).
+> Pendiente de compilación: crear las carpetas de servicio marcadas 🟡, renombrar la migración
+> de Disfagia (`…200` → `…250` por colisión con `CreateVoiceAnalysis`), registrar las 9 rutas
+> en `RootStackParamList` y verificar `tsc --noEmit` sin errores. Detalle completo en el
+> Contrato de Compilación v3.
 
 ---
 
