@@ -1,0 +1,18 @@
+# Tuned for VIA+ docs style: badges/centered HTML headers, wide tables, long
+# regulatory paragraphs. Disable rules that would fail on intentional style
+# choices rather than real errors.
+default: true
+
+MD013: false # line-length — long clinical/regulatory prose and tables
+MD033: false # no-inline-html — badges/centered header use raw HTML
+MD041: false # first-line-heading — files may open with a centered HTML block
+MD024: # no-duplicate-heading
+  siblings_only: true
+MD036: false # no-emphasis-as-heading — used for short labeled notes
+MD040: false # fenced-code-language — ASCII architecture/flow diagrams, not real code
+MD034: false # no-bare-urls — contact emails written as plain text
+MD060: false # table-column-style — tables use readable padded pipes, not compact style
+MD001: false # heading-increment — centered h1/h3 title block in README
+MD022: false # blanks-around-headings — tight centered title block in README
+MD032: false # blanks-around-lists — LICENSE legal text formatting
+MD007: false # ul-indent — LICENSE legal text formatting
