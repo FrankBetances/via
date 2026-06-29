@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { Animated, Easing, LayoutChangeEvent, View } from 'react-native';
-import { Box, HStack, Text, VStack } from '@gluestack-ui/themed';
+import { Box, HStack, Text } from '@gluestack-ui/themed';
 
 interface Props {
   /** Estaciones alcanzadas para el oído activo (0..4). */

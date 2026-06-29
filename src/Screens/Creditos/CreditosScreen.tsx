@@ -1,5 +1,5 @@
 import React from 'react';
-import { StackScreenProps } from '@react-navigation/stack';
+import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { Box, Center, HStack, Icon, VStack } from '@gluestack-ui/themed';
 import { ArrowRight, Mic } from 'lucide-react-native';
 
@@ -13,7 +13,7 @@ import { RootStackParamList } from '@/Navigators';
 /*  proyecto; el CTA "Comenzar" continúa al registro profesional.             */
 /* -------------------------------------------------------------------------- */
 
-type Props = StackScreenProps<RootStackParamList, 'Creditos'>;
+type Props = NativeStackScreenProps<RootStackParamList, 'Creditos'>;
 
 const YEAR = new Date().getFullYear();
 

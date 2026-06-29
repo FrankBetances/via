@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Pressable } from 'react-native';
-import { StackScreenProps } from '@react-navigation/stack';
+import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useDispatch, useSelector } from 'react-redux';
 import { Box, Card, Center, HStack, Icon, Input, InputField, VStack } from '@gluestack-ui/themed';
 import { ChevronRight, Plus, Search } from 'lucide-react-native';
@@ -25,7 +25,7 @@ import { showErrorToast } from '@/Helpers/showToast';
 /*  directamente a `SeleccionEjercicios`.                                     */
 /* -------------------------------------------------------------------------- */
 
-type Props = StackScreenProps<RootStackParamList, 'Pacientes'>;
+type Props = NativeStackScreenProps<RootStackParamList, 'Pacientes'>;
 
 interface PatientRow {
   patient: Patient;

@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Pressable } from 'react-native';
-import { StackScreenProps } from '@react-navigation/stack';
+import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { Box, Card, HStack, Icon, ScrollView, VStack } from '@gluestack-ui/themed';
 import {
   Activity,
@@ -52,7 +52,7 @@ import { showErrorToast, showSuccessToast } from '@/Helpers/showToast';
 /*  generación y "compartir" de informe PDF (`generateReport`).               */
 /* -------------------------------------------------------------------------- */
 
-type Props = StackScreenProps<RootStackParamList, 'ResultadosFinal'>;
+type Props = NativeStackScreenProps<RootStackParamList, 'ResultadosFinal'>;
 
 type StatusKind = 'ok' | 'warn' | 'alt';
 type Kind = 'audio' | 'params' | 'rows';
@@ -77,8 +77,8 @@ interface TestDetail {
   title: string;
   subtitle: string;
   icon: any;
-  od?: number[];
-  oi?: number[];
+  od?: (number | null)[];
+  oi?: (number | null)[];
   params?: ParamRow[];
   rows?: SimpleRow[];
   interp: string;

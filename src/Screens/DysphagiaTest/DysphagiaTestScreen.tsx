@@ -23,7 +23,6 @@ import {
   Droplet,
   Info,
   ShieldCheck,
-  X,
 } from 'lucide-react-native';
 
 import { Button, Content, Header, Text } from '@/Components/Common';

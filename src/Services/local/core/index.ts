@@ -83,7 +83,6 @@ export function createLocalMutation<TResult, TInput = void>(
           setIsLoading(false);
         }
       },
-      // eslint-disable-next-line react-hooks/exhaustive-deps
       [],
     );
 
@@ -143,11 +142,9 @@ export function createLocalQuery<TResult, TArg = void>(
         setIsLoading(false);
         setIsFetching(false);
       }
-      // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [skip]);
 
     // Auto-fetch on mount / when `arg` (by reference/value) or `skip` changes.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
     useState(() => {
       execute();
       return null;
@@ -205,7 +202,6 @@ export function createLocalLazyQuery<TResult, TArg = void>(
           setIsFetching(false);
         }
       },
-      // eslint-disable-next-line react-hooks/exhaustive-deps
       [],
     );
 

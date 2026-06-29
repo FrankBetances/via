@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { Pressable } from 'react-native';
-import { StackScreenProps } from '@react-navigation/stack';
+import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import {
   Box,
   Card,
@@ -144,7 +144,7 @@ const ItemRow = ({
 /*  Pantalla principal                                                         */
 /* -------------------------------------------------------------------------- */
 
-type Props = StackScreenProps<RootStackParamList, 'ClinicalAssessment'>;
+type Props = NativeStackScreenProps<RootStackParamList, 'ClinicalAssessment'>;
 
 export default function ClinicalAssessmentScreen({ navigation }: Props) {
   const activeEvaluation = useClassSelector(Evaluation, (state: RootState) => state.activeEvaluation.evaluation);
@@ -155,7 +155,7 @@ export default function ClinicalAssessmentScreen({ navigation }: Props) {
   const [visObs, setVisObs] = useState('');
   const [verObs, setVerObs] = useState('');
   const [motObs, setMotObs] = useState('');
-  const [otoObs, setOtoObs] = useState('');
+  const [otoObs, _setOtoObs] = useState('');
   const [evaluatorName, setEvaluatorName] = useState(activeEvaluation?.professional?.name ?? '');
   const [evaluatorLicense, setEvaluatorLicense] = useState(activeEvaluation?.professional?.licenseNumber ?? '');
 

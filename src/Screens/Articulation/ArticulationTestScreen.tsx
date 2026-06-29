@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { Pressable } from 'react-native';
-import { StackScreenProps } from '@react-navigation/stack';
+import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import {
   Box,
   Card,
@@ -65,14 +65,6 @@ import {
 
 type View = 'setup' | 'test' | 'report';
 
-const SECTION_ORDER: ArticulationSection[] = [
-  'consonantes',
-  'difvoc',
-  'difcons',
-  'polisilabas',
-  'frases',
-];
-
 const SECTION_TABS: { key: ArticulationSection; short: string }[] = [
   { key: 'consonantes', short: 'Conson.' },
   { key: 'difvoc', short: 'Díf. voc.' },
@@ -108,7 +100,7 @@ const SODA_BG: Record<SodaCode, string> = {
 /*  Pantalla principal                                                         */
 /* -------------------------------------------------------------------------- */
 
-type Props = StackScreenProps<RootStackParamList, 'Articulation'>;
+type Props = NativeStackScreenProps<RootStackParamList, 'Articulation'>;
 
 export default function ArticulationTestScreen({ navigation }: Props) {
   const activeEvaluation = useClassSelector(Evaluation, (state: RootState) => state.activeEvaluation.evaluation);

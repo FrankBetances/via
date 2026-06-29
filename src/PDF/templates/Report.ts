@@ -33,7 +33,8 @@ export async function generateReport({ evaluation }: GenerateReportOptions): Pro
     bold: await pdfDoc.embedFont(StandardFonts.HelveticaBold),
   };
 
-  const t = (_key: string, fallback: string) => fallback;
+  const t = (_key: string, fallback?: string | Record<string, unknown>) =>
+    typeof fallback === 'string' ? fallback : _key;
 
   const cover = pdfDoc.addPage(PAGE_SIZE);
   cover.drawText('VIA+ — Informe de evaluación', {

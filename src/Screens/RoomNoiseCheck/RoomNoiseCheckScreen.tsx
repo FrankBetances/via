@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Pressable } from 'react-native';
-import { StackScreenProps } from '@react-navigation/stack';
+import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import Svg, { Circle } from 'react-native-svg';
 import { Box, Card, Center, HStack, Icon, VStack } from '@gluestack-ui/themed';
 import { ArrowRight, Check, Mic, Square } from 'lucide-react-native';
@@ -70,7 +70,7 @@ interface ScreenConfig {
   testDurationSec?: number;
 }
 
-type Props = StackScreenProps<RootStackParamList, 'RoomNoiseCheck'>;
+type Props = NativeStackScreenProps<RootStackParamList, 'RoomNoiseCheck'>;
 
 export default function RoomNoiseCheckScreen({ navigation, route }: Props) {
   const cfg = (route.params as ScreenConfig | undefined) ?? {};

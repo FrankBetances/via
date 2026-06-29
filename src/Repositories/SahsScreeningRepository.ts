@@ -68,7 +68,7 @@ export class SahsScreeningRepository {
       const repository: Repository<SahsScreening> = await instance.getRepository();
       return await repository.findOne({
         where: { id },
-        relations: { evaluation: true },
+        relations: ['evaluation'],
       });
     } catch (error) {
       throw error;
@@ -80,8 +80,8 @@ export class SahsScreeningRepository {
     try {
       const repository: Repository<SahsScreening> = await instance.getRepository();
       return await repository.find({
-        where: { evaluation: { id: evaluationId } },
-        relations: { evaluation: true },
+        where: { evaluation: { id: evaluationId } as any },
+        relations: ['evaluation'],
         order: { completedAt: 'DESC' },
       });
     } catch (error) {

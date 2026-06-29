@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { Pressable } from 'react-native';
-import { StackScreenProps } from '@react-navigation/stack';
+import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { Box, Card, Center, HStack, Icon, Input, InputField, ScrollView, VStack } from '@gluestack-ui/themed';
 import { Bell, Check, RotateCcw, Save, Volume2, X } from 'lucide-react-native';
 
@@ -24,7 +24,7 @@ import {
 } from '@/Screens/Audiometry';
 import TrainScene from './components/TrainScene';
 
-type Props = StackScreenProps<RootStackParamList, 'AudiometryConditioned'>;
+type Props = NativeStackScreenProps<RootStackParamList, 'AudiometryConditioned'>;
 
 const FREQ_LABEL: Record<string, string> = { '500': '500', '1000': '1k', '2000': '2k', '4000': '4k', amb: 'Amb', pol: 'Pol' };
 

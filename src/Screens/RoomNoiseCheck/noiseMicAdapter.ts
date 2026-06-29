@@ -22,7 +22,6 @@ import { NoiseMicAdapter, setNoiseMicAdapter } from './useNoiseMeter';
 
 const optionalRequire = (name: string): any => {
   try {
-    // eslint-disable-next-line @typescript-eslint/no-var-requires, global-require
     return require(name);
   } catch (_e) {
     return null;

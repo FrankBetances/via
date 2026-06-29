@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { Pressable } from 'react-native';
-import { StackScreenProps } from '@react-navigation/stack';
+import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useDispatch, useSelector } from 'react-redux';
 import { Box, Card, HStack, Icon, Input, InputField, VStack } from '@gluestack-ui/themed';
 import { ArrowRight } from 'lucide-react-native';
@@ -29,7 +29,7 @@ import { showErrorToast, showSuccessToast } from '@/Helpers/showToast';
 /*  con el resto del esquema actual.                                          */
 /* -------------------------------------------------------------------------- */
 
-type Props = StackScreenProps<RootStackParamList, 'RegistroPaciente'>;
+type Props = NativeStackScreenProps<RootStackParamList, 'RegistroPaciente'>;
 
 const SEXOS: { value: PatientSex; label: string }[] = [
   { value: 'F', label: 'Femenino' },

@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { StackScreenProps } from '@react-navigation/stack';
-import { Box, Card, Center, HStack, Icon, VStack } from '@gluestack-ui/themed';
-import { AlertTriangle, ArrowRight, ChevronLeft, Share2 } from 'lucide-react-native';
+import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { Box, Card, HStack, Icon, VStack } from '@gluestack-ui/themed';
+import { AlertTriangle, ArrowRight, ChevronLeft } from 'lucide-react-native';
 
 import { Button, Content, Header, Text } from '@/Components/Common';
 import RadialBackground from '@/Components/Themed/RadialBackground';
@@ -18,7 +18,7 @@ import { ArticulationTestRepository } from '@/Repositories/ArticulationTestRepos
 import { ScreeningRepository } from '@/Repositories/ScreeningRepository';
 
 import { interpretAudiometry, pta, severityOf } from '@/Screens/Audiometry/audiometryResult';
-import { buildInterpretation as buildVoiceInterpretation, statusColor, statusLabel } from '@/Screens/VoiceAnalysis/voiceAnalysisResult';
+import { buildInterpretation as buildVoiceInterpretation } from '@/Screens/VoiceAnalysis/voiceAnalysisResult';
 
 /* -------------------------------------------------------------------------- */
 /*  ResultadosPreliminaresScreen — vista rápida de resultados de la sesión    */
@@ -26,7 +26,7 @@ import { buildInterpretation as buildVoiceInterpretation, statusColor, statusLab
 /*  módulo por evaluación y muestra una tarjeta resumida por resultado.       */
 /* -------------------------------------------------------------------------- */
 
-type Props = StackScreenProps<RootStackParamList, 'ResultadosPreliminares'>;
+type Props = NativeStackScreenProps<RootStackParamList, 'ResultadosPreliminares'>;
 
 type StatusKind = 'ok' | 'warn' | 'alt';
 

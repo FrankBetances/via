@@ -1,4 +1,4 @@
-import { AudiometryThresholds, Ear } from '@/Models/Audiometry/AudiometryTest';
+import { AudiometryThresholds } from '@/Models/Audiometry/AudiometryTest';
 
 /* -------------------------------------------------------------------------- */
 /*  Lógica clínica de audiometría tonal (fuente única para ambas pantallas).   */

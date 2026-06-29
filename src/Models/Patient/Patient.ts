@@ -57,4 +57,19 @@ export class Patient {
   @Transform(({ value }) => value?.toISOString(), { toPlainOnly: true })
   @Transform(({ value }) => (value ? new Date(value) : null), { toClassOnly: true })
   createdAt: Date;
+
+  /** Alias de lectura sobre `idHash` para las pantallas que muestran el NHC. */
+  get nhc(): string {
+    return this.idHash;
+  }
+
+  /** Nombre(s) — primer token de `nameEnc` (sin cifrado real en Fase 1). */
+  get name(): string {
+    return this.nameEnc?.split(' ')[0] ?? '';
+  }
+
+  /** Apellidos — resto de tokens de `nameEnc` (sin cifrado real en Fase 1). */
+  get lastName(): string {
+    return this.nameEnc?.split(' ').slice(1).join(' ') ?? '';
+  }
 }

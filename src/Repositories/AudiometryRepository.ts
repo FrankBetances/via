@@ -43,14 +43,14 @@ export class AudiometryRepository {
 
   static async getAudiometryById(id: number): Promise<AudiometryTest | null> {
     const repo = await this.getInstance().getRepository();
-    return repo.findOne({ where: { id }, relations: { evaluation: true } });
+    return repo.findOne({ where: { id }, relations: ['evaluation'] });
   }
 
   static async getAudiometryByEvaluation(evaluationId: number): Promise<AudiometryTest[]> {
     const repo = await this.getInstance().getRepository();
     return repo.find({
-      where: { evaluation: { id: evaluationId } },
-      relations: { evaluation: true },
+      where: { evaluation: { id: evaluationId } as any },
+      relations: ['evaluation'],
       order: { completedAt: 'DESC' },
     });
   }

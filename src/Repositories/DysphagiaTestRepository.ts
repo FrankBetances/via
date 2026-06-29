@@ -42,14 +42,14 @@ export class DysphagiaTestRepository {
 
   static async getDysphagiaById(id: number): Promise<DysphagiaTest | null> {
     const repo = await this.getInstance().getRepository();
-    return repo.findOne({ where: { id }, relations: { evaluation: true } });
+    return repo.findOne({ where: { id }, relations: ['evaluation'] });
   }
 
   static async getDysphagiaByEvaluation(evaluationId: number): Promise<DysphagiaTest[]> {
     const repo = await this.getInstance().getRepository();
     return repo.find({
-      where: { evaluation: { id: evaluationId } },
-      relations: { evaluation: true },
+      where: { evaluation: { id: evaluationId } as any },
+      relations: ['evaluation'],
       order: { completedAt: 'DESC' },
     });
   }

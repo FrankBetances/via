@@ -1,6 +1,6 @@
-import React, { useMemo, useState } from 'react';
+import React, { useState } from 'react';
 import { Pressable } from 'react-native';
-import { StackScreenProps } from '@react-navigation/stack';
+import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { Box, Card, Center, HStack, Icon, VStack } from '@gluestack-ui/themed';
 import {
   Activity,
@@ -29,7 +29,7 @@ import { useClassSelector } from '@/Helpers/ClassTransformer';
 /*  ya registrada como módulo independiente — ver Contrato de Compilación).   */
 /* -------------------------------------------------------------------------- */
 
-type Props = StackScreenProps<RootStackParamList, 'SeleccionEjercicios'>;
+type Props = NativeStackScreenProps<RootStackParamList, 'SeleccionEjercicios'>;
 
 interface ModuleCard {
   id: keyof RootStackParamList;

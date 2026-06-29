@@ -46,4 +46,9 @@ export class Professional {
   @Transform(({ value }) => value?.toISOString(), { toPlainOnly: true })
   @Transform(({ value }) => (value ? new Date(value) : null), { toClassOnly: true })
   createdAt: Date;
+
+  /** Alias de lectura sobre `fullName` para las pantallas que esperan `name`. */
+  get name(): string {
+    return this.fullName;
+  }
 }

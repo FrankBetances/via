@@ -87,10 +87,11 @@ export function installBlePulseOximeter(manager: any): () => void {
 
   const base64ToBytes = (b64: string): number[] => {
     // RN expone atob a través de la global; si no, usa Buffer.
+    const globalAtob = (globalThis as { atob?: (data: string) => string }).atob;
     const bin =
-      typeof atob === 'function'
-        ? atob(b64)
-        : // eslint-disable-next-line @typescript-eslint/no-var-requires
+      typeof globalAtob === 'function'
+        ? globalAtob(b64)
+        :  
           require('buffer').Buffer.from(b64, 'base64').toString('binary');
     const out: number[] = [];
     for (let i = 0; i < bin.length; i++) out.push(bin.charCodeAt(i) & 0xff);

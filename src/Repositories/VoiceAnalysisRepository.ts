@@ -44,14 +44,14 @@ export class VoiceAnalysisRepository {
 
   static async getVoiceAnalysisById(id: number): Promise<VoiceAnalysis | null> {
     const repo = await this.getInstance().getRepository();
-    return repo.findOne({ where: { id }, relations: { evaluation: true } });
+    return repo.findOne({ where: { id }, relations: ['evaluation'] });
   }
 
   static async getVoiceAnalysisByEvaluation(evaluationId: number): Promise<VoiceAnalysis[]> {
     const repo = await this.getInstance().getRepository();
     return repo.find({
-      where: { evaluation: { id: evaluationId } },
-      relations: { evaluation: true },
+      where: { evaluation: { id: evaluationId } as any },
+      relations: ['evaluation'],
       order: { completedAt: 'DESC' },
     });
   }

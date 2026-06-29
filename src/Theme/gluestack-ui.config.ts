@@ -88,16 +88,16 @@ export const config = createConfig({
       ...defaultConfig.tokens.radii,
       ...viaPlusRadii,
     },
-  },
-  fonts: {
-    ...defaultConfig.fonts,
-    ...viaPlusFonts,
+    fonts: {
+      ...defaultConfig.tokens.fonts,
+      ...viaPlusFonts,
+    },
   },
 });
 
 export type ViaPlusConfig = typeof config;
 
 declare module '@gluestack-style/react' {
-  // eslint-disable-next-line @typescript-eslint/no-empty-interface
+   
   interface ICustomConfig extends ViaPlusConfig {}
 }

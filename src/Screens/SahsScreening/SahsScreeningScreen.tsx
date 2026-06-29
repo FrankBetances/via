@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { Pressable } from 'react-native';
-import { StackScreenProps } from '@react-navigation/stack';
+import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import {
   Box,
   Card,
@@ -148,7 +148,7 @@ const AnswerToggle = ({
 /*  Pantalla principal                                                         */
 /* -------------------------------------------------------------------------- */
 
-type Props = StackScreenProps<RootStackParamList, 'SahsScreening'>;
+type Props = NativeStackScreenProps<RootStackParamList, 'SahsScreening'>;
 
 export default function SahsScreeningScreen({ navigation }: Props) {
   const activeEvaluation = useClassSelector(Evaluation, (state: RootState) => state.activeEvaluation.evaluation);

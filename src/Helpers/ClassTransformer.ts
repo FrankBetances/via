@@ -23,6 +23,5 @@ export function useClassSelector<TPlain, TClass>(
   return useMemo(() => {
     if (plain === null || plain === undefined) return null;
     return plainToInstance(cls, plain as object) as TClass;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [plain, cls]);
 }

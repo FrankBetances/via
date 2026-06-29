@@ -18,7 +18,6 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 /** require opcional: el nombre va en variable para que el bundler no falle si la lib no existe. */
 const optionalRequire = (name: string): any => {
   try {
-    // eslint-disable-next-line @typescript-eslint/no-var-requires, global-require
     return require(name);
   } catch (_e) {
     return null;

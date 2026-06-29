@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { Pressable } from 'react-native';
-import { StackScreenProps } from '@react-navigation/stack';
+import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import {
   Box,
   Card,
@@ -165,13 +165,6 @@ const AnswerToggle = ({
   onYes: () => void;
   onNo: () => void;
 }) => {
-  const pill = (active: boolean) => ({
-    flex: 1 as const,
-    alignItems: 'center' as const,
-    justifyContent: 'center' as const,
-    paddingVertical: 9,
-    borderRadius: 999,
-  });
   return (
     <HStack space="sm">
       <Pressable style={{ flex: 1 }} onPress={onYes}>
@@ -196,7 +189,7 @@ const AnswerToggle = ({
 /*  Pantalla principal                                                         */
 /* -------------------------------------------------------------------------- */
 
-type Props = StackScreenProps<RootStackParamList, 'Mchat'>;
+type Props = NativeStackScreenProps<RootStackParamList, 'Mchat'>;
 
 export default function AutismScreeningScreen({ navigation }: Props) {
   // Evaluación activa (paciente + profesional) desde Redux, como en ResultScreen.

@@ -45,7 +45,6 @@ function AppShell() {
     // En caso de error de inicialización, se sigue mostrando el splash;
     // el manejo de error/reintento clínico se añade en una fase posterior.
     if (dbError) {
-      // eslint-disable-next-line no-console
       console.error('VIA+: error inicializando la base de datos local', dbError);
     }
     return <SplashScreen />;

@@ -1,5 +1,6 @@
-import React from 'react';
-import { Text as GSText, ITextProps } from '@gluestack-ui/themed';
+import React, { ComponentProps } from 'react';
+import { TextStyle } from 'react-native';
+import { Text as GSText } from '@gluestack-ui/themed';
 
 /* -------------------------------------------------------------------------- */
 /*  Text — wrapper de `@gluestack-ui/themed`'s Text usado por las 9 pantallas */
@@ -10,14 +11,14 @@ import { Text as GSText, ITextProps } from '@gluestack-ui/themed';
 
 export type TextWeight = 'normal' | 'medium' | 'semiBold' | 'bold';
 
-const WEIGHT_MAP: Record<TextWeight, string> = {
+const WEIGHT_MAP: Record<TextWeight, TextStyle['fontWeight']> = {
   normal: '400',
   medium: '500',
   semiBold: '600',
   bold: '700',
 };
 
-export interface TextProps extends ITextProps {
+export interface TextProps extends ComponentProps<typeof GSText> {
   weight?: TextWeight;
 }
 

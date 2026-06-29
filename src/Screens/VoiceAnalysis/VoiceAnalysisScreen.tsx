@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { Pressable, View } from 'react-native';
 import Svg, { Ellipse, Line, Circle, Text as SvgText } from 'react-native-svg';
-import { StackScreenProps } from '@react-navigation/stack';
+import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import {
   Box,
   Card,
@@ -13,7 +13,7 @@ import {
   ScrollView,
   VStack,
 } from '@gluestack-ui/themed';
-import { ArrowLeft, AudioWaveform, Mic, Save, Sparkles, Square } from 'lucide-react-native';
+import { AudioWaveform, Mic, Save, Sparkles, Square } from 'lucide-react-native';
 
 import { Button, Content, Header, Text } from '@/Components/Common';
 import RadialBackground from '@/Components/Themed/RadialBackground';
@@ -35,7 +35,7 @@ import {
   statusShimmer,
 } from './voiceAnalysisResult';
 
-type Props = StackScreenProps<RootStackParamList, 'VoiceAnalysis'>;
+type Props = NativeStackScreenProps<RootStackParamList, 'VoiceAnalysis'>;
 
 /* ------------------------- Espacio vocálico (F1×F2) ----------------------- */
 

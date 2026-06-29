@@ -1,5 +1,5 @@
-import React, { ReactNode } from 'react';
-import { Button as GSButton, ButtonSpinner, IButtonProps } from '@gluestack-ui/themed';
+import React, { ComponentProps, ReactNode } from 'react';
+import { Button as GSButton, ButtonSpinner } from '@gluestack-ui/themed';
 
 /* -------------------------------------------------------------------------- */
 /*  Button — wrapper de `@gluestack-ui/themed`'s Button usado por las 9       */
@@ -11,7 +11,7 @@ import { Button as GSButton, ButtonSpinner, IButtonProps } from '@gluestack-ui/t
 /*  `rounded`, `isDisabled`, `onPress`, `style`, ...) se reenvía sin cambios. */
 /* -------------------------------------------------------------------------- */
 
-export interface ButtonProps extends IButtonProps {
+export interface ButtonProps extends ComponentProps<typeof GSButton> {
   isLoading?: boolean;
   children?: ReactNode;
 }

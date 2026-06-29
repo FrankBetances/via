@@ -69,7 +69,7 @@ export class EvaluationRepository {
       const repository: Repository<Evaluation> = await instance.getRepository();
       return await repository.findOne({
         where: { id },
-        relations: { patient: true, professional: true },
+        relations: ['patient', 'professional'],
       });
     } catch (error) {
       throw error;
@@ -81,8 +81,8 @@ export class EvaluationRepository {
     try {
       const repository: Repository<Evaluation> = await instance.getRepository();
       return await repository.find({
-        where: { patient: { id: patientId } },
-        relations: { patient: true, professional: true },
+        where: { patient: { id: patientId } as any },
+        relations: ['patient', 'professional'],
         order: { startedAt: 'DESC' },
       });
     } catch (error) {
@@ -95,8 +95,8 @@ export class EvaluationRepository {
     try {
       const repository: Repository<Evaluation> = await instance.getRepository();
       return await repository.findOne({
-        where: { patient: { id: patientId }, status: 'in_progress' },
-        relations: { patient: true, professional: true },
+        where: { patient: { id: patientId } as any, status: 'in_progress' },
+        relations: ['patient', 'professional'],
         order: { startedAt: 'DESC' },
       });
     } catch (error) {
@@ -109,7 +109,7 @@ export class EvaluationRepository {
     try {
       const repository: Repository<Evaluation> = await instance.getRepository();
       return await repository.find({
-        relations: { patient: true, professional: true },
+        relations: ['patient', 'professional'],
         order: { startedAt: 'DESC' },
       });
     } catch (error) {

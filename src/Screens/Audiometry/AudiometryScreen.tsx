@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { Pressable } from 'react-native';
-import { StackScreenProps } from '@react-navigation/stack';
+import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { Box, Card, Center, HStack, Icon, Input, InputField, ScrollView, VStack } from '@gluestack-ui/themed';
 import { Check, RotateCcw, Save, Volume2, X } from 'lucide-react-native';
 
@@ -17,7 +17,7 @@ import { useAudiometryTest, ToneTarget } from './useAudiometryTest';
 import { DB_STEPS, FREQS, interpretAudiometry, severityOf } from './audiometryResult';
 import Audiogram from './components/Audiogram';
 
-type Props = StackScreenProps<RootStackParamList, 'Audiometry'>;
+type Props = NativeStackScreenProps<RootStackParamList, 'Audiometry'>;
 
 const INSTRUMENTS: { key: string; glyph: string; name: string; freq: ToneTarget; tag: string }[] = [
   { key: 'drum', glyph: '🥁', name: 'Tambor', freq: 500, tag: '500 Hz' },

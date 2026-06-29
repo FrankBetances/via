@@ -205,6 +205,7 @@ export const AudioEngineProvider: React.FC<{ children: React.ReactNode }> = ({ c
 
   const value = useMemo<AudioEngine>(
     () => ({ available, micGranted, playTone, stopTone, startMic, stopMic, getAnalyser }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- callbacks read refs/state via closure, not memoized by design
     [available, micGranted],
   );
 

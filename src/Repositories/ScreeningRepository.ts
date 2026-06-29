@@ -68,7 +68,7 @@ export class ScreeningRepository {
       const repository: Repository<Screening> = await instance.getRepository();
       return await repository.findOne({
         where: { id },
-        relations: { evaluation: true },
+        relations: ['evaluation'],
       });
     } catch (error) {
       throw error;
@@ -80,8 +80,8 @@ export class ScreeningRepository {
     try {
       const repository: Repository<Screening> = await instance.getRepository();
       return await repository.find({
-        where: { evaluation: { id: evaluationId } },
-        relations: { evaluation: true },
+        where: { evaluation: { id: evaluationId } as any },
+        relations: ['evaluation'],
         order: { completedAt: 'DESC' },
       });
     } catch (error) {
@@ -97,8 +97,8 @@ export class ScreeningRepository {
     try {
       const repository: Repository<Screening> = await instance.getRepository();
       return await repository.findOne({
-        where: { evaluation: { id: evaluationId }, instrument },
-        relations: { evaluation: true },
+        where: { evaluation: { id: evaluationId } as any, instrument },
+        relations: ['evaluation'],
         order: { completedAt: 'DESC' },
       });
     } catch (error) {

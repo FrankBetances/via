@@ -6,6 +6,7 @@
       "@/*": ["src/*"]
     },
     "strict": true,
+    "strictPropertyInitialization": false,
     "noUncheckedIndexedAccess": false,
     "experimentalDecorators": true,
     "emitDecoratorMetadata": true,
