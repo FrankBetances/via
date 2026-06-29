@@ -1,6 +1,13 @@
 import { PDFDocument, StandardFonts } from 'pdf-lib';
 import { blocks } from '@/PDF/blocks';
 import { Evaluation } from '@/Models/Evaluation/Evaluation';
+import { ClinicalAssessmentRepository } from '@/Repositories/ClinicalAssessmentRepository';
+import { ScreeningRepository } from '@/Repositories/ScreeningRepository';
+import { AudiometryRepository } from '@/Repositories/AudiometryRepository';
+import { VoiceAnalysisRepository } from '@/Repositories/VoiceAnalysisRepository';
+import { DysphagiaTestRepository } from '@/Repositories/DysphagiaTestRepository';
+import { SahsScreeningRepository } from '@/Repositories/SahsScreeningRepository';
+import { ArticulationTestRepository } from '@/Repositories/ArticulationTestRepository';
 
 /* -------------------------------------------------------------------------- */
 /*  Generador de informe PDF — VIA+.                                        */
@@ -23,6 +30,7 @@ export async function generateReport({ evaluation }: GenerateReportOptions): Pro
   const fonts = {
     regular: await pdfDoc.embedFont(StandardFonts.Helvetica),
     semiBold: await pdfDoc.embedFont(StandardFonts.HelveticaBold),
+    bold: await pdfDoc.embedFont(StandardFonts.HelveticaBold),
   };
 
   const t = (_key: string, fallback: string) => fallback;
@@ -41,14 +49,50 @@ export async function generateReport({ evaluation }: GenerateReportOptions): Pro
     font: fonts.regular,
   });
 
-  // Module-specific report sections appended by later phases:
-  //
-  //   const tests = await AudiometryRepository.getAudiometryByEvaluation(evaluation.id);
-  //   for (const test of tests) {
-  //     const page = pdfDoc.addPage(PAGE_SIZE);
-  //     await blocks.AudiometryDetail({ test }, { page, fonts, t });
-  //   }
-  void blocks;
+  // Module-specific report sections: una página por resultado de módulo
+  // asociado a la evaluación, en el orden del Contrato de Compilación §2.
+
+  const clinicalAssessments = await ClinicalAssessmentRepository.getClinicalAssessmentsByEvaluation(evaluation.id);
+  for (const assessment of clinicalAssessments) {
+    const page = pdfDoc.addPage(PAGE_SIZE);
+    await blocks.ClinicalAssessmentDetail({ assessment }, { page, fonts, t });
+  }
+
+  const screenings = await ScreeningRepository.getScreeningsByEvaluation(evaluation.id);
+  for (const screening of screenings) {
+    const page = pdfDoc.addPage(PAGE_SIZE);
+    await blocks.ScreeningDetail({ screening }, { page, fonts, t });
+  }
+
+  const audiometries = await AudiometryRepository.getAudiometryByEvaluation(evaluation.id);
+  for (const test of audiometries) {
+    const page = pdfDoc.addPage(PAGE_SIZE);
+    await blocks.AudiometryDetail({ test }, { page, fonts, t });
+  }
+
+  const voiceAnalyses = await VoiceAnalysisRepository.getVoiceAnalysisByEvaluation(evaluation.id);
+  for (const analysis of voiceAnalyses) {
+    const page = pdfDoc.addPage(PAGE_SIZE);
+    await blocks.VoiceAnalysisDetail({ analysis }, { page, fonts, t });
+  }
+
+  const dysphagias = await DysphagiaTestRepository.getDysphagiaByEvaluation(evaluation.id);
+  for (const test of dysphagias) {
+    const page = pdfDoc.addPage(PAGE_SIZE);
+    await blocks.DysphagiaDetail({ test }, { page, fonts, t });
+  }
+
+  const sahsScreenings = await SahsScreeningRepository.getSahsScreeningsByEvaluation(evaluation.id);
+  for (const screening of sahsScreenings) {
+    const page = pdfDoc.addPage(PAGE_SIZE);
+    await blocks.SahsScreeningDetail({ screening }, { page, fonts, t });
+  }
+
+  const articulations = await ArticulationTestRepository.getArticulationByEvaluation(evaluation.id);
+  for (const test of articulations) {
+    const page = pdfDoc.addPage(PAGE_SIZE);
+    await blocks.ArticulationDetail({ test }, { page, fonts, t });
+  }
 
   return pdfDoc.save();
 }

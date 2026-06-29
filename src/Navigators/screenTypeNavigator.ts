@@ -12,7 +12,18 @@ export type RootStackParamList = {
   RegistroProfesional: undefined;
   Creditos: undefined;
 
-  // Module + new screen routes appended by later phases
+  // Module routes (Contrato de Compilación §2)
+  ClinicalAssessment: undefined;
+  Mchat: undefined;
+  RoomNoiseCheck: undefined;
+  Audiometry: undefined;
+  AudiometryConditioned: undefined;
+  VoiceAnalysis: undefined;
+  DysphagiaTest: undefined;
+  SahsScreening: undefined;
+  Articulation: undefined;
+
+  // New screen routes appended by later phases (mockup-based hub screens, etc.)
 };
 
 declare global {

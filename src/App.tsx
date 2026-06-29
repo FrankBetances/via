@@ -12,14 +12,15 @@ import { config } from '@/Theme/gluestack-ui.config';
 import { initDatabase } from '@/Database/config';
 import DefaultNavigator from '@/Navigators/Default';
 import SplashScreen from '@/Screens/Splash/SplashScreen';
+import { AudioEngineProvider } from '@/Providers/AudioEngineProvider';
 import '@/Navigators/screenTypeNavigator';
 
 /* -------------------------------------------------------------------------- */
 /*  Punto de entrada de la app — VIA+.                                      */
-/*  Orden de providers: Redux -> PersistGate -> GluestackUI -> Navigation.   */
+/*  Orden de providers: Redux -> PersistGate -> GluestackUI ->               */
+/*  AudioEngineProvider (motor de audio compartido) -> Navigation.           */
 /*  El DataSource de TypeORM se inicializa una vez al montar; mientras tanto  */
-/*  se muestra un splash. AudioEngineProvider (motor de audio compartido) se  */
-/*  añadirá tras GluestackUIProvider en la fase de integración de módulos.   */
+/*  se muestra un splash.                                                     */
 /* -------------------------------------------------------------------------- */
 
 function AppShell() {
@@ -64,7 +65,9 @@ export default function App() {
         <PersistGate loading={<SplashScreen />} persistor={persistor}>
           <SafeAreaProvider>
             <GluestackUIProvider config={config}>
-              <AppShell />
+              <AudioEngineProvider>
+                <AppShell />
+              </AudioEngineProvider>
             </GluestackUIProvider>
           </SafeAreaProvider>
         </PersistGate>

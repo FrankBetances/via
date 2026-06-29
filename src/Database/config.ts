@@ -7,6 +7,13 @@ import { Media } from '@/Models/Media/Media';
 import { Patient } from '@/Models/Patient/Patient';
 import { Evaluation } from '@/Models/Evaluation/Evaluation';
 import { GameTest } from '@/Models/GameTest/GameTest';
+import { ClinicalAssessment } from '@/Models/ClinicalAssessment/ClinicalAssessment';
+import { Screening } from '@/Models/Screening/Screening';
+import { AudiometryTest } from '@/Models/Audiometry/AudiometryTest';
+import { VoiceAnalysis } from '@/Models/VoiceAnalysis/VoiceAnalysis';
+import { DysphagiaTest } from '@/Models/DysphagiaTest/DysphagiaTest';
+import { SahsScreening } from '@/Models/SahsScreening/SahsScreening';
+import { ArticulationTest } from '@/Models/ArticulationTest/ArticulationTest';
 
 /* -------------------------------------------------------------------------- */
 /*  TypeORM DataSource — VIA+ (offline-first, SQLite local).                  */
@@ -36,9 +43,14 @@ export const AppDataSource = new DataSource({
     Evaluation,
     GameTest,
 
-    // MODULE ENTITIES — appended by later integration phases
-    // (Screening, ClinicalAssessment, AudiometryTest, VoiceAnalysis,
-    //  DysphagiaTest, SahsScreening, ArticulationTest, ...)
+    // MODULE ENTITIES
+    ClinicalAssessment,
+    Screening,
+    AudiometryTest,
+    VoiceAnalysis,
+    DysphagiaTest,
+    SahsScreening,
+    ArticulationTest,
   ],
   migrations: [],
   subscribers: [],

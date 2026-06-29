@@ -1,34 +1,43 @@
 /* -------------------------------------------------------------------------- */
 /*  Registro central de bloques PDF — VIA+.                                 */
 /*  Cada módulo clínico aporta un bloque de detalle (función async que        */
-/*  dibuja una página de pdf-lib) registrado aquí bajo su clave. Fase 1 lo     */
-/*  deja vacío; las fases de integración de módulo añaden una entrada por     */
-/*  cada bloque (`ClinicalAssessmentDetail`, `ScreeningDetail`,               */
+/*  dibuja una página de pdf-lib) registrado aquí bajo su clave. Los 7        */
+/*  bloques de módulo (`ClinicalAssessmentDetail`, `ScreeningDetail`,         */
 /*  `AudiometryDetail`, `VoiceAnalysisDetail`, `DysphagiaDetail`,             */
-/*  `SahsScreeningDetail`, `ArticulationDetail`, ...), ver Contrato de         */
-/*  Compilación §6.5.                                                        */
+/*  `SahsScreeningDetail`, `ArticulationDetail`) están registrados aquí y     */
+/*  enganchados en `PDF/templates/Report.ts`, ver Contrato de Compilación     */
+/*  §6.5.                                                                    */
 /* -------------------------------------------------------------------------- */
 
-import type { PDFFont, PDFPage } from 'pdf-lib';
+export type { PdfFonts, PdfBlockOptions, PdfBlock, BlockOptions } from './types';
+import type { PdfBlock } from './types';
 
-export interface PdfFonts {
-  regular: PDFFont;
-  semiBold: PDFFont;
-}
+export { ClinicalAssessmentDetail } from './ClinicalAssessmentDetail';
+export { ScreeningDetail } from './ScreeningDetail';
+export { AudiometryDetail } from './AudiometryDetail';
+export { VoiceAnalysisDetail } from './VoiceAnalysisDetail';
+export { DysphagiaDetail } from './DysphagiaDetail';
+export { SahsScreeningDetail } from './SahsScreeningDetail';
+export { ArticulationDetail } from './ArticulationDetail';
 
-export interface PdfBlockOptions {
-  page: PDFPage;
-  fonts: PdfFonts;
-  t: (key: string, fallback: string) => string;
-}
-
-export type PdfBlock<TProps> = (props: TProps, options: PdfBlockOptions) => Promise<void>;
+import { ClinicalAssessmentDetail } from './ClinicalAssessmentDetail';
+import { ScreeningDetail } from './ScreeningDetail';
+import { AudiometryDetail } from './AudiometryDetail';
+import { VoiceAnalysisDetail } from './VoiceAnalysisDetail';
+import { DysphagiaDetail } from './DysphagiaDetail';
+import { SahsScreeningDetail } from './SahsScreeningDetail';
+import { ArticulationDetail } from './ArticulationDetail';
 
 /**
- * Registro de bloques de informe por módulo. Las fases posteriores añaden
- * una entrada por bloque, p.ej.:
- *   blocks.AudiometryDetail = AudiometryDetail;
+ * Registro de bloques de informe por módulo, recorrido por
+ * `PDF/templates/Report.ts`.
  */
 export const blocks: Record<string, PdfBlock<any>> = {
-  // Module-specific PDF blocks appended by later phases
+  ClinicalAssessmentDetail,
+  ScreeningDetail,
+  AudiometryDetail,
+  VoiceAnalysisDetail,
+  DysphagiaDetail,
+  SahsScreeningDetail,
+  ArticulationDetail,
 };

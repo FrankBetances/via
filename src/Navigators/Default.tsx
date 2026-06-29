@@ -10,6 +10,16 @@ import RegistroPacienteScreen from '@/Screens/RegistroPaciente/RegistroPacienteS
 import RegistroProfesionalScreen from '@/Screens/RegistroProfesional/RegistroProfesionalScreen';
 import CreditosScreen from '@/Screens/Creditos/CreditosScreen';
 
+import { ClinicalAssessmentScreen } from '@/Screens/ClinicalAssessment';
+import { AutismScreeningScreen } from '@/Screens/AutismScreening';
+import { RoomNoiseCheckScreen } from '@/Screens/RoomNoiseCheck';
+import { AudiometryScreen } from '@/Screens/Audiometry';
+import { AudiometryConditionedScreen } from '@/Screens/AudiometryConditioned';
+import { VoiceAnalysisScreen } from '@/Screens/VoiceAnalysis';
+import { DysphagiaTestScreen } from '@/Screens/DysphagiaTest';
+import { SahsScreeningScreen } from '@/Screens/SahsScreening';
+import { ArticulationTestScreen } from '@/Screens/Articulation';
+
 /* -------------------------------------------------------------------------- */
 /*  Navigator raíz — VIA+.                                                  */
 /*  Gate por `state.auth.isLogged`: si no hay sesión, solo se monta el stack  */
@@ -39,7 +49,18 @@ function MainStack() {
       <RootStack.Screen name="RegistroProfesional" component={RegistroProfesionalScreen} />
       <RootStack.Screen name="Creditos" component={CreditosScreen} />
 
-      {/* Module + new screen routes appended by later phases */}
+      {/* Module routes (Contrato de Compilación §2) */}
+      <RootStack.Screen name="ClinicalAssessment" component={ClinicalAssessmentScreen} />
+      <RootStack.Screen name="Mchat" component={AutismScreeningScreen} />
+      <RootStack.Screen name="RoomNoiseCheck" component={RoomNoiseCheckScreen} />
+      <RootStack.Screen name="Audiometry" component={AudiometryScreen} />
+      <RootStack.Screen name="AudiometryConditioned" component={AudiometryConditionedScreen} />
+      <RootStack.Screen name="VoiceAnalysis" component={VoiceAnalysisScreen} />
+      <RootStack.Screen name="DysphagiaTest" component={DysphagiaTestScreen} />
+      <RootStack.Screen name="SahsScreening" component={SahsScreeningScreen} />
+      <RootStack.Screen name="Articulation" component={ArticulationTestScreen} />
+
+      {/* New screen routes appended by later phases (mockup-based hub screens, etc.) */}
     </RootStack.Navigator>
   );
 }
