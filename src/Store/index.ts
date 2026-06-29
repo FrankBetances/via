@@ -13,6 +13,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import themeReducer from '@/Store/slices/themeSlice';
 import authReducer from '@/Store/slices/authSlice';
+import activeEvaluationReducer from '@/Store/slices/activeEvaluationSlice';
 
 /* -------------------------------------------------------------------------- */
 /*  Store de Redux Toolkit — VIA+.                                           */
@@ -23,6 +24,7 @@ import authReducer from '@/Store/slices/authSlice';
 const rootReducer = combineReducers({
   theme: themeReducer,
   auth: authReducer,
+  activeEvaluation: activeEvaluationReducer,
 });
 
 const persistConfig = {
