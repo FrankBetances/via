@@ -119,7 +119,7 @@ export default function RoomNoiseCheckScreen({ navigation, route }: Props) {
     meter.stop();
     // El sonómetro es un prerrequisito (gate): no persiste resultado clínico.
     // Si quieres registrar la verificación, ver LEEME.md § "Persistencia (opcional)".
-    navigation.navigate('GameMenu');
+    navigation.navigate('SeleccionEjercicios');
   };
 
   return (

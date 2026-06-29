@@ -206,7 +206,7 @@ export default function ClinicalAssessmentScreen({ navigation }: Props) {
 
       await createAssessment(ca);
       showSuccessToast('CAP generado', `${a.globalLabel} · ${a.activeCount}/${a.totalGames} pruebas habilitadas.`);
-      navigation.navigate('GameMenu');
+      navigation.navigate('SeleccionEjercicios');
     } catch (e) {
       showErrorToast('Error al guardar', 'No se pudo registrar el certificado. Inténtelo de nuevo.');
     }

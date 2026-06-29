@@ -24,6 +24,9 @@ export type RootStackParamList = {
   Articulation: undefined;
 
   // New screen routes appended by later phases (mockup-based hub screens, etc.)
+  SeleccionEjercicios: undefined;
+  ResultadosPreliminares: undefined;
+  ResultadosFinal: undefined;
 };
 
 declare global {

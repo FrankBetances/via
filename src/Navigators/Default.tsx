@@ -19,6 +19,9 @@ import { VoiceAnalysisScreen } from '@/Screens/VoiceAnalysis';
 import { DysphagiaTestScreen } from '@/Screens/DysphagiaTest';
 import { SahsScreeningScreen } from '@/Screens/SahsScreening';
 import { ArticulationTestScreen } from '@/Screens/Articulation';
+import SeleccionEjerciciosScreen from '@/Screens/SeleccionEjercicios/SeleccionEjerciciosScreen';
+import ResultadosPreliminaresScreen from '@/Screens/ResultadosPreliminares/ResultadosPreliminaresScreen';
+import ResultadosFinalScreen from '@/Screens/ResultadosFinal/ResultadosFinalScreen';
 
 /* -------------------------------------------------------------------------- */
 /*  Navigator raíz — VIA+.                                                  */
@@ -34,6 +37,10 @@ function LoginStack() {
   return (
     <RootStack.Navigator screenOptions={{ headerShown: false }}>
       <RootStack.Screen name="Login" component={LoginScreen} />
+      {/* Alcanzables antes de iniciar sesión: presentación del proyecto y alta
+          de profesional de primera vez (ver Contrato de Compilación §6.4). */}
+      <RootStack.Screen name="Creditos" component={CreditosScreen} />
+      <RootStack.Screen name="RegistroProfesional" component={RegistroProfesionalScreen} />
     </RootStack.Navigator>
   );
 }
@@ -46,6 +53,8 @@ function MainStack() {
     >
       <RootStack.Screen name="Pacientes" component={PacientesScreen} />
       <RootStack.Screen name="RegistroPaciente" component={RegistroPacienteScreen} />
+      {/* Reachable también dentro de la sesión: alta de un profesional adicional
+          / gestión de perfil ("Registro de cuenta"), y créditos como "Acerca de". */}
       <RootStack.Screen name="RegistroProfesional" component={RegistroProfesionalScreen} />
       <RootStack.Screen name="Creditos" component={CreditosScreen} />
 
@@ -61,6 +70,9 @@ function MainStack() {
       <RootStack.Screen name="Articulation" component={ArticulationTestScreen} />
 
       {/* New screen routes appended by later phases (mockup-based hub screens, etc.) */}
+      <RootStack.Screen name="SeleccionEjercicios" component={SeleccionEjerciciosScreen} />
+      <RootStack.Screen name="ResultadosPreliminares" component={ResultadosPreliminaresScreen} />
+      <RootStack.Screen name="ResultadosFinal" component={ResultadosFinalScreen} />
     </RootStack.Navigator>
   );
 }
