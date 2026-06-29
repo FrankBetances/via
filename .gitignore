@@ -1,0 +1,55 @@
+# OSX
+.DS_Store
+
+# Xcode
+build/
+*.pbxuser
+*.mode1v3
+*.mode2v3
+*.perspectivev3
+.build/
+*.xcuserstate
+ios/Pods/
+ios/build/
+
+# Android/IntelliJ
+android/build/
+android/app/build/
+android/.gradle/
+android/local.properties
+*.iml
+.idea/
+.gradle/
+
+# Android signing — nunca commitear el keystore real ni sus credenciales
+*.keystore
+*.jks
+!android/app/debug.keystore
+android/keystore.properties
+
+# Node
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Metro / RN
+.metro-health-check*
+*.jsbundle
+
+# Testing
+coverage/
+
+# Env
+.env
+.env.local
+
+# TypeScript
+*.tsbuildinfo
+
+# VIA+ local SQLite DB artifacts
+*.db
+*.sqlite
+
+# Editors
+.vscode/

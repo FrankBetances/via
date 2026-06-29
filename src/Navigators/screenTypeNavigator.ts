@@ -1,0 +1,37 @@
+/* -------------------------------------------------------------------------- */
+/*  RootStackParamList — VIA+.                                              */
+/*  Fase 1: solo las rutas CORE (auth + identificación de paciente +          */
+/*  créditos). Las 9 rutas de módulo (Audiometry, VoiceAnalysis, ...) y las    */
+/*  pantallas nuevas basadas en mockups se añaden en fases posteriores.       */
+/* -------------------------------------------------------------------------- */
+
+export type RootStackParamList = {
+  Login: undefined;
+  Pacientes: undefined;
+  RegistroPaciente: undefined;
+  RegistroProfesional: undefined;
+  Creditos: undefined;
+
+  // Module routes (Contrato de Compilación §2)
+  ClinicalAssessment: undefined;
+  Mchat: undefined;
+  RoomNoiseCheck: undefined;
+  Audiometry: undefined;
+  AudiometryConditioned: undefined;
+  VoiceAnalysis: undefined;
+  DysphagiaTest: undefined;
+  SahsScreening: undefined;
+  Articulation: undefined;
+
+  // New screen routes appended by later phases (mockup-based hub screens, etc.)
+  SeleccionEjercicios: undefined;
+  ResultadosPreliminares: undefined;
+  ResultadosFinal: undefined;
+};
+
+declare global {
+   
+  namespace ReactNavigation {
+    interface RootParamList extends RootStackParamList {}
+  }
+}
