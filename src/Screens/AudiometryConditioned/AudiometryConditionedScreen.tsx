@@ -16,6 +16,7 @@ import { showErrorToast, showSuccessToast } from '@/Helpers/showToast';
 import {
   Audiogram,
   DB_STEPS,
+  FREQ_LABEL,
   FREQS,
   interpretAudiometry,
   severityOf,
@@ -25,8 +26,6 @@ import {
 import TrainScene from './components/TrainScene';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'AudiometryConditioned'>;
-
-const FREQ_LABEL: Record<string, string> = { '500': '500', '1000': '1k', '2000': '2k', '4000': '4k', amb: 'Amb', pol: 'Pol' };
 
 export default function AudiometryConditionedScreen({ navigation }: Props) {
   const activeEvaluation = useClassSelector(Evaluation, (state: RootState) => state.activeEvaluation.evaluation);

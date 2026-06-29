@@ -14,7 +14,7 @@ import { useClassSelector } from '@/Helpers/ClassTransformer';
 import { useCreateAudiometryMutation } from '@/Services/local/modules/audiometry';
 import { showErrorToast, showSuccessToast } from '@/Helpers/showToast';
 import { useAudiometryTest, ToneTarget } from './useAudiometryTest';
-import { DB_STEPS, FREQS, interpretAudiometry, severityOf } from './audiometryResult';
+import { DB_STEPS, FREQ_LABEL, FREQS, interpretAudiometry, severityOf } from './audiometryResult';
 import Audiogram from './components/Audiogram';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Audiometry'>;
@@ -27,8 +27,6 @@ const INSTRUMENTS: { key: string; glyph: string; name: string; freq: ToneTarget;
   { key: 'amb', glyph: '🚑', name: 'Ambulancia', freq: 'amb', tag: 'Control' },
   { key: 'pol', glyph: '🚓', name: 'Policía', freq: 'pol', tag: 'Control' },
 ];
-
-const FREQ_LABEL: Record<string, string> = { '500': '500', '1000': '1k', '2000': '2k', '4000': '4k', amb: 'Amb', pol: 'Pol' };
 
 export default function AudiometryScreen({ navigation }: Props) {
   const activeEvaluation = useClassSelector(Evaluation, (state: RootState) => state.activeEvaluation.evaluation);

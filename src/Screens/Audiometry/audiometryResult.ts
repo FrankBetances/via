@@ -8,6 +8,16 @@ export const FREQS = [500, 1000, 2000, 4000] as const;
 export type Freq = (typeof FREQS)[number];
 export const DB_STEPS = [20, 30, 40, 50, 60, 70, 80] as const;
 
+/** Etiqueta corta de frecuencia/canal para chips y leyendas (compartida por ambas pantallas). */
+export const FREQ_LABEL: Record<string, string> = {
+  '500': '500',
+  '1000': '1k',
+  '2000': '2k',
+  '4000': '4k',
+  amb: 'Amb',
+  pol: 'Pol',
+};
+
 export const emptyThresholds = (): AudiometryThresholds => ({
   OD: { 500: null, 1000: null, 2000: null, 4000: null },
   OI: { 500: null, 1000: null, 2000: null, 4000: null },

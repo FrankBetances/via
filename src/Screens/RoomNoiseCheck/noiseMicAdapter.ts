@@ -1,4 +1,5 @@
 import { NoiseMicAdapter, setNoiseMicAdapter } from './useNoiseMeter';
+import { clamp } from '@/Helpers/numeric';
 
 /* -------------------------------------------------------------------------- */
 /*  noiseMicAdapter — captura REAL del micrófono para el sonómetro             */
@@ -102,7 +103,7 @@ export function registerNoiseMicAdapter(): boolean {
         }
         const rms = Math.sqrt(sum / n);
         const dbfs = 20 * Math.log10(rms || 1e-7); // ~ -90..0
-        lastDb = Math.max(28, Math.min(92, 92 + dbfs)); // dB SPL aprox. (relativo, mismo mapeo que el mockup)
+        lastDb = clamp(92 + dbfs, 28, 92); // dB SPL aprox. (relativo, mismo mapeo que el mockup)
         lastLevels = bands.map(e => Math.max(0.04, Math.min(1, Math.sqrt(e / seg) * 3.4)));
       });
       LiveAudioStream.start();

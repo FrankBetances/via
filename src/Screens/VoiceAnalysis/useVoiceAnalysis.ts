@@ -4,6 +4,7 @@ import {
   VoiceQuality,
   VoiceSource,
 } from '@/Models/VoiceAnalysis/VoiceAnalysis';
+import { roundTo } from '@/Helpers/numeric';
 
 /* -------------------------------------------------------------------------- */
 /*  Adaptador de micrófono (igual filosofía que el resto de la plataforma).    */
@@ -56,7 +57,7 @@ const DURATION_MS = 5000;
 /*  Cálculo de parámetros a partir de las series temporales                    */
 /* -------------------------------------------------------------------------- */
 
-const round = (v: number, d = 2) => Math.round(v * 10 ** d) / 10 ** d;
+const round = (v: number, d = 2) => roundTo(v, d);
 
 const computeParams = (f0s: number[], amps: number[], hnrs?: number[]): AcousticResult => {
   const valid = f0s.filter(f => f > 100 && f < 500);

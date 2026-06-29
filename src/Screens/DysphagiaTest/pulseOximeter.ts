@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { clamp } from '@/Helpers/numeric';
 
 /* ==========================================================================
  * Pulsioxímetro — adaptador BLE + modo demo (Disfagia MECV-V)
@@ -149,7 +150,7 @@ function demoReading(tick: number): OximeterReading {
   // Oscila ~96-99 % con micro-variación suave; HR ~78-86 lpm.
   const spo2 = 98 + Math.round(Math.sin(tick / 5) * 1) - (tick % 11 === 0 ? 1 : 0);
   const hr = 82 + Math.round(Math.sin(tick / 3) * 4);
-  return { spo2: Math.max(94, Math.min(100, spo2)), hr, at: Date.now() };
+  return { spo2: clamp(spo2, 94, 100), hr, at: Date.now() };
 }
 
 export type Spo2Source = 'ble' | 'demo';

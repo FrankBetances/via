@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { clamp } from '@/Helpers/numeric';
 
 /* -------------------------------------------------------------------------- */
 /*  useNoiseMeter — medidor de ruido ambiente para React Native                */
@@ -70,7 +71,7 @@ export interface NoiseMeterApi {
 export const zoneOf = (db: number, threshold: number): NoiseZone =>
   db <= threshold ? 'ok' : db <= threshold + 10 ? 'warn' : 'block';
 
-const clampDb = (n: number) => Math.max(28, Math.min(92, n));
+const clampDb = (n: number) => clamp(n, 28, 92);
 
 export function useNoiseMeter({
   threshold,
