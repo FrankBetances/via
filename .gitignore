@@ -21,6 +21,12 @@ android/local.properties
 .idea/
 .gradle/
 
+# Android signing — nunca commitear el keystore real ni sus credenciales
+*.keystore
+*.jks
+!android/app/debug.keystore
+android/keystore.properties
+
 # Node
 node_modules/
 npm-debug.log*
