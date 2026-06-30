@@ -15,10 +15,27 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 /*   ·  Permisos de micrófono        → `react-native-permissions`               */
 /* -------------------------------------------------------------------------- */
 
-/** require opcional: el nombre va en variable para que el bundler no falle si la lib no existe. */
-const optionalRequire = (name: string): any => {
+/* Metro exige literales en `require(...)` para poder empaquetar el módulo: un
+ * nombre de variable (`require(name)`) rompe el build de producción aunque la
+ * librería esté instalada. Por eso cada caso usa su propio `require` literal. */
+type OptionalLibName =
+  | 'react-native-tts'
+  | 'react-native-audio-recorder-player'
+  | '@react-native-voice/voice'
+  | 'react-native-permissions';
+
+const optionalRequire = (name: OptionalLibName): any => {
   try {
-    return require(name);
+    switch (name) {
+      case 'react-native-tts':
+        return require('react-native-tts');
+      case 'react-native-audio-recorder-player':
+        return require('react-native-audio-recorder-player');
+      case '@react-native-voice/voice':
+        return require('@react-native-voice/voice');
+      case 'react-native-permissions':
+        return require('react-native-permissions');
+    }
   } catch (_e) {
     return null;
   }
@@ -26,9 +43,10 @@ const optionalRequire = (name: string): any => {
 
 /* ───────────────────────────────────────────────────────────────────────────
  * ACTIVAR AUDIO REAL (recomendado para producción)
- * Por defecto se resuelve con `require` dinámico: el build NO se rompe si las
- * librerías no están instaladas y el módulo funciona en modo limitado (SODA
- * manual). Para integrar TTS + grabación + reconocimiento reales:
+ * Por defecto se resuelve con `require` opcional (envuelto en try/catch): el
+ * build NO se rompe si las librerías no están instaladas y el módulo
+ * funciona en modo limitado (SODA manual). Para integrar TTS + grabación +
+ * reconocimiento reales:
  *   1) instala las deps (ver LEEME §5) y `cd ios && pod install`.
  *   2) descomenta las 4 líneas `import` y las 4 asignaciones de abajo.
  * El import LITERAL garantiza que Metro EMPAQUETE los módulos nativos (un

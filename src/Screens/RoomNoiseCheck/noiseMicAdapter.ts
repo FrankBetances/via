@@ -21,9 +21,19 @@ import { clamp } from '@/Helpers/numeric';
 /*  `NSMicrophoneUsageDescription` en Info.plist.                              */
 /* -------------------------------------------------------------------------- */
 
-const optionalRequire = (name: string): any => {
+/* Metro exige literales en `require(...)` para poder empaquetar el módulo: un
+ * nombre de variable (`require(name)`) rompe el build de producción aunque la
+ * librería esté instalada. Por eso cada caso usa su propio `require` literal. */
+const optionalRequire = (name: 'react-native-live-audio-stream' | 'buffer' | 'react-native'): any => {
   try {
-    return require(name);
+    switch (name) {
+      case 'react-native-live-audio-stream':
+        return require('react-native-live-audio-stream');
+      case 'buffer':
+        return require('buffer');
+      case 'react-native':
+        return require('react-native');
+    }
   } catch (_e) {
     return null;
   }
@@ -31,8 +41,9 @@ const optionalRequire = (name: string): any => {
 
 /* ───────────────────────────────────────────────────────────────────────────
  * ACTIVAR MICRÓFONO REAL (recomendado para producción)
- * Por defecto se resuelve con `require` dinámico: el build NO se rompe si las
- * librerías no están instaladas y el sonómetro funciona en modo demostración.
+ * Por defecto se resuelve con `require` opcional (envuelto en try/catch): el
+ * build NO se rompe si las librerías no están instaladas y el sonómetro
+ * funciona en modo demostración.
  * Para integrar el micrófono real:
  *   1) yarn add react-native-live-audio-stream buffer   (cd ios && pod install)
  *   2) descomenta las 2 líneas `import` y las 2 asignaciones de abajo.
