@@ -20,10 +20,14 @@ buildscript {
 
 apply plugin: "com.facebook.react.rootproject"
 
-subprojects {
-    afterEvaluate { project ->
-        if (project.plugins.hasPlugin("kotlin-android") || project.plugins.hasPlugin("org.jetbrains.kotlin.android")) {
-            project.android.kotlinOptions {
+subprojects { subproject ->
+    // `plugins.withId` se dispara en cuanto el plugin se aplica (ya sea antes o
+    // después de este punto), sin depender de `afterEvaluate`. El plugin de RN
+    // (`com.facebook.react.rootproject`) evalúa `:app` de forma temprana, lo que
+    // hacía fallar `afterEvaluate` con "project is already evaluated".
+    ["kotlin-android", "org.jetbrains.kotlin.android"].each { pluginId ->
+        subproject.plugins.withId(pluginId) {
+            subproject.android.kotlinOptions {
                 jvmTarget = "17"
             }
         }
