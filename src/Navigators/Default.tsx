@@ -4,6 +4,7 @@ import { useSelector } from 'react-redux';
 import { RootState } from '@/Store';
 import { RootStackParamList } from '@/Navigators/screenTypeNavigator';
 
+import { BienvenidaScreen } from '@/Screens/Bienvenida';
 import LoginScreen from '@/Screens/Login/LoginScreen';
 import PacientesScreen from '@/Screens/Pacientes/PacientesScreen';
 import RegistroPacienteScreen from '@/Screens/RegistroPaciente/RegistroPacienteScreen';
@@ -36,6 +37,7 @@ const RootStack = createNativeStackNavigator<RootStackParamList>();
 function LoginStack() {
   return (
     <RootStack.Navigator screenOptions={{ headerShown: false }}>
+      <RootStack.Screen name="Bienvenida" component={BienvenidaScreen} />
       <RootStack.Screen name="Login" component={LoginScreen} />
       {/* Alcanzables antes de iniciar sesión: presentación del proyecto y alta
           de profesional de primera vez (ver Contrato de Compilación §6.4). */}
