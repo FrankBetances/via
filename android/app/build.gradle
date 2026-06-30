@@ -106,19 +106,22 @@ android {
             keyAlias 'androiddebugkey'
             keyPassword 'android'
         }
-        if (hasKeystoreProperties) {
-            release {
+        release {
+            if (hasKeystoreProperties) {
                 storeFile rootProject.file(keystoreProperties['storeFile'])
                 storePassword keystoreProperties['storePassword']
                 keyAlias keystoreProperties['keyAlias']
                 keyPassword keystoreProperties['keyPassword']
-            }
-        } else if (hasReleaseEnv) {
-            release {
+            } else if (hasReleaseEnv) {
                 storeFile file(System.getenv('MYAPP_RELEASE_STORE_FILE'))
                 storePassword System.getenv('MYAPP_RELEASE_STORE_PASSWORD')
                 keyAlias System.getenv('MYAPP_RELEASE_KEY_ALIAS')
                 keyPassword System.getenv('MYAPP_RELEASE_KEY_PASSWORD')
+            } else {
+                storeFile file('debug.keystore')
+                storePassword 'android'
+                keyAlias 'androiddebugkey'
+                keyPassword 'android'
             }
         }
     }
@@ -127,13 +130,7 @@ android {
             signingConfig signingConfigs.debug
         }
         release {
-            // Firma con el keystore real si hay credenciales (local o CI);
-            // si no, cae al keystore de debug (solo válido para pruebas internas).
-            if (hasKeystoreProperties || hasReleaseEnv) {
-                signingConfig signingConfigs.release
-            } else {
-                signingConfig signingConfigs.debug
-            }
+            signingConfig signingConfigs.release
             minifyEnabled enableProguardInReleaseBuilds
             proguardFiles getDefaultProguardFile("proguard-android.txt"), "proguard-rules.pro"
         }
