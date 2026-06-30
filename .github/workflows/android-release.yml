@@ -40,6 +40,12 @@ jobs:
         run: |
           echo "$RELEASE_KEYSTORE_BASE64" | base64 -d > android/app/viaplus-release.keystore
 
+      - name: Pre-generate codegen artifacts for all native modules
+        run: |
+          cd android
+          chmod +x gradlew
+          ./gradlew generateCodegenArtifactsFromSchema --no-daemon
+
       - name: Build release APK
         env:
           MYAPP_RELEASE_STORE_FILE: viaplus-release.keystore
@@ -48,7 +54,6 @@ jobs:
           MYAPP_RELEASE_KEY_PASSWORD: ${{ secrets.MYAPP_RELEASE_KEY_PASSWORD }}
         run: |
           cd android
-          chmod +x gradlew
           ./gradlew assembleRelease --no-daemon
 
       - name: Remove keystore from runner
