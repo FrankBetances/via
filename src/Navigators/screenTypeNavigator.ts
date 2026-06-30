@@ -6,6 +6,7 @@
 /* -------------------------------------------------------------------------- */
 
 export type RootStackParamList = {
+  Bienvenida: undefined;
   Login: undefined;
   Pacientes: undefined;
   RegistroPaciente: undefined;
