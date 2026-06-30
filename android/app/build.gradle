@@ -72,19 +72,9 @@ def enableProguardInReleaseBuilds = false
  */
 def jscFlavor = 'io.github.react-native-community:jsc-android:2026004.+'
 
-/**
- * Firma de release — VIA+.
- * Prioridad: android/keystore.properties (build local, NUNCA commiteado) >
- * variables de entorno MYAPP_RELEASE_* (usadas por el workflow de CI) >
- * keystore de debug (fallback, solo para builds de prueba interna).
- */
-def keystorePropertiesFile = rootProject.file('keystore.properties')
-def keystoreProperties = new Properties()
-def hasKeystoreProperties = keystorePropertiesFile.exists()
-if (hasKeystoreProperties) {
-    keystoreProperties.load(new FileInputStream(keystorePropertiesFile))
-}
-def hasReleaseEnv = System.getenv('MYAPP_RELEASE_STORE_FILE') != null
+def ksProps = new Properties()
+def ksFile = rootProject.file('keystore.properties')
+if (ksFile.exists()) { ksProps.load(new FileInputStream(ksFile)) }
 
 android {
     ndkVersion rootProject.ext.ndkVersion
@@ -106,20 +96,11 @@ android {
             keyAlias 'androiddebugkey'
             keyPassword 'android'
         }
-        if (hasKeystoreProperties) {
-            release {
-                storeFile rootProject.file(keystoreProperties['storeFile'])
-                storePassword keystoreProperties['storePassword']
-                keyAlias keystoreProperties['keyAlias']
-                keyPassword keystoreProperties['keyPassword']
-            }
-        } else if (hasReleaseEnv) {
-            release {
-                storeFile file(System.getenv('MYAPP_RELEASE_STORE_FILE'))
-                storePassword System.getenv('MYAPP_RELEASE_STORE_PASSWORD')
-                keyAlias System.getenv('MYAPP_RELEASE_KEY_ALIAS')
-                keyPassword System.getenv('MYAPP_RELEASE_KEY_PASSWORD')
-            }
+        release {
+            storeFile file(ksProps['storeFile'] ?: System.getenv('MYAPP_RELEASE_STORE_FILE') ?: 'debug.keystore')
+            storePassword(ksProps['storePassword'] ?: System.getenv('MYAPP_RELEASE_STORE_PASSWORD') ?: 'android')
+            keyAlias(ksProps['keyAlias'] ?: System.getenv('MYAPP_RELEASE_KEY_ALIAS') ?: 'androiddebugkey')
+            keyPassword(ksProps['keyPassword'] ?: System.getenv('MYAPP_RELEASE_KEY_PASSWORD') ?: 'android')
         }
     }
     buildTypes {
@@ -127,9 +108,7 @@ android {
             signingConfig signingConfigs.debug
         }
         release {
-            // Firma con el keystore real si hay credenciales (local o CI);
-            // si no, cae al keystore de debug (solo válido para pruebas internas).
-            signingConfig (hasKeystoreProperties || hasReleaseEnv) ? signingConfigs.release : signingConfigs.debug
+            signingConfig signingConfigs.release
             minifyEnabled enableProguardInReleaseBuilds
             proguardFiles getDefaultProguardFile("proguard-android.txt"), "proguard-rules.pro"
         }

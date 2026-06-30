@@ -4,7 +4,8 @@ on:
   workflow_dispatch:
   push:
     branches:
-      - claude/clinical-screens-exercise-modules-phh8qy
+      - main
+      - claude/apk-secrets-config-oskji6
     paths:
       - "android/**"
       - "src/**"
