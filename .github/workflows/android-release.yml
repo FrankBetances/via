@@ -32,7 +32,7 @@ jobs:
           java-version: 17
 
       - name: Install JS dependencies
-        run: npm install --legacy-peer-deps
+        run: npm ci --legacy-peer-deps
 
       - name: Decode release keystore
         env:
