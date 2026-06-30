@@ -6,6 +6,7 @@ on:
     branches:
       - main
       - claude/apk-secrets-config-oskji6
+      - claude/pensive-feynman-uphv11
     paths:
       - "android/**"
       - "src/**"
