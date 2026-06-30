@@ -129,7 +129,11 @@ android {
         release {
             // Firma con el keystore real si hay credenciales (local o CI);
             // si no, cae al keystore de debug (solo válido para pruebas internas).
-            signingConfig (hasKeystoreProperties || hasReleaseEnv) ? signingConfigs.release : signingConfigs.debug
+            if (hasKeystoreProperties || hasReleaseEnv) {
+                signingConfig signingConfigs.release
+            } else {
+                signingConfig signingConfigs.debug
+            }
             minifyEnabled enableProguardInReleaseBuilds
             proguardFiles getDefaultProguardFile("proguard-android.txt"), "proguard-rules.pro"
         }
