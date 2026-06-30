@@ -7,6 +7,7 @@ on:
       - main
       - claude/apk-secrets-config-oskji6
       - claude/pensive-feynman-uphv11
+      - claude/dazzling-brahmagupta-l99jzo
     paths:
       - "android/**"
       - "src/**"
