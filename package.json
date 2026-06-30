@@ -55,6 +55,7 @@
   },
   "devDependencies": {
     "@babel/plugin-proposal-decorators": "^7.29.7",
+    "@babel/plugin-transform-class-static-block": "^7.29.7",
     "@react-native-community/cli": "^16.0.3",
     "@react-native/babel-preset": "0.80.1",
     "@react-native/eslint-config": "0.80.1",

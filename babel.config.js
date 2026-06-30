@@ -4,6 +4,9 @@ module.exports = {
     // Los modelos de TypeORM (src/Models/**) usan decoradores legacy
     // (@Entity, @Column...); el preset de RN no los habilita por sí solo.
     ['@babel/plugin-proposal-decorators', { legacy: true }],
+    // gluestack-ui arrastra react-stately/react-aria (vía @react-spectrum/menu),
+    // que usan static class blocks (ES2022); el preset de RN no los habilita.
+    '@babel/plugin-transform-class-static-block',
     [
       'module-resolver',
       {
