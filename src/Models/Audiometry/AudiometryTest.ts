@@ -55,7 +55,7 @@ export class AudiometryTest {
   @Column({ type: 'varchar', default: 'play' })
   method: AudiometryMethod;
 
-  @Column({ default: 'air' })
+  @Column({ type: 'varchar', default: 'air' })
   transducer: string;
 
   @Column('simple-json')
@@ -70,19 +70,19 @@ export class AudiometryTest {
   @Column({ type: 'integer', nullable: true })
   reliability: number | null;
 
-  @Column({ default: '' })
+  @Column({ type: 'varchar', default: '' })
   interpretation: string;
 
-  @Column({ default: '' })
+  @Column({ type: 'varchar', default: '' })
   notes: string;
 
-  @Column({ default: '' })
+  @Column({ type: 'varchar', default: '' })
   evaluatorName: string;
 
-  @Column({ default: '' })
+  @Column({ type: 'varchar', default: '' })
   evaluatorLicense: string;
 
-  @Column()
+  @Column({ type: 'datetime' })
   @Transform(({ value }) => value?.toISOString(), { toPlainOnly: true })
   @Transform(({ value }) => (value ? new Date(value) : null), { toClassOnly: true })
   completedAt: Date;

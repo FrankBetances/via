@@ -52,7 +52,7 @@ export class VoiceAnalysis {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @Column({ default: 'a' })
+  @Column({ type: 'varchar', default: 'a' })
   vowel: string;
 
   @Column({ type: 'varchar', default: 'demo' })
@@ -79,19 +79,19 @@ export class VoiceAnalysis {
   @Column('simple-json')
   formants: VoiceFormants;
 
-  @Column({ default: '' })
+  @Column({ type: 'varchar', default: '' })
   interpretation: string;
 
-  @Column({ default: '' })
+  @Column({ type: 'varchar', default: '' })
   notes: string;
 
-  @Column({ default: '' })
+  @Column({ type: 'varchar', default: '' })
   evaluatorName: string;
 
-  @Column({ default: '' })
+  @Column({ type: 'varchar', default: '' })
   evaluatorLicense: string;
 
-  @Column()
+  @Column({ type: 'datetime' })
   @Transform(({ value }) => value?.toISOString(), { toPlainOnly: true })
   @Transform(({ value }) => (value ? new Date(value) : null), { toClassOnly: true })
   completedAt: Date;

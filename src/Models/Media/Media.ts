@@ -21,7 +21,7 @@ export class Media {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @Column()
+  @Column({ type: 'varchar' })
   uri: string;
 
   @Column({ type: 'varchar' })

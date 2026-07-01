@@ -23,19 +23,19 @@ export class Professional {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @Column()
+  @Column({ type: 'varchar' })
   fullName: string;
 
-  @Column({ default: '' })
+  @Column({ type: 'varchar', default: '' })
   licenseNumber: string;
 
   @Column({ type: 'varchar', default: 'medico' })
   role: ProfessionalRole;
 
-  @Column({ unique: true })
+  @Column({ type: 'varchar', unique: true })
   email: string;
 
-  @Column()
+  @Column({ type: 'varchar' })
   @Exclude({ toPlainOnly: true })
   passwordHash: string;
 

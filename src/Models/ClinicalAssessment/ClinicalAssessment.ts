@@ -66,19 +66,19 @@ export class ClinicalAssessment {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @Column({ default: 'CAP' })
+  @Column({ type: 'varchar', default: 'CAP' })
   instrument: string;
 
   @Column({ type: 'varchar' })
   globalResult: ClinicalGlobalResult;
 
-  @Column()
+  @Column({ type: 'varchar' })
   globalLabel: string;
 
-  @Column()
+  @Column({ type: 'integer' })
   activeGames: number;
 
-  @Column({ default: 5 })
+  @Column({ type: 'integer', default: 5 })
   totalGames: number;
 
   @Column('simple-json')
@@ -87,13 +87,13 @@ export class ClinicalAssessment {
   @Column('simple-json')
   games: ClinicalGameGate[];
 
-  @Column()
+  @Column({ type: 'varchar' })
   evaluatorName: string;
 
-  @Column()
+  @Column({ type: 'varchar' })
   evaluatorLicense: string;
 
-  @Column()
+  @Column({ type: 'datetime' })
   @Transform(({ value }) => value?.toISOString(), { toPlainOnly: true })
   @Transform(({ value }) => (value ? new Date(value) : null), { toClassOnly: true })
   completedAt: Date;

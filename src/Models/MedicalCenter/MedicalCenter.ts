@@ -18,10 +18,10 @@ export class MedicalCenter {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @Column()
+  @Column({ type: 'varchar' })
   name: string;
 
-  @Column({ default: '' })
+  @Column({ type: 'varchar', default: '' })
   address: string;
 
   @CreateDateColumn()
