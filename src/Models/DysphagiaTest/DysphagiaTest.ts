@@ -87,25 +87,25 @@ export class DysphagiaTest {
   @Column({ type: 'integer', nullable: true })
   maxDrop: number | null;
 
-  @Column({ default: '' })
+  @Column({ type: 'varchar', default: '' })
   recommendation: string;
 
   @Column({ type: 'varchar', default: 'safe' })
   verdict: DysphagiaVerdict;
 
-  @Column({ default: '' })
+  @Column({ type: 'varchar', default: '' })
   interpretation: string;
 
-  @Column({ default: '' })
+  @Column({ type: 'varchar', default: '' })
   notes: string;
 
-  @Column({ default: '' })
+  @Column({ type: 'varchar', default: '' })
   evaluatorName: string;
 
-  @Column({ default: '' })
+  @Column({ type: 'varchar', default: '' })
   evaluatorLicense: string;
 
-  @Column()
+  @Column({ type: 'datetime' })
   @Transform(({ value }) => value?.toISOString(), { toPlainOnly: true })
   @Transform(({ value }) => (value ? new Date(value) : null), { toClassOnly: true })
   completedAt: Date;

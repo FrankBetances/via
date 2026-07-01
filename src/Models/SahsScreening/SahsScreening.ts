@@ -67,7 +67,7 @@ export class SahsScreening {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @Column({ default: 'PSQ-Chervin / SAHS' })
+  @Column({ type: 'varchar', default: 'PSQ-Chervin / SAHS' })
   instrument: string;
 
   @Column('simple-json')
@@ -109,25 +109,25 @@ export class SahsScreening {
   @Column({ type: 'varchar' })
   suspicionLevel: SahsSuspicion;
 
-  @Column({ default: '' })
+  @Column({ type: 'varchar', default: '' })
   suspicionLabel: string;
 
-  @Column({ default: '' })
+  @Column({ type: 'varchar', default: '' })
   recommendation: string;
 
-  @Column({ default: '' })
+  @Column({ type: 'varchar', default: '' })
   referral: string;
 
   @Column('simple-json')
   notes: SahsNotes;
 
-  @Column({ default: '' })
+  @Column({ type: 'varchar', default: '' })
   evaluatorName: string;
 
-  @Column({ default: '' })
+  @Column({ type: 'varchar', default: '' })
   evaluatorLicense: string;
 
-  @Column()
+  @Column({ type: 'datetime' })
   @Transform(({ value }) => value?.toISOString(), { toPlainOnly: true })
   @Transform(({ value }) => (value ? new Date(value) : null), { toClassOnly: true })
   completedAt: Date;

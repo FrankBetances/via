@@ -51,22 +51,22 @@ export class Screening {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @Column()
+  @Column({ type: 'varchar' })
   instrument: string;
 
-  @Column()
+  @Column({ type: 'integer' })
   score: number;
 
-  @Column({ default: 20 })
+  @Column({ type: 'integer', default: 20 })
   total: number;
 
   @Column({ type: 'varchar' })
   riskLevel: ScreeningRiskLevel;
 
-  @Column()
+  @Column({ type: 'varchar' })
   rangeLabel: string;
 
-  @Column()
+  @Column({ type: 'varchar' })
   recommendation: string;
 
   @Column('simple-json')
@@ -78,13 +78,13 @@ export class Screening {
   @Column('simple-json')
   flaggedItems: ScreeningFlaggedItem[];
 
-  @Column()
+  @Column({ type: 'varchar' })
   evaluatorName: string;
 
-  @Column()
+  @Column({ type: 'varchar' })
   evaluatorLicense: string;
 
-  @Column()
+  @Column({ type: 'datetime' })
   @Transform(({ value }) => value?.toISOString(), { toPlainOnly: true })
   @Transform(({ value }) => (value ? new Date(value) : null), { toClassOnly: true })
   completedAt: Date;

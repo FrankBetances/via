@@ -61,7 +61,7 @@ export class ArticulationTest {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @Column({ default: 'T.A.R. (Articulación a la Repetición)' })
+  @Column({ type: 'varchar', default: 'T.A.R. (Articulación a la Repetición)' })
   instrument: string;
 
   @Column('simple-json')
@@ -91,13 +91,13 @@ export class ArticulationTest {
   @Column('simple-json')
   notes: ArticulationNotes;
 
-  @Column({ default: '' })
+  @Column({ type: 'varchar', default: '' })
   evaluatorName: string;
 
-  @Column({ default: '' })
+  @Column({ type: 'varchar', default: '' })
   evaluatorLicense: string;
 
-  @Column()
+  @Column({ type: 'datetime' })
   @Transform(({ value }) => value?.toISOString(), { toPlainOnly: true })
   @Transform(({ value }) => (value ? new Date(value) : null), { toClassOnly: true })
   completedAt: Date;

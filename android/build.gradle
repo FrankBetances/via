@@ -20,12 +20,16 @@ buildscript {
 
 apply plugin: "com.facebook.react.rootproject"
 
+// Fuerza jvmTarget=17 en todos los módulos Kotlin (RN 0.80 compila Java 17).
+// Se configura de forma PEREZOSA sobre las tareas KotlinCompile en lugar de
+// `afterEvaluate`: el patrón `subprojects { afterEvaluate {} }` fallaba de forma
+// intermitente con "Cannot run Project.afterEvaluate when the project is already
+// evaluated" según el orden de evaluación del autolinking. `configureEach` no
+// requiere que el proyecto esté sin evaluar, así que es estable.
 subprojects {
-    afterEvaluate { project ->
-        if (project.plugins.hasPlugin("kotlin-android") || project.plugins.hasPlugin("org.jetbrains.kotlin.android")) {
-            project.android.kotlinOptions {
-                jvmTarget = "17"
-            }
+    tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).configureEach {
+        kotlinOptions {
+            jvmTarget = "17"
         }
     }
 }

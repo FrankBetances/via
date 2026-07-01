@@ -33,7 +33,7 @@ export class Patient {
   id: number;
 
   /** HMAC-SHA256(NHC, device_key) — referencia seudonimizada, nunca el NHC directo. */
-  @Column({ unique: true })
+  @Column({ type: 'varchar', unique: true })
   idHash: string;
 
   /** AES-256-GCM(nombre_completo), almacenado como blob/base64. */
@@ -47,7 +47,7 @@ export class Patient {
   @Column({ type: 'varchar', default: 'O' })
   sex: PatientSex;
 
-  @Column({ default: '' })
+  @Column({ type: 'varchar', default: '' })
   legalGuardianName: string;
 
   @Column({ type: 'int', nullable: true })

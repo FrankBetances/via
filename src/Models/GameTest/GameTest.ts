@@ -38,7 +38,7 @@ export class GameTest {
   evaluation: Evaluation;
 
   /** Clave del módulo de la batería, p.ej. 'audiometry' | 'articulation'. */
-  @Column()
+  @Column({ type: 'varchar' })
   moduleKey: string;
 
   @Column({ type: 'varchar', default: 'in_progress' })
