@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 /* -------------------------------------------------------------------------- */
 /*  Servicio local "RTK-Query-like" — VIA+.                                  */
@@ -144,11 +144,14 @@ export function createLocalQuery<TResult, TArg = void>(
       }
     }, [skip]);
 
-    // Auto-fetch on mount / when `arg` (by reference/value) or `skip` changes.
-    useState(() => {
+    // Auto-fetch on mount / when `arg` (by value) or `skip` changes.
+    // `execute` cambia con `skip`; `arg` se añade explícitamente para
+    // reejecutar cuando cambia el argumento (p.ej. otro id), tal como
+    // documenta el contrato de firmas de arriba.
+    useEffect(() => {
       execute();
-      return null;
-    });
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [execute, arg]);
 
     return { data, isLoading, isFetching, isSuccess, isError, error, refetch: execute };
   };

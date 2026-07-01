@@ -1,5 +1,6 @@
 import 'reflect-metadata';
 import { DataSource } from 'typeorm';
+import { typeORMDriver } from 'react-native-nitro-sqlite';
 
 import { Professional } from '@/Models/Professional/Professional';
 import { MedicalCenter } from '@/Models/MedicalCenter/MedicalCenter';
@@ -32,6 +33,12 @@ export const AppDataSource = new DataSource({
   type: 'react-native',
   database: 'viaplus.db',
   location: 'default',
+  // TypeORM's `react-native` driver requiere que se le inyecte la librería
+  // SQLite en `driver`. `react-native-nitro-sqlite` expone `typeORMDriver`
+  // (API compatible con react-native-sqlite-storage: openDatabase). Sin esto
+  // `initialize()` llama a `openDatabase` sobre `undefined` y la app se queda
+  // colgada en el splash porque App.tsx captura el rechazo del DataSource.
+  driver: typeORMDriver,
   synchronize: true,
   logging: false,
   entities: [
