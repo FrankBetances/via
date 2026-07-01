@@ -1,8 +1,8 @@
 buildscript {
     ext {
-        buildToolsVersion = "35.0.0"
+        buildToolsVersion = "36.0.0"
         minSdkVersion = 24
-        compileSdkVersion = 35
+        compileSdkVersion = 36
         targetSdkVersion = 35
         ndkVersion = "27.1.12297006"
         kotlinVersion = "1.9.25"
@@ -21,15 +21,17 @@ buildscript {
 apply plugin: "com.facebook.react.rootproject"
 
 // Fuerza jvmTarget=17 en todos los módulos Kotlin (RN 0.80 compila Java 17).
-// Se configura de forma PEREZOSA sobre las tareas KotlinCompile en lugar de
-// `afterEvaluate`: el patrón `subprojects { afterEvaluate {} }` fallaba de forma
-// intermitente con "Cannot run Project.afterEvaluate when the project is already
-// evaluated" según el orden de evaluación del autolinking. `configureEach` no
-// requiere que el proyecto esté sin evaluar, así que es estable.
-subprojects {
-    tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).configureEach {
-        kotlinOptions {
-            jvmTarget = "17"
+// Se usa `plugins.withId` en lugar de `afterEvaluate`: el patrón
+// `subprojects { afterEvaluate {} }` fallaba con "Cannot run afterEvaluate when
+// the project is already evaluated" porque el plugin de RN evalúa `:app` de
+// forma temprana. `plugins.withId` se dispara al aplicarse el plugin, sin
+// depender del estado de evaluación. (Versión validada en CI.)
+subprojects { subproject ->
+    ["kotlin-android", "org.jetbrains.kotlin.android"].each { pluginId ->
+        subproject.plugins.withId(pluginId) {
+            subproject.android.kotlinOptions {
+                jvmTarget = "17"
+            }
         }
     }
 }

@@ -115,6 +115,14 @@ android {
     }
 }
 
+configurations.all {
+    // El proyecto está 100% en AndroidX (android.useAndroidX=true) pero Jetifier
+    // ya no está disponible en AGP moderno: alguna dependencia transitiva sigue
+    // resolviendo el grupo legado `com.android.support`, que duplica clases ya
+    // provistas por androidx.core (p.ej. android.support.v4.app.INotificationSideChannel).
+    exclude group: "com.android.support"
+}
+
 dependencies {
     // The version of react-native is set by the React Native Gradle Plugin
     implementation("com.facebook.react:react-android")
