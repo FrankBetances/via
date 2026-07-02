@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { Pressable } from 'react-native';
+import { KeyboardAvoidingView, Platform, Pressable, ScrollView } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useDispatch, useSelector } from 'react-redux';
 import { Box, Card, HStack, Icon, Input, InputField, VStack } from '@gluestack-ui/themed';
@@ -37,9 +37,23 @@ const SEXOS: { value: PatientSex; label: string }[] = [
   { value: 'O', label: 'Otro' },
 ];
 
+const DOB_RE = /^\d{4}-\d{2}-\d{2}$/;
+
+/** Fecha de nacimiento válida: formato AAAA-MM-DD, fecha real y no futura. */
+function isValidDob(isoDob: string): boolean {
+  const value = isoDob.trim();
+  if (!DOB_RE.test(value)) return false;
+  const dob = new Date(`${value}T00:00:00`);
+  if (Number.isNaN(dob.getTime())) return false;
+  // Rechaza normalizaciones tipo 2024-02-31 → 2024-03-02.
+  const [, m, d] = value.split('-').map(Number);
+  if (dob.getMonth() + 1 !== m || dob.getDate() !== d) return false;
+  return dob.getTime() <= Date.now();
+}
+
 function computeAgeLabel(isoDob: string): string {
-  const dob = new Date(isoDob);
-  if (Number.isNaN(dob.getTime())) return '—';
+  if (!isValidDob(isoDob)) return '—';
+  const dob = new Date(`${isoDob.trim()}T00:00:00`);
   const now = new Date();
   let years = now.getFullYear() - dob.getFullYear();
   let months = now.getMonth() - dob.getMonth();
@@ -67,23 +81,40 @@ export default function RegistroPacienteScreen({ navigation }: Props) {
   const [lengua, setLengua] = useState('Español');
   const [isSaving, setIsSaving] = useState(false);
 
-  const edad = useMemo(() => (fnac ? computeAgeLabel(fnac) : '—'), [fnac]);
+  const fnacValid = useMemo(() => isValidDob(fnac), [fnac]);
+  const edad = useMemo(() => (fnacValid ? computeAgeLabel(fnac) : '—'), [fnac, fnacValid]);
 
   const requiredCount = useMemo(() => {
-    const fields = [nombre.trim(), fnac.trim(), sexo, nhc.trim()];
+    const fields = [nombre.trim(), fnacValid ? fnac : '', sexo, nhc.trim()];
     return fields.filter(Boolean).length;
-  }, [nombre, fnac, sexo, nhc]);
+  }, [nombre, fnac, fnacValid, sexo, nhc]);
 
   const ready = requiredCount === 4;
 
   const handleSubmit = async () => {
     if (!ready || isSaving) return;
+    if (!currentProfessional?.id) {
+      showErrorToast('Sesión no válida', 'Vuelva a iniciar sesión antes de registrar pacientes.');
+      return;
+    }
     setIsSaving(true);
     try {
+      const trimmedNhc = nhc.trim();
       const fullName = `${nombre.trim()} ${lastName.trim()}`.trim();
 
+      // `idHash` (NHC) es UNIQUE: comprobarlo antes evita que el alta falle
+      // con una violación de unicidad opaca y el usuario se quede bloqueado.
+      const existing = await PatientRepository.getPatientByIdHash(trimmedNhc);
+      if (existing) {
+        showErrorToast(
+          'NHC ya registrado',
+          `Ya existe un paciente con el NHC ${trimmedNhc}. Ábrelo desde la lista de pacientes.`,
+        );
+        return;
+      }
+
       const patient = new Patient();
-      patient.idHash = nhc.trim();
+      patient.idHash = trimmedNhc;
       patient.nameEnc = fullName;
       patient.dobEnc = fnac.trim();
       patient.sex = sexo ?? 'O';
@@ -94,7 +125,7 @@ export default function RegistroPacienteScreen({ navigation }: Props) {
 
       const evaluation = new Evaluation();
       evaluation.patient = savedPatient;
-      evaluation.professional = { id: currentProfessional?.id ?? 0 } as Professional;
+      evaluation.professional = { id: currentProfessional.id } as Professional;
       evaluation.status = 'in_progress';
       evaluation.capApproved = false;
       evaluation.capNotes = null;
@@ -111,7 +142,7 @@ export default function RegistroPacienteScreen({ navigation }: Props) {
             id: savedPatient.id,
             name: nombre.trim(),
             lastName: lastName.trim(),
-            nhc: nhc.trim(),
+            nhc: trimmedNhc,
           },
           professional: currentProfessional
             ? { id: currentProfessional.id, name: currentProfessional.fullName, licenseNumber: currentProfessional.licenseNumber }
@@ -119,7 +150,7 @@ export default function RegistroPacienteScreen({ navigation }: Props) {
         }),
       );
 
-      showSuccessToast('Paciente registrado', `${fullName} · NHC ${nhc.trim()}`);
+      showSuccessToast('Paciente registrado', `${fullName} · NHC ${trimmedNhc}`);
       navigation.navigate('ClinicalAssessment');
     } catch (e) {
       showErrorToast('Error al registrar', 'No se pudo guardar el paciente. Inténtelo de nuevo.');
@@ -138,129 +169,153 @@ export default function RegistroPacienteScreen({ navigation }: Props) {
           <RadialBackground topMultiplier={-0.95} leftMultiplier={-0.8} widthMultiplier={2} heightMultiplier={2} center={(w, _h) => [w, w]} radiusMultiplier={1} />
         </>
       }>
-      <VStack flex={1}>
-        <Header animationType="expand" />
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+        <VStack flex={1}>
+          <Header animationType="expand" />
 
-        <VStack flex={1} px="$6" mt="$2" space="md">
-          {/* ----- title + stepper ----- */}
-          <VStack>
-            <Text size="2xl" weight="bold" color="$textLight900">
-              Nuevo paciente
-            </Text>
-            <Text size="xs" color="$textLight500">
-              Registro sociodemográfico para esta sesión
-            </Text>
-          </VStack>
+          <ScrollView
+            style={{ flex: 1 }}
+            contentContainerStyle={{ flexGrow: 1, paddingHorizontal: 24, paddingTop: 8 }}
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}>
+            <VStack flex={1} space="md">
+              {/* ----- title + stepper ----- */}
+              <VStack>
+                <Text size="2xl" weight="bold" color="$textLight900">
+                  Nuevo paciente
+                </Text>
+                <Text size="xs" color="$textLight500">
+                  Registro sociodemográfico para esta sesión
+                </Text>
+              </VStack>
 
-          <HStack space="xs" alignItems="center">
-            {[
-              { n: 1, label: 'Paciente', active: true },
-              { n: 2, label: 'Cert. clínico', active: false },
-              { n: 3, label: 'Sala', active: false },
-              { n: 4, label: 'Pruebas', active: false },
-            ].map((step, idx) => (
-              <React.Fragment key={step.n}>
-                <HStack alignItems="center" space="xs">
-                  <Box w={20} h={20} borderRadius="$full" alignItems="center" justifyContent="center" bg={step.active ? '$primary500' : '$white'} borderWidth={step.active ? 0 : 1.5} borderColor="$borderLight300">
-                    <Text size="2xs" weight="bold" color={step.active ? '$white' : '$textLight400'}>
-                      {step.n}
-                    </Text>
-                  </Box>
-                  <Text size="2xs" weight="semiBold" color={step.active ? '$textLight800' : '$textLight400'}>
-                    {step.label}
-                  </Text>
+              <HStack space="xs" alignItems="center">
+                {[
+                  { n: 1, label: 'Paciente', active: true },
+                  { n: 2, label: 'Cert. clínico', active: false },
+                  { n: 3, label: 'Sala', active: false },
+                  { n: 4, label: 'Pruebas', active: false },
+                ].map((step, idx) => (
+                  <React.Fragment key={step.n}>
+                    <HStack alignItems="center" space="xs">
+                      <Box w={20} h={20} borderRadius="$full" alignItems="center" justifyContent="center" bg={step.active ? '$primary500' : '$white'} borderWidth={step.active ? 0 : 1.5} borderColor="$borderLight300">
+                        <Text size="2xs" weight="bold" color={step.active ? '$white' : '$textLight400'}>
+                          {step.n}
+                        </Text>
+                      </Box>
+                      <Text size="2xs" weight="semiBold" color={step.active ? '$textLight800' : '$textLight400'}>
+                        {step.label}
+                      </Text>
+                    </HStack>
+                    {idx < 3 ? <Box style={{ flex: 1, height: 1 }} bg="$borderLight200" /> : null}
+                  </React.Fragment>
+                ))}
+              </HStack>
+
+              {/* ----- form card ----- */}
+              <Card bgColor="$white" borderRadius={22} p="$5">
+                <Text size="xs" weight="semiBold" color="$textLight600" mb="$1.5">
+                  Nombre y apellidos
+                </Text>
+                <HStack space="sm" mb="$4">
+                  <Input variant="outline" borderRadius={12} style={{ flex: 1 }}>
+                    <InputField placeholder="Nombre" value={nombre} onChangeText={setNombre} />
+                  </Input>
+                  <Input variant="outline" borderRadius={12} style={{ flex: 1 }}>
+                    <InputField placeholder="Apellidos" value={lastName} onChangeText={setLastName} />
+                  </Input>
                 </HStack>
-                {idx < 3 ? <Box style={{ flex: 1, height: 1 }} bg="$borderLight200" /> : null}
-              </React.Fragment>
-            ))}
-          </HStack>
 
-          {/* ----- form card ----- */}
-          <Card bgColor="$white" borderRadius={22} p="$5">
-            <Text size="xs" weight="semiBold" color="$textLight600" mb="$1.5">
-              Nombre y apellidos
-            </Text>
-            <HStack space="sm" mb="$4">
-              <Input variant="outline" borderRadius={12} style={{ flex: 1 }}>
-                <InputField placeholder="Nombre" value={nombre} onChangeText={setNombre} />
-              </Input>
-              <Input variant="outline" borderRadius={12} style={{ flex: 1 }}>
-                <InputField placeholder="Apellidos" value={lastName} onChangeText={setLastName} />
-              </Input>
-            </HStack>
-
-            <HStack space="sm" mb="$4">
-              <VStack style={{ flex: 1 }}>
-                <Text size="xs" weight="semiBold" color="$textLight600" mb="$1.5">
-                  Fecha de nacimiento
-                </Text>
-                <Input variant="outline" borderRadius={12}>
-                  <InputField placeholder="AAAA-MM-DD" value={fnac} onChangeText={setFnac} />
-                </Input>
-              </VStack>
-              <VStack style={{ flex: 1 }}>
-                <Text size="xs" weight="semiBold" color="$textLight600" mb="$1.5">
-                  Edad
-                </Text>
-                <Box borderRadius={12} borderWidth={1} borderColor="$borderLight200" bg="$backgroundLight50" px="$3" py="$2.5">
-                  <Text size="sm" color="$textLight600" style={{ fontVariant: ['tabular-nums'] }}>
-                    {edad}
-                  </Text>
-                </Box>
-              </VStack>
-            </HStack>
-
-            <Text size="xs" weight="semiBold" color="$textLight600" mb="$1.5">
-              Sexo
-            </Text>
-            <HStack space="sm" mb="$4">
-              {SEXOS.map(s => {
-                const selected = sexo === s.value;
-                return (
-                  <Pressable key={s.value} style={{ flex: 1 }} onPress={() => setSexo(s.value)}>
-                    <Box alignItems="center" py="$2" borderRadius="$full" borderWidth={1.5} bg={selected ? '$primary50' : '$white'} borderColor={selected ? '$primary500' : '$borderLight200'}>
-                      <Text size="sm" weight="bold" color={selected ? '$primary600' : '$textLight400'}>
-                        {s.value}
+                <HStack space="sm" mb={fnac.trim() && !fnacValid ? '$1.5' : '$4'}>
+                  <VStack style={{ flex: 1 }}>
+                    <Text size="xs" weight="semiBold" color="$textLight600" mb="$1.5">
+                      Fecha de nacimiento
+                    </Text>
+                    <Input
+                      variant="outline"
+                      borderRadius={12}
+                      borderColor={fnac.trim() && !fnacValid ? '$error600' : undefined}>
+                      <InputField
+                        placeholder="AAAA-MM-DD"
+                        value={fnac}
+                        onChangeText={setFnac}
+                        keyboardType="numbers-and-punctuation"
+                        autoCapitalize="none"
+                      />
+                    </Input>
+                  </VStack>
+                  <VStack style={{ flex: 1 }}>
+                    <Text size="xs" weight="semiBold" color="$textLight600" mb="$1.5">
+                      Edad
+                    </Text>
+                    <Box borderRadius={12} borderWidth={1} borderColor="$borderLight200" bg="$backgroundLight50" px="$3" py="$2.5">
+                      <Text size="sm" color="$textLight600" style={{ fontVariant: ['tabular-nums'] }}>
+                        {edad}
                       </Text>
                     </Box>
-                  </Pressable>
-                );
-              })}
-            </HStack>
+                  </VStack>
+                </HStack>
+                {fnac.trim() && !fnacValid ? (
+                  <Text size="2xs" color="$error600" mb="$4">
+                    Introduce una fecha válida con formato AAAA-MM-DD (no futura).
+                  </Text>
+                ) : null}
 
-            <Text size="xs" weight="semiBold" color="$textLight600" mb="$1.5">
-              Número de historia clínica (NHC)
-            </Text>
-            <Input variant="outline" borderRadius={12} mb="$4">
-              <InputField placeholder="PT-0000" value={nhc} onChangeText={setNhc} style={{ fontVariant: ['tabular-nums'] }} />
-            </Input>
-
-            <Text size="xs" weight="semiBold" color="$textLight600" mb="$1.5">
-              Lengua materna
-            </Text>
-            <Input variant="outline" borderRadius={12}>
-              <InputField placeholder="Español" value={lengua} onChangeText={setLengua} />
-            </Input>
-          </Card>
-
-          <Box style={{ flex: 1 }} />
-
-          {/* ----- footer ----- */}
-          <VStack space="xs" mb="$6">
-            <Text size="2xs" color="$textLight400" style={{ textAlign: 'center' }}>
-              {requiredCount}/4 campos obligatorios completados
-            </Text>
-            <Button action="primary" variant="solid" rounded="$full" isDisabled={!ready || isSaving} isLoading={isSaving} onPress={handleSubmit}>
-              <HStack space="sm" alignItems="center">
-                <Text size="md" weight="bold" color="$white">
-                  Continuar a certificado clínico
+                <Text size="xs" weight="semiBold" color="$textLight600" mb="$1.5">
+                  Sexo
                 </Text>
-                <Icon as={ArrowRight} size="sm" color="$white" />
-              </HStack>
-            </Button>
-          </VStack>
+                <HStack space="sm" mb="$4">
+                  {SEXOS.map(s => {
+                    const selected = sexo === s.value;
+                    return (
+                      <Pressable key={s.value} style={{ flex: 1 }} onPress={() => setSexo(s.value)}>
+                        <Box alignItems="center" py="$2" borderRadius="$full" borderWidth={1.5} bg={selected ? '$primary50' : '$white'} borderColor={selected ? '$primary500' : '$borderLight200'}>
+                          <Text size="sm" weight="bold" color={selected ? '$primary600' : '$textLight400'}>
+                            {s.label}
+                          </Text>
+                        </Box>
+                      </Pressable>
+                    );
+                  })}
+                </HStack>
+
+                <Text size="xs" weight="semiBold" color="$textLight600" mb="$1.5">
+                  Número de historia clínica (NHC)
+                </Text>
+                <Input variant="outline" borderRadius={12} mb="$4">
+                  <InputField placeholder="PT-0000" value={nhc} onChangeText={setNhc} style={{ fontVariant: ['tabular-nums'] }} />
+                </Input>
+
+                <Text size="xs" weight="semiBold" color="$textLight600" mb="$1.5">
+                  Lengua materna
+                </Text>
+                <Input variant="outline" borderRadius={12}>
+                  <InputField placeholder="Español" value={lengua} onChangeText={setLengua} />
+                </Input>
+              </Card>
+
+              <Box style={{ flex: 1 }} />
+
+              {/* ----- footer ----- */}
+              <VStack space="xs" mb="$6" mt="$3">
+                <Text size="2xs" color="$textLight400" style={{ textAlign: 'center' }}>
+                  {requiredCount}/4 campos obligatorios completados
+                </Text>
+                <Button action="primary" variant="solid" rounded="$full" isDisabled={!ready || isSaving} isLoading={isSaving} onPress={handleSubmit}>
+                  <HStack space="sm" alignItems="center">
+                    <Text size="md" weight="bold" color="$white">
+                      Continuar a certificado clínico
+                    </Text>
+                    <Icon as={ArrowRight} size="sm" color="$white" />
+                  </HStack>
+                </Button>
+              </VStack>
+            </VStack>
+          </ScrollView>
         </VStack>
-      </VStack>
+      </KeyboardAvoidingView>
     </Content>
   );
 }
