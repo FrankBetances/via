@@ -13,7 +13,7 @@ export interface ProfessionalDTO {
   fullName: string;
   licenseNumber: string;
   role: ProfessionalRole;
-  email: string;
+  email: string | null;
   centerId: number | null;
   createdAt: string;
 }
@@ -32,10 +32,11 @@ export class Professional {
   @Column({ type: 'varchar', default: 'medico' })
   role: ProfessionalRole;
 
-  @Column({ type: 'varchar', unique: true })
-  email: string;
+  /** Opcional: el acceso es por selección de perfil en el dispositivo, no por email. */
+  @Column({ type: 'varchar', nullable: true })
+  email: string | null;
 
-  @Column({ type: 'varchar' })
+  @Column({ type: 'varchar', default: '' })
   @Exclude({ toPlainOnly: true })
   passwordHash: string;
 

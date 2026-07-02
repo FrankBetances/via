@@ -5,7 +5,7 @@ import { RootState } from '@/Store';
 import { RootStackParamList } from '@/Navigators/screenTypeNavigator';
 
 import { BienvenidaScreen } from '@/Screens/Bienvenida';
-import LoginScreen from '@/Screens/Login/LoginScreen';
+import SeleccionProfesionalScreen from '@/Screens/SeleccionProfesional/SeleccionProfesionalScreen';
 import PacientesScreen from '@/Screens/Pacientes/PacientesScreen';
 import RegistroPacienteScreen from '@/Screens/RegistroPaciente/RegistroPacienteScreen';
 import RegistroProfesionalScreen from '@/Screens/RegistroProfesional/RegistroProfesionalScreen';
@@ -26,19 +26,21 @@ import ResultadosFinalScreen from '@/Screens/ResultadosFinal/ResultadosFinalScre
 
 /* -------------------------------------------------------------------------- */
 /*  Navigator raíz — VIA+.                                                  */
-/*  Gate por `state.auth.isLogged`: si no hay sesión, solo se monta el stack  */
-/*  de Login; si la hay, se monta el stack principal empezando en Pacientes.  */
+/*  Gate por `state.auth.isLogged`: sin sesión se monta el stack de acceso    */
+/*  (Bienvenida -> selección de profesional -> alta de profesional); con      */
+/*  sesión se monta el stack principal empezando en Pacientes. No hay login   */
+/*  con usuario/contraseña: la "sesión" es elegir un perfil del dispositivo.  */
 /*  Las 9 pantallas de módulo se registran aquí en una fase posterior (ver    */
 /*  Contrato de Compilación §6.4).                                           */
 /* -------------------------------------------------------------------------- */
 
 const RootStack = createNativeStackNavigator<RootStackParamList>();
 
-function LoginStack() {
+function AccessStack() {
   return (
     <RootStack.Navigator screenOptions={{ headerShown: false }}>
       <RootStack.Screen name="Bienvenida" component={BienvenidaScreen} />
-      <RootStack.Screen name="Login" component={LoginScreen} />
+      <RootStack.Screen name="SeleccionProfesional" component={SeleccionProfesionalScreen} />
       {/* Alcanzables antes de iniciar sesión: presentación del proyecto y alta
           de profesional de primera vez (ver Contrato de Compilación §6.4). */}
       <RootStack.Screen name="Creditos" component={CreditosScreen} />
@@ -81,5 +83,5 @@ function MainStack() {
 
 export default function DefaultNavigator() {
   const isLogged = useSelector((state: RootState) => state.auth.isLogged);
-  return isLogged ? <MainStack /> : <LoginStack />;
+  return isLogged ? <MainStack /> : <AccessStack />;
 }

@@ -15,13 +15,14 @@ import { ProfessionalRepository } from '@/Repositories/ProfessionalRepository';
 import { showErrorToast, showSuccessToast } from '@/Helpers/showToast';
 
 /* -------------------------------------------------------------------------- */
-/*  RegistroProfesionalScreen — alta del profesional responsable (mockup      */
-/*  `Registro Profesional.dc.html`). Se registra una sola vez; al confirmar   */
-/*  crea el `Professional` y abre sesión (`loginSuccess`).                    */
+/*  RegistroProfesionalScreen — alta del profesional responsable. Sin usuario  */
+/*  ni email: solo nombre y rol son obligatorios; nº de colegiado y centro     */
+/*  son opcionales. Al confirmar crea el `Professional` y abre sesión          */
+/*  (`loginSuccess`).                                                          */
 /*                                                                            */
-/*  NOTA de navegación: cuando se llega aquí sin sesión (LoginStack), NO se   */
+/*  NOTA de navegación: cuando se llega aquí sin sesión (AccessStack), NO se  */
 /*  navega manualmente a `Pacientes` — al despachar `loginSuccess` el gate    */
-/*  de `DefaultNavigator` desmonta el LoginStack y monta el MainStack (cuya   */
+/*  de `DefaultNavigator` desmonta el AccessStack y monta el MainStack (cuya  */
 /*  ruta inicial ya es `Pacientes`); un `navigate` manual sobre el stack en   */
 /*  desmontaje produce "The action NAVIGATE was not handled". Si ya hay       */
 /*  sesión (edición de perfil desde el MainStack), se vuelve atrás.           */
@@ -39,16 +40,6 @@ const ROLES: { value: ProfessionalRole; label: string }[] = [
   { value: 'psicopedagogo', label: 'Psicopedagogo/a' },
 ];
 
-/** Email local determinista derivado del nº de colegiado (p. ej. `28/1234` → `28-1234@viaplus.local`). */
-function emailFromLicense(license: string): string {
-  const local = license
-    .trim()
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '');
-  return `${local || 'profesional'}@viaplus.local`;
-}
-
 export default function RegistroProfesionalScreen({ navigation }: Props) {
   const dispatch = useDispatch<AppDispatch>();
   const isLogged = useSelector((state: RootState) => state.auth.isLogged);
@@ -63,23 +54,24 @@ export default function RegistroProfesionalScreen({ navigation }: Props) {
   const selectedRole = ROLES.find(r => r.label === rolLabel);
 
   const requiredCount = useMemo(() => {
-    const fields = [nombre.trim(), rolLabel, colegiado.trim(), centro.trim()];
+    const fields = [nombre.trim(), rolLabel];
     return fields.filter(Boolean).length;
-  }, [nombre, rolLabel, colegiado, centro]);
+  }, [nombre, rolLabel]);
 
-  const ready = requiredCount === 4;
+  const ready = requiredCount === 2;
 
   const handleSubmit = async () => {
     if (!ready || isSaving) return;
     setIsSaving(true);
     try {
-      const email = emailFromLicense(colegiado);
+      const trimmedLicense = colegiado.trim();
       const wasLogged = isLogged;
 
-      // El email (derivado del nº de colegiado) es UNIQUE: si ya existe un
-      // perfil con ese colegiado, se reabre sesión con él en lugar de fallar
-      // con una violación de unicidad opaca.
-      const existing = await ProfessionalRepository.getProfessionalByEmail(email);
+      // Si ya hay un perfil con ese nº de colegiado, se reutiliza en lugar de
+      // duplicarlo (el registro es "una sola vez por dispositivo").
+      const existing = trimmedLicense
+        ? await ProfessionalRepository.getProfessionalByLicense(trimmedLicense)
+        : null;
 
       let saved: Professional;
       if (existing) {
@@ -88,8 +80,8 @@ export default function RegistroProfesionalScreen({ navigation }: Props) {
         const professional = new Professional();
         professional.fullName = nombre.trim();
         professional.role = selectedRole?.value ?? 'medico';
-        professional.licenseNumber = colegiado.trim();
-        professional.email = email;
+        professional.licenseNumber = trimmedLicense;
+        professional.email = null;
         professional.passwordHash = '';
         professional.centerId = null;
         saved = await ProfessionalRepository.createProfessional(professional);
@@ -101,7 +93,7 @@ export default function RegistroProfesionalScreen({ navigation }: Props) {
           fullName: saved.fullName,
           licenseNumber: saved.licenseNumber,
           role: saved.role,
-          email: saved.email,
+          email: saved.email ?? null,
           centerId: saved.centerId,
           createdAt: saved.createdAt?.toISOString?.() ?? new Date().toISOString(),
         }),
@@ -118,7 +110,11 @@ export default function RegistroProfesionalScreen({ navigation }: Props) {
         navigation.goBack();
       }
     } catch (e) {
-      showErrorToast('Error al registrar', 'No se pudo guardar el perfil profesional. Inténtelo de nuevo.');
+      // Superficie el motivo real: un "no se pudo guardar" opaco deja al
+      // usuario bloqueado sin pista de qué corregir.
+      const detail = e instanceof Error && e.message ? ` (${e.message})` : '';
+      console.error('VIA+: error registrando profesional', e);
+      showErrorToast('Error al registrar', `No se pudo guardar el perfil profesional.${detail}`);
     } finally {
       setIsSaving(false);
     }
@@ -194,7 +190,7 @@ export default function RegistroProfesionalScreen({ navigation }: Props) {
                 <HStack space="sm" mb="$4">
                   <VStack style={{ flex: 1 }}>
                     <Text size="xs" weight="semiBold" color="$textLight600" mb="$1.5">
-                      Nº de colegiado
+                      Nº de colegiado · opcional
                     </Text>
                     <Input variant="outline" borderRadius={12}>
                       <InputField placeholder="28/1234" value={colegiado} onChangeText={setColegiado} style={{ fontVariant: ['tabular-nums'] }} />
@@ -211,7 +207,7 @@ export default function RegistroProfesionalScreen({ navigation }: Props) {
                 </HStack>
 
                 <Text size="xs" weight="semiBold" color="$textLight600" mb="$1.5">
-                  Centro de trabajo
+                  Centro de trabajo · opcional
                 </Text>
                 <Input variant="outline" borderRadius={12} mb="$3">
                   <InputField placeholder="Hospital / Centro de salud" value={centro} onChangeText={setCentro} />
@@ -220,8 +216,8 @@ export default function RegistroProfesionalScreen({ navigation }: Props) {
                 <HStack space="sm" alignItems="flex-start" p="$3" borderRadius={14} bg="$primary0">
                   <Icon as={Info} size="xs" color="$primary600" style={{ marginTop: 1 }} />
                   <Text size="2xs" color="$primary800" style={{ flex: 1, lineHeight: 16 }}>
-                    Este registro se realiza una sola vez por dispositivo. Podrá editar estos datos posteriormente desde el
-                    perfil de cuenta.
+                    Este registro se realiza una sola vez por dispositivo. Después bastará con elegir tu
+                    perfil en la pantalla de acceso.
                   </Text>
                 </HStack>
               </Card>
@@ -231,12 +227,12 @@ export default function RegistroProfesionalScreen({ navigation }: Props) {
               {/* ----- footer ----- */}
               <VStack space="xs" mb="$6" mt="$3">
                 <Text size="2xs" color="$textLight400" style={{ textAlign: 'center' }}>
-                  {requiredCount}/4 campos obligatorios completados
+                  {requiredCount}/2 campos obligatorios completados
                 </Text>
                 <Button action="primary" variant="solid" rounded="$full" isDisabled={!ready || isSaving} isLoading={isSaving} onPress={handleSubmit}>
                   <HStack space="sm" alignItems="center">
                     <Text size="md" weight="bold" color="$white">
-                      Continuar a pacientes
+                      Guardar y continuar
                     </Text>
                     <Icon as={ArrowRight} size="sm" color="$white" />
                   </HStack>
