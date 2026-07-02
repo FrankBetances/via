@@ -46,7 +46,8 @@ export class ClinicalAssessmentRepository {
     const instance: ClinicalAssessmentRepository = this.getInstance();
     try {
       const repository: Repository<ClinicalAssessment> = await instance.getRepository();
-      return await repository.save(assessment);
+      // INSERT de una sola fila: sin BEGIN/COMMIT (ver Helpers/dbWrite.ts).
+      return await repository.save(assessment, { transaction: false });
     } catch (error) {
       throw error;
     }

@@ -12,10 +12,12 @@ import { AppDispatch, RootState } from '@/Store';
 import { setActiveEvaluation } from '@/Store/slices/activeEvaluationSlice';
 import { Patient } from '@/Models/Patient/Patient';
 import { Evaluation } from '@/Models/Evaluation/Evaluation';
+import { Professional } from '@/Models/Professional/Professional';
 import { PatientRepository } from '@/Repositories/PatientRepository';
 import { EvaluationRepository } from '@/Repositories/EvaluationRepository';
 import { ClinicalAssessmentRepository } from '@/Repositories/ClinicalAssessmentRepository';
 import { showErrorToast } from '@/Helpers/showToast';
+import { writeWithVerify } from '@/Helpers/dbWrite';
 
 /* -------------------------------------------------------------------------- */
 /*  PacientesScreen — lista/búsqueda de pacientes (mockup `Pacientes.dc.html`)*/
@@ -135,9 +137,29 @@ export default function PacientesScreen({ navigation }: Props) {
   const handleSelectPatient = useCallback(
     async (row: PatientRow) => {
       const { patient, latestEvaluation } = row;
-      const evaluation = latestEvaluation ?? null;
+      let evaluation = latestEvaluation ?? null;
 
       try {
+        // Un paciente puede quedar sin evaluación (p. ej. si el alta se
+        // interrumpió a mitad). Se crea aquí: sin un id real de evaluación
+        // el CAP no puede guardarse (violaría la FK) y el flujo se bloquea.
+        if (!evaluation) {
+          const nueva = new Evaluation();
+          nueva.patient = patient;
+          if (currentProfessional?.id) {
+            nueva.professional = { id: currentProfessional.id } as Professional;
+          }
+          nueva.status = 'in_progress';
+          nueva.capApproved = false;
+          nueva.capNotes = null;
+          nueva.consentSignedAt = null;
+          nueva.completedAt = null;
+          evaluation = await writeWithVerify(
+            () => EvaluationRepository.createEvaluation(nueva),
+            () => EvaluationRepository.getLatestPendingByPatient(patient.id),
+          );
+        }
+
         const cap = evaluation ? await ClinicalAssessmentRepository.getLatestByEvaluation(evaluation.id) : null;
 
         dispatch(
@@ -162,7 +184,9 @@ export default function PacientesScreen({ navigation }: Props) {
           navigation.navigate('SeleccionEjercicios');
         }
       } catch (e) {
-        showErrorToast('Error', 'No se pudo abrir el expediente del paciente.');
+        const detail = e instanceof Error && e.message ? ` (${e.message})` : '';
+        console.error('VIA+: error abriendo expediente', e);
+        showErrorToast('Error', `No se pudo abrir el expediente del paciente.${detail}`);
       }
     },
     [currentProfessional, dispatch, navigation],

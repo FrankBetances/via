@@ -47,7 +47,8 @@ export class EvaluationRepository {
     const instance: EvaluationRepository = this.getInstance();
     try {
       const repository: Repository<Evaluation> = await instance.getRepository();
-      return await repository.save(evaluation);
+      // INSERT de una sola fila: sin BEGIN/COMMIT (ver Helpers/dbWrite.ts).
+      return await repository.save(evaluation, { transaction: false });
     } catch (error) {
       throw error;
     }

@@ -46,7 +46,8 @@ export class PatientRepository {
     const instance: PatientRepository = this.getInstance();
     try {
       const repository: Repository<Patient> = await instance.getRepository();
-      return await repository.save(patient);
+      // INSERT de una sola fila: sin BEGIN/COMMIT (ver Helpers/dbWrite.ts).
+      return await repository.save(patient, { transaction: false });
     } catch (error) {
       throw error;
     }
