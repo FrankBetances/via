@@ -13,6 +13,7 @@ import { loginSuccess } from '@/Store/slices/authSlice';
 import { Professional, ProfessionalRole } from '@/Models/Professional/Professional';
 import { ProfessionalRepository } from '@/Repositories/ProfessionalRepository';
 import { showErrorToast, showSuccessToast } from '@/Helpers/showToast';
+import { writeWithVerify } from '@/Helpers/dbWrite';
 
 /* -------------------------------------------------------------------------- */
 /*  RegistroProfesionalScreen — alta del profesional responsable. Sin usuario  */
@@ -77,14 +78,23 @@ export default function RegistroProfesionalScreen({ navigation }: Props) {
       if (existing) {
         saved = existing;
       } else {
+        const trimmedName = nombre.trim();
         const professional = new Professional();
-        professional.fullName = nombre.trim();
+        professional.fullName = trimmedName;
         professional.role = selectedRole?.value ?? 'medico';
         professional.licenseNumber = trimmedLicense;
         professional.email = null;
         professional.passwordHash = '';
         professional.centerId = null;
-        saved = await ProfessionalRepository.createProfessional(professional);
+        // La escritura puede colgarse aunque la fila quede guardada (driver
+        // SQLite); si pasa, se recupera la fila por lectura y se continúa.
+        saved = await writeWithVerify(
+          () => ProfessionalRepository.createProfessional(professional),
+          () =>
+            trimmedLicense
+              ? ProfessionalRepository.getProfessionalByLicense(trimmedLicense)
+              : ProfessionalRepository.getLatestByFullName(trimmedName),
+        );
       }
 
       dispatch(

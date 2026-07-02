@@ -16,6 +16,7 @@ import { Professional } from '@/Models/Professional/Professional';
 import { PatientRepository } from '@/Repositories/PatientRepository';
 import { EvaluationRepository } from '@/Repositories/EvaluationRepository';
 import { showErrorToast, showSuccessToast } from '@/Helpers/showToast';
+import { writeWithVerify } from '@/Helpers/dbWrite';
 
 /* -------------------------------------------------------------------------- */
 /*  RegistroPacienteScreen — alta sociodemográfica de un paciente nuevo       */
@@ -121,7 +122,13 @@ export default function RegistroPacienteScreen({ navigation }: Props) {
       patient.legalGuardianName = '';
       patient.centerId = currentProfessional?.centerId ?? null;
 
-      const savedPatient = await PatientRepository.createPatient(patient);
+      // Escrituras con verificación por lectura: en dispositivo se ha visto
+      // que save() puede no responder aunque la fila quede guardada (ver
+      // Helpers/dbWrite.ts); el NHC es único, así que sirve para verificar.
+      const savedPatient = await writeWithVerify(
+        () => PatientRepository.createPatient(patient),
+        () => PatientRepository.getPatientByIdHash(trimmedNhc),
+      );
 
       const evaluation = new Evaluation();
       evaluation.patient = savedPatient;
@@ -132,7 +139,10 @@ export default function RegistroPacienteScreen({ navigation }: Props) {
       evaluation.consentSignedAt = null;
       evaluation.completedAt = null;
 
-      const savedEvaluation = await EvaluationRepository.createEvaluation(evaluation);
+      const savedEvaluation = await writeWithVerify(
+        () => EvaluationRepository.createEvaluation(evaluation),
+        () => EvaluationRepository.getLatestPendingByPatient(savedPatient.id),
+      );
 
       dispatch(
         setActiveEvaluation({
@@ -153,7 +163,9 @@ export default function RegistroPacienteScreen({ navigation }: Props) {
       showSuccessToast('Paciente registrado', `${fullName} · NHC ${trimmedNhc}`);
       navigation.navigate('ClinicalAssessment');
     } catch (e) {
-      showErrorToast('Error al registrar', 'No se pudo guardar el paciente. Inténtelo de nuevo.');
+      const detail = e instanceof Error && e.message ? ` (${e.message})` : '';
+      console.error('VIA+: error registrando paciente', e);
+      showErrorToast('Error al registrar', `No se pudo guardar el paciente.${detail}`);
     } finally {
       setIsSaving(false);
     }

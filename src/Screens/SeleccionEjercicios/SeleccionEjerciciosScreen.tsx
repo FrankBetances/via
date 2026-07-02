@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Pressable } from 'react-native';
+import { Pressable, ScrollView } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { Box, Card, Center, HStack, Icon, VStack } from '@gluestack-ui/themed';
 import {
@@ -87,114 +87,121 @@ export default function SeleccionEjerciciosScreen({ navigation }: Props) {
       <VStack flex={1}>
         <Header animationType="expand" />
 
-        <VStack flex={1} px="$6" mt="$2" space="md">
-          {/* ----- title ----- */}
-          <HStack alignItems="flex-start" justifyContent="space-between">
-            <VStack>
-              <Text size="2xl" weight="bold" color="$textLight900">
-                Selección de pruebas
-              </Text>
-              <Text size="xs" color="$textLight500">
-                Elige las exploraciones para esta sesión
-              </Text>
-            </VStack>
-            {patientName ? (
-              <VStack alignItems="flex-end">
-                <Text size="xs" weight="semiBold" color="$textLight800">
-                  {patientName}
+        {/* Con 7 tarjetas + footer el contenido supera la altura de pantalla:
+            sin ScrollView el CTA de inicio queda inaccesible. */}
+        <ScrollView
+          style={{ flex: 1 }}
+          contentContainerStyle={{ flexGrow: 1, paddingHorizontal: 24, paddingTop: 8 }}
+          showsVerticalScrollIndicator={false}>
+          <VStack flex={1} space="md">
+            {/* ----- title ----- */}
+            <HStack alignItems="flex-start" justifyContent="space-between">
+              <VStack>
+                <Text size="2xl" weight="bold" color="$textLight900">
+                  Selección de pruebas
                 </Text>
-                {patient?.nhc ? (
-                  <Text size="2xs" color="$textLight400">
-                    NHC {patient.nhc}
-                  </Text>
-                ) : null}
+                <Text size="xs" color="$textLight500">
+                  Elige las exploraciones para esta sesión
+                </Text>
               </VStack>
-            ) : null}
-          </HStack>
-
-          {/* ----- CAP banner ----- */}
-          <HStack alignItems="center" space="sm" bg="$success50" p="$3.5" borderRadius={16} borderWidth={1} borderColor="$success200">
-            <Center w={32} h={32} borderRadius="$full" bg="$success600">
-              <Icon as={Check} size="xs" color="$white" />
-            </Center>
-            <VStack style={{ flex: 1 }}>
-              <Text size="sm" weight="bold" color="$success800">
-                Certificado de Aptitud de sala generado
-              </Text>
-              <Text size="2xs" color="$success700" style={{ fontVariant: ['tabular-nums'] }}>
-                {patient?.nhc ? `CAP-${patient.nhc} · ` : ''}sala apta · todas las pruebas disponibles
-              </Text>
-            </VStack>
-          </HStack>
-
-          {/* ----- module grid ----- */}
-          <HStack flexWrap="wrap" style={{ gap: 10 }}>
-            {MODULES.map(m => {
-              const isSelected = selected.has(m.id);
-              return (
-                <Pressable key={m.id} style={{ width: '48.5%' }} onPress={() => toggle(m.id)}>
-                  <Card
-                    bgColor={isSelected ? '$primary0' : '$white'}
-                    borderRadius={18}
-                    borderWidth={1.5}
-                    borderColor={isSelected ? '$primary400' : '$borderLight100'}
-                    p="$4"
-                    style={{ minHeight: 168 }}>
-                    <HStack alignItems="center" justifyContent="space-between" mb="$2">
-                      <Center w={36} h={36} borderRadius={11} bg={isSelected ? '$primary500' : '$backgroundLight100'}>
-                        <Icon as={m.icon} size="sm" color={isSelected ? '$white' : '$textLight500'} />
-                      </Center>
-                      <Center
-                        w={22}
-                        h={22}
-                        borderRadius={7}
-                        bg={isSelected ? '$primary500' : '$white'}
-                        borderWidth={isSelected ? 0 : 1.5}
-                        borderColor="$borderLight300">
-                        {isSelected ? <Icon as={Check} size="2xs" color="$white" /> : null}
-                      </Center>
-                    </HStack>
-                    <Text size="sm" weight="bold" color="$textLight900" style={{ lineHeight: 18 }}>
-                      {m.title}
+              {patientName ? (
+                <VStack alignItems="flex-end">
+                  <Text size="xs" weight="semiBold" color="$textLight800">
+                    {patientName}
+                  </Text>
+                  {patient?.nhc ? (
+                    <Text size="2xs" color="$textLight400">
+                      NHC {patient.nhc}
                     </Text>
-                    <Text size="2xs" color="$textLight500" mt="$1" style={{ lineHeight: 14, flex: 1 }}>
-                      {m.description}
-                    </Text>
-                    <Text size="2xs" color="$textLight400" mt="$2" style={{ fontVariant: ['tabular-nums'] }}>
-                      {m.meta}
-                    </Text>
-                  </Card>
-                </Pressable>
-              );
-            })}
-          </HStack>
-
-          <Pressable onPress={() => navigation.navigate('ResultadosPreliminares')}>
-            <HStack alignItems="center" justifyContent="center" space="xs" py="$2">
-              <Icon as={CheckCircle2} size="xs" color="$textLight400" />
-              <Text size="xs" weight="semiBold" color="$textLight500">
-                Ver resultados preliminares de la sesión
-              </Text>
+                  ) : null}
+                </VStack>
+              ) : null}
             </HStack>
-          </Pressable>
-
-          <Box style={{ flex: 1 }} />
-
-          {/* ----- footer ----- */}
-          <VStack space="xs" mb="$6">
-            <Text size="2xs" color="$textLight400" style={{ textAlign: 'center' }}>
-              {selCount} prueba{selCount === 1 ? '' : 's'} seleccionada{selCount === 1 ? '' : 's'}
-            </Text>
-            <Button action="primary" variant="solid" rounded="$full" isDisabled={selCount === 0} onPress={handleStart}>
-              <HStack space="sm" alignItems="center">
-                <Text size="md" weight="bold" color="$white">
-                  {ctaLabel}
+  
+            {/* ----- CAP banner ----- */}
+            <HStack alignItems="center" space="sm" bg="$success50" p="$3.5" borderRadius={16} borderWidth={1} borderColor="$success200">
+              <Center w={32} h={32} borderRadius="$full" bg="$success600">
+                <Icon as={Check} size="xs" color="$white" />
+              </Center>
+              <VStack style={{ flex: 1 }}>
+                <Text size="sm" weight="bold" color="$success800">
+                  Certificado de Aptitud de sala generado
                 </Text>
-                <Icon as={ArrowRight} size="sm" color="$white" />
+                <Text size="2xs" color="$success700" style={{ fontVariant: ['tabular-nums'] }}>
+                  {patient?.nhc ? `CAP-${patient.nhc} · ` : ''}sala apta · todas las pruebas disponibles
+                </Text>
+              </VStack>
+            </HStack>
+  
+            {/* ----- module grid ----- */}
+            <HStack flexWrap="wrap" style={{ gap: 10 }}>
+              {MODULES.map(m => {
+                const isSelected = selected.has(m.id);
+                return (
+                  <Pressable key={m.id} style={{ width: '48.5%' }} onPress={() => toggle(m.id)}>
+                    <Card
+                      bgColor={isSelected ? '$primary0' : '$white'}
+                      borderRadius={18}
+                      borderWidth={1.5}
+                      borderColor={isSelected ? '$primary400' : '$borderLight100'}
+                      p="$4"
+                      style={{ minHeight: 168 }}>
+                      <HStack alignItems="center" justifyContent="space-between" mb="$2">
+                        <Center w={36} h={36} borderRadius={11} bg={isSelected ? '$primary500' : '$backgroundLight100'}>
+                          <Icon as={m.icon} size="sm" color={isSelected ? '$white' : '$textLight500'} />
+                        </Center>
+                        <Center
+                          w={22}
+                          h={22}
+                          borderRadius={7}
+                          bg={isSelected ? '$primary500' : '$white'}
+                          borderWidth={isSelected ? 0 : 1.5}
+                          borderColor="$borderLight300">
+                          {isSelected ? <Icon as={Check} size="2xs" color="$white" /> : null}
+                        </Center>
+                      </HStack>
+                      <Text size="sm" weight="bold" color="$textLight900" style={{ lineHeight: 18 }}>
+                        {m.title}
+                      </Text>
+                      <Text size="2xs" color="$textLight500" mt="$1" style={{ lineHeight: 14, flex: 1 }}>
+                        {m.description}
+                      </Text>
+                      <Text size="2xs" color="$textLight400" mt="$2" style={{ fontVariant: ['tabular-nums'] }}>
+                        {m.meta}
+                      </Text>
+                    </Card>
+                  </Pressable>
+                );
+              })}
+            </HStack>
+  
+            <Pressable onPress={() => navigation.navigate('ResultadosPreliminares')}>
+              <HStack alignItems="center" justifyContent="center" space="xs" py="$2">
+                <Icon as={CheckCircle2} size="xs" color="$textLight400" />
+                <Text size="xs" weight="semiBold" color="$textLight500">
+                  Ver resultados preliminares de la sesión
+                </Text>
               </HStack>
-            </Button>
+            </Pressable>
+  
+            <Box style={{ flex: 1 }} />
+  
+            {/* ----- footer ----- */}
+            <VStack space="xs" mb="$6">
+              <Text size="2xs" color="$textLight400" style={{ textAlign: 'center' }}>
+                {selCount} prueba{selCount === 1 ? '' : 's'} seleccionada{selCount === 1 ? '' : 's'}
+              </Text>
+              <Button action="primary" variant="solid" rounded="$full" isDisabled={selCount === 0} onPress={handleStart}>
+                <HStack space="sm" alignItems="center">
+                  <Text size="md" weight="bold" color="$white">
+                    {ctaLabel}
+                  </Text>
+                  <Icon as={ArrowRight} size="sm" color="$white" />
+                </HStack>
+              </Button>
+            </VStack>
           </VStack>
-        </VStack>
+        </ScrollView>
       </VStack>
     </Content>
   );

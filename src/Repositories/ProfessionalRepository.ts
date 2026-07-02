@@ -46,7 +46,22 @@ export class ProfessionalRepository {
     const instance: ProfessionalRepository = this.getInstance();
     try {
       const repository: Repository<Professional> = await instance.getRepository();
-      return await repository.save(professional);
+      // `transaction: false`: es un INSERT de una sola fila (atómico por sí
+      // mismo); evitar BEGIN/COMMIT reduce la superficie de fallo del driver
+      // nitro-sqlite, donde se han observado promesas de save() que no
+      // resuelven (ver Helpers/dbWrite.ts).
+      return await repository.save(professional, { transaction: false });
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  /** Último profesional registrado con ese nombre exacto (verificación post-alta). */
+  static async getLatestByFullName(fullName: string): Promise<Professional | null> {
+    const instance: ProfessionalRepository = this.getInstance();
+    try {
+      const repository: Repository<Professional> = await instance.getRepository();
+      return await repository.findOne({ where: { fullName }, order: { id: 'DESC' } });
     } catch (error) {
       throw error;
     }
