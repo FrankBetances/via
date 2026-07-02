@@ -72,6 +72,16 @@ export class ProfessionalRepository {
     }
   }
 
+  static async getProfessionalByLicense(licenseNumber: string): Promise<Professional | null> {
+    const instance: ProfessionalRepository = this.getInstance();
+    try {
+      const repository: Repository<Professional> = await instance.getRepository();
+      return await repository.findOne({ where: { licenseNumber } });
+    } catch (error) {
+      throw error;
+    }
+  }
+
   static async getProfessionalByEmail(email: string): Promise<Professional | null> {
     const instance: ProfessionalRepository = this.getInstance();
     try {

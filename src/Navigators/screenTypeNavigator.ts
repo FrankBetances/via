@@ -7,7 +7,7 @@
 
 export type RootStackParamList = {
   Bienvenida: undefined;
-  Login: undefined;
+  SeleccionProfesional: undefined;
   Pacientes: undefined;
   RegistroPaciente: undefined;
   RegistroProfesional: undefined;
