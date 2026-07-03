@@ -156,7 +156,7 @@ const AlterationRow = ({
         borderWidth={1.5}
         borderColor={active ? accent : '$borderLight100'}
         bg={active ? softBg : '$white'}>
-        <Text size="sm" weight="semiBold" color="$textLight800" style={{ flex: 1, marginRight: 10 }}>
+        <Text size="md" weight="semiBold" color="$textLight900" style={{ flex: 1, marginRight: 10 }}>
           {label}
         </Text>
         <Center
@@ -518,6 +518,9 @@ export default function DysphagiaTestScreen() {
       <VStack flex={1}>
         <Header animationType="expand" />
 
+        {/* La exploración (pulsioximetría + texturas + seguridad) supera la
+            altura de pantalla: sin scroll vertical es inutilizable. */}
+        <ScrollView showsVerticalScrollIndicator={false}>
         <VStack flex={1} px="$6" mt="$2" space="md">
           {/* ----- title ----- */}
           <VStack>
@@ -860,6 +863,7 @@ export default function DysphagiaTestScreen() {
 
           <Box h="$10" />
         </VStack>
+        </ScrollView>
       </VStack>
     </Content>
   );

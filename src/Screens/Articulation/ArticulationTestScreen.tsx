@@ -19,7 +19,6 @@ import {
   Check,
   CheckCircle2,
   ClipboardCheck,
-  Image as ImageIcon,
   Info,
   Mic,
   Play,
@@ -79,6 +78,42 @@ const SETUP_ITEMS = [
   'Presentar el modelo hablado y registrar lo que el niño/a produce, no lo esperado.',
   'Clasificar cada producción como Correcto / Sustitución / Omisión / Distorsión / Adición (SODA).',
 ];
+
+/* Ilustración (emoji) por palabra del inventario T.A.R. Las frases y las
+ * palabras sin pictograma razonable caen al fallback (inicial de la palabra). */
+const WORD_EMOJI: Record<string, string> = {
+  // Bilabiales
+  Bote: '🚤', Cabeza: '👦', Nube: '☁️', Objeto: '📦',
+  Pato: '🦆', Zapato: '👟', Copa: '🏆', Apto: '✅',
+  Mano: '✋', Camisa: '👕', Suma: '➕', Campo: '🌾',
+  // Labiodental
+  Foca: '🦭', Búfalo: '🐃', Café: '☕', Aftosa: '🤒',
+  // Dentales
+  Dama: '👸', Cadena: '⛓️', Codo: '💪', Pared: '🧱',
+  Tapa: '🫙', Mata: '🌿', Torta: '🎂', Etna: '🌋',
+  // Alveolares
+  Sapo: '🐸', Rosa: '🌹', Pasto: '🌱',
+  Nido: '🪺', Panera: '🧺', Canto: '🎵',
+  Luna: '🌙', Pala: '⛏️', Dulce: '🍬',
+  Coro: '🎶', Poroto: '🫘',
+  Perro: '🐶', Carroza: '🎠',
+  // Palatales
+  Llave: '🔑', Payaso: '🤡', Malla: '🩱',
+  Ñandú: '🐦', Puñete: '👊', Caña: '🎣',
+  Chándal: '🏃', Lechuga: '🥬', Noche: '🌃',
+  // Velares
+  Casa: '🏠', Paquete: '📦', Taco: '🌮', Acto: '🎭',
+  Gato: '🐱', Laguna: '🏞️', Signo: '❓',
+  José: '👨', Tejido: '🧶', Reloj: '⏰',
+  // Dífonos vocálicos
+  Piano: '🎹', Vaina: '🫛', Violín: '🎻', Auto: '🚗', Diuca: '🐦', Fui: '🏃‍♂️',
+  // Dífonos consonánticos
+  Tabla: '🪵', Regla: '📏', Premio: '🏅', Clavo: '🔩', Brazo: '💪', Atlas: '🗺️',
+  Flecha: '🏹', Fruta: '🍎', Tigre: '🐯', Dragón: '🐉', Crema: '🍦', Plato: '🍽️',
+  // Polisílabas
+  Carabinero: '👮', Panadería: '🥖', Caperucita: '👧', Ametralladora: '🔫',
+  Helicóptero: '🚁', Bicicleta: '🚲',
+};
 
 /* Color base por categoría SODA (alineado con el mockup). */
 const SODA_COLOR: Record<SodaCode, string> = {
@@ -231,6 +266,9 @@ export default function ArticulationTestScreen({ navigation }: Props) {
       <VStack flex={1}>
         <Header animationType="expand" />
 
+        {/* Sin scroll vertical, la clasificación SODA y el botón de guardar
+            quedan fuera de pantalla. */}
+        <ScrollView showsVerticalScrollIndicator={false}>
         <VStack flex={1} px="$6" mt="$2" space="md">
           {/* ----- title ----- */}
           <VStack>
@@ -369,12 +407,19 @@ export default function ArticulationTestScreen({ navigation }: Props) {
                   ) : null}
                 </HStack>
 
-                {/* placeholder de ilustración */}
-                <Center borderRadius={18} borderWidth={1.5} borderColor="$borderLight200" bg="$backgroundLight50" py="$6" mb="$4" style={{ borderStyle: 'dashed' }}>
-                  <Icon as={ImageIcon} size="xl" color="$textLight300" />
-                  <Text size="2xs" color="$textLight400" mt="$2" style={{ letterSpacing: 0.4 }}>
-                    ILUSTRACIÓN
-                  </Text>
+                {/* ilustración del ítem (pictograma emoji; fallback: inicial) */}
+                <Center borderRadius={18} borderWidth={1.5} borderColor="$primary100" bg="$primary0" py="$5" mb="$4">
+                  {cur.section === 'frases' ? (
+                    <Text style={{ fontSize: 56, lineHeight: 66 }}>💬</Text>
+                  ) : WORD_EMOJI[cur.word] ? (
+                    <Text style={{ fontSize: 72, lineHeight: 84 }}>{WORD_EMOJI[cur.word]}</Text>
+                  ) : (
+                    <Center w={84} h={84} borderRadius={42} bg="$primary100">
+                      <Text size="4xl" weight="bold" color="$primary700">
+                        {cur.word[0]}
+                      </Text>
+                    </Center>
+                  )}
                 </Center>
 
                 <Text
@@ -704,6 +749,7 @@ export default function ArticulationTestScreen({ navigation }: Props) {
 
           <Box h="$10" />
         </VStack>
+        </ScrollView>
       </VStack>
     </Content>
   );

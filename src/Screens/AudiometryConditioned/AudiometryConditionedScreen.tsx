@@ -1,37 +1,70 @@
-import React, { useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Pressable } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { Box, Card, Center, HStack, Icon, Input, InputField, ScrollView, VStack } from '@gluestack-ui/themed';
-import { Bell, Check, RotateCcw, Save, Volume2, X } from 'lucide-react-native';
+import { Bell, Headphones, Pause, Play, RotateCcw, Save, Sparkles, Train } from 'lucide-react-native';
 
 import { Button, Content, Header, Text } from '@/Components/Common';
 import RadialBackground from '@/Components/Themed/RadialBackground';
 import { RootStackParamList } from '@/Navigators';
 import { RootState } from '@/Store';
 import { Evaluation } from '@/Models/Evaluation/Evaluation';
-import { AudiometryTest } from '@/Models/Audiometry/AudiometryTest';
+import { AudiometryTest, Ear } from '@/Models/Audiometry/AudiometryTest';
 import { useClassSelector } from '@/Helpers/ClassTransformer';
 import { useCreateAudiometryMutation } from '@/Services/local/modules/audiometry';
 import { showErrorToast, showSuccessToast } from '@/Helpers/showToast';
 import {
   Audiogram,
-  DB_STEPS,
   FREQ_LABEL,
   FREQS,
   interpretAudiometry,
   severityOf,
-  ToneTarget,
   useAudiometryTest,
 } from '@/Screens/Audiometry';
 import TrainScene from './components/TrainScene';
 
+/* -------------------------------------------------------------------------- */
+/*  Audiometría condicionada AUTOMÁTICA — «El Tren del Sonido»                 */
+/*                                                                            */
+/*  Flujo en 4 fases, sin operador durante la prueba:                          */
+/*   1. intro     → instrucciones para el niño/a y el profesional.             */
+/*   2. practice  → juego previo de condicionamiento: tonos claramente         */
+/*                  audibles (60 dB HL); el niño debe tocar el silbato al      */
+/*                  oírlos. Con 3 aciertos pasa a la prueba.                   */
+/*   3. test      → prueba autónoma: la app presenta los tonos con intervalos  */
+/*                  aleatorios y aplica Hughson-Westlake (baja 10 al acierto,  */
+/*                  sube 5 al fallo, umbral con 2 respuestas al mismo nivel).   */
+/*                  Orden 1000→2000→4000→500 Hz, primero OD y luego OI.        */
+/*   4. done      → audiograma, PTA y guardado por el profesional.             */
+/* -------------------------------------------------------------------------- */
+
 type Props = NativeStackScreenProps<RootStackParamList, 'AudiometryConditioned'>;
+
+type Phase = 'intro' | 'practice' | 'test' | 'done';
+
+const FREQ_ORDER = [1000, 2000, 4000, 500] as const;
+const TONE_MS = 1400; // duración del tono (igual que el hook)
+const RESPONSE_GRACE_MS = 1500; // margen tras el tono para aceptar la respuesta
+const PRACTICE_HITS_NEEDED = 3;
+const MAX_MISSES_AT_80 = 2; // no-respuestas a 80 dB antes de saltar la frecuencia
+
+const INTRO_STEPS: { emoji: string; title: string; text: string }[] = [
+  { emoji: '🎧', title: 'Ponte los auriculares', text: 'El profesional coloca los auriculares al niño/a y ajusta el volumen del dispositivo al máximo.' },
+  { emoji: '👂', title: 'Escucha con atención', text: 'El tren silba de vez en cuando. A veces suena muy bajito… ¡hay que estar muy atento!' },
+  { emoji: '🔔', title: 'Toca el silbato', text: 'Cada vez que oigas el silbido del tren, pulsa el botón grande del silbato.' },
+  { emoji: '🚉', title: 'Llega a las estaciones', text: 'Con cada silbido acertado el tren avanza. ¡Completa las 8 estaciones para ganar!' },
+];
 
 export default function AudiometryConditionedScreen({ navigation }: Props) {
   const activeEvaluation = useClassSelector(Evaluation, (state: RootState) => state.activeEvaluation.evaluation);
   const [createAudiometry, { isLoading: isSaving }] = useCreateAudiometryMutation();
   const a = useAudiometryTest();
 
+  const [phase, setPhase] = useState<Phase>('intro');
+  const [paused, setPaused] = useState(false);
+  const [practiceHits, setPracticeHits] = useState(0);
+  const [practiceTick, setPracticeTick] = useState(0);
+  const [trialTick, setTrialTick] = useState(0);
   const [chugging, setChugging] = useState(false);
   const [celebrate, setCelebrate] = useState(false);
   const [warn, setWarn] = useState(false);
@@ -39,40 +72,195 @@ export default function AudiometryConditionedScreen({ navigation }: Props) {
   const [evaluatorName, setEvaluatorName] = useState(activeEvaluation?.professional?.name ?? '');
   const [evaluatorLicense, setEvaluatorLicense] = useState(activeEvaluation?.professional?.licenseNumber ?? '');
 
+  // Estado interno del secuenciador (no necesita re-render).
+  const windowOpen = useRef(false); // ventana de respuesta activa (tono + gracia)
+  const missesAtMax = useRef(0);
+  const skipped = useRef<Record<Ear, Set<number>>>({ OD: new Set(), OI: new Set() });
+  const presentTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const windowTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const phaseRef = useRef<Phase>('intro');
+  phaseRef.current = phase;
+
   const patient = activeEvaluation?.patient;
   const patientName = patient ? `${patient.name} ${patient.lastName}`.trim() : null;
 
+  const clearTimers = useCallback(() => {
+    if (presentTimer.current) clearTimeout(presentTimer.current);
+    if (windowTimer.current) clearTimeout(windowTimer.current);
+    presentTimer.current = null;
+    windowTimer.current = null;
+    windowOpen.current = false;
+  }, []);
+
+  useEffect(() => () => clearTimers(), [clearTimers]);
+
+  const flashCelebrate = useCallback(() => {
+    setChugging(true);
+    setCelebrate(true);
+    setTimeout(() => {
+      setChugging(false);
+      setCelebrate(false);
+    }, 1500);
+  }, []);
+
+  const flashWarn = useCallback(() => {
+    setWarn(true);
+    setTimeout(() => setWarn(false), 1200);
+  }, []);
+
+  /* ------------------------- transición de fases -------------------------- */
+
+  const startPractice = () => {
+    clearTimers();
+    setPracticeHits(0);
+    a.setEar('OD');
+    a.setFreq(1000);
+    a.setDb(60); // claramente audible: condicionamiento, no umbral
+    setPhase('practice');
+  };
+
+  const startTest = useCallback(() => {
+    clearTimers();
+    a.reset(); // OD · 1000 Hz · 40 dB, umbrales limpios
+    skipped.current = { OD: new Set(), OI: new Set() };
+    missesAtMax.current = 0;
+    setPaused(false);
+    setPhase('test');
+  }, [a, clearTimers]);
+
+  const restartAll = () => {
+    clearTimers();
+    a.reset();
+    skipped.current = { OD: new Set(), OI: new Set() };
+    missesAtMax.current = 0;
+    setPracticeHits(0);
+    setPaused(false);
+    setPhase('intro');
+  };
+
+  /** Avanza a la siguiente frecuencia/oído pendiente; si no queda nada, fin. */
+  const advance = useCallback(() => {
+    missesAtMax.current = 0;
+    const cur = typeof a.freq === 'number' ? a.freq : null;
+    const isPending = (e: Ear, f: number) =>
+      a.thresholds[e][f] === null && !skipped.current[e].has(f) && !(e === a.ear && f === cur);
+
+    const nextFreq = FREQ_ORDER.find(f => isPending(a.ear, f));
+    if (nextFreq !== undefined) {
+      a.setFreq(nextFreq);
+      a.setDb(40);
+      return;
+    }
+    if (a.ear === 'OD') {
+      const nextOI = FREQ_ORDER.find(f => isPending('OI', f));
+      if (nextOI !== undefined) {
+        a.setEar('OI');
+        a.setFreq(nextOI);
+        a.setDb(40);
+        return;
+      }
+    }
+    clearTimers();
+    setPhase('done');
+  }, [a, clearTimers]);
+
+  /* --------------------- secuenciador: juego de práctica ------------------- */
+
+  useEffect(() => {
+    if (phase !== 'practice' || paused) return;
+    if (practiceHits >= PRACTICE_HITS_NEEDED) {
+      const t = setTimeout(startTest, 1600);
+      return () => clearTimeout(t);
+    }
+    presentTimer.current = setTimeout(() => {
+      a.playStimulus();
+      windowOpen.current = true;
+      windowTimer.current = setTimeout(() => {
+        windowOpen.current = false;
+        setPracticeTick(t => t + 1); // sin respuesta: se repite el estímulo
+      }, TONE_MS + RESPONSE_GRACE_MS);
+    }, 1800 + Math.random() * 1000);
+    return () => {
+      if (presentTimer.current) clearTimeout(presentTimer.current);
+      if (windowTimer.current) clearTimeout(windowTimer.current);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [phase, paused, practiceHits, practiceTick]);
+
+  /* ------------------- secuenciador: prueba autónoma (HW) ------------------ */
+
+  useEffect(() => {
+    if (phase !== 'test' || paused) return;
+    if (typeof a.freq !== 'number') return;
+    const f = a.freq;
+
+    // Umbral ya confirmado en esta frecuencia → avanzar a la siguiente.
+    if (a.thresholds[a.ear][f] !== null || skipped.current[a.ear].has(f)) {
+      advance();
+      return;
+    }
+
+    // Intervalo aleatorio entre estímulos: evita que el niño responda al ritmo.
+    presentTimer.current = setTimeout(() => {
+      a.playStimulus();
+      windowOpen.current = true;
+      windowTimer.current = setTimeout(() => {
+        windowOpen.current = false;
+        // No respondió dentro de la ventana.
+        if (phaseRef.current !== 'test') return;
+        if (a.db >= 80) {
+          missesAtMax.current += 1;
+          if (missesAtMax.current >= MAX_MISSES_AT_80) {
+            // Sin respuesta al máximo nivel: se salta la frecuencia (queda sin
+            // umbral y así se refleja en el audiograma/PTA).
+            skipped.current[a.ear].add(f);
+            advance();
+            return;
+          }
+        }
+        a.noResponse(); // sube 5 dB
+        setTrialTick(t => t + 1);
+      }, TONE_MS + RESPONSE_GRACE_MS);
+    }, 1400 + Math.random() * 1600);
+
+    return () => {
+      if (presentTimer.current) clearTimeout(presentTimer.current);
+      if (windowTimer.current) clearTimeout(windowTimer.current);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [phase, paused, a.ear, a.freq, a.db, trialTick]);
+
+  /* ------------------------------ el silbato ------------------------------- */
+
   const onWhistle = () => {
-    if (a.playing) {
-      a.stop();
-      setChugging(true);
-      setCelebrate(true);
-      setTimeout(() => {
-        setChugging(false);
-        setCelebrate(false);
-      }, 1600);
-      if (typeof a.freq === 'number') a.responded();
-    } else {
-      setWarn(true);
-      setTimeout(() => setWarn(false), 1400);
+    if (phase === 'practice') {
+      if (a.playing || windowOpen.current) {
+        clearTimers();
+        a.stop();
+        setPracticeHits(h => h + 1);
+        flashCelebrate();
+        setPracticeTick(t => t + 1);
+      } else {
+        flashWarn();
+      }
+      return;
+    }
+    if (phase === 'test') {
+      if (a.playing || windowOpen.current) {
+        clearTimers();
+        a.stop();
+        const r = a.responded(); // HW: baja 10 dB o confirma umbral
+        flashCelebrate();
+        if (r.confirmed) advance();
+        else setTrialTick(t => t + 1);
+      } else {
+        // Falsa alarma: sin estímulo activo. Solo feedback suave.
+        flashWarn();
+      }
     }
   };
 
-  const doneForActive = a.doneForEar(a.ear);
-  const doneFlags = FREQS.map(f => a.thresholds[a.ear][f] !== null);
-  const stationLabels = FREQS.map(f => FREQ_LABEL[String(f)]);
-  const earWord = a.ear === 'OD' ? 'derecho' : 'izquierdo';
-
-  const assistant = useMemo(() => {
-    if (a.isControl) {
-      return { tag: 'SONIDO DE CONTROL', text: 'Estímulo de control (no tonal): verifique la atención y el condicionamiento antes de seguir con los tonos.', bg: '$primary0' };
-    }
-    if (a.currentThreshold !== null) {
-      return { tag: 'ESTACIÓN ALCANZADA', text: `Umbral ${a.ear} ${FREQ_LABEL[String(a.freq)]} = ${a.currentThreshold} dB HL confirmado. Avance a la siguiente estación (frecuencia).`, bg: '$success50' };
-    }
-    const conf = a.heardAtMin !== null ? ` · ${a.heardTally}/2 a ${a.heardAtMin} dB` : '';
-    return { tag: 'HUGHSON-WESTLAKE', text: `Presente a ${a.db} dB. Responde → «Sí» (baja 10). No → «No» (sube 5). Confirme con 2 respuestas${conf}.`, bg: '$warning50' };
-  }, [a.isControl, a.currentThreshold, a.ear, a.freq, a.heardAtMin, a.heardTally, a.db]);
+  /* ------------------------------- guardado -------------------------------- */
 
   const handleSave = async () => {
     if (isSaving) return;
@@ -104,8 +292,16 @@ export default function AudiometryConditionedScreen({ navigation }: Props) {
     }
   };
 
+  /* -------------------------------- render --------------------------------- */
+
+  const doneForActive = a.doneForEar(a.ear);
+  const doneFlags = FREQS.map(f => a.thresholds[a.ear][f] !== null);
+  const stationLabels = FREQS.map(f => FREQ_LABEL[String(f)]);
+  const earWord = a.ear === 'OD' ? 'derecho' : 'izquierdo';
   const sevOD = severityOf(a.ptaOD);
   const sevOI = severityOf(a.ptaOI);
+
+  const whistleActive = a.playing || windowOpen.current;
 
   return (
     <Content
@@ -123,219 +319,321 @@ export default function AudiometryConditionedScreen({ navigation }: Props) {
           <VStack flex={1} px="$6" mt="$2" space="md" pb="$10">
             {/* título */}
             <HStack alignItems="center" justifyContent="space-between">
-              <VStack>
+              <VStack style={{ flex: 1 }}>
                 <HStack alignItems="center" space="sm">
                   <Text size="2xl" weight="bold" color="$textLight900">
                     Audiometría condicionada
                   </Text>
                   <Box bg="$primary50" px="$2" py="$0.5" borderRadius="$full">
                     <Text size="2xs" weight="bold" color="$primary800" style={{ letterSpacing: 0.4 }}>
-                      EL TREN DEL SONIDO
+                      AUTOMÁTICA
                     </Text>
                   </Box>
                 </HStack>
                 <Text size="xs" color="$textLight500">
-                  {patientName ?? 'Refuerzo visual lúdico (CRA) · Hughson-Westlake guiado'}
+                  {patientName ?? 'El Tren del Sonido · Hughson-Westlake autónomo'}
                 </Text>
               </VStack>
-              <HStack space="xs" alignItems="center" bg="$white" borderRadius="$full" px="$3" py="$1.5" borderWidth={1} borderColor="$borderLight100">
-                <Text size="sm">🎫</Text>
-                <Text size="sm" weight="bold" color="$primary600">
-                  {a.stars}/8
-                </Text>
-              </HStack>
+              {phase === 'test' || phase === 'done' ? (
+                <HStack space="xs" alignItems="center" bg="$white" borderRadius="$full" px="$3" py="$1.5" borderWidth={1} borderColor="$borderLight100">
+                  <Text size="sm">🎫</Text>
+                  <Text size="sm" weight="bold" color="$primary600">
+                    {a.stars}/8
+                  </Text>
+                </HStack>
+              ) : null}
             </HStack>
 
-            {/* escena del tren */}
-            <Card bgColor="$white" borderRadius={22} p="$4">
-              <HStack justifyContent="space-between" alignItems="center" mb="$2">
-                <Text size="sm" weight="bold" color="$textLight900">
-                  El Tren del Sonido — oído {earWord}
-                </Text>
-                {a.playing ? (
-                  <Box bg="$primary50" px="$2.5" py="$1" borderRadius="$full">
-                    <Text size="2xs" weight="bold" color="$primary700">SILBANDO…</Text>
-                  </Box>
-                ) : null}
-              </HStack>
-              <TrainScene progress={doneForActive} stationLabels={stationLabels} doneFlags={doneFlags} chugging={chugging} celebrate={celebrate} />
+            {/* ============================ INTRO ============================ */}
+            {phase === 'intro' && (
+              <>
+                <Card bgColor="$white" borderRadius={22} p="$5">
+                  <HStack space="sm" alignItems="center" mb="$3">
+                    <Center w={44} h={44} borderRadius={14} bg="$primary50">
+                      <Icon as={Train} size="lg" color="$primary600" />
+                    </Center>
+                    <VStack style={{ flex: 1 }}>
+                      <Text size="lg" weight="bold" color="$textLight900">
+                        El Tren del Sonido
+                      </Text>
+                      <Text size="xs" color="$textLight500">
+                        Cómo se juega · explícaselo al niño/a
+                      </Text>
+                    </VStack>
+                  </HStack>
+                  <VStack space="md">
+                    {INTRO_STEPS.map((s, i) => (
+                      <HStack key={i} space="sm" alignItems="flex-start">
+                        <Center w={40} h={40} borderRadius={12} bg="$backgroundLight50">
+                          <Text style={{ fontSize: 22 }}>{s.emoji}</Text>
+                        </Center>
+                        <VStack style={{ flex: 1 }}>
+                          <Text size="sm" weight="bold" color="$textLight800">
+                            {i + 1}. {s.title}
+                          </Text>
+                          <Text size="xs" color="$textLight500" style={{ lineHeight: 17 }}>
+                            {s.text}
+                          </Text>
+                        </VStack>
+                      </HStack>
+                    ))}
+                  </VStack>
+                </Card>
 
-              {/* silbato del niño */}
-              <HStack space="sm" alignItems="center" mt="$3">
-                <Pressable style={{ flex: 1 }} onPress={onWhistle}>
-                  <Center py="$3" borderRadius={16} bg={a.playing ? '$success600' : '$primary600'}>
-                    <HStack space="sm" alignItems="center">
-                      <Icon as={Bell} size="md" color="$white" />
-                      <VStack>
-                        <Text size="md" weight="bold" color="$white">¡Toca el silbato!</Text>
-                        <Text size="2xs" color="$white" style={{ opacity: 0.9 }}>Pulsa cuando oigas el tren</Text>
-                      </VStack>
-                    </HStack>
+                <Card bgColor="$primary0" borderRadius={18} borderWidth={1} borderColor="$primary100" p="$4">
+                  <HStack space="sm" alignItems="flex-start">
+                    <Icon as={Headphones} size="sm" color="$primary600" style={{ marginTop: 2 }} />
+                    <Text size="xs" color="$primary800" style={{ flex: 1, lineHeight: 18 }}>
+                      Para el profesional: tras un breve juego de práctica ({PRACTICE_HITS_NEEDED} aciertos con tonos
+                      claramente audibles), la prueba es autónoma. La app presenta los tonos con intervalos aleatorios y
+                      aplica Hughson-Westlake (−10 dB al acierto, +5 dB al fallo, umbral con 2 respuestas) en
+                      1000→2000→4000→500 Hz, primero oído derecho y después izquierdo.
+                    </Text>
+                  </HStack>
+                </Card>
+
+                <Button action="primary" variant="solid" rounded="$full" onPress={startPractice}>
+                  <HStack space="sm" alignItems="center">
+                    <Icon as={Play} size="sm" color="$white" />
+                    <Text size="md" weight="bold" color="$white">
+                      Empezar el juego de práctica
+                    </Text>
+                  </HStack>
+                </Button>
+              </>
+            )}
+
+            {/* ========================== PRACTICE =========================== */}
+            {phase === 'practice' && (
+              <>
+                <Card bgColor="$white" borderRadius={22} p="$4">
+                  <HStack justifyContent="space-between" alignItems="center" mb="$2">
+                    <Text size="sm" weight="bold" color="$textLight900">
+                      Práctica — ¡aprende a jugar!
+                    </Text>
+                    <Box bg={practiceHits >= PRACTICE_HITS_NEEDED ? '$success50' : '$primary50'} px="$2.5" py="$1" borderRadius="$full">
+                      <Text size="2xs" weight="bold" color={practiceHits >= PRACTICE_HITS_NEEDED ? '$success700' : '$primary700'}>
+                        {practiceHits}/{PRACTICE_HITS_NEEDED} aciertos
+                      </Text>
+                    </Box>
+                  </HStack>
+                  <TrainScene progress={Math.min(3, practiceHits)} stationLabels={['¡Hola!', 'Práctica', '¡Casi!', '¡Listo!']} doneFlags={[practiceHits > 0, practiceHits > 1, practiceHits > 2, false]} chugging={chugging} celebrate={celebrate} />
+                  <Center mt="$3">
+                    <Text size="sm" weight="semiBold" color="$textLight600" style={{ textAlign: 'center' }}>
+                      {practiceHits >= PRACTICE_HITS_NEEDED
+                        ? '¡Muy bien! Empieza la prueba de verdad…'
+                        : a.playing
+                          ? '¡El tren está silbando! ¡Toca el silbato!'
+                          : 'Espera… cuando oigas el silbido, toca el silbato.'}
+                    </Text>
+                  </Center>
+                </Card>
+
+                <Pressable onPress={onWhistle}>
+                  <Center py="$6" borderRadius={24} bg={whistleActive ? '$success600' : '$primary600'}>
+                    <Icon as={Bell} size="xl" color="$white" />
+                    <Text size="lg" weight="bold" color="$white" mt="$1">
+                      ¡Toca el silbato!
+                    </Text>
+                    <Text size="xs" color="$white" style={{ opacity: 0.9 }}>
+                      Pulsa cuando oigas el tren
+                    </Text>
                   </Center>
                 </Pressable>
                 {warn ? (
-                  <Box bg="$error50" px="$3" py="$2" borderRadius={10} style={{ maxWidth: 130 }}>
-                    <Text size="2xs" weight="bold" color="$error600">Espera a oír el silbido</Text>
-                  </Box>
-                ) : null}
-              </HStack>
-            </Card>
-
-            {/* audiograma */}
-            <Card bgColor="$white" borderRadius={20} p="$4">
-              <HStack justifyContent="space-between" alignItems="center" mb="$2">
-                <Text size="sm" weight="bold" color="$textLight900">Audiograma clínico</Text>
-                <HStack space="md">
-                  <Text size="2xs" style={{ color: '#E63535' }}>● OD</Text>
-                  <Text size="2xs" style={{ color: '#1E8049' }}>✕ OI</Text>
-                </HStack>
-              </HStack>
-              <Box h={250} borderRadius={12} borderWidth={1} borderColor="$borderLight100" bg="$backgroundLight50">
-                <Audiogram thresholds={a.thresholds} cursor={a.isControl ? null : { freq: a.freq as number, db: a.db }} cursorColor="#0066B3" />
-              </Box>
-            </Card>
-
-            {/* umbrales + PTA + fiabilidad */}
-            <Card bgColor="$white" borderRadius={20} p="$4">
-              <Text size="sm" weight="bold" color="$textLight900" mb="$2">Umbrales registrados · dB HL</Text>
-              <VStack space="xs">
-                <HStack>
-                  <Text size="xs" color="$textLight400" style={{ width: 50 }}>Oído</Text>
-                  {FREQS.map(f => (
-                    <Text key={f} size="xs" color="$textLight400" style={{ flex: 1, textAlign: 'center' }}>{FREQ_LABEL[String(f)]}</Text>
-                  ))}
-                </HStack>
-                {(['OD', 'OI'] as const).map(e => (
-                  <HStack key={e} alignItems="center">
-                    <Text size="sm" weight="bold" style={{ width: 50, color: e === 'OD' ? '#E63535' : '#1E8049' }}>{e}</Text>
-                    {FREQS.map(f => (
-                      <Text key={f} size="sm" weight="semiBold" color="$textLight700" style={{ flex: 1, textAlign: 'center', fontVariant: ['tabular-nums'] }}>
-                        {a.thresholds[e][f] ?? '—'}
+                  <Center>
+                    <Box bg="$error50" px="$4" py="$2" borderRadius={12}>
+                      <Text size="xs" weight="bold" color="$error600">
+                        Todavía no suena nada… espera al silbido 😉
                       </Text>
-                    ))}
-                  </HStack>
-                ))}
-              </VStack>
-              <HStack space="sm" mt="$3">
-                <Box flex={1} bg="$backgroundLight50" borderRadius={12} p="$2.5" alignItems="center">
-                  <Text size="2xs" color="$textLight400">PTA OD</Text>
-                  <Text size="lg" weight="bold" style={{ color: '#E63535' }}>{a.ptaOD ?? '—'}</Text>
-                  {sevOD ? <Text size="2xs" color="$textLight500">{sevOD.label}</Text> : null}
-                </Box>
-                <Box flex={1} bg="$backgroundLight50" borderRadius={12} p="$2.5" alignItems="center">
-                  <Text size="2xs" color="$textLight400">PTA OI</Text>
-                  <Text size="lg" weight="bold" style={{ color: '#1E8049' }}>{a.ptaOI ?? '—'}</Text>
-                  {sevOI ? <Text size="2xs" color="$textLight500">{sevOI.label}</Text> : null}
-                </Box>
-                <Box flex={1} bg="$backgroundLight50" borderRadius={12} p="$2.5" alignItems="center">
-                  <Text size="2xs" color="$textLight400">FIABILIDAD</Text>
-                  <Text size="lg" weight="bold" color={a.reliability === null ? '$textLight400' : a.reliability >= 80 ? '$success600' : '$warning600'}>
-                    {a.reliability !== null ? `${a.reliability}%` : '—'}
-                  </Text>
-                </Box>
-              </HStack>
-            </Card>
-
-            {/* panel del evaluador */}
-            <Card bgColor="$white" borderRadius={20} p="$4">
-              <Text size="xs" weight="semiBold" color="$textLight600" mb="$1">Oído</Text>
-              <HStack space="sm" mb="$3">
-                {(['OD', 'OI'] as const).map(e => (
-                  <Pressable key={e} style={{ flex: 1 }} onPress={() => a.setEar(e)}>
-                    <Center py="$2" borderRadius={10} bg={a.ear === e ? (e === 'OD' ? '$error500' : '$success600') : '$white'} borderWidth={1.5} borderColor={a.ear === e ? 'transparent' : '$borderLight200'}>
-                      <Text size="sm" weight="bold" color={a.ear === e ? '$white' : '$textLight500'}>{e}</Text>
-                    </Center>
-                  </Pressable>
-                ))}
-              </HStack>
-
-              <Text size="xs" weight="semiBold" color="$textLight600" mb="$1">Intensidad · dB HL</Text>
-              <HStack space="xs" mb="$3">
-                {DB_STEPS.map(d => (
-                  <Pressable key={d} style={{ flex: 1 }} onPress={() => a.setDb(d)}>
-                    <Center py="$1.5" borderRadius={8} bg={a.db === d ? '$primary500' : '$white'} borderWidth={1.5} borderColor={a.db === d ? 'transparent' : '$borderLight200'}>
-                      <Text size="xs" weight="bold" color={a.db === d ? '$white' : '$textLight500'} style={{ fontVariant: ['tabular-nums'] }}>{d}</Text>
-                    </Center>
-                  </Pressable>
-                ))}
-              </HStack>
-
-              <Text size="xs" weight="semiBold" color="$textLight600" mb="$1">Estímulo</Text>
-              <HStack space="xs" flexWrap="wrap" mb="$3">
-                {([500, 1000, 2000, 4000, 'amb', 'pol'] as ToneTarget[]).map(f => (
-                  <Pressable key={String(f)} onPress={() => a.setFreq(f)}>
-                    <Box px="$3" py="$1.5" borderRadius="$full" bg={a.freq === f ? '$textLight900' : '$white'} borderWidth={1.5} borderColor={a.freq === f ? 'transparent' : '$borderLight200'}>
-                      <Text size="xs" weight="bold" color={a.freq === f ? '$white' : '$textLight500'}>{FREQ_LABEL[String(f)]}</Text>
                     </Box>
-                  </Pressable>
-                ))}
-              </HStack>
+                  </Center>
+                ) : null}
+              </>
+            )}
 
-              <HStack space="sm" alignItems="stretch" mb="$3">
-                <Box flex={1} bg={assistant.bg} borderRadius={14} p="$3" justifyContent="center">
-                  <Text size="2xs" weight="bold" color="$warning700" style={{ letterSpacing: 0.4 }}>{assistant.tag}</Text>
-                  <Text size="xs" weight="semiBold" color="$textLight800" mt="$0.5" style={{ lineHeight: 17 }}>{assistant.text}</Text>
-                </Box>
-                <Button action="primary" variant="solid" rounded="$xl" onPress={a.playStimulus} style={{ width: 120 }}>
-                  <VStack alignItems="center">
-                    <Icon as={Volume2} size="md" color="$white" />
-                    <Text size="2xs" weight="bold" color="$white" mt="$0.5">Emitir</Text>
+            {/* ============================ TEST ============================= */}
+            {phase === 'test' && (
+              <>
+                <Card bgColor="$white" borderRadius={22} p="$4">
+                  <HStack justifyContent="space-between" alignItems="center" mb="$2">
+                    <Text size="sm" weight="bold" color="$textLight900">
+                      El Tren del Sonido — oído {earWord}
+                    </Text>
+                    {a.playing ? (
+                      <Box bg="$primary50" px="$2.5" py="$1" borderRadius="$full">
+                        <Text size="2xs" weight="bold" color="$primary700">SILBANDO…</Text>
+                      </Box>
+                    ) : paused ? (
+                      <Box bg="$warning50" px="$2.5" py="$1" borderRadius="$full">
+                        <Text size="2xs" weight="bold" color="$warning700">EN PAUSA</Text>
+                      </Box>
+                    ) : null}
+                  </HStack>
+                  <TrainScene progress={doneForActive} stationLabels={stationLabels} doneFlags={doneFlags} chugging={chugging} celebrate={celebrate} />
+                </Card>
+
+                <Pressable onPress={onWhistle} disabled={paused}>
+                  <Center py="$6" borderRadius={24} bg={paused ? '$backgroundLight300' : whistleActive ? '$success600' : '$primary600'}>
+                    <Icon as={Bell} size="xl" color="$white" />
+                    <Text size="lg" weight="bold" color="$white" mt="$1">
+                      ¡Toca el silbato!
+                    </Text>
+                    <Text size="xs" color="$white" style={{ opacity: 0.9 }}>
+                      Pulsa cuando oigas el tren
+                    </Text>
+                  </Center>
+                </Pressable>
+                {warn ? (
+                  <Center>
+                    <Box bg="$error50" px="$4" py="$2" borderRadius={12}>
+                      <Text size="xs" weight="bold" color="$error600">
+                        Espera a oír el silbido del tren
+                      </Text>
+                    </Box>
+                  </Center>
+                ) : null}
+
+                {/* panel del profesional (estado, no controles clínicos) */}
+                <Card bgColor="$backgroundLight50" borderRadius={18} borderWidth={1} borderColor="$borderLight100" p="$4">
+                  <HStack alignItems="center" justifyContent="space-between">
+                    <VStack style={{ flex: 1 }}>
+                      <Text size="2xs" weight="bold" color="$textLight400" style={{ letterSpacing: 0.4 }}>
+                        SECUENCIADOR AUTOMÁTICO
+                      </Text>
+                      <Text size="xs" weight="semiBold" color="$textLight700" mt="$0.5" style={{ fontVariant: ['tabular-nums'] }}>
+                        {a.ear} · {typeof a.freq === 'number' ? `${FREQ_LABEL[String(a.freq)]} Hz` : '—'} · {a.db} dB HL
+                        {' · '}umbrales {a.stars}/8
+                      </Text>
+                    </VStack>
+                    <HStack space="sm">
+                      <Pressable onPress={() => setPaused(p => !p)}>
+                        <Center w={42} h={42} borderRadius={12} borderWidth={1} borderColor="$borderLight200" bg="$white">
+                          <Icon as={paused ? Play : Pause} size="sm" color="$textLight600" />
+                        </Center>
+                      </Pressable>
+                      <Pressable onPress={restartAll}>
+                        <Center w={42} h={42} borderRadius={12} borderWidth={1} borderColor="$borderLight200" bg="$white">
+                          <Icon as={RotateCcw} size="sm" color="$textLight600" />
+                        </Center>
+                      </Pressable>
+                    </HStack>
+                  </HStack>
+                </Card>
+              </>
+            )}
+
+            {/* ============================ DONE ============================= */}
+            {phase === 'done' && (
+              <>
+                <Card bgColor="$success50" borderRadius={20} borderWidth={1} borderColor="$success200" p="$5">
+                  <HStack space="sm" alignItems="center">
+                    <Center w={44} h={44} borderRadius={14} bg="$white">
+                      <Icon as={Sparkles} size="lg" color="$success600" />
+                    </Center>
+                    <VStack style={{ flex: 1 }}>
+                      <Text size="lg" weight="bold" color="$success800">
+                        ¡Prueba completada!
+                      </Text>
+                      <Text size="2xs" color="$success700">
+                        {a.stars}/8 umbrales confirmados · fiabilidad {a.reliability !== null ? `${a.reliability}%` : '—'}
+                      </Text>
+                    </VStack>
+                  </HStack>
+                </Card>
+
+                {/* audiograma */}
+                <Card bgColor="$white" borderRadius={20} p="$4">
+                  <HStack justifyContent="space-between" alignItems="center" mb="$2">
+                    <Text size="sm" weight="bold" color="$textLight900">Audiograma clínico</Text>
+                    <HStack space="md">
+                      <Text size="2xs" style={{ color: '#E63535' }}>● OD</Text>
+                      <Text size="2xs" style={{ color: '#1E8049' }}>✕ OI</Text>
+                    </HStack>
+                  </HStack>
+                  <Box h={250} borderRadius={12} borderWidth={1} borderColor="$borderLight100" bg="$backgroundLight50">
+                    <Audiogram thresholds={a.thresholds} cursor={null} cursorColor="#0066B3" />
+                  </Box>
+                </Card>
+
+                {/* umbrales + PTA + fiabilidad */}
+                <Card bgColor="$white" borderRadius={20} p="$4">
+                  <Text size="sm" weight="bold" color="$textLight900" mb="$2">Umbrales registrados · dB HL</Text>
+                  <VStack space="xs">
+                    <HStack>
+                      <Text size="xs" color="$textLight400" style={{ width: 50 }}>Oído</Text>
+                      {FREQS.map(f => (
+                        <Text key={f} size="xs" color="$textLight400" style={{ flex: 1, textAlign: 'center' }}>{FREQ_LABEL[String(f)]}</Text>
+                      ))}
+                    </HStack>
+                    {(['OD', 'OI'] as const).map(e => (
+                      <HStack key={e} alignItems="center">
+                        <Text size="sm" weight="bold" style={{ width: 50, color: e === 'OD' ? '#E63535' : '#1E8049' }}>{e}</Text>
+                        {FREQS.map(f => (
+                          <Text key={f} size="sm" weight="semiBold" color="$textLight700" style={{ flex: 1, textAlign: 'center', fontVariant: ['tabular-nums'] }}>
+                            {a.thresholds[e][f] ?? '—'}
+                          </Text>
+                        ))}
+                      </HStack>
+                    ))}
                   </VStack>
-                </Button>
-              </HStack>
+                  <HStack space="sm" mt="$3">
+                    <Box flex={1} bg="$backgroundLight50" borderRadius={12} p="$2.5" alignItems="center">
+                      <Text size="2xs" color="$textLight400">PTA OD</Text>
+                      <Text size="lg" weight="bold" style={{ color: '#E63535' }}>{a.ptaOD ?? '—'}</Text>
+                      {sevOD ? <Text size="2xs" color="$textLight500">{sevOD.label}</Text> : null}
+                    </Box>
+                    <Box flex={1} bg="$backgroundLight50" borderRadius={12} p="$2.5" alignItems="center">
+                      <Text size="2xs" color="$textLight400">PTA OI</Text>
+                      <Text size="lg" weight="bold" style={{ color: '#1E8049' }}>{a.ptaOI ?? '—'}</Text>
+                      {sevOI ? <Text size="2xs" color="$textLight500">{sevOI.label}</Text> : null}
+                    </Box>
+                    <Box flex={1} bg="$backgroundLight50" borderRadius={12} p="$2.5" alignItems="center">
+                      <Text size="2xs" color="$textLight400">FIABILIDAD</Text>
+                      <Text size="lg" weight="bold" color={a.reliability === null ? '$textLight400' : a.reliability >= 80 ? '$success600' : '$warning600'}>
+                        {a.reliability !== null ? `${a.reliability}%` : '—'}
+                      </Text>
+                    </Box>
+                  </HStack>
+                </Card>
 
-              <HStack space="sm">
-                <Pressable style={{ flex: 1 }} onPress={() => a.responded()}>
-                  <Center py="$2.5" borderRadius={12} bg="$success50">
-                    <HStack space="xs" alignItems="center">
-                      <Icon as={Check} size="sm" color="$success700" />
-                      <Text size="sm" weight="bold" color="$success700">Sí respondió</Text>
+                {/* evaluador + guardar */}
+                <Card bgColor="$white" borderRadius={20} p="$4">
+                  <Text size="sm" weight="bold" color="$textLight700" mb="$2">Evaluador responsable</Text>
+                  <HStack space="sm" mb="$3">
+                    <Input variant="outline" borderRadius={12} style={{ flex: 2 }}>
+                      <InputField placeholder="Nombre" value={evaluatorName} onChangeText={setEvaluatorName} />
+                    </Input>
+                    <Input variant="outline" borderRadius={12} style={{ flex: 1 }}>
+                      <InputField placeholder="Colegiado" value={evaluatorLicense} onChangeText={setEvaluatorLicense} />
+                    </Input>
+                  </HStack>
+                  <Input variant="outline" borderRadius={12} h={64} mb="$3">
+                    <InputField multiline placeholder="Observaciones clínicas…" value={notes} onChangeText={setNotes} style={{ textAlignVertical: 'top' }} />
+                  </Input>
+                  <Button
+                    action="primary"
+                    variant="solid"
+                    rounded="$full"
+                    isDisabled={isSaving || !evaluatorName.trim() || !evaluatorLicense.trim()}
+                    isLoading={isSaving}
+                    onPress={handleSave}>
+                    <HStack space="sm" alignItems="center">
+                      <Icon as={Save} size="sm" color="$white" />
+                      <Text size="sm" weight="bold" color="$white">Guardar audiometría</Text>
                     </HStack>
-                  </Center>
-                </Pressable>
-                <Pressable style={{ flex: 1 }} onPress={() => a.noResponse()}>
-                  <Center py="$2.5" borderRadius={12} bg="$error50">
-                    <HStack space="xs" alignItems="center">
-                      <Icon as={X} size="sm" color="$error600" />
-                      <Text size="sm" weight="bold" color="$error600">No respondió</Text>
-                    </HStack>
-                  </Center>
-                </Pressable>
-                <Pressable onPress={a.reset}>
-                  <Center w={44} py="$2.5" borderRadius={12} borderWidth={1} borderColor="$borderLight200" bg="$white">
-                    <Icon as={RotateCcw} size="sm" color="$textLight500" />
-                  </Center>
-                </Pressable>
-              </HStack>
-            </Card>
-
-            {/* evaluador + guardar */}
-            <Card bgColor="$white" borderRadius={20} p="$4">
-              <Text size="sm" weight="bold" color="$textLight700" mb="$2">Evaluador responsable</Text>
-              <HStack space="sm" mb="$3">
-                <Input variant="outline" borderRadius={12} style={{ flex: 2 }}>
-                  <InputField placeholder="Nombre" value={evaluatorName} onChangeText={setEvaluatorName} />
-                </Input>
-                <Input variant="outline" borderRadius={12} style={{ flex: 1 }}>
-                  <InputField placeholder="Colegiado" value={evaluatorLicense} onChangeText={setEvaluatorLicense} />
-                </Input>
-              </HStack>
-              <Input variant="outline" borderRadius={12} h={64} mb="$3">
-                <InputField multiline placeholder="Observaciones clínicas…" value={notes} onChangeText={setNotes} style={{ textAlignVertical: 'top' }} />
-              </Input>
-              <Button
-                action="primary"
-                variant="solid"
-                rounded="$full"
-                isDisabled={isSaving || !evaluatorName.trim() || !evaluatorLicense.trim()}
-                isLoading={isSaving}
-                onPress={handleSave}>
-                <HStack space="sm" alignItems="center">
-                  <Icon as={Save} size="sm" color="$white" />
-                  <Text size="sm" weight="bold" color="$white">Guardar audiometría</Text>
-                </HStack>
-              </Button>
-            </Card>
+                  </Button>
+                  <Pressable onPress={restartAll} style={{ marginTop: 10 }}>
+                    <Center py="$2.5" borderRadius={12} borderWidth={1} borderColor="$borderLight200" bg="$white">
+                      <HStack space="xs" alignItems="center">
+                        <Icon as={RotateCcw} size="xs" color="$textLight500" />
+                        <Text size="sm" weight="bold" color="$textLight500">Repetir la prueba</Text>
+                      </HStack>
+                    </Center>
+                  </Pressable>
+                </Card>
+              </>
+            )}
           </VStack>
         </ScrollView>
       </VStack>

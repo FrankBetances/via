@@ -263,7 +263,9 @@ export default function ClinicalAssessmentScreen({ navigation }: Props) {
         },
       );
       showSuccessToast('CAP generado', `${a.globalLabel} · ${a.activeCount}/${a.totalGames} pruebas habilitadas.`);
-      navigation.navigate('SeleccionEjercicios');
+      // Tras el CAP debe verificarse la sala con el sonómetro ANTES de acceder
+      // a la selección de pruebas (RoomNoiseCheck navega a SeleccionEjercicios).
+      navigation.navigate('RoomNoiseCheck');
     } catch (e) {
       const detail = e instanceof Error && e.message ? ` (${e.message})` : '';
       console.error('VIA+: error guardando CAP', e);

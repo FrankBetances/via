@@ -312,6 +312,9 @@ export default function SahsScreeningScreen({ navigation }: Props) {
       <VStack flex={1}>
         <Header animationType="expand" />
 
+        {/* El PSQ (bloques de preguntas) y la exploración superan la altura de
+            pantalla: sin scroll vertical el cuestionario es inutilizable. */}
+        <ScrollView showsVerticalScrollIndicator={false}>
         <VStack flex={1} px="$6" mt="$2" space="md">
           {/* ----- title ----- */}
           <VStack>
@@ -443,7 +446,7 @@ export default function SahsScreeningScreen({ navigation }: Props) {
                           </Box>
                         ) : null}
                       </HStack>
-                      <Text size="sm" weight="semiBold" color="$textLight800" style={{ lineHeight: 20 }}>
+                      <Text size="md" weight="semiBold" color="$textLight900" style={{ lineHeight: 23 }}>
                         {q.label}
                       </Text>
                       <Box mt="$3">
@@ -778,6 +781,7 @@ export default function SahsScreeningScreen({ navigation }: Props) {
 
           <Box h="$10" />
         </VStack>
+        </ScrollView>
       </VStack>
     </Content>
   );

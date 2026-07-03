@@ -27,7 +27,7 @@ import { cloneThresholds, emptyThresholds, FREQS, pta } from './audiometryResult
 /*  clínico y el refuerzo visual operan, sin emisión real de sonido.           */
 /* -------------------------------------------------------------------------- */
 
-export type ToneTarget = number | 'amb' | 'pol';
+export type ToneTarget = number | 'amb' | 'tren';
 
 export interface AudiometryToneAdapter {
   playTone: (freq: ToneTarget, dbHL: number, ear: Ear) => void;

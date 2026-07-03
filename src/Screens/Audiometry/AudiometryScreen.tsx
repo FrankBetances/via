@@ -25,7 +25,7 @@ const INSTRUMENTS: { key: string; glyph: string; name: string; freq: ToneTarget;
   { key: 'bell', glyph: '🔔', name: 'Campana', freq: 2000, tag: '2000 Hz' },
   { key: 'flute', glyph: '🎵', name: 'Flauta', freq: 4000, tag: '4000 Hz' },
   { key: 'amb', glyph: '🚑', name: 'Ambulancia', freq: 'amb', tag: 'Control' },
-  { key: 'pol', glyph: '🚓', name: 'Policía', freq: 'pol', tag: 'Control' },
+  { key: 'tren', glyph: '🚂', name: 'Tren', freq: 'tren', tag: 'Control' },
 ];
 
 export default function AudiometryScreen({ navigation }: Props) {
@@ -277,7 +277,7 @@ export default function AudiometryScreen({ navigation }: Props) {
               {/* estímulo */}
               <Text size="xs" weight="semiBold" color="$textLight600" mb="$1">Estímulo</Text>
               <HStack space="xs" flexWrap="wrap" mb="$3">
-                {([500, 1000, 2000, 4000, 'amb', 'pol'] as ToneTarget[]).map(f => (
+                {([500, 1000, 2000, 4000, 'amb', 'tren'] as ToneTarget[]).map(f => (
                   <Pressable key={String(f)} onPress={() => a.setFreq(f)}>
                     <Box px="$3" py="$1.5" borderRadius="$full" bg={a.freq === f ? '$textLight900' : '$white'} borderWidth={1.5} borderColor={a.freq === f ? 'transparent' : '$borderLight200'}>
                       <Text size="xs" weight="bold" color={a.freq === f ? '$white' : '$textLight500'}>{FREQ_LABEL[String(f)]}</Text>

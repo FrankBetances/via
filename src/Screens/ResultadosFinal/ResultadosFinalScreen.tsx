@@ -9,19 +9,23 @@ import {
   ChevronLeft,
   Ear,
   FileText,
+  LogOut,
   Mail,
   Mic2,
   MoreHorizontal,
   Printer,
   Share2,
   Stethoscope,
+  UserPlus,
   Waves,
 } from 'lucide-react-native';
+import { useDispatch } from 'react-redux';
 
 import { Button, Content, Header, Text } from '@/Components/Common';
 import RadialBackground from '@/Components/Themed/RadialBackground';
 import { RootStackParamList } from '@/Navigators';
-import { RootState } from '@/Store';
+import { AppDispatch, RootState } from '@/Store';
+import { logout } from '@/Store/slices/authSlice';
 import { Evaluation } from '@/Models/Evaluation/Evaluation';
 import { useClassSelector } from '@/Helpers/ClassTransformer';
 
@@ -98,6 +102,7 @@ const cellTokens = (v: number | null): { fg: string; bg: string } => {
 };
 
 export default function ResultadosFinalScreen({ navigation }: Props) {
+  const dispatch = useDispatch<AppDispatch>();
   const activeEvaluation = useClassSelector(Evaluation, (state: RootState) => state.activeEvaluation.evaluation);
   const patient = activeEvaluation?.patient;
   const patientName = patient ? `${patient.name} ${patient.lastName}`.trim() : null;
@@ -365,6 +370,24 @@ export default function ResultadosFinalScreen({ navigation }: Props) {
                     <Icon as={ChevronLeft} size="sm" color="$primary500" />
                     <Text size="sm" weight="bold" color="$primary500">
                       Volver a ejercicios
+                    </Text>
+                  </HStack>
+                </Button>
+
+                {/* cierre de la sesión clínica: nuevo paciente o salir */}
+                <Button action="secondary" variant="outline" rounded="$full" mt="$1" onPress={() => navigation.navigate('Pacientes')}>
+                  <HStack space="sm" alignItems="center">
+                    <Icon as={UserPlus} size="sm" color="$primary500" />
+                    <Text size="sm" weight="bold" color="$primary500">
+                      Nuevo paciente
+                    </Text>
+                  </HStack>
+                </Button>
+                <Button action="secondary" variant="outline" rounded="$full" mt="$1" onPress={() => dispatch(logout())}>
+                  <HStack space="sm" alignItems="center">
+                    <Icon as={LogOut} size="sm" color="$error500" />
+                    <Text size="sm" weight="bold" color="$error500">
+                      Cerrar sesión
                     </Text>
                   </HStack>
                 </Button>

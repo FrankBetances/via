@@ -3,13 +3,14 @@ import { FlatList, ListRenderItemInfo, Pressable } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useDispatch, useSelector } from 'react-redux';
 import { Box, Card, Center, HStack, Icon, Input, InputField, VStack } from '@gluestack-ui/themed';
-import { ChevronRight, Plus, Search } from 'lucide-react-native';
+import { ChevronRight, LogOut, Plus, Search } from 'lucide-react-native';
 
 import { Content, Header, Text } from '@/Components/Common';
 import RadialBackground from '@/Components/Themed/RadialBackground';
 import { RootStackParamList } from '@/Navigators';
 import { AppDispatch, RootState } from '@/Store';
 import { setActiveEvaluation } from '@/Store/slices/activeEvaluationSlice';
+import { logout } from '@/Store/slices/authSlice';
 import { Patient } from '@/Models/Patient/Patient';
 import { Evaluation } from '@/Models/Evaluation/Evaluation';
 import { Professional } from '@/Models/Professional/Professional';
@@ -181,7 +182,9 @@ export default function PacientesScreen({ navigation }: Props) {
         if (!evaluation || !cap) {
           navigation.navigate('ClinicalAssessment');
         } else {
-          navigation.navigate('SeleccionEjercicios');
+          // Con CAP vigente, la sala debe verificarse con el sonómetro antes
+          // de acceder a las pruebas de esta sesión.
+          navigation.navigate('RoomNoiseCheck');
         }
       } catch (e) {
         const detail = e instanceof Error && e.message ? ` (${e.message})` : '';
@@ -245,6 +248,14 @@ export default function PacientesScreen({ navigation }: Props) {
                         {initials(currentProfessional.fullName)}
                       </Text>
                     </Center>
+                    <Pressable
+                      onPress={() => dispatch(logout())}
+                      accessibilityRole="button"
+                      accessibilityLabel="Cerrar sesión">
+                      <Center w={36} h={36} borderRadius="$full" borderWidth={1.5} borderColor="$error200" bg="$error50">
+                        <Icon as={LogOut} size="sm" color="$error500" />
+                      </Center>
+                    </Pressable>
                   </HStack>
                 ) : null}
               </HStack>

@@ -61,73 +61,86 @@ export default function RegistroProfesionalScreen({ navigation }: Props) {
 
   const ready = requiredCount === 2;
 
-  const handleSubmit = async () => {
+  const handleSubmit = () => {
     if (!ready || isSaving) return;
     setIsSaving(true);
-    try {
-      const trimmedLicense = colegiado.trim();
-      const wasLogged = isLogged;
 
-      // Si ya hay un perfil con ese nº de colegiado, se reutiliza en lugar de
-      // duplicarlo (el registro es "una sola vez por dispositivo").
-      const existing = trimmedLicense
-        ? await ProfessionalRepository.getProfessionalByLicense(trimmedLicense)
-        : null;
+    const trimmedName = nombre.trim();
+    const trimmedLicense = colegiado.trim();
+    const role = selectedRole?.value ?? 'medico';
+    const wasLogged = isLogged;
 
-      let saved: Professional;
-      if (existing) {
-        saved = existing;
-      } else {
-        const trimmedName = nombre.trim();
-        const professional = new Professional();
-        professional.fullName = trimmedName;
-        professional.role = selectedRole?.value ?? 'medico';
-        professional.licenseNumber = trimmedLicense;
-        professional.email = null;
-        professional.passwordHash = '';
-        professional.centerId = null;
-        // La escritura puede colgarse aunque la fila quede guardada (driver
-        // SQLite); si pasa, se recupera la fila por lectura y se continúa.
-        saved = await writeWithVerify(
-          () => ProfessionalRepository.createProfessional(professional),
-          () =>
-            trimmedLicense
-              ? ProfessionalRepository.getProfessionalByLicense(trimmedLicense)
-              : ProfessionalRepository.getLatestByFullName(trimmedName),
-        );
-      }
-
-      dispatch(
-        loginSuccess({
-          id: saved.id,
-          fullName: saved.fullName,
-          licenseNumber: saved.licenseNumber,
-          role: saved.role,
-          email: saved.email ?? null,
-          centerId: saved.centerId,
-          createdAt: saved.createdAt?.toISOString?.() ?? new Date().toISOString(),
-        }),
-      );
-
-      showSuccessToast(
-        existing ? 'Perfil ya registrado' : 'Registro completado',
-        `Bienvenido/a, ${saved.fullName}.`,
-      );
-
-      // Sin sesión previa: el gate de DefaultNavigator cambia al MainStack
-      // automáticamente. Con sesión previa (gestión de perfil): volver atrás.
-      if (wasLogged && navigation.canGoBack()) {
-        navigation.goBack();
-      }
-    } catch (e) {
-      // Superficie el motivo real: un "no se pudo guardar" opaco deja al
-      // usuario bloqueado sin pista de qué corregir.
-      const detail = e instanceof Error && e.message ? ` (${e.message})` : '';
-      console.error('VIA+: error registrando profesional', e);
-      showErrorToast('Error al registrar', `No se pudo guardar el perfil profesional.${detail}`);
-    } finally {
-      setIsSaving(false);
+    // La sesión se abre INMEDIATAMENTE (optimista): la escritura del driver
+    // SQLite puede no resolver nunca su promesa aunque la fila quede guardada
+    // (síntoma verificado: al reabrir la app el perfil existe). Si la pantalla
+    // espera ese await, el usuario queda bloqueado sin poder continuar ni
+    // volver atrás. El id real se reconcilia en segundo plano.
+    dispatch(
+      loginSuccess({
+        id: 0,
+        fullName: trimmedName,
+        licenseNumber: trimmedLicense,
+        role,
+        email: null,
+        centerId: null,
+        createdAt: new Date().toISOString(),
+      }),
+    );
+    showSuccessToast('Registro completado', `Bienvenido/a, ${trimmedName}.`);
+    if (wasLogged && navigation.canGoBack()) {
+      navigation.goBack();
     }
+
+    // Persistencia + reconciliación del id en segundo plano.
+    (async () => {
+      try {
+        // Si ya hay un perfil con ese nº de colegiado, se reutiliza en lugar
+        // de duplicarlo (el registro es "una sola vez por dispositivo").
+        const existing = trimmedLicense
+          ? await ProfessionalRepository.getProfessionalByLicense(trimmedLicense)
+          : null;
+
+        let saved: Professional;
+        if (existing) {
+          saved = existing;
+        } else {
+          const professional = new Professional();
+          professional.fullName = trimmedName;
+          professional.role = role;
+          professional.licenseNumber = trimmedLicense;
+          professional.email = null;
+          professional.passwordHash = '';
+          professional.centerId = null;
+          saved = await writeWithVerify(
+            () => ProfessionalRepository.createProfessional(professional),
+            () =>
+              trimmedLicense
+                ? ProfessionalRepository.getProfessionalByLicense(trimmedLicense)
+                : ProfessionalRepository.getLatestByFullName(trimmedName),
+          );
+        }
+
+        dispatch(
+          loginSuccess({
+            id: saved.id,
+            fullName: saved.fullName,
+            licenseNumber: saved.licenseNumber,
+            role: saved.role,
+            email: saved.email ?? null,
+            centerId: saved.centerId,
+            createdAt: saved.createdAt?.toISOString?.() ?? new Date().toISOString(),
+          }),
+        );
+      } catch (e) {
+        // La sesión ya está abierta; solo se informa de que el perfil no quedó
+        // persistido para que el usuario pueda reintentar el alta más tarde.
+        const detail = e instanceof Error && e.message ? ` (${e.message})` : '';
+        console.error('VIA+: error registrando profesional', e);
+        showErrorToast('Aviso', `El perfil no se pudo persistir todavía.${detail}`);
+      } finally {
+        setIsSaving(false);
+      }
+    })();
   };
 
   return (
