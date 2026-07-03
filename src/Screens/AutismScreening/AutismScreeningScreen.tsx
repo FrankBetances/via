@@ -374,6 +374,9 @@ export default function AutismScreeningScreen({ navigation }: Props) {
       <VStack flex={1}>
         <Header animationType="expand" />
 
+        {/* Los bloques de 5 preguntas superan la altura de pantalla: sin
+            scroll vertical el cuestionario es inutilizable. */}
+        <ScrollView showsVerticalScrollIndicator={false}>
         <VStack flex={1} px="$6" mt="$2" space="md">
           {/* ----- title ----- */}
           <VStack>
@@ -516,11 +519,11 @@ export default function AutismScreeningScreen({ navigation }: Props) {
                           </Box>
                         ) : null}
                       </HStack>
-                      <Text size="sm" weight="semiBold" color="$textLight800" style={{ lineHeight: 20 }}>
+                      <Text size="md" weight="semiBold" color="$textLight900" style={{ lineHeight: 23 }}>
                         {q.label}
                       </Text>
                       {q.example ? (
-                        <Text size="2xs" color="$textLight400" mt="$1" style={{ lineHeight: 16 }}>
+                        <Text size="xs" color="$textLight500" mt="$1" style={{ lineHeight: 18 }}>
                           {q.example}
                         </Text>
                       ) : null}
@@ -712,6 +715,7 @@ export default function AutismScreeningScreen({ navigation }: Props) {
 
           <Box h="$10" />
         </VStack>
+        </ScrollView>
       </VStack>
     </Content>
   );

@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Pressable, View } from 'react-native';
 import Svg, { Ellipse, Line, Circle, Text as SvgText } from 'react-native-svg';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -25,6 +25,7 @@ import { useClassSelector } from '@/Helpers/ClassTransformer';
 import { useCreateVoiceAnalysisMutation } from '@/Services/local/modules/voiceAnalysis';
 import { showErrorToast, showSuccessToast } from '@/Helpers/showToast';
 import { useVoiceAnalysis } from './useVoiceAnalysis';
+import { registerVoiceMicAdapter } from './voiceMicAdapter';
 import {
   buildInterpretation,
   statusColor,
@@ -81,6 +82,11 @@ export default function VoiceAnalysisScreen({ navigation }: Props) {
   const activeEvaluation = useClassSelector(Evaluation, (state: RootState) => state.activeEvaluation.evaluation);
   const [createVoiceAnalysis, { isLoading: isSaving }] = useCreateVoiceAnalysisMutation();
   const voice = useVoiceAnalysis();
+
+  // Micrófono real (si la librería está disponible); si no, queda en modo demo.
+  useEffect(() => {
+    registerVoiceMicAdapter();
+  }, []);
 
   const [notes, setNotes] = useState('');
   const [evaluatorName, setEvaluatorName] = useState(activeEvaluation?.professional?.name ?? '');

@@ -15,7 +15,7 @@ export const FREQ_LABEL: Record<string, string> = {
   '2000': '2k',
   '4000': '4k',
   amb: 'Amb',
-  pol: 'Pol',
+  tren: 'Tren',
 };
 
 export const emptyThresholds = (): AudiometryThresholds => ({

@@ -13,6 +13,7 @@ import { initDatabase } from '@/Database/config';
 import DefaultNavigator from '@/Navigators/Default';
 import SplashScreen from '@/Screens/Splash/SplashScreen';
 import { AudioEngineProvider } from '@/Providers/AudioEngineProvider';
+import { installAudiometryToneAdapter } from '@/Screens/Audiometry';
 import '@/Navigators/screenTypeNavigator';
 
 /* -------------------------------------------------------------------------- */
@@ -26,6 +27,11 @@ import '@/Navigators/screenTypeNavigator';
 function AppShell() {
   const [dbReady, setDbReady] = useState(false);
   const [dbError, setDbError] = useState<unknown>(null);
+
+  // Motor de tonos REAL (react-native-audio-api) para las dos audiometrías.
+  // Sin esta instalación las pantallas quedaban en modo demostración (sin
+  // emisión de sonido). Devuelve la función de limpieza del AudioContext.
+  useEffect(() => installAudiometryToneAdapter(), []);
 
   useEffect(() => {
     let mounted = true;

@@ -22,8 +22,8 @@ import { setAudiometryToneAdapter, ToneTarget } from './useAudiometryTest';
  * Síntesis: OscillatorNode (seno) -> GainNode (nivel dB HL) -> StereoPannerNode
  * (oído: OD = derecho, OI = izquierdo) -> destination. Rampa de 20 ms para
  * evitar clicks (imprescindible en audiometría). Los sonidos de control no
- * tonales ('amb' / 'pol') se generan como sirenas moduladas para condicionar
- * la atención del niño.
+ * tonales ('amb' = sirena de ambulancia, 'tren' = silbato de tren con vibrato)
+ * se generan modulados para condicionar la atención del niño.
  * ========================================================================== */
 
 export interface ToneAdapterOptions {
@@ -114,13 +114,15 @@ export function installAudiometryToneAdapter(opts: ToneAdapterOptions = {}): () 
       osc.start(now);
       osc.stop(end);
     } else {
-      // --- Sonido de control no tonal (sirena) ---------------------------
+      // --- Sonido de control no tonal ------------------------------------
       // Nivel de control alto y fijo: solo condiciona la atención, no umbral.
+      // 'amb' = sirena de ambulancia (dos tonos alternos).
+      // 'tren' = silbato de tren (tono grave sostenido con vibrato lento).
       const g = buildChain(ear, 0.18, now);
       if (!g) return;
       osc = ctx.createOscillator();
       osc.type = freq === 'amb' ? 'square' : 'triangle';
-      osc.frequency.value = freq === 'amb' ? 650 : 800;
+      osc.frequency.value = freq === 'amb' ? 650 : 520;
       osc.connect(g);
       osc.start(now);
       let phase = 0;
@@ -130,10 +132,10 @@ export function installAudiometryToneAdapter(opts: ToneAdapterOptions = {}): () 
           phase = 1 - phase;
           osc.frequency.setValueAtTime(phase ? 900 : 650, ctx.currentTime);
         } else {
-          phase += 0.06;
-          osc.frequency.setValueAtTime(900 + 350 * Math.sin(phase * 6), ctx.currentTime);
+          phase += 0.35;
+          osc.frequency.setValueAtTime(520 + 26 * Math.sin(phase), ctx.currentTime);
         }
-      }, freq === 'amb' ? 420 : 50);
+      }, freq === 'amb' ? 420 : 90);
     }
   };
 

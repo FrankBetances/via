@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Pressable } from 'react-native';
+import { Pressable, ScrollView } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import Svg, { Circle } from 'react-native-svg';
 import { Box, Card, Center, HStack, Icon, VStack } from '@gluestack-ui/themed';
@@ -135,6 +135,9 @@ export default function RoomNoiseCheckScreen({ navigation, route }: Props) {
       <VStack flex={1}>
         <Header animationType="expand" />
 
+        {/* El gauge + stats + checklist superan la altura de pantalla: sin
+            scroll el botón de continuar queda inaccesible. */}
+        <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false}>
         <VStack flex={1} px="$6" mt="$2" space="md">
           {/* ----- title ----- */}
           <VStack>
@@ -341,6 +344,7 @@ export default function RoomNoiseCheckScreen({ navigation, route }: Props) {
 
           <Box h="$10" />
         </VStack>
+        </ScrollView>
       </VStack>
     </Content>
   );
