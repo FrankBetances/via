@@ -28,7 +28,7 @@ import {
   Stethoscope,
 } from 'lucide-react-native';
 
-import { Button, Content, Header, Text } from '@/Components/Common';
+import { Button, Content, FontSizeControl, Header, ScaledTextScope, Text } from '@/Components/Common';
 import RadialBackground from '@/Components/Themed/RadialBackground';
 import { RootStackParamList } from '@/Navigators';
 import { RootState } from '@/Store';
@@ -425,7 +425,11 @@ export default function SahsScreeningScreen({ navigation }: Props) {
                 </HStack>
               </Card>
 
+              {/* tamaño de letra ajustable: facilita la lectura del PSQ */}
+              <FontSizeControl />
+
               {/* preguntas del bloque */}
+              <ScaledTextScope.Provider value={true}>
               <VStack space="sm">
                 {blockQuestions.map(q => {
                   const v = psq[q.id];
@@ -456,6 +460,7 @@ export default function SahsScreeningScreen({ navigation }: Props) {
                   );
                 })}
               </VStack>
+              </ScaledTextScope.Provider>
 
               {activeBlock === PSQ_BLOCKS.length - 1 ? (
                 <Card bgColor="$white" borderRadius={18} p="$4">

@@ -12,14 +12,12 @@ import { config } from '@/Theme/gluestack-ui.config';
 import { initDatabase } from '@/Database/config';
 import DefaultNavigator from '@/Navigators/Default';
 import SplashScreen from '@/Screens/Splash/SplashScreen';
-import { AudioEngineProvider } from '@/Providers/AudioEngineProvider';
 import { installAudiometryToneAdapter } from '@/Screens/Audiometry';
 import '@/Navigators/screenTypeNavigator';
 
 /* -------------------------------------------------------------------------- */
 /*  Punto de entrada de la app — VIA+.                                      */
-/*  Orden de providers: Redux -> PersistGate -> GluestackUI ->               */
-/*  AudioEngineProvider (motor de audio compartido) -> Navigation.           */
+/*  Orden de providers: Redux -> PersistGate -> GluestackUI -> Navigation.   */
 /*  El DataSource de TypeORM se inicializa una vez al montar; mientras tanto  */
 /*  se muestra un splash.                                                     */
 /* -------------------------------------------------------------------------- */
@@ -70,9 +68,13 @@ export default function App() {
         <PersistGate loading={<SplashScreen />} persistor={persistor}>
           <SafeAreaProvider>
             <GluestackUIProvider config={config}>
-              <AudioEngineProvider>
-                <AppShell />
-              </AudioEngineProvider>
+              {/* NOTA: no montar aquí ningún provider que cree un segundo
+                  AudioContext ni que reconfigure la sesión de audio a modo
+                  grabación al arrancar: pisa la sesión de reproducción del
+                  adaptador de tonos y silencia las audiometrías. El motor de
+                  tonos se instala en AppShell; el micrófono lo abre cada
+                  módulo solo mientras lo usa. */}
+              <AppShell />
             </GluestackUIProvider>
           </SafeAreaProvider>
         </PersistGate>

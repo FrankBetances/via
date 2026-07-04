@@ -26,7 +26,7 @@ import {
   X,
 } from 'lucide-react-native';
 
-import { Button, Content, Header, Text } from '@/Components/Common';
+import { Button, Content, FontSizeControl, Header, ScaledTextScope, Text } from '@/Components/Common';
 import RadialBackground from '@/Components/Themed/RadialBackground';
 import { RootStackParamList } from '@/Navigators';
 import { RootState } from '@/Store';
@@ -321,7 +321,27 @@ export default function ClinicalAssessmentScreen({ navigation }: Props) {
                     : 'Certificado de Aptitud para la Prueba · condiciones mínimas de viabilidad'}
                 </Text>
               </VStack>
-    
+
+              {/* La exploración de disfagia no requiere CAP ni sonómetro:
+                  atajo para saltar el prerrequisito cuando la sesión es solo
+                  de disfagia. */}
+              <Pressable onPress={() => navigation.navigate('DysphagiaTest')}>
+                <HStack
+                  space="xs"
+                  alignItems="center"
+                  justifyContent="center"
+                  py="$2.5"
+                  borderRadius={14}
+                  borderWidth={1.5}
+                  borderColor="$info200"
+                  bg="$info50">
+                  <Text size="sm">💧</Text>
+                  <Text size="xs" weight="bold" color="$info700">
+                    ¿Solo disfagia? Ir directo — no requiere CAP ni sonómetro
+                  </Text>
+                </HStack>
+              </Pressable>
+
               {/* ----- domain selector ----- */}
               <HStack space="sm">
                 {DOMAINS.map(d => {
@@ -348,7 +368,11 @@ export default function ClinicalAssessmentScreen({ navigation }: Props) {
                 })}
               </HStack>
     
+              {/* tamaño de letra ajustable: facilita la lectura del cuestionario */}
+              <FontSizeControl />
+
               {/* ===================== OTOSCOPIA ===================== */}
+              <ScaledTextScope.Provider value={true}>
               {activeDomain === 'otoscopia' && (
                 <Card bgColor="$white" borderRadius={22} p="$5">
                   <HStack alignItems="center" justifyContent="space-between" mb="$1">
@@ -538,7 +562,8 @@ export default function ClinicalAssessmentScreen({ navigation }: Props) {
                   </Text>
                 </Card>
               )}
-    
+              </ScaledTextScope.Provider>
+
               {/* ===================== PERFIL DE APTITUD ===================== */}
               <Card bgColor="$white" borderRadius={22} p="$5">
                 <HStack space="sm" alignItems="center" mb="$3">

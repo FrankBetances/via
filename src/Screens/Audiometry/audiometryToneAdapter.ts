@@ -36,8 +36,11 @@ export interface ToneAdapterOptions {
 }
 
 function defaultDbHLtoGain(dbHL: number): number {
-  // Placeholder lineal dB HL -> dBFS -> ganancia. Reemplazar por calibración real.
-  const dbFS = -90 + dbHL;
+  // Placeholder lineal dB HL -> dBFS -> ganancia. Reemplazar por calibración
+  // real. Mapea 80 dB HL (máximo del algoritmo HW) a 0 dBFS: con el mapeo
+  // anterior (-90 + dbHL) los niveles de arranque (40 dB HL ≈ -50 dBFS) eran
+  // inaudibles en la práctica y la prueba parecía "sin sonido".
+  const dbFS = -80 + dbHL;
   return Math.min(1, Math.pow(10, dbFS / 20));
 }
 
@@ -96,6 +99,16 @@ export function installAudiometryToneAdapter(opts: ToneAdapterOptions = {}): () 
   const playTone = (freq: ToneTarget, dbHL: number, ear: Ear) => {
     if (!ctx) return;
     stop();
+    // Si el sistema suspendió el contexto (interrupción, cambio de ruta de
+    // audio, arranque en segundo plano), reactivarlo antes de programar el
+    // estímulo: un contexto suspendido reproduce silencio sin dar error.
+    try {
+      if ((ctx as any).state && (ctx as any).state !== 'running') {
+        void ctx.resume();
+      }
+    } catch {
+      /* state/resume no disponibles en algunos targets: se ignora */
+    }
     const now = ctx.currentTime;
 
     if (typeof freq === 'number') {

@@ -2,8 +2,9 @@
 /*  Shim de tipos — `react-native-audio-api` (versión instalada: 0.5.7) no    */
 /*  expone `AudioManager`/`AudioRecorder` en sus declaraciones públicas,      */
 /*  pero ambos forman parte de la API nativa del paquete (gestión de sesión   */
-/*  de audio y captura PCM) usada por `AudioEngineProvider`. Se declaran aquí  */
-/*  como augmentación ambiental hasta que el paquete publique sus tipos.      */
+/*  de audio y captura PCM) usada por el adaptador de tonos y el análisis de  */
+/*  voz. Se declaran aquí como augmentación ambiental hasta que el paquete    */
+/*  publique sus tipos.                                                       */
 /* -------------------------------------------------------------------------- */
 import 'react-native-audio-api';
 

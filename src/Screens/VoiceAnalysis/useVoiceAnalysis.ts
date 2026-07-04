@@ -7,27 +7,29 @@ import {
 import { roundTo } from '@/Helpers/numeric';
 
 /* -------------------------------------------------------------------------- */
-/*  Adaptador de micrófono (igual filosofía que el resto de la plataforma).    */
+/*  Hook del análisis acústico de voz — SOLO captura real.                     */
 /*                                                                            */
-/*  Por defecto la pantalla funciona en MODO DEMOSTRACIÓN (simulación). Para   */
-/*  usar el micrófono real del dispositivo, registre un adaptador nativo en el */
-/*  punto de entrada de la app:                                               */
-/*                                                                            */
-/*    import { setVoiceMicAdapter } from '@/Screens/VoiceAnalysis';            */
-/*    setVoiceMicAdapter({                                                    */
-/*      startRecording: async () => { ...inicia captura de buffer... },        */
-/*      stopRecording: async () => ({ f0s: [...], amplitudes: [...] }),        */
-/*    });                                                                     */
+/*  El modo demostración se eliminó: sin micrófono disponible la pantalla     */
+/*  informa del problema y no genera datos sintéticos (una app clínica no     */
+/*  debe producir resultados simulados). El adaptador se registra en el       */
+/*  montaje de la pantalla (`registerVoiceMicAdapter`, basado en              */
+/*  react-native-audio-api).                                                  */
 /* -------------------------------------------------------------------------- */
+
+export interface VoiceLiveFrame {
+  f0: number | null; // Hz de la ventana en vivo (null = ventana sorda)
+  rms: number; // nivel RMS 0..1
+}
 
 export interface VoiceMicResult {
   f0s: number[]; // Hz por frame de voz
   amplitudes: number[]; // RMS por frame de voz
   hnrs?: number[]; // dB por frame (opcional; si no, se estima)
+  formants?: VoiceFormants | null; // F1–F3 por LPC (null = no estimables)
 }
 
 export interface VoiceMicAdapter {
-  startRecording: () => Promise<void>;
+  startRecording: (onLive?: (frame: VoiceLiveFrame) => void) => Promise<void>;
   stopRecording: () => Promise<VoiceMicResult>;
 }
 
@@ -40,7 +42,7 @@ export const setVoiceMicAdapter = (adapter: VoiceMicAdapter | null) => {
 /*  Tipos de estado de la captura                                              */
 /* -------------------------------------------------------------------------- */
 
-export type CapturePhase = 'idle' | 'recording' | 'analyzed';
+export type CapturePhase = 'idle' | 'recording' | 'analyzed' | 'insufficient' | 'error';
 
 export interface AcousticResult {
   f0: number;
@@ -52,6 +54,8 @@ export interface AcousticResult {
 }
 
 const DURATION_MS = 5000;
+/** Ventanas sonoras mínimas para un resultado clínicamente interpretable. */
+const MIN_VOICED_FRAMES = 8;
 
 /* -------------------------------------------------------------------------- */
 /*  Cálculo de parámetros a partir de las series temporales                    */
@@ -59,18 +63,16 @@ const DURATION_MS = 5000;
 
 const round = (v: number, d = 2) => roundTo(v, d);
 
-const computeParams = (f0s: number[], amps: number[], hnrs?: number[]): AcousticResult => {
+/**
+ * Parámetros acústicos desde las series por ventana. Devuelve `null` si la
+ * captura no tiene suficientes ventanas sonoras: la pantalla pide repetir la
+ * emisión (antes se devolvían valores simulados, eliminado con el modo demo).
+ */
+const computeParams = (r: VoiceMicResult): AcousticResult | null => {
+  const { f0s, amplitudes: amps, hnrs, formants } = r;
   const valid = f0s.filter(f => f > 100 && f < 500);
-  if (valid.length < 5) {
-    return {
-      f0: 242.4,
-      jitter: 0.45,
-      shimmer: 1.82,
-      hnr: 21.6,
-      formants: { f1: 795, f2: 1410, f3: 2880 },
-      quality: 'low',
-    };
-  }
+  if (valid.length < MIN_VOICED_FRAMES || !formants) return null;
+
   const avgF0 = valid.reduce((a, b) => a + b, 0) / valid.length;
 
   // Jitter (perturbación relativa media de periodos)
@@ -102,8 +104,7 @@ const computeParams = (f0s: number[], amps: number[], hnrs?: number[]): Acoustic
     jitter: round(jitter),
     shimmer: round(shimmer),
     hnr: round(hnr, 1),
-    // Tracking de formantes: requiere LPC en nativo; valores estimados para /a/ infantil.
-    formants: { f1: 810, f2: 1435, f3: 2910 },
+    formants,
     quality,
   };
 };
@@ -114,17 +115,16 @@ const computeParams = (f0s: number[], amps: number[], hnrs?: number[]): Acoustic
 
 export function useVoiceAnalysis() {
   const [phase, setPhase] = useState<CapturePhase>('idle');
-  const [source, setSource] = useState<VoiceSource>('demo');
   const [progress, setProgress] = useState(0); // 0..1
   const [liveF0, setLiveF0] = useState<number | null>(null);
-  const [level, setLevel] = useState(0); // 0..1 nivel/calidad en vivo
+  const [level, setLevel] = useState(0); // 0..1 nivel en vivo
   const [result, setResult] = useState<AcousticResult | null>(null);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   const timer = useRef<ReturnType<typeof setInterval> | null>(null);
   const startTs = useRef(0);
-  const f0s = useRef<number[]>([]);
-  const amps = useRef<number[]>([]);
-  const hnrs = useRef<number[]>([]);
+  const finishing = useRef(false);
+  const voicedCount = useRef(0);
 
   const teardown = useCallback(() => {
     if (timer.current) {
@@ -133,88 +133,98 @@ export function useVoiceAnalysis() {
     }
   }, []);
 
-  useEffect(() => () => teardown(), [teardown]);
-
-  const finish = useCallback(async () => {
-    teardown();
-    if (source === 'mic' && micAdapter) {
-      try {
-        const r = await micAdapter.stopRecording();
-        setResult(computeParams(r.f0s, r.amplitudes, r.hnrs));
-      } catch {
-        setResult(computeParams(f0s.current, amps.current, hnrs.current));
-      }
-    } else {
-      setResult(computeParams(f0s.current, amps.current, hnrs.current));
-    }
-    setPhase('analyzed');
-  }, [source, teardown]);
-
-  const tick = useCallback(() => {
-    const elapsed = Date.now() - startTs.current;
-    const p = Math.min(1, elapsed / DURATION_MS);
-    setProgress(p);
-
-    // Simulación de parámetros vocales infantiles realistas (modo demo).
-    const t = elapsed / 1000;
-    const pitchNoise = (Math.sin(t * 18) * 2 + Math.sin(t * 42)) * (0.8 + 0.1 * Math.random());
-    const f0 = 245.5 + pitchNoise;
-    const amp = 0.34 + Math.sin(t * 8) * 0.05 + Math.random() * 0.02;
-    const hnr = 22 + Math.sin(t * 5) * 2.5 + Math.random() * 1.2;
-    f0s.current.push(f0);
-    amps.current.push(amp);
-    hnrs.current.push(hnr);
-
-    setLiveF0(Math.round(f0));
-    setLevel(Math.min(1, f0s.current.length / 30) * Math.min(1, amp * 3.2));
-
-    if (p >= 1) finish();
-  }, [finish]);
-
-  const begin = useCallback(
-    (src: VoiceSource) => {
+  // Al desmontar: parar la captura nativa si quedó abierta.
+  useEffect(
+    () => () => {
       teardown();
-      f0s.current = [];
-      amps.current = [];
-      hnrs.current = [];
-      startTs.current = Date.now();
-      setSource(src);
-      setPhase('recording');
-      setProgress(0);
-      setLiveF0(null);
-      setLevel(0);
-      setResult(null);
-      timer.current = setInterval(tick, 60);
+      if (micAdapter && finishing.current === false) {
+        micAdapter.stopRecording().catch(() => {});
+      }
     },
-    [teardown, tick],
+    [teardown],
   );
 
-  const startRecording = useCallback(async () => {
-    if (micAdapter) {
-      try {
-        await micAdapter.startRecording();
-        begin('mic');
-        return;
-      } catch {
-        // cae a demo
-      }
-    }
-    begin('demo');
-  }, [begin]);
-
-  const startDemo = useCallback(() => begin('demo'), [begin]);
-
-  const stopRecording = useCallback(() => finish(), [finish]);
-
-  const reset = useCallback(() => {
+  const finish = useCallback(async () => {
+    if (finishing.current) return;
+    finishing.current = true;
     teardown();
-    setPhase('idle');
-    setSource('demo');
+    try {
+      const r = micAdapter ? await micAdapter.stopRecording() : null;
+      const params = r ? computeParams(r) : null;
+      if (params) {
+        setResult(params);
+        setPhase('analyzed');
+      } else {
+        setResult(null);
+        setPhase('insufficient');
+      }
+    } catch (e) {
+      setResult(null);
+      setErrorMsg(e instanceof Error ? e.message : 'Error al analizar la grabación.');
+      setPhase('error');
+    } finally {
+      finishing.current = false;
+    }
+  }, [teardown]);
+
+  const startRecording = useCallback(async () => {
+    if (!micAdapter) {
+      setErrorMsg('El micrófono no está disponible en este dispositivo.');
+      setPhase('error');
+      return;
+    }
+    if (phase === 'recording') return;
+
+    teardown();
     setProgress(0);
     setLiveF0(null);
     setLevel(0);
     setResult(null);
+    setErrorMsg(null);
+    voicedCount.current = 0;
+
+    try {
+      await micAdapter.startRecording(frame => {
+        if (frame.f0) {
+          voicedCount.current += 1;
+          setLiveF0(Math.round(frame.f0));
+        }
+        setLevel(Math.min(1, frame.rms * 4));
+      });
+    } catch (e) {
+      setErrorMsg(
+        e instanceof Error && e.message
+          ? e.message
+          : 'No se pudo iniciar la grabación. Compruebe el permiso de micrófono.',
+      );
+      setPhase('error');
+      return;
+    }
+
+    startTs.current = Date.now();
+    setPhase('recording');
+    timer.current = setInterval(() => {
+      const p = Math.min(1, (Date.now() - startTs.current) / DURATION_MS);
+      setProgress(p);
+      if (p >= 1) finish();
+    }, 100);
+  }, [phase, teardown, finish]);
+
+  const stopRecording = useCallback(() => {
+    if (phase === 'recording') finish();
+  }, [phase, finish]);
+
+  const reset = useCallback(() => {
+    teardown();
+    setPhase('idle');
+    setProgress(0);
+    setLiveF0(null);
+    setLevel(0);
+    setResult(null);
+    setErrorMsg(null);
   }, [teardown]);
+
+  const source: VoiceSource = 'mic';
 
   return {
     phase,
@@ -223,10 +233,10 @@ export function useVoiceAnalysis() {
     liveF0,
     level,
     result,
+    errorMsg,
     isRecording: phase === 'recording',
     hasMic: !!micAdapter,
     startRecording,
-    startDemo,
     stopRecording,
     reset,
   };

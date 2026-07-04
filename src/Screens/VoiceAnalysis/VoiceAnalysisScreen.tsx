@@ -13,7 +13,7 @@ import {
   ScrollView,
   VStack,
 } from '@gluestack-ui/themed';
-import { AudioWaveform, Mic, Save, Sparkles, Square } from 'lucide-react-native';
+import { AlertTriangle, AudioWaveform, Mic, RotateCcw, Save, Square } from 'lucide-react-native';
 
 import { Button, Content, Header, Text } from '@/Components/Common';
 import RadialBackground from '@/Components/Themed/RadialBackground';
@@ -83,7 +83,7 @@ export default function VoiceAnalysisScreen({ navigation }: Props) {
   const [createVoiceAnalysis, { isLoading: isSaving }] = useCreateVoiceAnalysisMutation();
   const voice = useVoiceAnalysis();
 
-  // Micrófono real (si la librería está disponible); si no, queda en modo demo.
+  // Registra el motor de captura real (react-native-audio-api).
   useEffect(() => {
     registerVoiceMicAdapter();
   }, []);
@@ -205,7 +205,7 @@ export default function VoiceAnalysisScreen({ navigation }: Props) {
                     Captura de voz
                   </Text>
                   <Text size="2xs" color="$textLight500">
-                    {voice.hasMic ? 'Micrófono disponible' : 'Modo demostración (sin micrófono nativo)'}
+                    {voice.hasMic ? 'Micrófono disponible' : 'Micrófono no disponible en este dispositivo'}
                   </Text>
                 </VStack>
                 {voice.isRecording ? (
@@ -263,7 +263,7 @@ export default function VoiceAnalysisScreen({ navigation }: Props) {
                   variant="solid"
                   rounded="$xl"
                   style={{ flex: 1 }}
-                  isDisabled={voice.isRecording}
+                  isDisabled={voice.isRecording || !voice.hasMic}
                   onPress={voice.startRecording}>
                   <HStack space="sm" alignItems="center">
                     <Icon as={Mic} size="sm" color="$white" />
@@ -276,17 +276,48 @@ export default function VoiceAnalysisScreen({ navigation }: Props) {
                   <Icon as={Square} size="sm" color="$error500" />
                 </Button>
               </HStack>
-              <Pressable onPress={voice.startDemo} disabled={voice.isRecording} style={{ marginTop: 10 }}>
-                <Center py="$2.5" borderRadius={12} borderWidth={1} borderColor="$borderLight200" bg="$white">
-                  <HStack space="xs" alignItems="center">
-                    <Icon as={Sparkles} size="xs" color="$textLight500" />
-                    <Text size="sm" weight="bold" color="$textLight500">
-                      Simular voz infantil (demo)
-                    </Text>
-                  </HStack>
-                </Center>
-              </Pressable>
             </Card>
+
+            {/* captura insuficiente o error de captura */}
+            {voice.phase === 'insufficient' ? (
+              <Card bgColor="$warning50" borderRadius={18} borderWidth={1} borderColor="$warning200" p="$4">
+                <HStack space="sm" alignItems="flex-start">
+                  <Icon as={AlertTriangle} size="sm" color="$warning600" style={{ marginTop: 2 }} />
+                  <VStack style={{ flex: 1 }}>
+                    <Text size="sm" weight="bold" color="$warning800">
+                      Captura insuficiente
+                    </Text>
+                    <Text size="xs" color="$warning800" style={{ lineHeight: 17 }}>
+                      No se detectó suficiente voz sonora para calcular los parámetros. Acerque el micrófono
+                      (~10 cm), pida una «A» sostenida y firme, y repita la grabación.
+                    </Text>
+                    <Pressable onPress={voice.startRecording} style={{ marginTop: 8 }}>
+                      <HStack space="xs" alignItems="center">
+                        <Icon as={RotateCcw} size="xs" color="$warning700" />
+                        <Text size="xs" weight="bold" color="$warning700">
+                          Repetir grabación
+                        </Text>
+                      </HStack>
+                    </Pressable>
+                  </VStack>
+                </HStack>
+              </Card>
+            ) : null}
+            {voice.phase === 'error' ? (
+              <Card bgColor="$error50" borderRadius={18} borderWidth={1} borderColor="$error200" p="$4">
+                <HStack space="sm" alignItems="flex-start">
+                  <Icon as={AlertTriangle} size="sm" color="$error600" style={{ marginTop: 2 }} />
+                  <VStack style={{ flex: 1 }}>
+                    <Text size="sm" weight="bold" color="$error700">
+                      No se pudo grabar
+                    </Text>
+                    <Text size="xs" color="$error700" style={{ lineHeight: 17 }}>
+                      {voice.errorMsg ?? 'Error desconocido del motor de audio.'}
+                    </Text>
+                  </VStack>
+                </HStack>
+              </Card>
+            ) : null}
 
             {/* resultados */}
             {r ? (

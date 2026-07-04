@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import {
   View,
   Text,
@@ -6,6 +6,7 @@ import {
   StyleSheet,
   StatusBar,
   Platform,
+  useWindowDimensions,
 } from 'react-native';
 import Animated, {
   useSharedValue,
@@ -16,6 +17,7 @@ import Animated, {
   withDelay,
   cancelAnimation,
   interpolate,
+  interpolateColor,
   Easing,
 } from 'react-native-reanimated';
 import { useNavigation } from '@react-navigation/native';
@@ -26,88 +28,116 @@ import ViaIcon from '@/Components/Common/ViaIcon';
 type Nav = NativeStackNavigationProp<RootStackParamList, 'Bienvenida'>;
 
 /* -------------------------------------------------------------------------- */
-/*  BienvenidaScreen — una sola idea, poco texto: VIA+ toma la voz con ruido   */
-/*  y la transforma en información clínica útil. El centro es un gráfico       */
-/*  único: barras caóticas (ruido) → isotipo con anillos de pulso (proceso)   */
-/*  → onda ordenada (resultado), con dos etiquetas mínimas.                   */
+/*  BienvenidaScreen — "del ruido a la información" contado con partículas:    */
+/*  un enjambre desordenado entra por la izquierda (movimiento caótico, gris)  */
+/*  y, al atravesar el isotipo VIA+, cada partícula se alinea en una onda      */
+/*  senoidal limpia y se tiñe de naranja: la señal ordenada. El CTA continúa   */
+/*  a la pantalla de créditos del proyecto.                                    */
 /* -------------------------------------------------------------------------- */
 
-const ICON_SIZE = 112;
+const ICON_SIZE = 108;
 const RING_DURATION = 2600;
+const FIELD_H = 200;
+const PARTICLES = 26;
+const TRAVEL_MS = 5600;
 
-/* Secuencias pseudoaleatorias de alturas (px) para las barras de "ruido".
-   Precalculadas: efecto determinista y barato. */
-const NOISE_SEQUENCES: number[][] = [
-  [18, 44, 12, 34, 22],
-  [38, 14, 50, 24, 40],
-  [12, 32, 18, 54, 16],
-  [44, 20, 38, 12, 48],
-  [24, 50, 14, 40, 18],
-  [34, 12, 44, 20, 38],
-];
-
-/* Perfil simétrico de la señal ya procesada. */
-const CLEAN_BARS = [16, 28, 42, 56, 42, 28, 16];
-
-/* ───────────────────────── noisy input bar ──────────────────────────────── */
-
-function NoisyBar({ index }: { index: number }) {
-  const height = useSharedValue(NOISE_SEQUENCES[index % NOISE_SEQUENCES.length][0]);
-
-  useEffect(() => {
-    const seq = NOISE_SEQUENCES[index % NOISE_SEQUENCES.length];
-    const duration = 260 + (index % 3) * 80;
-    height.value = withDelay(
-      index * 100,
-      withRepeat(
-        withSequence(
-          ...seq.map(h => withTiming(h, { duration, easing: Easing.inOut(Easing.quad) })),
-        ),
-        -1,
-        true,
-      ),
-    );
-    return () => cancelAnimation(height);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  const style = useAnimatedStyle(() => ({ height: height.value }));
-  return <Animated.View style={[styles.noisyBar, style]} />;
+/* Parámetros deterministas por partícula (generados con un LCG con semilla
+   fija: el enjambre es idéntico en cada arranque y no cuesta Math.random en
+   cada render). */
+interface ParticleSpec {
+  delay: number; // ms de entrada escalonada
+  duration: number; // ms de viaje completo
+  size: number; // diámetro px
+  baseY: number; // deriva vertical base (-1..1)
+  amp: number; // amplitud del caos (px)
+  f1: number; // frecuencias/fases del ruido
+  p1: number;
+  f2: number;
+  p2: number;
 }
 
-/* ───────────────────────── clean output bar ─────────────────────────────── */
+function buildSpecs(): ParticleSpec[] {
+  let seed = 20260704;
+  const rnd = () => {
+    seed = (seed * 1664525 + 1013904223) % 4294967296;
+    return seed / 4294967296;
+  };
+  return Array.from({ length: PARTICLES }, (_, i) => ({
+    delay: i * (TRAVEL_MS / PARTICLES) + rnd() * 160,
+    duration: TRAVEL_MS * (0.88 + rnd() * 0.28),
+    size: 4 + Math.round(rnd() * 3),
+    baseY: rnd() * 2 - 1,
+    amp: 18 + rnd() * 30,
+    f1: 6 + rnd() * 9,
+    p1: rnd() * Math.PI * 2,
+    f2: 14 + rnd() * 14,
+    p2: rnd() * Math.PI * 2,
+  }));
+}
 
-function CleanBar({ index, height }: { index: number; height: number }) {
-  const breathe = useSharedValue(0);
+/* ───────────────────────── partícula ────────────────────────────────────── */
+
+function Particle({ spec, width }: { spec: ParticleSpec; width: number }) {
+  const prog = useSharedValue(0);
 
   useEffect(() => {
-    breathe.value = withDelay(
-      index * 140,
-      withRepeat(
-        withSequence(
-          withTiming(1, { duration: 1600, easing: Easing.inOut(Easing.sin) }),
-          withTiming(0, { duration: 1600, easing: Easing.inOut(Easing.sin) }),
-        ),
-        -1,
-        false,
-      ),
+    prog.value = 0;
+    prog.value = withDelay(
+      spec.delay,
+      withRepeat(withTiming(1, { duration: spec.duration, easing: Easing.linear }), -1, false),
     );
-    return () => cancelAnimation(breathe);
+    return () => cancelAnimation(prog);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [spec, width]);
 
-  const style = useAnimatedStyle(() => ({
-    transform: [{ scaleY: interpolate(breathe.value, [0, 1], [0.88, 1]) }],
-    opacity: interpolate(breathe.value, [0, 1], [0.85, 1]),
-  }));
+  const style = useAnimatedStyle(() => {
+    const p = prog.value;
+    const x = interpolate(p, [0, 1], [-8, width + 8]);
 
-  return <Animated.View style={[styles.cleanBar, { height }, style]} />;
+    // Grado de desorden: 1 antes del logo, 0 después (transición al cruzarlo).
+    const disorder = 1 - Math.min(1, Math.max(0, (p - 0.40) / 0.20));
+
+    // Trayectoria caótica (ruido) vs onda senoidal común (información).
+    const yChaos =
+      spec.baseY * (FIELD_H / 2 - 24) +
+      Math.sin(p * spec.f1 + spec.p1) * spec.amp +
+      Math.sin(p * spec.f2 + spec.p2) * spec.amp * 0.5;
+    const yOrder = Math.sin(p * Math.PI * 2 * 2.4) * 20;
+    const y = disorder * yChaos + (1 - disorder) * yOrder;
+
+    const opacity =
+      interpolate(p, [0, 0.05, 0.92, 1], [0, 1, 1, 0]) * (0.55 + 0.45 * (1 - disorder));
+
+    return {
+      transform: [
+        { translateX: x },
+        { translateY: y },
+        { scale: 0.9 + 0.5 * (1 - disorder) },
+      ],
+      opacity,
+      backgroundColor: interpolateColor(disorder, [0, 1], ['#FF7F00', '#B3A791']),
+    };
+  });
+
+  return (
+    <Animated.View
+      pointerEvents="none"
+      style={[
+        styles.particle,
+        { width: spec.size, height: spec.size, borderRadius: spec.size / 2 },
+        style,
+      ]}
+    />
+  );
 }
 
 /* ───────────────────────── screen ───────────────────────────────────────── */
 
 export default function BienvenidaScreen() {
   const navigation = useNavigation<Nav>();
+  const { width: winW } = useWindowDimensions();
+  const fieldW = Math.min(winW - 48, 520);
+  const specs = useMemo(buildSpecs, []);
 
   const floatY = useSharedValue(0);
   const ring1 = useSharedValue(0);
@@ -171,15 +201,12 @@ export default function BienvenidaScreen() {
           <Text style={styles.wordmarkPlus}>+</Text>
         </View>
 
-        {/* ── Gráfico: ruido → VIA+ → señal ordenada ── */}
-        <View style={styles.graphic}>
-          <View style={styles.stage}>
-            <View style={styles.wave}>
-              {NOISE_SEQUENCES.map((_, i) => (
-                <NoisyBar key={i} index={i} />
-              ))}
-            </View>
-            <Text style={styles.stageLabel}>VOZ CON RUIDO</Text>
+        {/* ── Campo de partículas: caos → VIA+ → onda ordenada ── */}
+        <View style={[styles.field, { width: fieldW }]}>
+          <View style={styles.fieldCenterLine} pointerEvents="none">
+            {specs.map((spec, i) => (
+              <Particle key={i} spec={spec} width={fieldW} />
+            ))}
           </View>
 
           <Animated.View style={[styles.iconWrapper, floatStyle]}>
@@ -188,14 +215,8 @@ export default function BienvenidaScreen() {
             <ViaIcon size={ICON_SIZE} variant="color" />
           </Animated.View>
 
-          <View style={styles.stage}>
-            <View style={styles.wave}>
-              {CLEAN_BARS.map((h, i) => (
-                <CleanBar key={i} index={i} height={h} />
-              ))}
-            </View>
-            <Text style={styles.stageLabel}>INFORMACIÓN CLÍNICA</Text>
-          </View>
+          <Text style={[styles.stageLabel, styles.labelLeft]}>VOZ CON RUIDO</Text>
+          <Text style={[styles.stageLabel, styles.labelRight]}>INFORMACIÓN CLÍNICA</Text>
         </View>
 
         {/* Title — una sola frase */}
@@ -213,7 +234,7 @@ export default function BienvenidaScreen() {
       {/* Continue button */}
       <Pressable
         style={({ pressed }) => [styles.button, pressed && styles.buttonPressed]}
-        onPress={() => navigation.navigate('SeleccionProfesional')}
+        onPress={() => navigation.navigate('Creditos')}
       >
         <Text style={styles.buttonText}>Comenzar</Text>
         <Text style={styles.buttonArrow}>→</Text>
@@ -265,7 +286,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'flex-end',
     gap: 2,
-    marginBottom: 34,
+    marginBottom: 26,
   },
   wordmarkVia: {
     fontSize: 46,
@@ -282,40 +303,24 @@ const styles = StyleSheet.create({
     color: '#FF7F00',
   },
 
-  /* ── gráfico ── */
-  graphic: {
-    flexDirection: 'row',
+  /* ── campo de partículas ── */
+  field: {
+    height: FIELD_H + 26,
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 22,
-    marginBottom: 38,
+    marginBottom: 30,
   },
-  stage: {
-    alignItems: 'center',
-    gap: 12,
+  fieldCenterLine: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    top: FIELD_H / 2,
+    height: 0,
   },
-  wave: {
-    height: ICON_SIZE,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 5,
-  },
-  noisyBar: {
-    width: 7,
-    borderRadius: 3.5,
-    backgroundColor: '#B3A791',
-  },
-  cleanBar: {
-    width: 7,
-    borderRadius: 3.5,
-    backgroundColor: '#FF7F00',
-  },
-  stageLabel: {
-    fontFamily: MONO,
-    fontSize: 9,
-    letterSpacing: 1.2,
-    color: '#A89F93',
-    fontWeight: '600',
+  particle: {
+    position: 'absolute',
+    left: 0,
+    top: 0,
   },
   iconWrapper: {
     width: ICON_SIZE + 20,
@@ -330,6 +335,22 @@ const styles = StyleSheet.create({
     borderRadius: (ICON_SIZE * 42) / 150,
     borderWidth: 2,
     borderColor: 'rgba(255,127,0,0.40)',
+  },
+  stageLabel: {
+    position: 'absolute',
+    bottom: 0,
+    fontFamily: MONO,
+    fontSize: 9,
+    letterSpacing: 1.2,
+    color: '#A89F93',
+    fontWeight: '600',
+  },
+  labelLeft: {
+    left: 4,
+  },
+  labelRight: {
+    right: 4,
+    color: '#D98324',
   },
 
   title: {

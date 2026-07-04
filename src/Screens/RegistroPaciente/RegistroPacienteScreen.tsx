@@ -92,7 +92,12 @@ export default function RegistroPacienteScreen({ navigation }: Props) {
 
   const ready = requiredCount === 4;
 
-  const handleSubmit = async () => {
+  /**
+   * Guarda paciente + evaluación y continúa el flujo.
+   * `destination === 'dysphagia'` salta directamente a la exploración de
+   * disfagia: esa prueba no requiere CAP ni comprobación de ruido de sala.
+   */
+  const handleSubmit = async (destination: 'cap' | 'dysphagia' = 'cap') => {
     if (!ready || isSaving) return;
     if (!currentProfessional?.id) {
       showErrorToast('Sesión no válida', 'Vuelva a iniciar sesión antes de registrar pacientes.');
@@ -161,7 +166,7 @@ export default function RegistroPacienteScreen({ navigation }: Props) {
       );
 
       showSuccessToast('Paciente registrado', `${fullName} · NHC ${trimmedNhc}`);
-      navigation.navigate('ClinicalAssessment');
+      navigation.navigate(destination === 'dysphagia' ? 'DysphagiaTest' : 'ClinicalAssessment');
     } catch (e) {
       const detail = e instanceof Error && e.message ? ` (${e.message})` : '';
       console.error('VIA+: error registrando paciente', e);
@@ -315,7 +320,7 @@ export default function RegistroPacienteScreen({ navigation }: Props) {
                 <Text size="2xs" color="$textLight400" style={{ textAlign: 'center' }}>
                   {requiredCount}/4 campos obligatorios completados
                 </Text>
-                <Button action="primary" variant="solid" rounded="$full" isDisabled={!ready || isSaving} isLoading={isSaving} onPress={handleSubmit}>
+                <Button action="primary" variant="solid" rounded="$full" isDisabled={!ready || isSaving} isLoading={isSaving} onPress={() => handleSubmit('cap')}>
                   <HStack space="sm" alignItems="center">
                     <Text size="md" weight="bold" color="$white">
                       Continuar a certificado clínico
@@ -323,6 +328,29 @@ export default function RegistroPacienteScreen({ navigation }: Props) {
                     <Icon as={ArrowRight} size="sm" color="$white" />
                   </HStack>
                 </Button>
+
+                {/* La exploración de disfagia no necesita CAP ni sonómetro de
+                    sala: acceso directo tras el alta del paciente. */}
+                <Pressable disabled={!ready || isSaving} onPress={() => handleSubmit('dysphagia')}>
+                  <HStack
+                    space="xs"
+                    alignItems="center"
+                    justifyContent="center"
+                    py="$3"
+                    borderRadius="$full"
+                    borderWidth={1.5}
+                    borderColor={ready && !isSaving ? '$info300' : '$borderLight200'}
+                    bg={ready && !isSaving ? '$info50' : '$white'}
+                    style={{ opacity: ready && !isSaving ? 1 : 0.5 }}>
+                    <Text size="lg">💧</Text>
+                    <Text size="sm" weight="bold" color={ready && !isSaving ? '$info700' : '$textLight400'}>
+                      Ir directo a exploración de disfagia
+                    </Text>
+                  </HStack>
+                </Pressable>
+                <Text size="2xs" color="$textLight400" style={{ textAlign: 'center' }}>
+                  La disfagia no requiere CAP ni sonómetro de sala
+                </Text>
               </VStack>
             </VStack>
           </ScrollView>

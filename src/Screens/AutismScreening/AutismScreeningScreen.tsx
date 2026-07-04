@@ -28,7 +28,7 @@ import {
   Users,
 } from 'lucide-react-native';
 
-import { Button, Content, Header, Text } from '@/Components/Common';
+import { Button, Content, FontSizeControl, Header, ScaledTextScope, Text } from '@/Components/Common';
 import RadialBackground from '@/Components/Themed/RadialBackground';
 import { RootStackParamList } from '@/Navigators';
 import { RootState } from '@/Store';
@@ -498,7 +498,12 @@ export default function AutismScreeningScreen({ navigation }: Props) {
                 )}
               </Card>
 
+              {/* tamaño de letra: es una prueba leída al informador — se debe
+                  facilitar la lectura (aplica a todos los cuestionarios) */}
+              <FontSizeControl />
+
               {/* preguntas */}
+              <ScaledTextScope.Provider value={true}>
               <VStack space="sm">
                 {QUESTIONS.slice(bStart - 1, bEnd).map(q => {
                   const v = answers[q.id];
@@ -534,6 +539,7 @@ export default function AutismScreeningScreen({ navigation }: Props) {
                   );
                 })}
               </VStack>
+              </ScaledTextScope.Provider>
 
               <HStack space="md" justifyContent="space-between">
                 <Button action="secondary" variant="outline" rounded="$full" onPress={handlePrev}>

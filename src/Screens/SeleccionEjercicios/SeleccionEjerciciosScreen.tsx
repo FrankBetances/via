@@ -34,21 +34,149 @@ interface ModuleCard {
   id: keyof RootStackParamList;
   title: string;
   description: string;
-  meta: string;
+  duration: string;
+  ages: string;
   emoji: string;
+  deco: string; // emoji decorativo secundario de la ilustración
+  tag: string; // etiqueta corta de dominio clínico
   color: string; // acento (borde/chip/checked)
   soft: string; // fondo suave de la ilustración
 }
 
 const MODULES: ModuleCard[] = [
-  { id: 'VoiceAnalysis', title: 'Análisis Acústico de Voz', description: 'Vocal sostenida /a/ · F0, jitter, shimmer, HNR.', meta: '3–5 min · todas las edades', emoji: '🎤', color: '#7C3AED', soft: '#F3E8FF' },
-  { id: 'Audiometry', title: 'Audiometría Infantil', description: 'Audiometría tonal por juego (play audiometry).', meta: '6–8 min · 6 m – 5 a', emoji: '🎧', color: '#0284C7', soft: '#E0F2FE' },
-  { id: 'AudiometryConditioned', title: 'Audiometría Condicionada', description: 'El Tren del Sonido · prueba automática con juego.', meta: '8–10 min · 2–6 a', emoji: '🚂', color: '#0D9488', soft: '#CCFBF1' },
-  { id: 'Articulation', title: 'Articulación · T.A.R.', description: 'Test de Articulación a la Repetición (SODA).', meta: '8–12 min · 3–7 a', emoji: '🗣️', color: '#EA580C', soft: '#FFEDD5' },
-  { id: 'DysphagiaTest', title: 'Exploración de Disfagia', description: 'Cribado con pulsioximetría integrada.', meta: '10–15 min · pulsioximetría', emoji: '💧', color: '#DC2626', soft: '#FEE2E2' },
-  { id: 'Mchat', title: 'Cuestionario Autismo', description: 'Cribado M-CHAT-R/F de trastorno del espectro autista.', meta: '5–10 min · 16–30 m', emoji: '🧩', color: '#DB2777', soft: '#FCE7F3' },
-  { id: 'SahsScreening', title: 'Cribado SAHS Infantil', description: 'PSQ de Chervin + exploración física.', meta: '5–8 min · 2–12 a', emoji: '😴', color: '#4F46E5', soft: '#E0E7FF' },
+  { id: 'VoiceAnalysis', title: 'Análisis Acústico de Voz', description: 'Vocal sostenida /a/ · F0, jitter, shimmer, HNR.', duration: '3–5 min', ages: 'Todas las edades', emoji: '🎤', deco: '🎵', tag: 'VOZ', color: '#7C3AED', soft: '#F3E8FF' },
+  { id: 'Audiometry', title: 'Audiometría Infantil', description: 'Audiometría tonal por juego (play audiometry).', duration: '6–8 min', ages: '6 m – 5 a', emoji: '🎧', deco: '🔔', tag: 'AUDICIÓN', color: '#0284C7', soft: '#E0F2FE' },
+  { id: 'AudiometryConditioned', title: 'Audiometría Condicionada', description: 'El Tren del Sonido · prueba automática con juego.', duration: '8–10 min', ages: '2–6 a', emoji: '🚂', deco: '🎺', tag: 'AUDICIÓN', color: '#0D9488', soft: '#CCFBF1' },
+  { id: 'Articulation', title: 'Articulación · T.A.R.', description: 'Test de Articulación a la Repetición (SODA).', duration: '8–12 min', ages: '3–7 a', emoji: '🗣️', deco: '💬', tag: 'LENGUAJE', color: '#EA580C', soft: '#FFEDD5' },
+  { id: 'DysphagiaTest', title: 'Exploración de Disfagia', description: 'Cribado con pulsioximetría integrada · sin CAP ni sonómetro.', duration: '10–15 min', ages: 'Pulsioximetría', emoji: '💧', deco: '🫧', tag: 'DEGLUCIÓN', color: '#DC2626', soft: '#FEE2E2' },
+  { id: 'Mchat', title: 'Cuestionario Autismo', description: 'Cribado M-CHAT-R/F de trastorno del espectro autista.', duration: '5–10 min', ages: '16–30 m', emoji: '🧩', deco: '⭐', tag: 'CONDUCTA', color: '#DB2777', soft: '#FCE7F3' },
+  { id: 'SahsScreening', title: 'Cribado SAHS Infantil', description: 'PSQ de Chervin + exploración física.', duration: '5–8 min', ages: '2–12 a', emoji: '😴', deco: '🌙', tag: 'SUEÑO', color: '#4F46E5', soft: '#E0E7FF' },
 ];
+
+/* ------------------------- tarjeta de módulo ------------------------------ */
+
+interface ModuleCardItemProps {
+  module: ModuleCard;
+  /** Posición 1-based dentro de la selección (null = no seleccionada). */
+  order: number | null;
+  onToggle: (id: string) => void;
+}
+
+function ModuleCardItem({ module: m, order, onToggle }: ModuleCardItemProps) {
+  const isSelected = order !== null;
+  return (
+    <Pressable style={{ width: '48.5%' }} onPress={() => onToggle(m.id)}>
+      <Card
+        bgColor="$white"
+        borderRadius={20}
+        borderWidth={2}
+        p="$0"
+        style={{
+          overflow: 'hidden',
+          minHeight: 216,
+          borderColor: isSelected ? m.color : '#F0ECE4',
+          backgroundColor: '#FFFFFF',
+          shadowColor: isSelected ? m.color : '#000000',
+          shadowOpacity: isSelected ? 0.25 : 0.05,
+          shadowRadius: 12,
+          shadowOffset: { width: 0, height: 6 },
+          elevation: isSelected ? 6 : 2,
+        }}>
+        {/* ----- ilustración superior ----- */}
+        <Box h={84} style={{ backgroundColor: m.soft, overflow: 'hidden' }}>
+          {/* círculos decorativos */}
+          <Box
+            w={90}
+            h={90}
+            borderRadius="$full"
+            position="absolute"
+            style={{ top: -34, right: -22, backgroundColor: '#FFFFFF', opacity: 0.35 }}
+          />
+          <Box
+            w={54}
+            h={54}
+            borderRadius="$full"
+            position="absolute"
+            style={{ bottom: -20, left: -14, backgroundColor: m.color, opacity: 0.12 }}
+          />
+          <Text style={{ position: 'absolute', top: 8, right: 10, fontSize: 17, opacity: 0.55 }}>{m.deco}</Text>
+
+          {/* emoji principal sobre medallón blanco */}
+          <Center
+            w={52}
+            h={52}
+            borderRadius={18}
+            bg="$white"
+            position="absolute"
+            style={{
+              left: 14,
+              top: 18,
+              shadowColor: '#000',
+              shadowOpacity: 0.08,
+              shadowRadius: 6,
+              shadowOffset: { width: 0, height: 3 },
+              elevation: 2,
+            }}>
+            <Text style={{ fontSize: 28 }}>{m.emoji}</Text>
+          </Center>
+
+          {/* etiqueta de dominio */}
+          <Box
+            position="absolute"
+            px="$2"
+            py="$0.5"
+            borderRadius="$full"
+            style={{ left: 76, top: 32, backgroundColor: '#FFFFFF' }}>
+            <Text size="2xs" weight="bold" style={{ color: m.color, letterSpacing: 0.6, fontSize: 9 }}>
+              {m.tag}
+            </Text>
+          </Box>
+
+          {/* check de selección (con orden dentro de la batería) */}
+          <Center
+            w={26}
+            h={26}
+            borderRadius="$full"
+            borderWidth={isSelected ? 0 : 1.5}
+            borderColor="$borderLight300"
+            position="absolute"
+            style={{ right: 10, bottom: 8, backgroundColor: isSelected ? m.color : '#FFFFFF' }}>
+            {isSelected ? (
+              <Text size="2xs" weight="bold" color="$white" style={{ fontVariant: ['tabular-nums'] }}>
+                {order}
+              </Text>
+            ) : null}
+          </Center>
+        </Box>
+
+        {/* ----- cuerpo ----- */}
+        <VStack p="$3.5" style={{ flex: 1 }}>
+          <Text size="sm" weight="bold" color="$textLight900" style={{ lineHeight: 18 }}>
+            {m.title}
+          </Text>
+          <Text size="2xs" color="$textLight500" mt="$1" style={{ lineHeight: 15, flex: 1 }}>
+            {m.description}
+          </Text>
+          <HStack space="xs" mt="$2.5" flexWrap="wrap" style={{ gap: 5 }}>
+            <HStack space="xs" alignItems="center" px="$2" py="$0.5" borderRadius="$full" style={{ backgroundColor: m.soft }}>
+              <Text size="2xs" weight="bold" style={{ color: m.color, fontVariant: ['tabular-nums'], fontSize: 9 }}>
+                ⏱ {m.duration}
+              </Text>
+            </HStack>
+            <HStack space="xs" alignItems="center" px="$2" py="$0.5" borderRadius="$full" borderWidth={1} borderColor="$borderLight200" bg="$white">
+              <Text size="2xs" weight="semiBold" color="$textLight500" style={{ fontSize: 9 }}>
+                👶 {m.ages}
+              </Text>
+            </HStack>
+          </HStack>
+        </VStack>
+
+        {/* barra de acento inferior */}
+        <Box h={4} style={{ backgroundColor: isSelected ? m.color : m.soft }} />
+      </Card>
+    </Pressable>
+  );
+}
 
 export default function SeleccionEjerciciosScreen({ navigation }: Props) {
   const dispatch = useDispatch<AppDispatch>();
@@ -56,24 +184,20 @@ export default function SeleccionEjerciciosScreen({ navigation }: Props) {
   const patient = activeEvaluation?.patient;
   const patientName = patient ? `${patient.name} ${patient.lastName}`.trim() : null;
 
-  const [selected, setSelected] = useState<Set<string>>(new Set());
+  // Array (no Set): conserva el ORDEN de selección, que define el orden de la
+  // batería y se muestra en el check de cada tarjeta.
+  const [selected, setSelected] = useState<string[]>([]);
 
   const toggle = (id: string) => {
-    setSelected(prev => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
+    setSelected(prev => (prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]));
   };
 
-  const selCount = selected.size;
+  const selCount = selected.length;
   const ctaLabel = selCount > 1 ? 'Iniciar batería' : 'Iniciar prueba';
 
   const handleStart = () => {
     if (selCount === 0) return;
-    const first = MODULES.find(m => selected.has(m.id));
-    if (first) navigation.navigate(first.id as any);
+    navigation.navigate(selected[0] as any);
   };
 
   return (
@@ -158,43 +282,8 @@ export default function SeleccionEjerciciosScreen({ navigation }: Props) {
             {/* ----- module grid ----- */}
             <HStack flexWrap="wrap" style={{ gap: 10 }}>
               {MODULES.map(m => {
-                const isSelected = selected.has(m.id);
-                return (
-                  <Pressable key={m.id} style={{ width: '48.5%' }} onPress={() => toggle(m.id)}>
-                    <Card
-                      bgColor="$white"
-                      borderRadius={18}
-                      borderWidth={2}
-                      p="$4"
-                      style={{ minHeight: 180, borderColor: isSelected ? m.color : '#F0ECE4', backgroundColor: isSelected ? m.soft : '#FFFFFF' }}>
-                      <HStack alignItems="center" justifyContent="space-between" mb="$2.5">
-                        <Center w={46} h={46} borderRadius={14} style={{ backgroundColor: isSelected ? '#FFFFFF' : m.soft }}>
-                          <Text style={{ fontSize: 26 }}>{m.emoji}</Text>
-                        </Center>
-                        <Center
-                          w={24}
-                          h={24}
-                          borderRadius={8}
-                          borderWidth={isSelected ? 0 : 1.5}
-                          borderColor="$borderLight300"
-                          style={{ backgroundColor: isSelected ? m.color : '#FFFFFF' }}>
-                          {isSelected ? <Icon as={Check} size="2xs" color="$white" /> : null}
-                        </Center>
-                      </HStack>
-                      <Text size="sm" weight="bold" color="$textLight900" style={{ lineHeight: 18 }}>
-                        {m.title}
-                      </Text>
-                      <Text size="2xs" color="$textLight500" mt="$1" style={{ lineHeight: 15, flex: 1 }}>
-                        {m.description}
-                      </Text>
-                      <HStack space="xs" alignItems="center" mt="$2" alignSelf="flex-start" px="$2" py="$0.5" borderRadius="$full" style={{ backgroundColor: isSelected ? '#FFFFFF' : m.soft }}>
-                        <Text size="2xs" weight="bold" style={{ color: m.color, fontVariant: ['tabular-nums'] }}>
-                          ⏱ {m.meta}
-                        </Text>
-                      </HStack>
-                    </Card>
-                  </Pressable>
-                );
+                const idx = selected.indexOf(m.id);
+                return <ModuleCardItem key={m.id} module={m} order={idx >= 0 ? idx + 1 : null} onToggle={toggle} />;
               })}
             </HStack>
 

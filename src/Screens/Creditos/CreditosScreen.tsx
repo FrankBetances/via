@@ -1,16 +1,20 @@
 import React from 'react';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { useSelector } from 'react-redux';
 import { Box, Center, HStack, Icon, VStack } from '@gluestack-ui/themed';
 import { ArrowRight, Mic } from 'lucide-react-native';
 
 import { Button, Content, Text } from '@/Components/Common';
 import RadialBackground from '@/Components/Themed/RadialBackground';
 import { RootStackParamList } from '@/Navigators';
+import { RootState } from '@/Store';
 
 /* -------------------------------------------------------------------------- */
-/*  CreditosScreen — splash/about screen "Quisqueya Habla" (mockup            */
-/*  `Créditos Quisqueya Habla.dc.html`). Pantalla de presentación del         */
-/*  proyecto; el CTA "Comenzar" continúa al registro profesional.             */
+/*  CreditosScreen — presentación del proyecto "Quisqueya Habla" (mockup      */
+/*  `Créditos Quisqueya Habla.dc.html`). En el flujo de acceso va DESPUÉS de  */
+/*  Bienvenida y ANTES del registro profesional: el CTA continúa a la         */
+/*  selección de perfil (desde donde se llega al alta). Abierta desde una     */
+/*  sesión ya iniciada actúa como "Acerca de" y el CTA vuelve atrás.          */
 /* -------------------------------------------------------------------------- */
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Creditos'>;
@@ -18,6 +22,14 @@ type Props = NativeStackScreenProps<RootStackParamList, 'Creditos'>;
 const YEAR = new Date().getFullYear();
 
 export default function CreditosScreen({ navigation }: Props) {
+  const isLogged = useSelector((state: RootState) => state.auth.isLogged);
+  const handleContinue = () => {
+    if (isLogged && navigation.canGoBack()) {
+      navigation.goBack();
+    } else {
+      navigation.navigate('SeleccionProfesional');
+    }
+  };
   return (
     <Content
       padding={false}
@@ -130,10 +142,10 @@ export default function CreditosScreen({ navigation }: Props) {
 
         {/* ----- CTA ----- */}
         <VStack space="sm" mb="$8" mt="$8">
-          <Button action="primary" variant="solid" rounded="$full" onPress={() => navigation.navigate('RegistroProfesional')}>
+          <Button action="primary" variant="solid" rounded="$full" onPress={handleContinue}>
             <HStack space="sm" alignItems="center">
               <Text size="md" weight="bold" color="$white">
-                Comenzar
+                {isLogged ? 'Volver' : 'Comenzar'}
               </Text>
               <Icon as={ArrowRight} size="sm" color="$white" />
             </HStack>

@@ -380,6 +380,15 @@ export default function AudiometryConditionedScreen({ navigation }: Props) {
                   </VStack>
                 </Card>
 
+                {!a.hasTone ? (
+                  <Card bgColor="$error50" borderRadius={18} borderWidth={1} borderColor="$error200" p="$4">
+                    <Text size="xs" weight="bold" color="$error700">
+                      Motor de audio no disponible: no se emitirán tonos. Reinicie la aplicación antes de
+                      realizar la prueba.
+                    </Text>
+                  </Card>
+                ) : null}
+
                 <Card bgColor="$primary0" borderRadius={18} borderWidth={1} borderColor="$primary100" p="$4">
                   <HStack space="sm" alignItems="flex-start">
                     <Icon as={Headphones} size="sm" color="$primary600" style={{ marginTop: 2 }} />
