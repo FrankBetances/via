@@ -1,160 +1,569 @@
-import React from 'react';
+import React, { useEffect } from 'react';
+import {
+  Platform,
+  Pressable,
+  ScrollView,
+  StatusBar,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
+import Animated, {
+  cancelAnimation,
+  Easing,
+  interpolate,
+  useAnimatedStyle,
+  useSharedValue,
+  withDelay,
+  withRepeat,
+  withSequence,
+  withTiming,
+} from 'react-native-reanimated';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { useSelector } from 'react-redux';
-import { Box, Center, HStack, Icon, VStack } from '@gluestack-ui/themed';
-import { ArrowRight, Mic } from 'lucide-react-native';
 
-import { Button, Content, Text } from '@/Components/Common';
-import RadialBackground from '@/Components/Themed/RadialBackground';
+import { Header } from '@/Components/Common';
 import { RootStackParamList } from '@/Navigators';
-import { RootState } from '@/Store';
 
 /* -------------------------------------------------------------------------- */
-/*  CreditosScreen — presentación del proyecto "Quisqueya Habla" (mockup      */
-/*  `Créditos Quisqueya Habla.dc.html`). En el flujo de acceso va DESPUÉS de  */
-/*  Bienvenida y ANTES del registro profesional: el CTA continúa a la         */
-/*  selección de perfil (desde donde se llega al alta). Abierta desde una     */
-/*  sesión ya iniciada actúa como "Acerca de" y el CTA vuelve atrás.          */
+/*  CreditosScreen — presentación del proyecto "Quisqueya Habla".              */
+/*  Mismo lenguaje visual que Bienvenida (crema + naranja + etiquetas mono):   */
+/*  emblema con anillos de pulso y satélites orbitando, onda respirando como   */
+/*  separador, créditos con medallones de color y sello normativo. El CTA     */
+/*  continúa a la selección de perfil profesional (esta ruta solo existe en    */
+/*  el flujo de acceso, antes de abrir sesión).                                */
 /* -------------------------------------------------------------------------- */
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Creditos'>;
 
 const YEAR = new Date().getFullYear();
+const EMBLEM = 88;
+const RING_DURATION = 2600;
+
+/* Onda separadora (perfil simétrico, "respira" por barra). */
+const WAVE_BARS = [10, 18, 30, 44, 56, 44, 30, 18, 10];
+
+/* Satélites que orbitan el emblema: los tres dominios del proyecto. */
+const SATELLITES = [
+  { emoji: '👂', angle: -35, radius: 74 },
+  { emoji: '🗣️', angle: 145, radius: 78 },
+  { emoji: '🎵', angle: 65, radius: 82 },
+];
+
+function WaveBar({ index, height }: { index: number; height: number }) {
+  const breathe = useSharedValue(0);
+  useEffect(() => {
+    breathe.value = withDelay(
+      index * 120,
+      withRepeat(
+        withSequence(
+          withTiming(1, { duration: 1500, easing: Easing.inOut(Easing.sin) }),
+          withTiming(0, { duration: 1500, easing: Easing.inOut(Easing.sin) }),
+        ),
+        -1,
+        false,
+      ),
+    );
+    return () => cancelAnimation(breathe);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  const style = useAnimatedStyle(() => ({
+    transform: [{ scaleY: interpolate(breathe.value, [0, 1], [0.8, 1]) }],
+    opacity: interpolate(breathe.value, [0, 1], [0.75, 1]),
+  }));
+  return <Animated.View style={[styles.waveBar, { height }, style]} />;
+}
 
 export default function CreditosScreen({ navigation }: Props) {
-  const isLogged = useSelector((state: RootState) => state.auth.isLogged);
-  const handleContinue = () => {
-    if (isLogged && navigation.canGoBack()) {
-      navigation.goBack();
-    } else {
-      navigation.navigate('SeleccionProfesional');
-    }
-  };
+  const ring1 = useSharedValue(0);
+  const ring2 = useSharedValue(0);
+  const float = useSharedValue(0);
+
+  useEffect(() => {
+    const makePulse = () =>
+      withRepeat(
+        withSequence(
+          withTiming(1, { duration: RING_DURATION, easing: Easing.out(Easing.ease) }),
+          withTiming(0, { duration: 0 }),
+        ),
+        -1,
+        false,
+      );
+    ring1.value = makePulse();
+    ring2.value = withDelay(RING_DURATION / 2, makePulse());
+    float.value = withRepeat(
+      withSequence(
+        withTiming(-5, { duration: 2800, easing: Easing.inOut(Easing.sin) }),
+        withTiming(0, { duration: 2800, easing: Easing.inOut(Easing.sin) }),
+      ),
+      -1,
+      false,
+    );
+    return () => {
+      cancelAnimation(ring1);
+      cancelAnimation(ring2);
+      cancelAnimation(float);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const ring1Style = useAnimatedStyle(() => ({
+    transform: [{ scale: interpolate(ring1.value, [0, 1], [0.95, 1.75]) }],
+    opacity: interpolate(ring1.value, [0, 1], [0.4, 0]),
+  }));
+  const ring2Style = useAnimatedStyle(() => ({
+    transform: [{ scale: interpolate(ring2.value, [0, 1], [0.95, 1.75]) }],
+    opacity: interpolate(ring2.value, [0, 1], [0.4, 0]),
+  }));
+  const floatStyle = useAnimatedStyle(() => ({
+    transform: [{ translateY: float.value }],
+  }));
+
   return (
-    <Content
-      padding={false}
-      insetTop={false}
-      radialBackgrounds={
-        <>
-          <RadialBackground topMultiplier={0.12} leftMultiplier={-0.2} widthMultiplier={2} heightMultiplier={2} center={(w, _h) => [w, w]} radiusMultiplier={1} />
-          <RadialBackground topMultiplier={-0.95} leftMultiplier={-0.8} widthMultiplier={2} heightMultiplier={2} center={(w, _h) => [w, w]} radiusMultiplier={1} />
-        </>
-      }>
-      <VStack flex={1} px="$6" justifyContent="space-between">
-        {/* ----- top badge ----- */}
-        <Center mt="$10">
-          <HStack alignItems="center" space="xs" bg="$white" px="$3" py="$1.5" borderRadius="$full" borderWidth={1} borderColor="$borderLight100">
-            <Box w={6} h={6} borderRadius="$full" bg="$primary500" />
-            <Text size="2xs" weight="bold" color="$textLight600" style={{ letterSpacing: 0.4 }}>
-              VIA+ · EVALUACIÓN DE AUDICIÓN Y LENGUAJE
-            </Text>
-          </HStack>
-        </Center>
+    <View style={styles.root}>
+      <StatusBar barStyle="dark-content" backgroundColor="#F1ECE2" />
+      <View style={styles.blobTopRight} pointerEvents="none" />
+      <View style={styles.blobBottomLeft} pointerEvents="none" />
 
-        {/* ----- emblem + headline ----- */}
-        <VStack alignItems="center" space="md" mt="$8">
-          <Center
-            w={92}
-            h={92}
-            borderRadius={26}
-            bg="$primary500"
-            style={{ shadowColor: '#FF7F00', shadowOpacity: 0.35, shadowRadius: 18, shadowOffset: { width: 0, height: 8 } }}>
-            <Icon as={Mic} size="xl" color="$white" />
-          </Center>
-          <Text size="2xs" weight="bold" color="$textLight400" style={{ letterSpacing: 1.2 }}>
-            PROYECTO
-          </Text>
-          <VStack alignItems="center">
-            <Text size="3xl" weight="bold" color="$textLight900" style={{ textAlign: 'center' }}>
-              Quisqueya{' '}
-              <Text size="3xl" weight="bold" color="$primary500">
-                Habla
-              </Text>
-            </Text>
-            <Text size="sm" color="$textLight500" mt="$2" style={{ textAlign: 'center', lineHeight: 19, maxWidth: 280 }}>
-              Tecnología clínica al servicio de la rehabilitación del lenguaje.
-            </Text>
-          </VStack>
-        </VStack>
+      <Header animationType="expand" />
 
-        {/* ----- author + partners ----- */}
-        <VStack space="md" mt="$8">
-          <HStack alignItems="center" space="sm">
-            <Box style={{ flex: 1, height: 1 }} bg="$borderLight100" />
-            <Text size="2xs" weight="bold" color="$textLight400" style={{ letterSpacing: 0.6 }}>
-              DESARROLLADO POR
-            </Text>
-            <Box style={{ flex: 1, height: 1 }} bg="$borderLight100" />
-          </HStack>
+      <ScrollView
+        style={{ flex: 1 }}
+        contentContainerStyle={styles.scroll}
+        showsVerticalScrollIndicator={false}>
+        {/* ----- overline ----- */}
+        <View style={styles.badge}>
+          <View style={styles.badgeDot} />
+          <Text style={styles.badgeText}>VIA+ · EVALUACIÓN DE AUDICIÓN Y LENGUAJE</Text>
+        </View>
 
-          <HStack space="sm" alignItems="center" bg="$white" p="$3.5" borderRadius={16} borderWidth={1} borderColor="$borderLight100">
-            <Center w={44} h={44} borderRadius={14} bg="$textLight900">
-              <Text size="sm" weight="bold" color="$white">
-                FB
-              </Text>
-            </Center>
-            <VStack style={{ flex: 1 }}>
-              <Text size="sm" weight="bold" color="$textLight900">
-                Dr. Frank Betances
-              </Text>
-              <Text size="2xs" color="$textLight500">
-                Dirección clínica e investigación
-              </Text>
-            </VStack>
-          </HStack>
+        {/* ----- emblema con órbita ----- */}
+        <Animated.View style={[styles.emblemWrapper, floatStyle]}>
+          <Animated.View style={[styles.ring, ring1Style]} />
+          <Animated.View style={[styles.ring, ring2Style]} />
+          <View style={styles.emblem}>
+            <Text style={styles.emblemEmoji}>🎙️</Text>
+          </View>
+          {SATELLITES.map(s => {
+            const rad = (s.angle * Math.PI) / 180;
+            return (
+              <View
+                key={s.emoji}
+                style={[
+                  styles.satellite,
+                  {
+                    transform: [
+                      { translateX: Math.cos(rad) * s.radius },
+                      { translateY: Math.sin(rad) * s.radius },
+                    ],
+                  },
+                ]}>
+                <Text style={styles.satelliteEmoji}>{s.emoji}</Text>
+              </View>
+            );
+          })}
+        </Animated.View>
 
-          <Text size="2xs" weight="bold" color="$textLight400" style={{ letterSpacing: 0.6 }}>
-            EN COLABORACIÓN CON
-          </Text>
-          <HStack space="sm">
-            <HStack space="sm" alignItems="center" bg="$white" p="$3" borderRadius={14} borderWidth={1} borderColor="$borderLight100" style={{ flex: 1 }}>
-              <Center w={32} h={32} borderRadius={10} bg="$success600">
-                <Text size="xs" weight="bold" color="$white">
-                  E
-                </Text>
-              </Center>
-              <VStack style={{ flex: 1 }}>
-                <Text size="xs" weight="bold" color="$textLight900">
-                  Earlify Health
-                </Text>
-                <Text size="2xs" color="$textLight500">
-                  Tecnología e ingeniería
-                </Text>
-              </VStack>
-            </HStack>
-            <HStack space="sm" alignItems="center" bg="$white" p="$3" borderRadius={14} borderWidth={1} borderColor="$borderLight100" style={{ flex: 1 }}>
-              <Center w={32} h={32} borderRadius={10} bg="$info600">
-                <Text size="xs" weight="bold" color="$white">
-                  A
-                </Text>
-              </Center>
-              <VStack style={{ flex: 1 }}>
-                <Text size="xs" weight="bold" color="$textLight900">
-                  ACOPROS
-                </Text>
-                <Text size="2xs" color="$textLight500">
-                  Apoyo y alianza institucional
-                </Text>
-              </VStack>
-            </HStack>
-          </HStack>
-        </VStack>
+        {/* ----- título ----- */}
+        <Text style={styles.overline}>PROYECTO</Text>
+        <Text style={styles.title}>
+          Quisqueya <Text style={styles.titleAccent}>Habla</Text>
+        </Text>
+        <Text style={styles.subtitle}>
+          Tecnología clínica al servicio de la rehabilitación del lenguaje.
+        </Text>
 
-        {/* ----- CTA ----- */}
-        <VStack space="sm" mb="$8" mt="$8">
-          <Button action="primary" variant="solid" rounded="$full" onPress={handleContinue}>
-            <HStack space="sm" alignItems="center">
-              <Text size="md" weight="bold" color="$white">
-                {isLogged ? 'Volver' : 'Comenzar'}
-              </Text>
-              <Icon as={ArrowRight} size="sm" color="$white" />
-            </HStack>
-          </Button>
-          <Text size="2xs" color="$textLight400" style={{ textAlign: 'center' }}>
-            Lugo, Galicia, España · {YEAR}
-          </Text>
-        </VStack>
-      </VStack>
-    </Content>
+        {/* ----- onda separadora ----- */}
+        <View style={styles.wave}>
+          {WAVE_BARS.map((h, i) => (
+            <WaveBar key={i} index={i} height={h} />
+          ))}
+        </View>
+
+        {/* ----- desarrollado por ----- */}
+        <View style={styles.sectionRow}>
+          <View style={styles.sectionLine} />
+          <Text style={styles.sectionLabel}>DESARROLLADO POR</Text>
+          <View style={styles.sectionLine} />
+        </View>
+
+        <View style={styles.authorCard}>
+          <View style={styles.authorAccent} />
+          <View style={styles.authorAvatar}>
+            <Text style={styles.authorAvatarText}>FB</Text>
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.authorName}>Dr. Frank Betances</Text>
+            <Text style={styles.authorRole}>Dirección clínica e investigación</Text>
+          </View>
+          <Text style={styles.authorEmoji}>🩺</Text>
+        </View>
+
+        {/* ----- colaboradores ----- */}
+        <View style={styles.sectionRow}>
+          <View style={styles.sectionLine} />
+          <Text style={styles.sectionLabel}>EN COLABORACIÓN CON</Text>
+          <View style={styles.sectionLine} />
+        </View>
+
+        <View style={styles.partnersRow}>
+          <View style={styles.partnerCard}>
+            <View style={[styles.partnerBadge, { backgroundColor: '#2A7948' }]}>
+              <Text style={styles.partnerBadgeText}>E</Text>
+            </View>
+            <Text style={styles.partnerName}>Earlify Health</Text>
+            <Text style={styles.partnerRole}>Tecnología e ingeniería</Text>
+          </View>
+          <View style={styles.partnerCard}>
+            <View style={[styles.partnerBadge, { backgroundColor: '#0066B3' }]}>
+              <Text style={styles.partnerBadgeText}>A</Text>
+            </View>
+            <Text style={styles.partnerName}>ACOPROS</Text>
+            <Text style={styles.partnerRole}>Apoyo y alianza institucional</Text>
+          </View>
+        </View>
+
+        {/* ----- sello normativo + lugar ----- */}
+        <View style={styles.sealRow}>
+          <View style={styles.sealChip}>
+            <Text style={styles.sealChipText}>SaMD · Clase IIa</Text>
+          </View>
+          <View style={styles.sealChip}>
+            <Text style={styles.sealChipText}>MDR 2017/745</Text>
+          </View>
+          <View style={styles.sealChip}>
+            <Text style={styles.sealChipText}>Lugo · Galicia · {YEAR}</Text>
+          </View>
+        </View>
+      </ScrollView>
+
+      {/* ----- CTA ----- */}
+      <View style={styles.footer}>
+        <Pressable
+          style={({ pressed }) => [styles.button, pressed && styles.buttonPressed]}
+          onPress={() => navigation.navigate('SeleccionProfesional')}>
+          <Text style={styles.buttonText}>Comenzar</Text>
+          <Text style={styles.buttonArrow}>→</Text>
+        </Pressable>
+      </View>
+    </View>
   );
 }
+
+const MONO = Platform.OS === 'ios' ? 'Courier' : 'monospace';
+
+const styles = StyleSheet.create({
+  root: {
+    flex: 1,
+    backgroundColor: '#F1ECE2',
+  },
+  blobTopRight: {
+    position: 'absolute',
+    top: -150,
+    right: -120,
+    width: 380,
+    height: 380,
+    borderRadius: 190,
+    backgroundColor: 'rgba(240,174,108,0.18)',
+  },
+  blobBottomLeft: {
+    position: 'absolute',
+    bottom: -170,
+    left: -130,
+    width: 360,
+    height: 360,
+    borderRadius: 180,
+    backgroundColor: 'rgba(255,204,128,0.14)',
+  },
+  scroll: {
+    alignItems: 'center',
+    paddingHorizontal: 24,
+    paddingBottom: 130,
+  },
+
+  badge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 7,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: '#E9E2D5',
+    paddingHorizontal: 13,
+    paddingVertical: 6,
+    marginTop: 4,
+  },
+  badgeDot: {
+    width: 7,
+    height: 7,
+    borderRadius: 4,
+    backgroundColor: '#FF7F00',
+  },
+  badgeText: {
+    fontFamily: MONO,
+    fontSize: 9,
+    letterSpacing: 0.8,
+    fontWeight: '700',
+    color: '#8A8274',
+  },
+
+  emblemWrapper: {
+    width: EMBLEM + 100,
+    height: EMBLEM + 100,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 26,
+  },
+  ring: {
+    position: 'absolute',
+    width: EMBLEM,
+    height: EMBLEM,
+    borderRadius: 26,
+    borderWidth: 2,
+    borderColor: 'rgba(255,127,0,0.4)',
+  },
+  emblem: {
+    width: EMBLEM,
+    height: EMBLEM,
+    borderRadius: 26,
+    backgroundColor: '#FF7F00',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#FF7F00',
+    shadowOpacity: 0.35,
+    shadowRadius: 18,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 8,
+  },
+  emblemEmoji: {
+    fontSize: 40,
+  },
+  satellite: {
+    position: 'absolute',
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#FFFFFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: '#EFE8DB',
+    shadowColor: '#000',
+    shadowOpacity: 0.06,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 2,
+  },
+  satelliteEmoji: {
+    fontSize: 17,
+  },
+
+  overline: {
+    fontFamily: MONO,
+    fontSize: 10,
+    letterSpacing: 2,
+    fontWeight: '700',
+    color: '#B3A791',
+    marginTop: 18,
+  },
+  title: {
+    fontSize: 36,
+    fontWeight: '800',
+    letterSpacing: -1,
+    color: '#3A352F',
+    marginTop: 4,
+    textAlign: 'center',
+  },
+  titleAccent: {
+    color: '#FF7F00',
+  },
+  subtitle: {
+    fontSize: 14,
+    lineHeight: 21,
+    color: '#7A746B',
+    textAlign: 'center',
+    maxWidth: 300,
+    marginTop: 8,
+  },
+
+  wave: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    height: 56,
+    marginTop: 20,
+    marginBottom: 6,
+  },
+  waveBar: {
+    width: 6,
+    borderRadius: 3,
+    backgroundColor: '#FF7F00',
+  },
+
+  sectionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    alignSelf: 'stretch',
+    marginTop: 20,
+    marginBottom: 10,
+  },
+  sectionLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: '#E5DECF',
+  },
+  sectionLabel: {
+    fontFamily: MONO,
+    fontSize: 9,
+    letterSpacing: 1.4,
+    fontWeight: '700',
+    color: '#A89F93',
+  },
+
+  authorCard: {
+    alignSelf: 'stretch',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: '#EFE8DB',
+    padding: 14,
+    overflow: 'hidden',
+  },
+  authorAccent: {
+    position: 'absolute',
+    left: 0,
+    top: 0,
+    bottom: 0,
+    width: 4,
+    backgroundColor: '#FF7F00',
+  },
+  authorAvatar: {
+    width: 48,
+    height: 48,
+    borderRadius: 16,
+    backgroundColor: '#3A352F',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  authorAvatarText: {
+    color: '#FFFFFF',
+    fontSize: 15,
+    fontWeight: '800',
+  },
+  authorName: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: '#3A352F',
+  },
+  authorRole: {
+    fontSize: 11,
+    color: '#8A8274',
+    marginTop: 2,
+  },
+  authorEmoji: {
+    fontSize: 22,
+  },
+
+  partnersRow: {
+    flexDirection: 'row',
+    gap: 10,
+    alignSelf: 'stretch',
+  },
+  partnerCard: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: '#EFE8DB',
+    padding: 14,
+    alignItems: 'flex-start',
+  },
+  partnerBadge: {
+    width: 34,
+    height: 34,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 8,
+  },
+  partnerBadgeText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '800',
+  },
+  partnerName: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#3A352F',
+  },
+  partnerRole: {
+    fontSize: 10.5,
+    color: '#8A8274',
+    marginTop: 2,
+  },
+
+  sealRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+    gap: 7,
+    marginTop: 20,
+  },
+  sealChip: {
+    backgroundColor: 'rgba(255,255,255,0.7)',
+    borderWidth: 1,
+    borderColor: '#E5DECF',
+    borderRadius: 999,
+    paddingHorizontal: 11,
+    paddingVertical: 5,
+  },
+  sealChipText: {
+    fontFamily: MONO,
+    fontSize: 9,
+    fontWeight: '700',
+    letterSpacing: 0.5,
+    color: '#8A8274',
+  },
+
+  footer: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    paddingHorizontal: 24,
+    paddingBottom: 28,
+    paddingTop: 12,
+    alignItems: 'center',
+  },
+  button: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 11,
+    backgroundColor: '#FF7F00',
+    borderRadius: 999,
+    paddingHorizontal: 44,
+    paddingVertical: 17,
+    shadowColor: '#FF7F00',
+    shadowOpacity: 0.36,
+    shadowRadius: 30,
+    shadowOffset: { width: 0, height: 14 },
+    elevation: 10,
+  },
+  buttonPressed: {
+    opacity: 0.88,
+    transform: [{ translateY: -2 }],
+  },
+  buttonText: {
+    color: '#FFFFFF',
+    fontSize: 17,
+    fontWeight: '700',
+  },
+  buttonArrow: {
+    color: '#FFFFFF',
+    fontSize: 18,
+    fontWeight: '700',
+  },
+});

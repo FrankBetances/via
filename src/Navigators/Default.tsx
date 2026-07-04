@@ -25,63 +25,58 @@ import ResultadosPreliminaresScreen from '@/Screens/ResultadosPreliminares/Resul
 import ResultadosFinalScreen from '@/Screens/ResultadosFinal/ResultadosFinalScreen';
 
 /* -------------------------------------------------------------------------- */
-/*  Navigator raíz — VIA+.                                                  */
-/*  Gate por `state.auth.isLogged`: sin sesión se monta el stack de acceso    */
-/*  (Bienvenida -> selección de profesional -> alta de profesional); con      */
-/*  sesión se monta el stack principal empezando en Pacientes. No hay login   */
-/*  con usuario/contraseña: la "sesión" es elegir un perfil del dispositivo.  */
-/*  Las 9 pantallas de módulo se registran aquí en una fase posterior (ver    */
-/*  Contrato de Compilación §6.4).                                           */
+/*  Navigator raíz — VIA+ (patrón "auth flow" de React Navigation).           */
+/*                                                                            */
+/*  UN SOLO navigator con grupos condicionales por `state.auth.isLogged`.     */
+/*  IMPORTANTE: los nombres de ruta NO deben repetirse entre los dos grupos.  */
+/*  La versión anterior montaba dos navigators alternativos (AccessStack /    */
+/*  MainStack) que COMPARTÍAN las rutas `Creditos` y `RegistroProfesional`:   */
+/*  al abrir sesión, React Navigation conservaba las rutas del historial      */
+/*  cuyo nombre seguía existiendo y el usuario "volvía" a Créditos en vez de  */
+/*  aterrizar en Pacientes. Con grupos condicionales y nombres únicos, al     */
+/*  cambiar `isLogged` desaparecen todas las rutas del grupo saliente y el    */
+/*  navigator se reinicia en la primera pantalla del grupo entrante           */
+/*  (Pacientes al entrar, Bienvenida al cerrar sesión).                       */
 /* -------------------------------------------------------------------------- */
 
 const RootStack = createNativeStackNavigator<RootStackParamList>();
 
-function AccessStack() {
-  return (
-    <RootStack.Navigator screenOptions={{ headerShown: false }}>
-      <RootStack.Screen name="Bienvenida" component={BienvenidaScreen} />
-      <RootStack.Screen name="SeleccionProfesional" component={SeleccionProfesionalScreen} />
-      {/* Alcanzables antes de iniciar sesión: presentación del proyecto y alta
-          de profesional de primera vez (ver Contrato de Compilación §6.4). */}
-      <RootStack.Screen name="Creditos" component={CreditosScreen} />
-      <RootStack.Screen name="RegistroProfesional" component={RegistroProfesionalScreen} />
-    </RootStack.Navigator>
-  );
-}
-
-function MainStack() {
-  return (
-    <RootStack.Navigator
-      initialRouteName="Pacientes"
-      screenOptions={{ headerShown: false }}
-    >
-      <RootStack.Screen name="Pacientes" component={PacientesScreen} />
-      <RootStack.Screen name="RegistroPaciente" component={RegistroPacienteScreen} />
-      {/* Reachable también dentro de la sesión: alta de un profesional adicional
-          / gestión de perfil ("Registro de cuenta"), y créditos como "Acerca de". */}
-      <RootStack.Screen name="RegistroProfesional" component={RegistroProfesionalScreen} />
-      <RootStack.Screen name="Creditos" component={CreditosScreen} />
-
-      {/* Module routes (Contrato de Compilación §2) */}
-      <RootStack.Screen name="ClinicalAssessment" component={ClinicalAssessmentScreen} />
-      <RootStack.Screen name="Mchat" component={AutismScreeningScreen} />
-      <RootStack.Screen name="RoomNoiseCheck" component={RoomNoiseCheckScreen} />
-      <RootStack.Screen name="Audiometry" component={AudiometryScreen} />
-      <RootStack.Screen name="AudiometryConditioned" component={AudiometryConditionedScreen} />
-      <RootStack.Screen name="VoiceAnalysis" component={VoiceAnalysisScreen} />
-      <RootStack.Screen name="DysphagiaTest" component={DysphagiaTestScreen} />
-      <RootStack.Screen name="SahsScreening" component={SahsScreeningScreen} />
-      <RootStack.Screen name="Articulation" component={ArticulationTestScreen} />
-
-      {/* New screen routes appended by later phases (mockup-based hub screens, etc.) */}
-      <RootStack.Screen name="SeleccionEjercicios" component={SeleccionEjerciciosScreen} />
-      <RootStack.Screen name="ResultadosPreliminares" component={ResultadosPreliminaresScreen} />
-      <RootStack.Screen name="ResultadosFinal" component={ResultadosFinalScreen} />
-    </RootStack.Navigator>
-  );
-}
-
 export default function DefaultNavigator() {
   const isLogged = useSelector((state: RootState) => state.auth.isLogged);
-  return isLogged ? <MainStack /> : <AccessStack />;
+
+  return (
+    <RootStack.Navigator screenOptions={{ headerShown: false }}>
+      {!isLogged ? (
+        // ------- flujo de acceso: bienvenida → créditos → perfil → alta -----
+        <RootStack.Group>
+          <RootStack.Screen name="Bienvenida" component={BienvenidaScreen} />
+          <RootStack.Screen name="Creditos" component={CreditosScreen} />
+          <RootStack.Screen name="SeleccionProfesional" component={SeleccionProfesionalScreen} />
+          <RootStack.Screen name="RegistroProfesional" component={RegistroProfesionalScreen} />
+        </RootStack.Group>
+      ) : (
+        // ------- sesión abierta: Pacientes es la ruta inicial ---------------
+        <RootStack.Group>
+          <RootStack.Screen name="Pacientes" component={PacientesScreen} />
+          <RootStack.Screen name="RegistroPaciente" component={RegistroPacienteScreen} />
+
+          {/* Module routes (Contrato de Compilación §2) */}
+          <RootStack.Screen name="ClinicalAssessment" component={ClinicalAssessmentScreen} />
+          <RootStack.Screen name="Mchat" component={AutismScreeningScreen} />
+          <RootStack.Screen name="RoomNoiseCheck" component={RoomNoiseCheckScreen} />
+          <RootStack.Screen name="Audiometry" component={AudiometryScreen} />
+          <RootStack.Screen name="AudiometryConditioned" component={AudiometryConditionedScreen} />
+          <RootStack.Screen name="VoiceAnalysis" component={VoiceAnalysisScreen} />
+          <RootStack.Screen name="DysphagiaTest" component={DysphagiaTestScreen} />
+          <RootStack.Screen name="SahsScreening" component={SahsScreeningScreen} />
+          <RootStack.Screen name="Articulation" component={ArticulationTestScreen} />
+
+          {/* Hub y resultados */}
+          <RootStack.Screen name="SeleccionEjercicios" component={SeleccionEjerciciosScreen} />
+          <RootStack.Screen name="ResultadosPreliminares" component={ResultadosPreliminaresScreen} />
+          <RootStack.Screen name="ResultadosFinal" component={ResultadosFinalScreen} />
+        </RootStack.Group>
+      )}
+    </RootStack.Navigator>
+  );
 }
