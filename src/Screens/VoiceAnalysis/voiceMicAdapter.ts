@@ -7,10 +7,12 @@ import { setVoiceMicAdapter, VoiceLiveFrame, VoiceMicAdapter, VoiceMicResult } f
 /* -------------------------------------------------------------------------- */
 /*  voiceMicAdapter — captura y análisis REAL del micrófono                    */
 /* -------------------------------------------------------------------------- */
-/*  Motor: `react-native-audio-api` (AudioRecorder, Oboe/AVAudioEngine), el    */
-/*  mismo paquete nativo que sintetiza los tonos de las audiometrías. El       */
+/*  Motor: `react-native-audio-api` ≥ 0.8 (AudioRecorder, Oboe/AVAudioEngine),*/
+/*  el mismo paquete nativo que sintetiza los tonos de las audiometrías. El    */
 /*  adaptador anterior usaba `react-native-live-audio-stream` (módulo del      */
 /*  puente antiguo) que bajo la nueva arquitectura de RN 0.80 colgaba la app.  */
+/*  OJO: `AudioRecorder`/`AudioManager` no existen en versiones < 0.6 del      */
+/*  paquete (con 0.5.x el import es `undefined` y la grabación falla).         */
 /*                                                                             */
 /*  Pipeline:                                                                  */
 /*   · Captura PCM mono a 48 kHz en bloques de ~100 ms.                        */

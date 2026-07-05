@@ -65,17 +65,27 @@ export default function ResultadosPreliminaresScreen({ navigation }: Props) {
 
         const audiometries = await AudiometryRepository.getAudiometryByEvaluation(evaluationId);
         audiometries.forEach(a => {
-          const odPta = pta(a.thresholds.OD);
-          const oiPta = pta(a.thresholds.OI);
-          const sevOd = severityOf(odPta);
-          const sevOi = severityOf(oiPta);
-          const worst = (sevOd?.key !== 'normal' || sevOi?.key !== 'normal') ? 'warn' : 'ok';
+          let status: StatusKind;
+          let metric: string;
+          if (a.thresholds.CL) {
+            // Cribado en campo libre: PTA binaural único.
+            const clPta = pta(a.thresholds.CL);
+            status = severityOf(clPta)?.key === 'normal' ? 'ok' : 'warn';
+            metric = `Campo libre ${clPta ?? '—'} dB HL`;
+          } else {
+            const odPta = pta(a.thresholds.OD);
+            const oiPta = pta(a.thresholds.OI);
+            const sevOd = severityOf(odPta);
+            const sevOi = severityOf(oiPta);
+            status = (sevOd?.key !== 'normal' || sevOi?.key !== 'normal') ? 'warn' : 'ok';
+            metric = `OD ${odPta ?? '—'} dB HL · OI ${oiPta ?? '—'} dB HL`;
+          }
           result.push({
             key: `audio-${a.id}`,
             title: a.method === 'conditioned' ? 'Audiometría Condicionada' : 'Audiometría Infantil',
-            status: worst,
+            status,
             headline: interpretAudiometry(a.thresholds),
-            metric: `OD ${odPta ?? '—'} dB HL · OI ${oiPta ?? '—'} dB HL`,
+            metric,
           });
         });
 

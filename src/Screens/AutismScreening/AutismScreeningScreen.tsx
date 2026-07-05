@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Pressable } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import {
@@ -19,6 +19,8 @@ import {
   ArrowRight,
   Check,
   CheckCircle2,
+  ChevronDown,
+  ChevronUp,
   ClipboardCheck,
   Eye,
   Info,
@@ -29,6 +31,7 @@ import {
 } from 'lucide-react-native';
 
 import { Button, Content, FontSizeControl, Header, ScaledTextScope, Text } from '@/Components/Common';
+import { QuestionDots, QuestionTransition, SurveyProgress, YesNoAnswer } from '@/Components/Survey';
 import RadialBackground from '@/Components/Themed/RadialBackground';
 import { RootStackParamList } from '@/Navigators';
 import { RootState } from '@/Store';
@@ -112,78 +115,14 @@ const emptyAnswers = (): Answers => {
   return a;
 };
 
-/* -------------------------------------------------------------------------- */
-/*  Subcomponentes UI                                                          */
-/* -------------------------------------------------------------------------- */
-
-type BlockStatus = 'done' | 'prog' | 'pend';
-
-const blockStatusOf = (answers: Answers, range: [number, number]): { status: BlockStatus; answered: number } => {
-  let answered = 0;
-  for (let i = range[0]; i <= range[1]; i++) if (answers[i] !== null) answered++;
-  return { status: answered === 5 ? 'done' : answered > 0 ? 'prog' : 'pend', answered };
+/** Primera pregunta sin responder (índice 0-based), o -1 si están todas. */
+const firstUnanswered = (answers: Answers): number => {
+  for (let i = 1; i <= 20; i++) if (answers[i] === null || answers[i] === undefined) return i - 1;
+  return -1;
 };
 
-const BlockStepper = ({
-  answers,
-  view,
-  activeBlock,
-}: {
-  answers: Answers;
-  view: 'setup' | 'block' | 'report';
-  activeBlock: number;
-}) => (
-  <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-    <HStack space="xs" alignItems="center" py="$1">
-      {BLOCKS.map((b, idx) => {
-        const { status } = blockStatusOf(answers, b.range);
-        const active = view === 'block' && idx === activeBlock;
-        const done = status === 'done';
-        const bg = active ? '$primary500' : done ? '$success600' : status === 'prog' ? '$warning500' : '$backgroundLight100';
-        const fg = active || done || status === 'prog' ? '$white' : '$textLight400';
-        return (
-          <HStack key={idx} alignItems="center" space="xs">
-            <Center w={30} h={30} borderRadius="$full" bg={bg}>
-              <Text size="2xs" weight="bold" color={fg}>
-                {idx + 1}
-              </Text>
-            </Center>
-            {idx < BLOCKS.length - 1 ? <Box w={14} h={2} borderRadius="$full" bg="$borderLight200" /> : null}
-          </HStack>
-        );
-      })}
-    </HStack>
-  </ScrollView>
-);
-
-const AnswerToggle = ({
-  value,
-  onYes,
-  onNo,
-}: {
-  value: boolean | null;
-  onYes: () => void;
-  onNo: () => void;
-}) => {
-  return (
-    <HStack space="sm">
-      <Pressable style={{ flex: 1 }} onPress={onYes}>
-        <Center py="$2" borderRadius="$full" bg={value === true ? '$primary500' : '$white'} borderWidth={1.5} borderColor={value === true ? '$primary500' : '$borderLight200'}>
-          <Text size="sm" weight="bold" color={value === true ? '$white' : '$textLight400'}>
-            Sí
-          </Text>
-        </Center>
-      </Pressable>
-      <Pressable style={{ flex: 1 }} onPress={onNo}>
-        <Center py="$2" borderRadius="$full" bg={value === false ? '$primary500' : '$white'} borderWidth={1.5} borderColor={value === false ? '$primary500' : '$borderLight200'}>
-          <Text size="sm" weight="bold" color={value === false ? '$white' : '$textLight400'}>
-            No
-          </Text>
-        </Center>
-      </Pressable>
-    </HStack>
-  );
-};
+/** Retardo del auto-avance tras responder (deja ver la selección animada). */
+const AUTO_ADVANCE_MS = 450;
 
 /* -------------------------------------------------------------------------- */
 /*  Pantalla principal                                                         */
@@ -196,12 +135,25 @@ export default function AutismScreeningScreen({ navigation }: Props) {
   const activeEvaluation = useClassSelector(Evaluation, (state: RootState) => state.activeEvaluation.evaluation);
   const [createScreening, { isLoading: isSaving }] = useCreateScreeningMutation();
 
-  const [view, setView] = useState<'setup' | 'block' | 'report'>('setup');
-  const [activeBlock, setActiveBlock] = useState<number>(0);
+  const [view, setView] = useState<'setup' | 'quiz' | 'report'>('setup');
+  const [qIndex, setQIndex] = useState<number>(0); // pregunta visible (0..19)
+  const [dir, setDir] = useState<1 | -1>(1); // sentido de la transición
+  const [showGuide, setShowGuide] = useState(false); // pauta de observación plegable
   const [answers, setAnswers] = useState<Answers>(() => emptyAnswers());
   const [setup, setSetup] = useState<boolean[]>([false, false, false, false]);
   const [evaluatorName, setEvaluatorName] = useState<string>(activeEvaluation?.professional?.name ?? '');
   const [evaluatorLicense, setEvaluatorLicense] = useState<string>(activeEvaluation?.professional?.licenseNumber ?? '');
+
+  // Auto-avance tras responder: solo si el usuario sigue en la misma pregunta.
+  const autoTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const qIndexRef = useRef(0);
+  qIndexRef.current = qIndex;
+  useEffect(
+    () => () => {
+      if (autoTimer.current) clearTimeout(autoTimer.current);
+    },
+    [],
+  );
 
   const setupReady = setup.every(Boolean);
   const patient = activeEvaluation?.patient;
@@ -211,28 +163,56 @@ export default function AutismScreeningScreen({ navigation }: Props) {
 
   const toggleSetup = (i: number) => setSetup(prev => prev.map((v, idx) => (idx === i ? !v : v)));
 
-  const handleStart = () => {
-    if (!setupReady) return;
-    setView('block');
-    setActiveBlock(0);
+  const goTo = (i: number, d?: 1 | -1) => {
+    if (autoTimer.current) clearTimeout(autoTimer.current);
+    const clamped = Math.max(0, Math.min(19, i));
+    setDir(d ?? (clamped >= qIndexRef.current ? 1 : -1));
+    setQIndex(clamped);
   };
 
-  const answer = (id: number, val: boolean) =>
-    setAnswers(prev => ({ ...prev, [id]: val }));
+  const handleStart = () => {
+    if (!setupReady) return;
+    setView('quiz');
+    setQIndex(0);
+    setDir(1);
+  };
+
+  const answer = (id: number, val: boolean) => {
+    const next = { ...answers, [id]: val };
+    setAnswers(next);
+    // Auto-avance con la respuesta ya visible (la selección rebota primero).
+    if (autoTimer.current) clearTimeout(autoTimer.current);
+    const fromIndex = id - 1;
+    autoTimer.current = setTimeout(() => {
+      if (qIndexRef.current !== fromIndex) return; // el usuario ya navegó
+      if (fromIndex < 19) {
+        goTo(fromIndex + 1, 1);
+      } else {
+        const pending = firstUnanswered(next);
+        if (pending === -1) setView('report');
+        else goTo(pending);
+      }
+    }, AUTO_ADVANCE_MS);
+  };
 
   const handleNext = () => {
-    if (activeBlock >= 3) setView('report');
-    else setActiveBlock(b => b + 1);
+    if (qIndex >= 19) {
+      const pending = firstUnanswered(answers);
+      if (pending === -1) setView('report');
+      else goTo(pending);
+      return;
+    }
+    goTo(qIndex + 1, 1);
   };
 
   const handlePrev = () => {
     if (view === 'report') {
-      setView('block');
-      setActiveBlock(3);
+      setView('quiz');
+      goTo(19, -1);
       return;
     }
-    if (activeBlock <= 0) setView('setup');
-    else setActiveBlock(b => b - 1);
+    if (qIndex <= 0) setView('setup');
+    else goTo(qIndex - 1, -1);
   };
 
   /* ---------------------------- análisis -------------------------------- */
@@ -353,11 +333,15 @@ export default function AutismScreeningScreen({ navigation }: Props) {
     }
   };
 
-  // bloque activo
-  const block = BLOCKS[activeBlock];
-  const [bStart, bEnd] = block.range;
-  const blockAnswered = blockStatusOf(answers, block.range).answered;
-  const showGuia = true;
+  // pregunta y bloque activos del cuestionario (una pregunta por pantalla)
+  const q = QUESTIONS[qIndex];
+  const blockIdx = Math.floor(qIndex / 5);
+  const block = BLOCKS[blockIdx];
+  const isBlockStart = qIndex % 5 === 0;
+  const dotStates = QUESTIONS.map(question => ({
+    answered: answers[question.id] !== null && answers[question.id] !== undefined,
+    flagged: isRiskAns(question.id, answers[question.id]),
+  }));
 
   /* ------------------------------- render ------------------------------- */
 
@@ -374,8 +358,8 @@ export default function AutismScreeningScreen({ navigation }: Props) {
       <VStack flex={1}>
         <Header animationType="expand" />
 
-        {/* Los bloques de 5 preguntas superan la altura de pantalla: sin
-            scroll vertical el cuestionario es inutilizable. */}
+        {/* El informe (y la pregunta con la guía desplegada en pantallas
+            pequeñas) supera la altura visible: el scroll sigue siendo necesario. */}
         <ScrollView showsVerticalScrollIndicator={false}>
         <VStack flex={1} px="$6" mt="$2" space="md">
           {/* ----- title ----- */}
@@ -458,102 +442,118 @@ export default function AutismScreeningScreen({ navigation }: Props) {
             </VStack>
           )}
 
-          {/* =====================  BLOCK  ===================== */}
-          {view === 'block' && (
+          {/* =====================  QUIZ (una pregunta por pantalla)  ===================== */}
+          {view === 'quiz' && (
             <VStack space="md">
-              <Card bgColor="$white" borderRadius={22} p="$5">
-                <BlockStepper answers={answers} view={view} activeBlock={activeBlock} />
-
-                <HStack alignItems="center" justifyContent="space-between" mt="$4">
-                  <HStack space="sm" alignItems="center" style={{ flex: 1 }}>
-                    <Center w={48} h={48} borderRadius={14} bg="$primary50">
-                      <Icon as={block.icon} size="lg" color="$primary600" />
-                    </Center>
-                    <VStack style={{ flex: 1 }}>
-                      <Text size="2xs" weight="bold" color="$primary700" style={{ textTransform: 'uppercase', letterSpacing: 0.4 }}>
-                        Bloque {activeBlock + 1} de 4
-                      </Text>
-                      <Text size="lg" weight="bold" color="$textLight900">
-                        {block.name}
-                      </Text>
-                    </VStack>
-                  </HStack>
-                  <Box bg={blockAnswered === 5 ? '$success50' : '$primary50'} px="$2.5" py="$1" borderRadius="$full">
-                    <Text size="2xs" weight="bold" color={blockAnswered === 5 ? '$success700' : '$primary800'}>
-                      {blockAnswered}/5
-                    </Text>
-                  </Box>
-                </HStack>
-
-                {showGuia && (
-                  <HStack space="sm" alignItems="flex-start" mt="$4" p="$3" borderRadius={14} bg="$primary0">
-                    <Icon as={Info} size="sm" color="$primary600" style={{ marginTop: 1 }} />
-                    <Text size="xs" color="$primary800" style={{ flex: 1, lineHeight: 18 }}>
-                      <Text size="xs" weight="bold" color="$primary800">
-                        Pauta de observación:{' '}
-                      </Text>
-                      {block.guide}
-                    </Text>
-                  </HStack>
-                )}
+              {/* progreso + mapa del cuestionario */}
+              <Card bgColor="$white" borderRadius={22} p="$4">
+                <SurveyProgress answered={answered} total={20} label={`Pregunta ${qIndex + 1} de 20`} />
+                <Box mt="$3">
+                  <QuestionDots states={dotStates} current={qIndex} onJump={goTo} />
+                </Box>
               </Card>
 
               {/* tamaño de letra: es una prueba leída al informador — se debe
                   facilitar la lectura (aplica a todos los cuestionarios) */}
               <FontSizeControl />
 
-              {/* preguntas */}
-              <ScaledTextScope.Provider value={true}>
-              <VStack space="sm">
-                {QUESTIONS.slice(bStart - 1, bEnd).map(q => {
-                  const v = answers[q.id];
-                  const flag = isRiskAns(q.id, v);
-                  return (
-                    <Card key={q.id} bgColor={flag ? '$warning50' : '$white'} borderRadius={18} borderWidth={1} borderColor={flag ? '$warning200' : '$borderLight100'} p="$4">
-                      <HStack space="sm" alignItems="flex-start" mb="$3">
-                        <Box bg={flag ? '$warning100' : '$backgroundLight100'} px="$2" py="$0.5" borderRadius={8}>
-                          <Text size="2xs" weight="bold" color={flag ? '$warning700' : '$textLight500'} style={{ fontVariant: ['tabular-nums'] }}>
-                            {q.code}
-                          </Text>
-                        </Box>
-                        {flag ? (
-                          <Box bg="$warning100" px="$2" py="$0.5" borderRadius="$full">
-                            <Text size="2xs" weight="bold" color="$warning700" style={{ textTransform: 'uppercase', letterSpacing: 0.3 }}>
-                              Riesgo
-                            </Text>
-                          </Box>
-                        ) : null}
-                      </HStack>
-                      <Text size="md" weight="semiBold" color="$textLight900" style={{ lineHeight: 23 }}>
-                        {q.label}
+              {/* tarjeta de la pregunta activa, con transición animada */}
+              <QuestionTransition key={qIndex} direction={dir}>
+                <Card bgColor="$white" borderRadius={22} p="$5">
+                  {/* contexto del bloque (resaltado al entrar en un bloque nuevo) */}
+                  <HStack space="sm" alignItems="center" mb="$3">
+                    <Center w={34} h={34} borderRadius={10} bg={isBlockStart ? '$primary500' : '$primary50'}>
+                      <Icon as={block.icon} size="sm" color={isBlockStart ? '$white' : '$primary600'} />
+                    </Center>
+                    <VStack style={{ flex: 1 }}>
+                      <Text size="2xs" weight="bold" color="$primary700" style={{ textTransform: 'uppercase', letterSpacing: 0.4 }}>
+                        Bloque {blockIdx + 1} de 4 · {block.short}
                       </Text>
-                      {q.example ? (
-                        <Text size="xs" color="$textLight500" mt="$1" style={{ lineHeight: 18 }}>
-                          {q.example}
+                      {isBlockStart ? (
+                        <Text size="2xs" color="$textLight500">
+                          Empieza un bloque nuevo
                         </Text>
                       ) : null}
-                      <Box mt="$3">
-                        <AnswerToggle value={v} onYes={() => answer(q.id, true)} onNo={() => answer(q.id, false)} />
-                      </Box>
-                    </Card>
-                  );
-                })}
-              </VStack>
-              </ScaledTextScope.Provider>
+                    </VStack>
+                    <Box bg="$backgroundLight100" px="$2" py="$0.5" borderRadius={8}>
+                      <Text size="2xs" weight="bold" color="$textLight500" style={{ fontVariant: ['tabular-nums'] }}>
+                        {q.code}
+                      </Text>
+                    </Box>
+                  </HStack>
+
+                  <ScaledTextScope.Provider value={true}>
+                    <Text size="xl" weight="bold" color="$textLight900" style={{ lineHeight: 30 }}>
+                      {q.label}
+                    </Text>
+                    {q.example ? (
+                      <Text size="sm" color="$textLight500" mt="$2" style={{ lineHeight: 20 }}>
+                        {q.example}
+                      </Text>
+                    ) : null}
+                  </ScaledTextScope.Provider>
+
+                  <Box mt="$5">
+                    <YesNoAnswer value={answers[q.id]} onAnswer={val => answer(q.id, val)} />
+                  </Box>
+
+                  {isRiskAns(q.id, answers[q.id]) ? (
+                    <HStack space="sm" alignItems="center" mt="$3" p="$2.5" borderRadius={12} bg="$warning50">
+                      <Icon as={AlertTriangle} size="xs" color="$warning700" />
+                      <Text size="xs" weight="semiBold" color="$warning800" style={{ flex: 1 }}>
+                        Respuesta de riesgo: suma 1 punto en el cribado.
+                      </Text>
+                    </HStack>
+                  ) : null}
+
+                  {/* pauta de observación del bloque, plegable */}
+                  <Pressable onPress={() => setShowGuide(g => !g)} style={{ marginTop: 14 }}>
+                    <HStack space="xs" alignItems="center">
+                      <Icon as={Info} size="xs" color="$primary600" />
+                      <Text size="xs" weight="bold" color="$primary700" style={{ flex: 1 }}>
+                        Pauta de observación del bloque
+                      </Text>
+                      <Icon as={showGuide ? ChevronUp : ChevronDown} size="xs" color="$primary600" />
+                    </HStack>
+                  </Pressable>
+                  {showGuide ? (
+                    <Box mt="$2" p="$3" borderRadius={12} bg="$primary0">
+                      <Text size="xs" color="$primary800" style={{ lineHeight: 18 }}>
+                        {block.guide}
+                      </Text>
+                    </Box>
+                  ) : null}
+                </Card>
+              </QuestionTransition>
+
+              {/* cuestionario completo → acceso directo al resultado */}
+              {all ? (
+                <Pressable onPress={() => setView('report')}>
+                  <HStack space="sm" alignItems="center" p="$3.5" borderRadius={16} bg="$success50" borderWidth={1} borderColor="$success200">
+                    <Icon as={CheckCircle2} size="sm" color="$success600" />
+                    <Text size="sm" weight="bold" color="$success800" style={{ flex: 1 }}>
+                      Las 20 preguntas están respondidas
+                    </Text>
+                    <Text size="sm" weight="bold" color="$success700">
+                      Ver resultado →
+                    </Text>
+                  </HStack>
+                </Pressable>
+              ) : null}
 
               <HStack space="md" justifyContent="space-between">
                 <Button action="secondary" variant="outline" rounded="$full" onPress={handlePrev}>
                   <HStack space="sm" alignItems="center">
                     <Icon as={ArrowLeft} size="sm" color="$primary500" />
                     <Text size="sm" weight="bold" color="$primary500">
-                      {activeBlock <= 0 ? 'Preparación' : 'Anterior'}
+                      {qIndex <= 0 ? 'Preparación' : 'Anterior'}
                     </Text>
                   </HStack>
                 </Button>
                 <Button action="primary" variant="solid" rounded="$full" style={{ flex: 1 }} onPress={handleNext}>
                   <HStack space="sm" alignItems="center">
                     <Text size="sm" weight="bold" color="$white">
-                      {activeBlock >= 3 ? 'Ver resultado' : 'Siguiente bloque'}
+                      {qIndex >= 19 ? (all ? 'Ver resultado' : 'Ir a pendientes') : 'Siguiente'}
                     </Text>
                     <Icon as={ArrowRight} size="sm" color="$white" />
                   </HStack>

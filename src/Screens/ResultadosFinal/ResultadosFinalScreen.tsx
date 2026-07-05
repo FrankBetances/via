@@ -83,6 +83,8 @@ interface TestDetail {
   icon: any;
   od?: (number | null)[];
   oi?: (number | null)[];
+  /** Umbrales de campo libre (cribado binaural sin discriminación de oído). */
+  cl?: (number | null)[];
   params?: ParamRow[];
   rows?: SimpleRow[];
   interp: string;
@@ -128,16 +130,26 @@ export default function ResultadosFinalScreen({ navigation }: Props) {
         audiometries.forEach(a => {
           const od = FREQS.map(f => a.thresholds.OD[f] ?? null);
           const oi = FREQS.map(f => a.thresholds.OI[f] ?? null);
-          const worst = [...od, ...oi].some(v => v != null && v > 20) ? 'warn' : 'ok';
+          const cl = a.thresholds.CL ? FREQS.map(f => a.thresholds.CL?.[f] ?? null) : undefined;
+          // Campo libre: un umbral ausente = sin respuesta al nivel máximo → alterado.
+          const vals = cl ?? [...od, ...oi];
+          const worst = vals.some(v => v != null && v > 20) ? 'warn' : 'ok';
+          const alt = vals.some(v => v != null && v > 40) || (cl ? cl.some(v => v == null) : false);
           result.push({
             id: `audio-${a.id}`,
             kind: 'audio',
-            status: [...od, ...oi].some(v => v != null && v > 40) ? 'alt' : worst,
+            status: alt ? 'alt' : worst,
             title: a.method === 'conditioned' ? 'Audiometría Condicionada' : 'Audiometría Infantil',
-            subtitle: a.method === 'conditioned' ? 'Respuesta condicionada visual (VRA)' : 'Umbrales por vía aérea · juego de refuerzo',
+            subtitle:
+              a.method === 'conditioned'
+                ? cl
+                  ? 'Cribado en campo libre · respuesta condicionada'
+                  : 'Respuesta condicionada visual (VRA)'
+                : 'Umbrales por vía aérea · juego de refuerzo',
             icon: Ear,
             od,
             oi,
+            cl,
             interp: interpretAudiometry(a.thresholds),
           });
         });
@@ -424,7 +436,7 @@ export default function ResultadosFinalScreen({ navigation }: Props) {
                   </HStack>
 
                   <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 20 }}>
-                    {active.kind === 'audio' && active.od && active.oi ? (
+                    {active.kind === 'audio' && (active.cl || (active.od && active.oi)) ? (
                       <VStack space="md" mb="$4">
                         <Box borderWidth={1} borderColor="$borderLight100" borderRadius={16} style={{ overflow: 'hidden' }}>
                           <HStack bg="$backgroundLight50" borderBottomWidth={1} borderColor="$borderLight100">
@@ -441,11 +453,14 @@ export default function ResultadosFinalScreen({ navigation }: Props) {
                               </Box>
                             ))}
                           </HStack>
-                          {[
-                            { label: 'OD', values: active.od },
-                            { label: 'OI', values: active.oi },
-                          ].map((row, idx) => (
-                            <HStack key={row.label} borderBottomWidth={idx === 0 ? 1 : 0} borderColor="$borderLight100">
+                          {(active.cl
+                            ? [{ label: 'CL', values: active.cl }]
+                            : [
+                                { label: 'OD', values: active.od! },
+                                { label: 'OI', values: active.oi! },
+                              ]
+                          ).map((row, idx) => (
+                            <HStack key={row.label} borderBottomWidth={idx === 0 && !active.cl ? 1 : 0} borderColor="$borderLight100">
                               <Box style={{ width: 56 }} p="$2.5" alignItems="flex-start" justifyContent="center">
                                 <Text size="xs" weight="bold" color="$textLight900">
                                   {row.label}
