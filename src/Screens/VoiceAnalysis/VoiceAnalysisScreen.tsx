@@ -11,23 +11,38 @@ import {
   Input,
   InputField,
   ScrollView,
+  Spinner,
   VStack,
 } from '@gluestack-ui/themed';
-import { AlertTriangle, AudioWaveform, Mic, RotateCcw, Save, Square } from 'lucide-react-native';
+import {
+  Activity,
+  AlertTriangle,
+  AudioWaveform,
+  Mic,
+  Play,
+  RotateCcw,
+  Save,
+  Square,
+  Trash2,
+} from 'lucide-react-native';
 
 import { Button, Content, Header, Text } from '@/Components/Common';
 import RadialBackground from '@/Components/Themed/RadialBackground';
 import { RootStackParamList } from '@/Navigators';
 import { RootState } from '@/Store';
 import { Evaluation } from '@/Models/Evaluation/Evaluation';
-import { VoiceAnalysis } from '@/Models/VoiceAnalysis/VoiceAnalysis';
+import { GrbasScores, VoiceAnalysis } from '@/Models/VoiceAnalysis/VoiceAnalysis';
 import { useClassSelector } from '@/Helpers/ClassTransformer';
 import { useCreateVoiceAnalysisMutation } from '@/Services/local/modules/voiceAnalysis';
 import { showErrorToast, showSuccessToast } from '@/Helpers/showToast';
-import { useVoiceAnalysis } from './useVoiceAnalysis';
+import { useVoiceAnalysis, VoiceTake } from './useVoiceAnalysis';
 import { registerVoiceMicAdapter } from './voiceMicAdapter';
 import {
   buildInterpretation,
+  GRBAS_DIMENSIONS,
+  GRBAS_SCORE_LABELS,
+  grbasSeverityLabel,
+  grbasSummary,
   statusColor,
   statusF0,
   statusHnr,
@@ -76,6 +91,15 @@ const VowelSpace = ({ f1, f2 }: { f1: number | null; f2: number | null }) => {
   );
 };
 
+/* ------------------------------ escala GRBAS ------------------------------ */
+
+type GrbasDraft = Record<keyof GrbasScores, number | null>;
+
+const EMPTY_GRBAS: GrbasDraft = { g: null, r: null, b: null, a: null, s: null };
+
+const grbasComplete = (d: GrbasDraft): d is Record<keyof GrbasScores, number> =>
+  GRBAS_DIMENSIONS.every(dim => d[dim.key] !== null);
+
 /* --------------------------------- Pantalla -------------------------------- */
 
 export default function VoiceAnalysisScreen({ navigation }: Props) {
@@ -89,6 +113,7 @@ export default function VoiceAnalysisScreen({ navigation }: Props) {
   }, []);
 
   const [notes, setNotes] = useState('');
+  const [grbas, setGrbas] = useState<GrbasDraft>(EMPTY_GRBAS);
   const [evaluatorName, setEvaluatorName] = useState(activeEvaluation?.professional?.name ?? '');
   const [evaluatorLicense, setEvaluatorLicense] = useState(activeEvaluation?.professional?.licenseNumber ?? '');
 
@@ -97,6 +122,12 @@ export default function VoiceAnalysisScreen({ navigation }: Props) {
   const r = voice.result;
 
   const interpretation = useMemo(() => (r ? buildInterpretation(r) : ''), [r]);
+  const grbasScores: GrbasScores | null = grbasComplete(grbas) ? { ...grbas } : null;
+  const analyzedTake = voice.takes.find(t => t.id === voice.analyzedTakeId) ?? null;
+  const selectedTake = voice.takes.find(t => t.id === voice.selectedTakeId) ?? null;
+
+  const setGrbasScore = (key: keyof GrbasScores, value: number) =>
+    setGrbas(prev => ({ ...prev, [key]: prev[key] === value ? null : value }));
 
   const ParamCard = ({
     label,
@@ -129,6 +160,75 @@ export default function VoiceAnalysisScreen({ navigation }: Props) {
     </Card>
   );
 
+  const TakeRow = ({ take, index }: { take: VoiceTake; index: number }) => {
+    const isSelected = take.id === voice.selectedTakeId;
+    const isPlaying = take.id === voice.playingTakeId;
+    const isAnalyzed = take.id === voice.analyzedTakeId;
+    const time = take.recordedAt.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+    return (
+      <Pressable onPress={() => voice.selectTake(take.id)} disabled={voice.isAnalyzing}>
+        <HStack
+          alignItems="center"
+          space="sm"
+          p="$3"
+          borderRadius={14}
+          borderWidth={1.5}
+          borderColor={isSelected ? '$primary400' : '$borderLight100'}
+          bg={isSelected ? '$primary0' : '$backgroundLight50'}>
+          {/* marcador de selección */}
+          <Box
+            w={18}
+            h={18}
+            borderRadius="$full"
+            borderWidth={2}
+            borderColor={isSelected ? '$primary600' : '$borderLight300'}
+            alignItems="center"
+            justifyContent="center">
+            {isSelected ? <Box w={9} h={9} borderRadius="$full" bg="$primary600" /> : null}
+          </Box>
+
+          <VStack style={{ flex: 1 }}>
+            <HStack alignItems="center" space="xs">
+              <Text size="sm" weight="bold" color="$textLight900">
+                Toma {index + 1}
+              </Text>
+              {isAnalyzed ? (
+                <Box bg="$success50" px="$1.5" py="$0.5" borderRadius="$full">
+                  <Text size="2xs" weight="bold" color="$success600">
+                    ANALIZADA
+                  </Text>
+                </Box>
+              ) : null}
+            </HStack>
+            <Text size="2xs" color="$textLight500">
+              {take.durationSec.toFixed(1)} s · {time}
+            </Text>
+          </VStack>
+
+          {/* reproducir / parar */}
+          <Pressable
+            onPress={() => voice.playTake(take.id)}
+            disabled={voice.isRecording || voice.isAnalyzing}
+            hitSlop={8}>
+            <Center w={36} h={36} borderRadius="$full" bg={isPlaying ? '$error50' : '$primary50'}>
+              <Icon as={isPlaying ? Square : Play} size="sm" color={isPlaying ? '$error600' : '$primary600'} />
+            </Center>
+          </Pressable>
+
+          {/* eliminar */}
+          <Pressable
+            onPress={() => voice.deleteTake(take.id)}
+            disabled={voice.isRecording || voice.isAnalyzing}
+            hitSlop={8}>
+            <Center w={36} h={36} borderRadius="$full" bg="$backgroundLight100">
+              <Icon as={Trash2} size="sm" color="$textLight400" />
+            </Center>
+          </Pressable>
+        </HStack>
+      </Pressable>
+    );
+  };
+
   const handleSave = async () => {
     if (!r || isSaving) return;
     if (!evaluatorName.trim() || !evaluatorLicense.trim()) return;
@@ -140,14 +240,17 @@ export default function VoiceAnalysisScreen({ navigation }: Props) {
       const item = new VoiceAnalysis();
       item.vowel = 'a';
       item.source = voice.source;
-      item.durationSec = 5;
+      item.durationSec = analyzedTake?.durationSec ?? 5;
       item.quality = r.quality;
       item.f0 = r.f0;
       item.jitter = r.jitter;
       item.shimmer = r.shimmer;
       item.hnr = r.hnr;
       item.formants = r.formants;
-      item.interpretation = interpretation;
+      item.grbas = grbasScores;
+      item.interpretation = grbasScores
+        ? `${interpretation} Valoración perceptual GRBAS: ${grbasSummary(grbasScores)} (${grbasSeverityLabel(grbasScores).toLowerCase()}).`
+        : interpretation;
       item.notes = notes.trim();
       item.evaluatorName = evaluatorName.trim();
       item.evaluatorLicense = evaluatorLicense.trim();
@@ -220,7 +323,8 @@ export default function VoiceAnalysisScreen({ navigation }: Props) {
               <HStack space="sm" alignItems="flex-start" p="$3" borderRadius={14} bg="$primary0" mb="$4">
                 <Text size="xs" color="$primary800" style={{ flex: 1, lineHeight: 18 }}>
                   Pida al niño/a que emita la vocal <Text weight="bold" size="xs" color="$primary800">«A»</Text> sostenida a un
-                  tono e intensidad cómodos durante 5 segundos, con el micrófono a unos 10 cm.
+                  tono e intensidad cómodos durante 5 segundos, con el micrófono a unos 10 cm. Puede grabar
+                  varias tomas y elegir después cuál analizar.
                 </Text>
               </HStack>
 
@@ -263,12 +367,12 @@ export default function VoiceAnalysisScreen({ navigation }: Props) {
                   variant="solid"
                   rounded="$xl"
                   style={{ flex: 1 }}
-                  isDisabled={voice.isRecording || !voice.hasMic}
+                  isDisabled={voice.isRecording || voice.isAnalyzing || !voice.hasMic}
                   onPress={voice.startRecording}>
                   <HStack space="sm" alignItems="center">
                     <Icon as={Mic} size="sm" color="$white" />
                     <Text size="sm" weight="bold" color="$white">
-                      Grabar voz
+                      {voice.takes.length ? 'Grabar otra toma' : 'Grabar voz'}
                     </Text>
                   </HStack>
                 </Button>
@@ -277,6 +381,48 @@ export default function VoiceAnalysisScreen({ navigation }: Props) {
                 </Button>
               </HStack>
             </Card>
+
+            {/* tomas grabadas */}
+            {voice.takes.length ? (
+              <Card bgColor="$white" borderRadius={22} p="$5">
+                <HStack alignItems="center" justifyContent="space-between" mb="$3">
+                  <Text size="md" weight="bold" color="$textLight900">
+                    Grabaciones
+                  </Text>
+                  <Text size="2xs" color="$textLight500">
+                    {voice.takes.length} {voice.takes.length === 1 ? 'toma' : 'tomas'}
+                  </Text>
+                </HStack>
+                <Text size="2xs" color="$textLight500" mb="$3">
+                  Reproduzca las tomas, seleccione la de mejor calidad y pulse «Analizar». La escucha
+                  también sirve para la valoración perceptual GRBAS.
+                </Text>
+
+                <VStack space="sm" mb="$4">
+                  {voice.takes.map((take, index) => (
+                    <TakeRow key={take.id} take={take} index={index} />
+                  ))}
+                </VStack>
+
+                <Button
+                  action="primary"
+                  variant="solid"
+                  rounded="$xl"
+                  isDisabled={!selectedTake || voice.isRecording || voice.isAnalyzing}
+                  onPress={() => voice.analyzeTake()}>
+                  <HStack space="sm" alignItems="center">
+                    {voice.isAnalyzing ? <Spinner size="small" color="$white" /> : <Icon as={Activity} size="sm" color="$white" />}
+                    <Text size="sm" weight="bold" color="$white">
+                      {voice.isAnalyzing
+                        ? 'Analizando…'
+                        : selectedTake
+                          ? `Analizar toma ${voice.takes.indexOf(selectedTake) + 1}`
+                          : 'Analizar toma'}
+                    </Text>
+                  </HStack>
+                </Button>
+              </Card>
+            ) : null}
 
             {/* captura insuficiente o error de captura */}
             {voice.phase === 'insufficient' ? (
@@ -289,7 +435,7 @@ export default function VoiceAnalysisScreen({ navigation }: Props) {
                     </Text>
                     <Text size="xs" color="$warning800" style={{ lineHeight: 17 }}>
                       No se detectó suficiente voz sonora para calcular los parámetros. Acerque el micrófono
-                      (~10 cm), pida una «A» sostenida y firme, y repita la grabación.
+                      (~10 cm), pida una «A» sostenida y firme, y grabe una nueva toma.
                     </Text>
                     <Pressable onPress={voice.startRecording} style={{ marginTop: 8 }}>
                       <HStack space="xs" alignItems="center">
@@ -316,6 +462,83 @@ export default function VoiceAnalysisScreen({ navigation }: Props) {
                     </Text>
                   </VStack>
                 </HStack>
+              </Card>
+            ) : null}
+
+            {/* valoración perceptual GRBAS (disponible en cuanto hay tomas) */}
+            {voice.takes.length ? (
+              <Card bgColor="$white" borderRadius={20} p="$5">
+                <HStack alignItems="center" justifyContent="space-between" mb="$1">
+                  <Text size="sm" weight="bold" color="$textLight700" style={{ letterSpacing: 0.3 }}>
+                    VALORACIÓN PERCEPTUAL · GRBAS
+                  </Text>
+                  {grbasScores ? (
+                    <Box bg="$primary50" px="$2" py="$0.5" borderRadius="$full">
+                      <Text size="2xs" weight="bold" color="$primary800">
+                        {grbasSummary(grbasScores)}
+                      </Text>
+                    </Box>
+                  ) : null}
+                </HStack>
+                <Text size="2xs" color="$textLight500" mb="$3">
+                  Escuche la toma y puntúe cada dimensión de 0 (normal) a 3 (severo).
+                </Text>
+
+                <VStack space="md">
+                  {GRBAS_DIMENSIONS.map(dim => (
+                    <VStack key={dim.key}>
+                      <HStack alignItems="center" justifyContent="space-between" mb="$1.5">
+                        <HStack alignItems="center" space="xs" style={{ flex: 1 }}>
+                          <Center w={22} h={22} borderRadius={7} bg="$primary50">
+                            <Text size="2xs" weight="bold" color="$primary800">
+                              {dim.letter}
+                            </Text>
+                          </Center>
+                          <Text size="xs" weight="bold" color="$textLight800">
+                            {dim.label}
+                          </Text>
+                        </HStack>
+                        <Text size="2xs" color="$textLight400" style={{ flex: 1, textAlign: 'right' }}>
+                          {dim.description}
+                        </Text>
+                      </HStack>
+                      <HStack space="sm">
+                        {[0, 1, 2, 3].map(score => {
+                          const active = grbas[dim.key] === score;
+                          return (
+                            <Pressable key={score} onPress={() => setGrbasScore(dim.key, score)} style={{ flex: 1 }}>
+                              <Center
+                                py="$1.5"
+                                borderRadius={10}
+                                borderWidth={1.5}
+                                borderColor={active ? '$primary600' : '$borderLight200'}
+                                bg={active ? '$primary600' : '$backgroundLight50'}>
+                                <Text size="xs" weight="bold" color={active ? '$white' : '$textLight600'}>
+                                  {score}
+                                </Text>
+                                <Text size="2xs" color={active ? '$primary50' : '$textLight400'}>
+                                  {GRBAS_SCORE_LABELS[score]}
+                                </Text>
+                              </Center>
+                            </Pressable>
+                          );
+                        })}
+                      </HStack>
+                    </VStack>
+                  ))}
+                </VStack>
+
+                {grbasScores ? (
+                  <Box mt="$4" p="$3" borderRadius={12} bg="$primary0">
+                    <Text size="xs" weight="bold" color="$primary800">
+                      {grbasSeverityLabel(grbasScores)}
+                    </Text>
+                  </Box>
+                ) : (
+                  <Text size="2xs" color="$textLight400" mt="$3">
+                    Puntúe las 5 dimensiones para incluir la escala en el informe (opcional).
+                  </Text>
+                )}
               </Card>
             ) : null}
 
@@ -409,7 +632,9 @@ export default function VoiceAnalysisScreen({ navigation }: Props) {
                 <Center>
                   <Icon as={AudioWaveform} size="xl" color="$textLight300" />
                   <Text size="sm" color="$textLight400" mt="$2" style={{ textAlign: 'center' }}>
-                    Grabe o simule una emisión para obtener los parámetros acústicos.
+                    {voice.takes.length
+                      ? 'Seleccione una toma y pulse «Analizar» para obtener los parámetros acústicos.'
+                      : 'Grabe una o varias tomas de la vocal /a/ para empezar.'}
                   </Text>
                 </Center>
               </Card>
