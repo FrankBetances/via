@@ -4,21 +4,17 @@ import { clamp } from '@/Helpers/numeric';
 /* -------------------------------------------------------------------------- */
 /*  useNoiseMeter — medidor de ruido ambiente para React Native                */
 /* -------------------------------------------------------------------------- */
-/*  La app NO incluye (todavía) una librería de captura de micrófono. Este hook */
-/*  abstrae la fuente de dB detrás de un "adaptador":                           */
-/*                                                                              */
-/*   • Si se ha registrado un adaptador nativo (setNoiseMicAdapter), el hook     */
-/*     lo usa → source = 'mic' (lectura real del micrófono).                     */
-/*   • Si no, cae a una señal SIMULADA determinista → source = 'demo'            */
-/*     (misma forma de onda que el mockup, válida para demo/QA y para validar    */
-/*     toda la lógica de veredicto y gating sin micrófono).                      */
-/*                                                                              */
-/*  Para activar el micrófono real, instala p. ej. `react-native-live-audio-     */
-/*  stream`, calcula RMS → dBFS → dB aproximado y registra el adaptador. Ver el   */
-/*  ejemplo en LEEME.md (§ "Micrófono real").                                     */
+/*  El hook abstrae la fuente de dB detrás de un "adaptador" registrado con    */
+/*  `setNoiseMicAdapter` (la pantalla lo hace con `registerNoiseMicAdapter`,   */
+/*  basado en react-native-audio-api).                                         */
+/*                                                                             */
+/*  El modo demostración (señal simulada) se eliminó: sin micrófono el hook    */
+/*  pasa a source = 'error' y NO produce lecturas ni veredicto — una app       */
+/*  clínica no debe simular la verificación de la sala. Una medición sin       */
+/*  muestras reales tampoco emite veredicto.                                   */
 /* -------------------------------------------------------------------------- */
 
-export type NoiseSource = 'idle' | 'mic' | 'demo';
+export type NoiseSource = 'idle' | 'mic' | 'error';
 export type NoiseZone = 'ok' | 'warn' | 'block';
 export type NoiseVerdict = 'pending' | 'ok' | 'warn' | 'block';
 
@@ -54,6 +50,8 @@ export interface UseNoiseMeterOptions {
 export interface NoiseMeterApi {
   source: NoiseSource;
   running: boolean;
+  /** Motivo del fallo cuando source === 'error' (o medición sin señal). */
+  error: string | null;
   db: number | null;
   zone: NoiseZone;
   levels: number[];
@@ -63,7 +61,8 @@ export interface NoiseMeterApi {
   testing: boolean;
   testProgress: number;
   testRemaining: number;
-  start: () => void;
+  /** Arranca la captura; resuelve `true` si el micrófono quedó operativo. */
+  start: () => Promise<boolean>;
   stop: () => void;
   runTest: () => void;
 }
@@ -80,6 +79,7 @@ export function useNoiseMeter({
   intervalMs = 90,
 }: UseNoiseMeterOptions): NoiseMeterApi {
   const [source, setSource] = useState<NoiseSource>('idle');
+  const [error, setError] = useState<string | null>(null);
   const [db, setDb] = useState<number | null>(null);
   const [levels, setLevels] = useState<number[]>(() => new Array(bars).fill(0.04));
   const [avg, setAvg] = useState<number | null>(null);
@@ -98,17 +98,12 @@ export function useNoiseMeter({
   const testStart = useRef(0);
   const srcRef = useRef<NoiseSource>('idle');
 
-  const sampleDb = useCallback((): number => {
-    if (srcRef.current === 'mic' && micAdapter) {
-      const v = micAdapter.read();
-      if (typeof v === 'number' && !isNaN(v)) return clampDb(v);
-    }
-    // señal simulada (idéntica al mockup)
-    const t = Date.now() / 1000;
-    const base = 36 + 3 * Math.sin(t * 0.6) + 2 * Math.sin(t * 1.7);
-    const noise = Math.random() * 5;
-    const spike = Math.random() < 0.012 ? 14 + Math.random() * 16 : 0;
-    return clampDb(base + noise + spike);
+  /** Lectura real del micrófono; `null` mientras no haya señal (calentamiento,
+   *  permiso pendiente o fallo del stream). Nunca se simulan valores. */
+  const sampleDb = useCallback((): number | null => {
+    if (srcRef.current !== 'mic' || !micAdapter) return null;
+    const v = micAdapter.read();
+    return typeof v === 'number' && !isNaN(v) ? clampDb(v) : null;
   }, []);
 
   const sampleSpectrum = useCallback(
@@ -133,16 +128,21 @@ export function useNoiseMeter({
 
   const tick = useCallback(() => {
     const raw = sampleDb();
-    smooth.current = smooth.current == null ? raw : smooth.current * 0.78 + raw * 0.22;
-    const sdb = smooth.current;
-    const frac = Math.max(0, Math.min(1, (sdb - 28) / 64));
+    if (raw != null) {
+      smooth.current = smooth.current == null ? raw : smooth.current * 0.78 + raw * 0.22;
+      const sdb = smooth.current;
+      const frac = Math.max(0, Math.min(1, (sdb - 28) / 64));
 
-    setDb(sdb);
-    setLevels(sampleSpectrum(frac));
+      setDb(sdb);
+      setLevels(sampleSpectrum(frac));
+
+      if (testActive.current) {
+        testSamples.current.push(sdb);
+        if (sdb > testPeak.current) testPeak.current = sdb;
+      }
+    }
 
     if (testActive.current) {
-      testSamples.current.push(sdb);
-      if (sdb > testPeak.current) testPeak.current = sdb;
       const elapsed = Date.now() - testStart.current;
       const durMs = testDurationSec * 1000;
       setTestProgress(Math.min(1, elapsed / durMs));
@@ -151,17 +151,27 @@ export function useNoiseMeter({
       if (elapsed >= durMs) {
         testActive.current = false;
         const samples = testSamples.current;
-        const a = samples.reduce((x, y) => x + y, 0) / (samples.length || 1);
-        const p = testPeak.current;
-        const v: NoiseVerdict = a <= threshold && p <= threshold + 12 ? 'ok' : a <= threshold + 8 ? 'warn' : 'block';
-        setAvg(a);
-        setPeak(p);
-        setVerdict(v);
+        // Sin ~1 s de señal real no hay veredicto: promediar 0 muestras daría
+        // 0 dB y un falso "SALA APTA".
+        const minSamples = Math.max(5, Math.ceil(1000 / intervalMs));
+        if (samples.length < minSamples) {
+          setAvg(null);
+          setPeak(null);
+          setVerdict('pending');
+          setError('El micrófono no entregó señal durante la medición. Compruebe el permiso de micrófono y repita.');
+        } else {
+          const a = samples.reduce((x, y) => x + y, 0) / samples.length;
+          const p = testPeak.current;
+          const v: NoiseVerdict = a <= threshold && p <= threshold + 12 ? 'ok' : a <= threshold + 8 ? 'warn' : 'block';
+          setAvg(a);
+          setPeak(p);
+          setVerdict(v);
+        }
         setTesting(false);
         setTestProgress(1);
       }
     }
-  }, [sampleDb, sampleSpectrum, testDurationSec, threshold]);
+  }, [sampleDb, sampleSpectrum, testDurationSec, threshold, intervalMs]);
 
   const startLoop = useCallback(() => {
     if (timer.current) return;
@@ -182,27 +192,42 @@ export function useNoiseMeter({
     testActive.current = false;
   }, []);
 
-  const start = useCallback(() => {
-    if (srcRef.current !== 'idle') return;
-    if (micAdapter) {
-      srcRef.current = 'mic';
-      setSource('mic');
-      micAdapter.start().catch(() => {
-        // si el micrófono falla, caemos a demo
-        srcRef.current = 'demo';
-        setSource('demo');
-      });
-    } else {
-      srcRef.current = 'demo';
-      setSource('demo');
+  const start = useCallback((): Promise<boolean> => {
+    if (srcRef.current === 'mic') return Promise.resolve(true); // ya activo; permite reintentar desde 'error'
+    setError(null);
+    if (!micAdapter) {
+      srcRef.current = 'error';
+      setSource('error');
+      setError('El micrófono no está disponible en este dispositivo.');
+      return Promise.resolve(false);
     }
+    srcRef.current = 'mic';
+    setSource('mic');
     startLoop();
-  }, [startLoop]);
+    return micAdapter
+      .start()
+      .then(() => true)
+      .catch((e: unknown) => {
+        // sin micrófono no hay medición: estado de error explícito (nunca datos simulados)
+        teardown();
+        srcRef.current = 'error';
+        setSource('error');
+        setDb(null);
+        setTesting(false);
+        setTestProgress(0);
+        setTestRemaining(0);
+        setError(
+          e instanceof Error && e.message ? e.message : 'No se pudo iniciar el micrófono. Compruebe el permiso.',
+        );
+        return false;
+      });
+  }, [startLoop, teardown]);
 
   const stop = useCallback(() => {
     teardown();
     srcRef.current = 'idle';
     setSource('idle');
+    setError(null);
     setDb(null);
     setLevels(new Array(bars).fill(0.04));
     setAvg(null);
@@ -219,6 +244,7 @@ export function useNoiseMeter({
     testStart.current = Date.now();
     testActive.current = true;
     setTesting(true);
+    setError(null);
     setVerdict('pending');
     setTestRemaining(testDurationSec);
     setTestProgress(0);
@@ -226,9 +252,16 @@ export function useNoiseMeter({
 
   const runTest = useCallback(() => {
     if (testActive.current) return;
-    if (srcRef.current === 'idle') {
-      start();
-      setTimeout(beginTest, 350);
+    if (srcRef.current !== 'mic') {
+      // espera a que el micrófono arranque de verdad (permiso incluido) y deja
+      // ~350 ms de calentamiento; si falló, queda el estado de error visible.
+      void start().then(ok => {
+        if (ok && srcRef.current === 'mic') {
+          setTimeout(() => {
+            if (srcRef.current === 'mic') beginTest();
+          }, 350);
+        }
+      });
     } else {
       beginTest();
     }
@@ -240,7 +273,8 @@ export function useNoiseMeter({
 
   return {
     source,
-    running: source !== 'idle',
+    running: source === 'mic',
+    error,
     db,
     zone: currentZone,
     levels,

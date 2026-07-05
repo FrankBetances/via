@@ -3,7 +3,7 @@ import { Pressable, ScrollView } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import Svg, { Circle } from 'react-native-svg';
 import { Box, Card, Center, HStack, Icon, VStack } from '@gluestack-ui/themed';
-import { ArrowRight, Check, Mic, Square } from 'lucide-react-native';
+import { AlertTriangle, ArrowRight, Check, Mic, Square } from 'lucide-react-native';
 
 import { Button, Content, Header, Text } from '@/Components/Common';
 import RadialBackground from '@/Components/Themed/RadialBackground';
@@ -84,7 +84,7 @@ export default function RoomNoiseCheckScreen({ navigation, route }: Props) {
   const meter = useNoiseMeter({ threshold, testDurationSec });
   const [checks, setChecks] = useState<Record<string, boolean>>({ c1: false, c2: false, c3: false, c4: false });
 
-  // Registra el micrófono real (si la librería está instalada); si no, queda en modo demo.
+  // Registra el motor de captura real (react-native-audio-api).
   useEffect(() => {
     registerNoiseMicAdapter();
   }, []);
@@ -98,11 +98,11 @@ export default function RoomNoiseCheckScreen({ navigation, route }: Props) {
   const frac = liveDb == null ? 0 : Math.max(0, Math.min(1, (liveDb - 28) / 64));
   const dashoffset = RING_C * (1 - frac);
 
-  const sourceMeta: { kind: 'ok' | 'warn' | 'pending'; text: string } =
+  const sourceMeta: { kind: 'ok' | 'block' | 'pending'; text: string } =
     meter.source === 'mic'
       ? { kind: 'ok', text: 'Micrófono en vivo' }
-      : meter.source === 'demo'
-        ? { kind: 'warn', text: 'Modo demostración' }
+      : meter.source === 'error'
+        ? { kind: 'block', text: 'Micrófono no disponible' }
         : { kind: 'pending', text: 'Micrófono inactivo' };
 
   const verdict = VERDICT_COPY[meter.verdict];
@@ -259,11 +259,11 @@ export default function RoomNoiseCheckScreen({ navigation, route }: Props) {
               variant="outline"
               rounded="$full"
               style={{ flex: 1 }}
-              onPress={() => (meter.source === 'idle' ? meter.start() : meter.stop())}>
+              onPress={() => (meter.source === 'mic' ? meter.stop() : meter.start())}>
               <HStack space="sm" alignItems="center">
-                <Icon as={meter.source === 'idle' ? Mic : Square} size="sm" color={meter.source === 'idle' ? '$primary500' : '$error500'} />
-                <Text size="sm" weight="bold" color={meter.source === 'idle' ? '$primary500' : '$error500'}>
-                  {meter.source === 'idle' ? 'Activar micrófono' : 'Detener'}
+                <Icon as={meter.source === 'mic' ? Square : Mic} size="sm" color={meter.source === 'mic' ? '$error500' : '$primary500'} />
+                <Text size="sm" weight="bold" color={meter.source === 'mic' ? '$error500' : '$primary500'}>
+                  {meter.source === 'mic' ? 'Detener' : 'Activar micrófono'}
                 </Text>
               </HStack>
             </Button>
@@ -273,6 +273,23 @@ export default function RoomNoiseCheckScreen({ navigation, route }: Props) {
               </Text>
             </Button>
           </HStack>
+
+          {/* error de captura (permiso denegado, micrófono sin señal…) */}
+          {meter.error ? (
+            <Card bgColor="$error50" borderRadius={18} borderWidth={1} borderColor="$error200" p="$4">
+              <HStack space="sm" alignItems="flex-start">
+                <Icon as={AlertTriangle} size="sm" color="$error600" style={{ marginTop: 2 }} />
+                <VStack style={{ flex: 1 }}>
+                  <Text size="sm" weight="bold" color="$error700">
+                    No se pudo medir
+                  </Text>
+                  <Text size="xs" color="$error700" style={{ lineHeight: 17 }}>
+                    {meter.error}
+                  </Text>
+                </VStack>
+              </HStack>
+            </Card>
+          ) : null}
 
           {/* ===================== VERDICT ===================== */}
           <Card bgColor={KIND_TOKENS[verdict.kind].bg} borderRadius={20} p="$5">

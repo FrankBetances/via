@@ -34,8 +34,13 @@ export interface VoiceMicAdapter {
 }
 
 let micAdapter: VoiceMicAdapter | null = null;
+/* La pantalla registra el adaptador en un `useEffect` (tras el primer render);
+ * sin notificación el hook nunca se enteraría y `hasMic` quedaría `false` para
+ * siempre, dejando el botón «Grabar voz» deshabilitado. */
+const micListeners = new Set<() => void>();
 export const setVoiceMicAdapter = (adapter: VoiceMicAdapter | null) => {
   micAdapter = adapter;
+  micListeners.forEach(listener => listener());
 };
 
 /* -------------------------------------------------------------------------- */
@@ -120,6 +125,17 @@ export function useVoiceAnalysis() {
   const [level, setLevel] = useState(0); // 0..1 nivel en vivo
   const [result, setResult] = useState<AcousticResult | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [hasMic, setHasMic] = useState(() => !!micAdapter);
+
+  // Refleja el (des)registro del adaptador aunque ocurra después del montaje.
+  useEffect(() => {
+    const listener = () => setHasMic(!!micAdapter);
+    micListeners.add(listener);
+    listener();
+    return () => {
+      micListeners.delete(listener);
+    };
+  }, []);
 
   const timer = useRef<ReturnType<typeof setInterval> | null>(null);
   const startTs = useRef(0);
@@ -235,7 +251,7 @@ export function useVoiceAnalysis() {
     result,
     errorMsg,
     isRecording: phase === 'recording',
-    hasMic: !!micAdapter,
+    hasMic,
     startRecording,
     stopRecording,
     reset,
