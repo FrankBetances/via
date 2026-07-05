@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Pressable } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import {
@@ -26,9 +26,12 @@ import {
   Scale,
   ShieldCheck,
   Stethoscope,
+  Volume2,
+  Zap,
 } from 'lucide-react-native';
 
 import { Button, Content, FontSizeControl, Header, ScaledTextScope, Text } from '@/Components/Common';
+import { QuestionDots, QuestionTransition, SurveyProgress, YesNoAnswer } from '@/Components/Survey';
 import RadialBackground from '@/Components/Themed/RadialBackground';
 import { RootStackParamList } from '@/Navigators';
 import { RootState } from '@/Store';
@@ -81,6 +84,18 @@ const emptyPsq = (): PsqAnswers => {
   return a;
 };
 
+/** Icono de cada bloque del PSQ (ronquido, apneas, somnolencia, conducta). */
+const PSQ_BLOCK_ICONS = [Volume2, Activity, Moon, Zap];
+
+/** Primera pregunta del PSQ sin responder (índice 0-based), o -1 si completas. */
+const firstUnanswered = (psq: PsqAnswers): number => {
+  for (let i = 1; i <= PSQ_TOTAL; i++) if (psq[i] === null || psq[i] === undefined) return i - 1;
+  return -1;
+};
+
+/** Retardo del auto-avance tras responder (deja ver la selección animada). */
+const AUTO_ADVANCE_MS = 450;
+
 /* -------------------------------------------------------------------------- */
 /*  Subcomponentes UI                                                          */
 /* -------------------------------------------------------------------------- */
@@ -116,34 +131,6 @@ const PhaseStepper = ({ view }: { view: View }) => {
   );
 };
 
-const AnswerToggle = ({
-  value,
-  onYes,
-  onNo,
-}: {
-  value: boolean | null;
-  onYes: () => void;
-  onNo: () => void;
-}) => (
-  <HStack space="sm">
-    {/* En el PSQ, «Sí» = síntoma presente (respuesta de riesgo) → naranja. */}
-    <Pressable style={{ flex: 1 }} onPress={onYes}>
-      <Center py="$2" borderRadius="$full" bg={value === true ? '$warning700' : '$white'} borderWidth={1.5} borderColor={value === true ? '$warning700' : '$borderLight200'}>
-        <Text size="sm" weight="bold" color={value === true ? '$white' : '$textLight400'}>
-          Sí
-        </Text>
-      </Center>
-    </Pressable>
-    <Pressable style={{ flex: 1 }} onPress={onNo}>
-      <Center py="$2" borderRadius="$full" bg={value === false ? '$success600' : '$white'} borderWidth={1.5} borderColor={value === false ? '$success600' : '$borderLight200'}>
-        <Text size="sm" weight="bold" color={value === false ? '$white' : '$textLight400'}>
-          No
-        </Text>
-      </Center>
-    </Pressable>
-  </HStack>
-);
-
 /* -------------------------------------------------------------------------- */
 /*  Pantalla principal                                                         */
 /* -------------------------------------------------------------------------- */
@@ -155,7 +142,8 @@ export default function SahsScreeningScreen({ navigation }: Props) {
   const [createSahsScreening, { isLoading: isSaving }] = useCreateSahsScreeningMutation();
 
   const [view, setView] = useState<View>('setup');
-  const [activeBlock, setActiveBlock] = useState<number>(0);
+  const [qIndex, setQIndex] = useState<number>(0); // pregunta PSQ visible (0..21)
+  const [dir, setDir] = useState<1 | -1>(1); // sentido de la transición
   const [psq, setPsq] = useState<PsqAnswers>(() => emptyPsq());
   const [brodsky, setBrodsky] = useState<number | null>(null);
   const [imc, setImc] = useState<ImcCategory | null>(null);
@@ -172,17 +160,57 @@ export default function SahsScreeningScreen({ navigation }: Props) {
   const patient = activeEvaluation?.patient;
   const patientName = patient ? `${patient.name} ${patient.lastName}`.trim() : null;
 
+  // Auto-avance tras responder: solo si el usuario sigue en la misma pregunta.
+  const autoTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const qIndexRef = useRef(0);
+  qIndexRef.current = qIndex;
+  useEffect(
+    () => () => {
+      if (autoTimer.current) clearTimeout(autoTimer.current);
+    },
+    [],
+  );
+
   /* ----------------------------- handlers ------------------------------- */
 
   const toggleSetup = (i: number) => setSetup(prev => prev.map((v, idx) => (idx === i ? !v : v)));
-  const answer = (id: number, val: boolean) => setPsq(prev => ({ ...prev, [id]: val }));
   const toggleSign = (label: string) => setSigns(prev => ({ ...prev, [label]: !prev[label] }));
   const toggleRisk = (label: string) => setRisk(prev => ({ ...prev, [label]: !prev[label] }));
 
+  const goTo = (i: number, d?: 1 | -1) => {
+    if (autoTimer.current) clearTimeout(autoTimer.current);
+    const clamped = Math.max(0, Math.min(PSQ_TOTAL - 1, i));
+    setDir(d ?? (clamped >= qIndexRef.current ? 1 : -1));
+    setQIndex(clamped);
+  };
+
+  const answer = (id: number, val: boolean) => {
+    const next = { ...psq, [id]: val };
+    setPsq(next);
+    // Auto-avance con la respuesta ya visible (la selección rebota primero).
+    if (autoTimer.current) clearTimeout(autoTimer.current);
+    const fromIndex = id - 1;
+    autoTimer.current = setTimeout(() => {
+      if (qIndexRef.current !== fromIndex) return; // el usuario ya navegó
+      if (fromIndex < PSQ_TOTAL - 1) {
+        goTo(fromIndex + 1, 1);
+      } else {
+        const pending = firstUnanswered(next);
+        if (pending === -1) setView('exam');
+        else goTo(pending);
+      }
+    }, AUTO_ADVANCE_MS);
+  };
+
   const handleNext = () => {
     if (view === 'psq') {
-      if (activeBlock >= PSQ_BLOCKS.length - 1) setView('exam');
-      else setActiveBlock(b => b + 1);
+      if (qIndex >= PSQ_TOTAL - 1) {
+        const pending = firstUnanswered(psq);
+        if (pending === -1) setView('exam');
+        else goTo(pending);
+        return;
+      }
+      goTo(qIndex + 1, 1);
       return;
     }
     if (view === 'exam') return setView('risk');
@@ -194,19 +222,20 @@ export default function SahsScreeningScreen({ navigation }: Props) {
     if (view === 'risk') return setView('exam');
     if (view === 'exam') {
       setView('psq');
-      setActiveBlock(PSQ_BLOCKS.length - 1);
+      goTo(PSQ_TOTAL - 1, -1);
       return;
     }
     if (view === 'psq') {
-      if (activeBlock <= 0) setView('setup');
-      else setActiveBlock(b => b - 1);
+      if (qIndex <= 0) setView('setup');
+      else goTo(qIndex - 1, -1);
     }
   };
 
   const handleStart = () => {
     if (!setupReady) return;
     setView('psq');
-    setActiveBlock(0);
+    setQIndex(0);
+    setDir(1);
   };
 
   /* ----------------------------- análisis ------------------------------- */
@@ -282,11 +311,15 @@ export default function SahsScreeningScreen({ navigation }: Props) {
     }
   };
 
-  /* bloque PSQ activo */
-  const block = PSQ_BLOCKS[activeBlock];
-  const [bStart, bEnd] = block.range;
-  const blockQuestions = PSQ_QUESTIONS.filter(q => q.id >= bStart && q.id <= bEnd);
-  const blockAnswered = blockQuestions.filter(q => psq[q.id] !== null).length;
+  /* pregunta y bloque PSQ activos (una pregunta por pantalla) */
+  const q = PSQ_QUESTIONS[qIndex];
+  const block = PSQ_BLOCKS[q.block];
+  const blockIcon = PSQ_BLOCK_ICONS[q.block];
+  const isBlockStart = q.id === block.range[0];
+  const dotStates = PSQ_QUESTIONS.map(question => ({
+    answered: psq[question.id] !== null && psq[question.id] !== undefined,
+    flagged: isPsqRisk(psq[question.id]),
+  }));
 
   /* desglose para el informe */
   const breakdownRows = [
@@ -312,8 +345,8 @@ export default function SahsScreeningScreen({ navigation }: Props) {
       <VStack flex={1}>
         <Header animationType="expand" />
 
-        {/* El PSQ (bloques de preguntas) y la exploración superan la altura de
-            pantalla: sin scroll vertical el cuestionario es inutilizable. */}
+        {/* La exploración, los factores de riesgo y el informe superan la
+            altura de pantalla: el scroll vertical sigue siendo necesario. */}
         <ScrollView showsVerticalScrollIndicator={false}>
         <VStack flex={1} px="$6" mt="$2" space="md">
           {/* ----- title ----- */}
@@ -391,91 +424,117 @@ export default function SahsScreeningScreen({ navigation }: Props) {
             </VStack>
           )}
 
-          {/* =====================  PSQ  ===================== */}
+          {/* =====================  PSQ (una pregunta por pantalla)  ===================== */}
           {view === 'psq' && (
             <VStack space="md">
-              <Card bgColor="$white" borderRadius={22} p="$5">
-                <HStack alignItems="center" justifyContent="space-between">
-                  <HStack space="sm" alignItems="center" style={{ flex: 1 }}>
-                    <Center w={48} h={48} borderRadius={14} bg="$primary50">
-                      <Icon as={activeBlock === 1 ? Moon : Activity} size="lg" color="$primary600" />
-                    </Center>
-                    <VStack style={{ flex: 1 }}>
-                      <Text size="2xs" weight="bold" color="$primary700" style={{ textTransform: 'uppercase', letterSpacing: 0.4 }}>
-                        Bloque {activeBlock + 1} de {PSQ_BLOCKS.length}
-                      </Text>
-                      <Text size="lg" weight="bold" color="$textLight900">
-                        {block.name}
-                      </Text>
-                    </VStack>
-                  </HStack>
-                  <Box bg={blockAnswered === blockQuestions.length ? '$success50' : '$primary50'} px="$2.5" py="$1" borderRadius="$full">
-                    <Text size="2xs" weight="bold" color={blockAnswered === blockQuestions.length ? '$success700' : '$primary800'}>
-                      {blockAnswered}/{blockQuestions.length}
+              {/* progreso + mapa del cuestionario */}
+              <Card bgColor="$white" borderRadius={22} p="$4">
+                <SurveyProgress answered={score.answeredCount} total={PSQ_TOTAL} label={`Pregunta ${qIndex + 1} de ${PSQ_TOTAL}`} />
+                <Box mt="$3">
+                  <QuestionDots states={dotStates} current={qIndex} onJump={goTo} />
+                </Box>
+                <HStack space="sm" alignItems="center" mt="$2">
+                  <Box bg={score.yesCount > 0 ? '$warning50' : '$backgroundLight50'} px="$2.5" py="$0.5" borderRadius="$full">
+                    <Text size="2xs" weight="bold" color={score.yesCount > 0 ? '$warning700' : '$textLight400'} style={{ fontVariant: ['tabular-nums'] }}>
+                      {score.yesCount} síntomas «Sí»
                     </Text>
                   </Box>
-                </HStack>
-                <HStack space="sm" alignItems="center" mt="$3">
-                  <Box style={{ flex: 1 }} h={7} borderRadius="$full" bg="$backgroundLight100">
-                    <Box h={7} borderRadius="$full" bg="$primary500" style={{ width: `${(score.yesCount / PSQ_TOTAL) * 100}%` }} />
-                  </Box>
-                  <Text size="2xs" weight="bold" color="$textLight600" style={{ fontVariant: ['tabular-nums'] }}>
-                    {score.yesCount}/22 «Sí»
-                  </Text>
+                  {score.redFlag ? (
+                    <Box bg="$error50" px="$2.5" py="$0.5" borderRadius="$full">
+                      <Text size="2xs" weight="bold" color="$error600" style={{ textTransform: 'uppercase', letterSpacing: 0.3 }}>
+                        Señal de alarma
+                      </Text>
+                    </Box>
+                  ) : null}
                 </HStack>
               </Card>
 
               {/* tamaño de letra ajustable: facilita la lectura del PSQ */}
               <FontSizeControl />
 
-              {/* preguntas del bloque */}
-              <ScaledTextScope.Provider value={true}>
-              <VStack space="sm">
-                {blockQuestions.map(q => {
-                  const v = psq[q.id];
-                  const flagged = isPsqRisk(v);
-                  return (
-                    <Card key={q.id} bgColor={flagged ? '$warning50' : '$white'} borderRadius={18} borderWidth={1} borderColor={flagged ? '$warning200' : '$borderLight100'} p="$4">
-                      <HStack space="sm" alignItems="center" mb="$3">
-                        <Box bg={flagged ? '$warning100' : '$backgroundLight100'} px="$2" py="$0.5" borderRadius={8}>
-                          <Text size="2xs" weight="bold" color={flagged ? '$warning700' : '$textLight500'} style={{ fontVariant: ['tabular-nums'] }}>
-                            {q.code}
-                          </Text>
-                        </Box>
-                        {q.flag ? (
-                          <Box bg="$error50" px="$2" py="$0.5" borderRadius="$full">
-                            <Text size="2xs" weight="bold" color="$error600" style={{ textTransform: 'uppercase', letterSpacing: 0.3 }}>
-                              Señal de alarma
-                            </Text>
-                          </Box>
-                        ) : null}
-                      </HStack>
-                      <Text size="md" weight="semiBold" color="$textLight900" style={{ lineHeight: 23 }}>
-                        {q.label}
+              {/* tarjeta de la pregunta activa, con transición animada */}
+              <QuestionTransition key={qIndex} direction={dir}>
+                <Card bgColor="$white" borderRadius={22} p="$5">
+                  {/* contexto del bloque (resaltado al entrar en un bloque nuevo) */}
+                  <HStack space="sm" alignItems="center" mb="$3">
+                    <Center w={34} h={34} borderRadius={10} bg={isBlockStart ? '$primary500' : '$primary50'}>
+                      <Icon as={blockIcon} size="sm" color={isBlockStart ? '$white' : '$primary600'} />
+                    </Center>
+                    <VStack style={{ flex: 1 }}>
+                      <Text size="2xs" weight="bold" color="$primary700" style={{ textTransform: 'uppercase', letterSpacing: 0.4 }}>
+                        Bloque {q.block + 1} de {PSQ_BLOCKS.length} · {block.short}
                       </Text>
-                      <Box mt="$3">
-                        <AnswerToggle value={v} onYes={() => answer(q.id, true)} onNo={() => answer(q.id, false)} />
-                      </Box>
-                    </Card>
-                  );
-                })}
-              </VStack>
-              </ScaledTextScope.Provider>
+                      {isBlockStart ? (
+                        <Text size="2xs" color="$textLight500">
+                          Empieza un bloque nuevo: {block.name.toLowerCase()}
+                        </Text>
+                      ) : null}
+                    </VStack>
+                    <Box bg="$backgroundLight100" px="$2" py="$0.5" borderRadius={8}>
+                      <Text size="2xs" weight="bold" color="$textLight500" style={{ fontVariant: ['tabular-nums'] }}>
+                        {q.code}
+                      </Text>
+                    </Box>
+                  </HStack>
 
-              {activeBlock === PSQ_BLOCKS.length - 1 ? (
-                <Card bgColor="$white" borderRadius={18} p="$4">
-                  <Text size="2xs" weight="bold" color="$textLight500" mb="$2" style={{ textTransform: 'uppercase', letterSpacing: 0.4 }}>
-                    Observaciones del PSQ
-                  </Text>
-                  <Input variant="outline" borderRadius={12}>
-                    <InputField placeholder="Anotaciones del profesional…" value={psqObs} onChangeText={setPsqObs} multiline />
-                  </Input>
+                  {q.flag ? (
+                    <Box alignSelf="flex-start" bg="$error50" px="$2" py="$0.5" borderRadius="$full" mb="$2">
+                      <Text size="2xs" weight="bold" color="$error600" style={{ textTransform: 'uppercase', letterSpacing: 0.3 }}>
+                        Señal de alarma
+                      </Text>
+                    </Box>
+                  ) : null}
+
+                  <ScaledTextScope.Provider value={true}>
+                    <Text size="xl" weight="bold" color="$textLight900" style={{ lineHeight: 30 }}>
+                      {q.label}
+                    </Text>
+                  </ScaledTextScope.Provider>
+
+                  <Box mt="$5">
+                    {/* En el PSQ, «Sí» = síntoma presente (riesgo) · «No» = ausente. */}
+                    <YesNoAnswer value={psq[q.id]} onAnswer={val => answer(q.id, val)} yesTone="warning" noTone="success" />
+                  </Box>
+
+                  {isPsqRisk(psq[q.id]) && q.flag ? (
+                    <HStack space="sm" alignItems="center" mt="$3" p="$2.5" borderRadius={12} bg="$error50">
+                      <Icon as={AlertTriangle} size="xs" color="$error600" />
+                      <Text size="xs" weight="semiBold" color="$error700" style={{ flex: 1 }}>
+                        Señal de alarma presente: prioriza la derivación en el resultado.
+                      </Text>
+                    </HStack>
+                  ) : null}
                 </Card>
+              </QuestionTransition>
+
+              {/* PSQ completo → observaciones + acceso directo a la exploración */}
+              {psqComplete ? (
+                <>
+                  <Card bgColor="$white" borderRadius={18} p="$4">
+                    <Text size="2xs" weight="bold" color="$textLight500" mb="$2" style={{ textTransform: 'uppercase', letterSpacing: 0.4 }}>
+                      Observaciones del PSQ
+                    </Text>
+                    <Input variant="outline" borderRadius={12}>
+                      <InputField placeholder="Anotaciones del profesional…" value={psqObs} onChangeText={setPsqObs} multiline />
+                    </Input>
+                  </Card>
+                  <Pressable onPress={() => setView('exam')}>
+                    <HStack space="sm" alignItems="center" p="$3.5" borderRadius={16} bg="$success50" borderWidth={1} borderColor="$success200">
+                      <Icon as={CheckCircle2} size="sm" color="$success600" />
+                      <Text size="sm" weight="bold" color="$success800" style={{ flex: 1 }}>
+                        Las {PSQ_TOTAL} preguntas están respondidas
+                      </Text>
+                      <Text size="sm" weight="bold" color="$success700">
+                        Exploración →
+                      </Text>
+                    </HStack>
+                  </Pressable>
+                </>
               ) : null}
 
               <NavRow
-                prevLabel={activeBlock <= 0 ? 'Preparación' : 'Anterior'}
-                nextLabel={activeBlock >= PSQ_BLOCKS.length - 1 ? 'Exploración física' : 'Siguiente bloque'}
+                prevLabel={qIndex <= 0 ? 'Preparación' : 'Anterior'}
+                nextLabel={qIndex >= PSQ_TOTAL - 1 ? (psqComplete ? 'Exploración física' : 'Ir a pendientes') : 'Siguiente'}
                 onPrev={handlePrev}
                 onNext={handleNext}
               />
