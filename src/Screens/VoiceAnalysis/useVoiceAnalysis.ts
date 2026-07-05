@@ -9,6 +9,13 @@ import { roundTo } from '@/Helpers/numeric';
 /* -------------------------------------------------------------------------- */
 /*  Hook del análisis acústico de voz — SOLO captura real.                     */
 /*                                                                            */
+/*  Flujo por TOMAS: cada grabación se guarda como una toma (PCM crudo) en    */
+/*  una lista; el clínico puede grabar varias, reproducirlas y elegir cuál    */
+/*  analizar. La parada de la grabación solo devuelve el audio (rápida); el   */
+/*  análisis pesado es un paso aparte y asíncrono. Ambos van protegidos por   */
+/*  timeout para que la pantalla nunca quede colgada en «grabando» si el      */
+/*  motor nativo no responde (bug histórico de esta pantalla).                */
+/*                                                                            */
 /*  El modo demostración se eliminó: sin micrófono disponible la pantalla     */
 /*  informa del problema y no genera datos sintéticos (una app clínica no     */
 /*  debe producir resultados simulados). El adaptador se registra en el       */
@@ -29,8 +36,16 @@ export interface VoiceMicResult {
 }
 
 export interface VoiceMicAdapter {
+  /** Frecuencia de muestreo del PCM que devuelve `stopRecording`. */
+  sampleRate: number;
   startRecording: (onLive?: (frame: VoiceLiveFrame) => void) => Promise<void>;
-  stopRecording: () => Promise<VoiceMicResult>;
+  /** Para la captura y devuelve el PCM crudo SIN analizar (debe ser rápido). */
+  stopRecording: () => Promise<Float32Array>;
+  /** Análisis acústico de un PCM ya grabado (asíncrono, puede tardar). */
+  analyse: (pcm: Float32Array) => Promise<VoiceMicResult>;
+  /** Reproduce un PCM grabado; `onEnded` se llama al terminar por sí solo. */
+  play: (pcm: Float32Array, onEnded: () => void) => void;
+  stopPlayback: () => void;
 }
 
 let micAdapter: VoiceMicAdapter | null = null;
@@ -47,7 +62,13 @@ export const setVoiceMicAdapter = (adapter: VoiceMicAdapter | null) => {
 /*  Tipos de estado de la captura                                              */
 /* -------------------------------------------------------------------------- */
 
-export type CapturePhase = 'idle' | 'recording' | 'analyzed' | 'insufficient' | 'error';
+export type CapturePhase =
+  | 'idle'
+  | 'recording'
+  | 'analyzing'
+  | 'analyzed'
+  | 'insufficient'
+  | 'error';
 
 export interface AcousticResult {
   f0: number;
@@ -58,9 +79,38 @@ export interface AcousticResult {
   quality: VoiceQuality;
 }
 
+/** Una grabación (toma) lista para reproducir y/o analizar. */
+export interface VoiceTake {
+  id: number;
+  pcm: Float32Array;
+  durationSec: number;
+  recordedAt: Date;
+}
+
 const DURATION_MS = 5000;
 /** Ventanas sonoras mínimas para un resultado clínicamente interpretable. */
 const MIN_VOICED_FRAMES = 8;
+/** Duración mínima de una toma para conservarla en la lista. */
+const MIN_TAKE_SEC = 0.8;
+/** Si la parada nativa no responde en este plazo, se aborta con error. */
+const STOP_TIMEOUT_MS = 5000;
+/** Presupuesto máximo del análisis de una toma. */
+const ANALYSE_TIMEOUT_MS = 20000;
+
+const withTimeout = <T,>(promise: Promise<T>, ms: number, message: string): Promise<T> =>
+  new Promise<T>((resolve, reject) => {
+    const t = setTimeout(() => reject(new Error(message)), ms);
+    promise.then(
+      value => {
+        clearTimeout(t);
+        resolve(value);
+      },
+      err => {
+        clearTimeout(t);
+        reject(err);
+      },
+    );
+  });
 
 /* -------------------------------------------------------------------------- */
 /*  Cálculo de parámetros a partir de las series temporales                    */
@@ -123,6 +173,11 @@ export function useVoiceAnalysis() {
   const [progress, setProgress] = useState(0); // 0..1
   const [liveF0, setLiveF0] = useState<number | null>(null);
   const [level, setLevel] = useState(0); // 0..1 nivel en vivo
+  const [takes, setTakes] = useState<VoiceTake[]>([]);
+  const [selectedTakeId, setSelectedTakeId] = useState<number | null>(null);
+  const [playingTakeId, setPlayingTakeId] = useState<number | null>(null);
+  /** Toma a la que pertenece `result` (para invalidarlo si se borra). */
+  const [analyzedTakeId, setAnalyzedTakeId] = useState<number | null>(null);
   const [result, setResult] = useState<AcousticResult | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [hasMic, setHasMic] = useState(() => !!micAdapter);
@@ -140,7 +195,7 @@ export function useVoiceAnalysis() {
   const timer = useRef<ReturnType<typeof setInterval> | null>(null);
   const startTs = useRef(0);
   const finishing = useRef(false);
-  const voicedCount = useRef(0);
+  const nextTakeId = useRef(1);
 
   const teardown = useCallback(() => {
     if (timer.current) {
@@ -149,37 +204,72 @@ export function useVoiceAnalysis() {
     }
   }, []);
 
-  // Al desmontar: parar la captura nativa si quedó abierta.
+  // Al desmontar: parar captura y reproducción nativas si quedaron abiertas.
   useEffect(
     () => () => {
       teardown();
-      if (micAdapter && finishing.current === false) {
-        micAdapter.stopRecording().catch(() => {});
+      if (micAdapter) {
+        if (finishing.current === false) {
+          void Promise.resolve()
+            .then(() => micAdapter?.stopRecording())
+            .catch(() => {});
+        }
+        try {
+          micAdapter.stopPlayback();
+        } catch {
+          /* noop */
+        }
       }
     },
     [teardown],
   );
 
+  const stopPlayback = useCallback(() => {
+    try {
+      micAdapter?.stopPlayback();
+    } catch {
+      /* noop */
+    }
+    setPlayingTakeId(null);
+  }, []);
+
+  /** Cierra la captura en curso y añade la toma a la lista. */
   const finish = useCallback(async () => {
     if (finishing.current) return;
     finishing.current = true;
     teardown();
+    setProgress(0);
     try {
-      const r = micAdapter ? await micAdapter.stopRecording() : null;
-      const params = r ? computeParams(r) : null;
-      if (params) {
-        setResult(params);
-        setPhase('analyzed');
-      } else {
-        setResult(null);
-        setPhase('insufficient');
+      if (!micAdapter) {
+        setPhase('idle');
+        return;
       }
+      const pcm = await withTimeout(
+        micAdapter.stopRecording(),
+        STOP_TIMEOUT_MS,
+        'El motor de audio no respondió al detener la grabación. Cierre y vuelva a abrir la pantalla.',
+      );
+      const durationSec = pcm.length / micAdapter.sampleRate;
+      if (durationSec < MIN_TAKE_SEC) {
+        setPhase('insufficient');
+        return;
+      }
+      const take: VoiceTake = {
+        id: nextTakeId.current++,
+        pcm,
+        durationSec: round(durationSec, 1),
+        recordedAt: new Date(),
+      };
+      setTakes(prev => [...prev, take]);
+      setSelectedTakeId(take.id);
+      setPhase('idle');
     } catch (e) {
-      setResult(null);
-      setErrorMsg(e instanceof Error ? e.message : 'Error al analizar la grabación.');
+      setErrorMsg(e instanceof Error ? e.message : 'Error al finalizar la grabación.');
       setPhase('error');
     } finally {
       finishing.current = false;
+      setLiveF0(null);
+      setLevel(0);
     }
   }, [teardown]);
 
@@ -189,22 +279,18 @@ export function useVoiceAnalysis() {
       setPhase('error');
       return;
     }
-    if (phase === 'recording') return;
+    if (phase === 'recording' || finishing.current) return;
 
+    stopPlayback();
     teardown();
     setProgress(0);
     setLiveF0(null);
     setLevel(0);
-    setResult(null);
     setErrorMsg(null);
-    voicedCount.current = 0;
 
     try {
       await micAdapter.startRecording(frame => {
-        if (frame.f0) {
-          voicedCount.current += 1;
-          setLiveF0(Math.round(frame.f0));
-        }
+        if (frame.f0) setLiveF0(Math.round(frame.f0));
         setLevel(Math.min(1, frame.rms * 4));
       });
     } catch (e) {
@@ -224,21 +310,105 @@ export function useVoiceAnalysis() {
       setProgress(p);
       if (p >= 1) finish();
     }, 100);
-  }, [phase, teardown, finish]);
+  }, [phase, teardown, finish, stopPlayback]);
 
   const stopRecording = useCallback(() => {
     if (phase === 'recording') finish();
   }, [phase, finish]);
 
+  /** Analiza una toma de la lista (por defecto, la seleccionada). */
+  const analyzeTake = useCallback(
+    async (takeId?: number) => {
+      const id = takeId ?? selectedTakeId;
+      const take = takes.find(t => t.id === id);
+      if (!micAdapter || !take || phase === 'recording' || phase === 'analyzing') return;
+
+      stopPlayback();
+      setSelectedTakeId(take.id);
+      setResult(null);
+      setAnalyzedTakeId(null);
+      setErrorMsg(null);
+      setPhase('analyzing');
+      try {
+        const r = await withTimeout(
+          micAdapter.analyse(take.pcm),
+          ANALYSE_TIMEOUT_MS,
+          'El análisis tardó demasiado. Pruebe con otra toma.',
+        );
+        const params = computeParams(r);
+        if (params) {
+          setResult(params);
+          setAnalyzedTakeId(take.id);
+          setPhase('analyzed');
+        } else {
+          setPhase('insufficient');
+        }
+      } catch (e) {
+        setErrorMsg(e instanceof Error ? e.message : 'Error al analizar la grabación.');
+        setPhase('error');
+      }
+    },
+    [takes, selectedTakeId, phase, stopPlayback],
+  );
+
+  const selectTake = useCallback(
+    (takeId: number) => {
+      if (phase === 'analyzing') return;
+      setSelectedTakeId(takeId);
+    },
+    [phase],
+  );
+
+  const playTake = useCallback(
+    (takeId: number) => {
+      const take = takes.find(t => t.id === takeId);
+      if (!micAdapter || !take || phase === 'recording') return;
+      if (playingTakeId === takeId) {
+        stopPlayback();
+        return;
+      }
+      stopPlayback();
+      try {
+        micAdapter.play(take.pcm, () => setPlayingTakeId(current => (current === takeId ? null : current)));
+        setPlayingTakeId(takeId);
+      } catch {
+        setPlayingTakeId(null);
+      }
+    },
+    [takes, phase, playingTakeId, stopPlayback],
+  );
+
+  const deleteTake = useCallback(
+    (takeId: number) => {
+      if (phase === 'analyzing') return;
+      if (playingTakeId === takeId) stopPlayback();
+      const remaining = takes.filter(t => t.id !== takeId);
+      setTakes(remaining);
+      if (selectedTakeId === takeId) {
+        setSelectedTakeId(remaining.length ? remaining[remaining.length - 1].id : null);
+      }
+      if (analyzedTakeId === takeId) {
+        setResult(null);
+        setAnalyzedTakeId(null);
+        setPhase('idle');
+      }
+    },
+    [phase, playingTakeId, takes, selectedTakeId, analyzedTakeId, stopPlayback],
+  );
+
   const reset = useCallback(() => {
     teardown();
+    stopPlayback();
     setPhase('idle');
     setProgress(0);
     setLiveF0(null);
     setLevel(0);
+    setTakes([]);
+    setSelectedTakeId(null);
+    setAnalyzedTakeId(null);
     setResult(null);
     setErrorMsg(null);
-  }, [teardown]);
+  }, [teardown, stopPlayback]);
 
   const source: VoiceSource = 'mic';
 
@@ -248,12 +418,22 @@ export function useVoiceAnalysis() {
     progress,
     liveF0,
     level,
+    takes,
+    selectedTakeId,
+    playingTakeId,
+    analyzedTakeId,
     result,
     errorMsg,
     isRecording: phase === 'recording',
+    isAnalyzing: phase === 'analyzing',
     hasMic,
     startRecording,
     stopRecording,
+    analyzeTake,
+    selectTake,
+    playTake,
+    stopPlayback,
+    deleteTake,
     reset,
   };
 }

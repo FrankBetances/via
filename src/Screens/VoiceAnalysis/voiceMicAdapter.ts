@@ -1,11 +1,16 @@
 import { PermissionsAndroid, Platform } from 'react-native';
-import { AudioManager, AudioRecorder } from 'react-native-audio-api';
+import {
+  AudioBufferSourceNode,
+  AudioContext,
+  AudioManager,
+  AudioRecorder,
+} from 'react-native-audio-api';
 
 import type { VoiceFormants } from '@/Models/VoiceAnalysis/VoiceAnalysis';
 import { setVoiceMicAdapter, VoiceLiveFrame, VoiceMicAdapter, VoiceMicResult } from './useVoiceAnalysis';
 
 /* -------------------------------------------------------------------------- */
-/*  voiceMicAdapter — captura y análisis REAL del micrófono                    */
+/*  voiceMicAdapter — captura, reproducción y análisis REAL del micrófono     */
 /* -------------------------------------------------------------------------- */
 /*  Motor: `react-native-audio-api` ≥ 0.8 (AudioRecorder, Oboe/AVAudioEngine),*/
 /*  el mismo paquete nativo que sintetiza los tonos de las audiometrías. El    */
@@ -18,12 +23,19 @@ import { setVoiceMicAdapter, VoiceLiveFrame, VoiceMicAdapter, VoiceMicResult } f
 /*   · Captura PCM mono a 48 kHz en bloques de ~100 ms.                        */
 /*   · Cada bloque se decima ×3 (→16 kHz efectivos) y se analiza EN VIVO       */
 /*     (RMS + F0 por autocorrelación) para el feedback de pantalla.            */
-/*   · Al parar: análisis por ventanas de 1024 muestras (~64 ms):              */
+/*   · `stopRecording` SOLO devuelve el PCM concatenado (rápido): el análisis  */
+/*     pesado que antes vivía aquí bloqueaba el hilo JS varios segundos y la   */
+/*     pantalla parecía colgada al terminar la grabación.                      */
+/*   · `analyse(pcm)` — bajo demanda, por ventanas de 1024 muestras (~64 ms),  */
+/*     cediendo el hilo JS cada pocas ventanas para no congelar la UI:         */
 /*       - RMS (amplitud → shimmer aguas arriba)                               */
 /*       - F0 por autocorrelación normalizada en 100–500 Hz                    */
 /*       - HNR desde el pico de autocorrelación r: 10·log10(r/(1−r))           */
 /*       - Formantes F1–F3 por LPC (Levinson-Durbin) + picos de la envolvente  */
 /*     Solo se aceptan ventanas sonoras (RMS y periodicidad mínimos).          */
+/*   · `play(pcm)` — reproducción de la toma vía AudioBufferSourceNode (el     */
+/*     PCM de 16 kHz se re-expande ×3 a 48 kHz por interpolación lineal para   */
+/*     coincidir con la frecuencia del contexto de reproducción).              */
 /* -------------------------------------------------------------------------- */
 
 const CAPTURE_SR = 48000; // frecuencia del recorder nativo
@@ -127,28 +139,40 @@ function formantsFromLpc(a: number[]): number[] {
   return peaks;
 }
 
+const yieldToEventLoop = () => new Promise<void>(resolve => setTimeout(resolve, 0));
+
 function median(values: number[]): number {
   const s = [...values].sort((x, y) => x - y);
   const mid = s.length >> 1;
   return s.length % 2 ? s[mid] : (s[mid - 1] + s[mid]) / 2;
 }
 
-/** Formantes F1–F3 medianos sobre las ventanas sonoras de la emisión. */
-function estimateFormants(pcm: Float32Array, voicedOffsets: number[]): VoiceFormants | null {
+/** Formantes F1–F3 medianos sobre las ventanas sonoras de la emisión.
+ *  Asíncrono: cede el hilo JS cada pocas ventanas (LPC es lo más caro). */
+async function estimateFormants(
+  pcm: Float32Array,
+  voicedOffsets: number[],
+): Promise<VoiceFormants | null> {
   const f1s: number[] = [];
   const f2s: number[] = [];
   const f3s: number[] = [];
+  let sinceYield = 0;
   for (const off of voicedOffsets) {
     const a = lpcCoefficients(pcm.subarray(off, off + FRAME), LPC_ORDER);
-    if (!a) continue;
-    const peaks = formantsFromLpc(a);
-    // Asignación por rangos plausibles de la vocal /a/ infantil.
-    const f1 = peaks.find(f => f >= 300 && f <= 1200);
-    const f2 = peaks.find(f => f1 !== undefined && f > f1 + 250 && f >= 800 && f <= 3000);
-    const f3 = peaks.find(f => f2 !== undefined && f > f2 + 300 && f >= 1800 && f <= 4000);
-    if (f1 !== undefined) f1s.push(f1);
-    if (f2 !== undefined) f2s.push(f2);
-    if (f3 !== undefined) f3s.push(f3);
+    if (a) {
+      const peaks = formantsFromLpc(a);
+      // Asignación por rangos plausibles de la vocal /a/ infantil.
+      const f1 = peaks.find(f => f >= 300 && f <= 1200);
+      const f2 = peaks.find(f => f1 !== undefined && f > f1 + 250 && f >= 800 && f <= 3000);
+      const f3 = peaks.find(f => f2 !== undefined && f > f2 + 300 && f >= 1800 && f <= 4000);
+      if (f1 !== undefined) f1s.push(f1);
+      if (f2 !== undefined) f2s.push(f2);
+      if (f3 !== undefined) f3s.push(f3);
+    }
+    if (++sinceYield >= 4) {
+      sinceYield = 0;
+      await yieldToEventLoop();
+    }
   }
   if (f1s.length < 3 || f2s.length < 3) return null;
   return {
@@ -156,6 +180,43 @@ function estimateFormants(pcm: Float32Array, voicedOffsets: number[]): VoiceForm
     f2: Math.round(median(f2s)),
     f3: f3s.length >= 3 ? Math.round(median(f3s)) : Math.round(median(f2s) * 2),
   };
+}
+
+/* ----------------------------- análisis diferido --------------------------- */
+
+/**
+ * Análisis acústico completo de una toma. Cede el hilo JS cada pocas ventanas:
+ * sobre 5 s de audio la autocorrelación + LPC tardan lo suyo y ejecutarlas de
+ * una pieza congelaba la pantalla (el «cuelgue» que se veía al terminar de
+ * grabar cuando esto corría dentro de `stopRecording`).
+ */
+async function analysePcm(pcm: Float32Array): Promise<VoiceMicResult> {
+  const f0s: number[] = [];
+  const amplitudes: number[] = [];
+  const hnrs: number[] = [];
+  const voicedOffsets: number[] = [];
+
+  let sinceYield = 0;
+  for (let i = 0; i + FRAME <= pcm.length; i += FRAME) {
+    const frame = analyseFrame(pcm.subarray(i, i + FRAME));
+    if (frame) {
+      voicedOffsets.push(i);
+      f0s.push(frame.f0);
+      amplitudes.push(frame.rms);
+      const r = Math.min(0.999, Math.max(0.001, frame.peak));
+      hnrs.push(Math.max(0, Math.min(35, 10 * Math.log10(r / (1 - r)))));
+    }
+    if (++sinceYield >= 8) {
+      sinceYield = 0;
+      await yieldToEventLoop();
+    }
+  }
+
+  // Formantes solo sobre una muestra de ventanas sonoras (coste acotado).
+  const sampled = voicedOffsets.filter((_, idx) => idx % 3 === 0).slice(0, 20);
+  const formants = await estimateFormants(pcm, sampled);
+
+  return { f0s, amplitudes, hnrs, formants };
 }
 
 /* ------------------------------- permisos --------------------------------- */
@@ -177,6 +238,35 @@ async function ensureMicPermission(): Promise<boolean> {
   }
 }
 
+/* ------------------------------ sesión de audio ---------------------------- */
+
+function setSessionForRecording() {
+  // Sesión de grabación SOLO mientras dura la captura (en iOS `playAndRecord`
+  // puede atenuar la salida; se restaura al parar).
+  try {
+    AudioManager.setAudioSessionOptions({
+      iosCategory: 'playAndRecord',
+      iosMode: 'measurement',
+      iosOptions: ['defaultToSpeaker', 'allowBluetooth'],
+    });
+    void AudioManager.setAudioSessionActivity(true);
+  } catch {
+    /* sin AudioManager en este target */
+  }
+}
+
+function setSessionForPlayback() {
+  try {
+    AudioManager.setAudioSessionOptions({
+      iosCategory: 'playback',
+      iosMode: 'default',
+      iosOptions: ['defaultToSpeaker', 'allowBluetooth', 'allowBluetoothA2DP'],
+    });
+  } catch {
+    /* sin AudioManager en este target */
+  }
+}
+
 /* ------------------------------- adaptador -------------------------------- */
 
 let registered = false;
@@ -190,24 +280,36 @@ export function registerVoiceMicAdapter(): boolean {
 
   let recorder: AudioRecorder | null = null;
   let chunks: Float32Array[] = [];
+  let playbackCtx: AudioContext | null = null;
+  let playbackSource: AudioBufferSourceNode | null = null;
+
+  const stopPlayback = () => {
+    if (playbackSource) {
+      const source = playbackSource;
+      playbackSource = null;
+      try {
+        source.onEnded = null;
+        source.stop();
+      } catch {
+        /* ya parado */
+      }
+      try {
+        source.disconnect();
+      } catch {
+        /* noop */
+      }
+    }
+  };
 
   const adapter: VoiceMicAdapter = {
+    sampleRate: SAMPLE_RATE,
+
     startRecording: async (onLive?: (frame: VoiceLiveFrame) => void) => {
       const granted = await ensureMicPermission();
       if (!granted) throw new Error('Permiso de micrófono denegado');
 
-      // Sesión de grabación SOLO mientras dura la captura (en iOS
-      // `playAndRecord` puede atenuar la salida; se restaura al parar).
-      try {
-        AudioManager.setAudioSessionOptions({
-          iosCategory: 'playAndRecord',
-          iosMode: 'measurement',
-          iosOptions: ['defaultToSpeaker', 'allowBluetooth'],
-        });
-        void AudioManager.setAudioSessionActivity(true);
-      } catch {
-        /* sin AudioManager en este target */
-      }
+      stopPlayback();
+      setSessionForRecording();
 
       chunks = [];
       recorder = new AudioRecorder({
@@ -241,24 +343,16 @@ export function registerVoiceMicAdapter(): boolean {
       recorder.start();
     },
 
-    stopRecording: async (): Promise<VoiceMicResult> => {
+    stopRecording: async (): Promise<Float32Array> => {
       try {
         recorder?.stop();
       } catch {
         /* noop */
       }
       recorder = null;
-      try {
-        AudioManager.setAudioSessionOptions({
-          iosCategory: 'playback',
-          iosMode: 'default',
-          iosOptions: ['defaultToSpeaker', 'allowBluetooth', 'allowBluetoothA2DP'],
-        });
-      } catch {
-        /* sin AudioManager en este target */
-      }
+      setSessionForPlayback();
 
-      // Concatena el PCM decimado y analiza por ventanas.
+      // Concatena el PCM decimado; el análisis se hace después, bajo demanda.
       const total = chunks.reduce((a, c) => a + c.length, 0);
       const pcm = new Float32Array(total);
       let off = 0;
@@ -267,27 +361,58 @@ export function registerVoiceMicAdapter(): boolean {
         off += c.length;
       }
       chunks = [];
+      return pcm;
+    },
 
-      const f0s: number[] = [];
-      const amplitudes: number[] = [];
-      const hnrs: number[] = [];
-      const voicedOffsets: number[] = [];
-      for (let i = 0; i + FRAME <= pcm.length; i += FRAME) {
-        const frame = analyseFrame(pcm.subarray(i, i + FRAME));
-        if (!frame) continue;
-        voicedOffsets.push(i);
-        f0s.push(frame.f0);
-        amplitudes.push(frame.rms);
-        const r = Math.min(0.999, Math.max(0.001, frame.peak));
-        hnrs.push(Math.max(0, Math.min(35, 10 * Math.log10(r / (1 - r)))));
+    analyse: analysePcm,
+
+    play: (pcm: Float32Array, onEnded: () => void) => {
+      stopPlayback();
+      setSessionForPlayback();
+      try {
+        AudioManager.setAudioSessionActivity(true);
+      } catch {
+        /* sin AudioManager en este target */
       }
 
-      // Formantes solo sobre una muestra de ventanas sonoras (coste acotado).
-      const sampled = voicedOffsets.filter((_, idx) => idx % 3 === 0).slice(0, 20);
-      const formants = estimateFormants(pcm, sampled);
+      if (!playbackCtx) playbackCtx = new AudioContext({ sampleRate: CAPTURE_SR });
+      try {
+        if (playbackCtx.state !== 'running') void playbackCtx.resume();
+      } catch {
+        /* state/resume no disponibles en algunos targets */
+      }
 
-      return { f0s, amplitudes, hnrs, formants };
+      // Re-expansión ×3 (16 kHz → 48 kHz) por interpolación lineal para que la
+      // toma suene a la frecuencia del contexto de reproducción.
+      const up = new Float32Array(pcm.length * DECIMATE);
+      for (let i = 0; i < pcm.length; i++) {
+        const a = pcm[i];
+        const b = i + 1 < pcm.length ? pcm[i + 1] : a;
+        const base = i * DECIMATE;
+        up[base] = a;
+        up[base + 1] = a + (b - a) / 3;
+        up[base + 2] = a + (2 * (b - a)) / 3;
+      }
+
+      const buffer = playbackCtx.createBuffer(1, up.length, CAPTURE_SR);
+      try {
+        buffer.copyToChannel(up, 0);
+      } catch {
+        buffer.getChannelData(0).set(up);
+      }
+
+      const source = playbackCtx.createBufferSource();
+      source.buffer = buffer;
+      source.connect(playbackCtx.destination);
+      source.onEnded = () => {
+        if (playbackSource === source) playbackSource = null;
+        onEnded();
+      };
+      playbackSource = source;
+      source.start();
     },
+
+    stopPlayback,
   };
 
   setVoiceMicAdapter(adapter);

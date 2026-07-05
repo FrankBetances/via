@@ -1,4 +1,5 @@
 import { VoiceAnalysis } from '@/Models/VoiceAnalysis/VoiceAnalysis';
+import { grbasSeverityLabel, grbasSummary } from '@/Screens/VoiceAnalysis/voiceAnalysisResult';
 import { BlockOptions } from './types';
 import { PDF_FONT_SIZES, PDF_MARGINS, PDF_COLORS } from '@/PDF/utils';
 import { Logo } from './Logo';
@@ -38,6 +39,9 @@ export async function VoiceAnalysisDetail(
     ['Formantes', `F1 ${analysis.formants?.f1} · F2 ${analysis.formants?.f2} · F3 ${analysis.formants?.f3} Hz`],
     ['Vocal / fuente', `/${analysis.vowel}/ · ${analysis.source === 'mic' ? 'micrófono' : 'demostración'}`],
   ];
+  if (analysis.grbas) {
+    rows.push(['GRBAS (perceptual)', `${grbasSummary(analysis.grbas)} — ${grbasSeverityLabel(analysis.grbas)}`]);
+  }
   for (const [label, value] of rows) {
     page.drawText(label, {
       x: PDF_MARGINS.left,

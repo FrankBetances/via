@@ -19,6 +19,19 @@ export interface VoiceFormants {
   f3: number;
 }
 
+/**
+ * Valoración perceptual GRBAS de la disfonia (Hirano, 1981). Cada dimensión
+ * se puntúa 0 (normal) – 3 (severo): G = grado global, R = aspereza,
+ * B = soplo, A = astenia, S = tensión.
+ */
+export interface GrbasScores {
+  g: number;
+  r: number;
+  b: number;
+  a: number;
+  s: number;
+}
+
 export interface VoiceAnalysisDTO {
   id: number;
   vowel: string; // 'a'
@@ -30,6 +43,7 @@ export interface VoiceAnalysisDTO {
   shimmer: number; // %
   hnr: number; // dB
   formants: VoiceFormants; // Hz
+  grbas: GrbasScores | null; // valoración perceptual (null = no realizada)
   interpretation: string;
   notes: string;
   evaluatorName: string;
@@ -78,6 +92,9 @@ export class VoiceAnalysis {
 
   @Column('simple-json')
   formants: VoiceFormants;
+
+  @Column({ type: 'simple-json', nullable: true })
+  grbas: GrbasScores | null;
 
   @Column({ type: 'varchar', default: '' })
   interpretation: string;

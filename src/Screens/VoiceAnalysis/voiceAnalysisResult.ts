@@ -1,4 +1,4 @@
-import { VoiceFormants, VoiceParamStatus } from '@/Models/VoiceAnalysis/VoiceAnalysis';
+import { GrbasScores, VoiceFormants, VoiceParamStatus } from '@/Models/VoiceAnalysis/VoiceAnalysis';
 
 /* -------------------------------------------------------------------------- */
 /*  Lógica clínica del análisis acústico de voz (fuente única de verdad).      */
@@ -45,6 +45,40 @@ export const alteredCount = (p: VoiceParams): number =>
   [statusF0(p.f0), statusJitter(p.jitter), statusShimmer(p.shimmer), statusHnr(p.hnr)].filter(
     s => s !== 'normal',
   ).length;
+
+/* ------------------------------ escala GRBAS ------------------------------ */
+
+export interface GrbasDimension {
+  key: keyof GrbasScores;
+  letter: string;
+  label: string;
+  description: string;
+}
+
+/** Dimensiones de la escala GRBAS (Hirano, 1981), puntuadas 0–3. */
+export const GRBAS_DIMENSIONS: GrbasDimension[] = [
+  { key: 'g', letter: 'G', label: 'Grado', description: 'Severidad global de la disfonía' },
+  { key: 'r', letter: 'R', label: 'Aspereza', description: 'Irregularidad de la vibración glótica' },
+  { key: 'b', letter: 'B', label: 'Soplo', description: 'Escape de aire audible' },
+  { key: 'a', letter: 'A', label: 'Astenia', description: 'Debilidad o falta de energía vocal' },
+  { key: 's', letter: 'S', label: 'Tensión', description: 'Hiperfunción o esfuerzo fonatorio' },
+];
+
+export const GRBAS_SCORE_LABELS = ['Normal', 'Leve', 'Moderado', 'Severo'];
+
+export const grbasTotal = (g: GrbasScores): number => g.g + g.r + g.b + g.a + g.s;
+
+/** Resumen corto tipo «G1 R0 B1 A0 S1 · total 3/15». */
+export const grbasSummary = (g: GrbasScores): string =>
+  `G${g.g} R${g.r} B${g.b} A${g.a} S${g.s} · total ${grbasTotal(g)}/15`;
+
+/** Interpretación del grado global G (dimensión rectora de la escala). */
+export const grbasSeverityLabel = (g: GrbasScores): string => {
+  const grade = Math.min(3, Math.max(0, g.g));
+  return grade === 0
+    ? 'Voz perceptualmente normal'
+    : `Disfonía ${GRBAS_SCORE_LABELS[grade].toLowerCase()}`;
+};
 
 /** Texto de interpretación clínica automática. */
 export const buildInterpretation = (p: VoiceParams): string => {
