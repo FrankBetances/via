@@ -1,4 +1,5 @@
 import { AudiometryTest } from '@/Models/Audiometry/AudiometryTest';
+import { pta } from '@/Screens/Audiometry/audiometryResult';
 import { BlockOptions } from './types';
 import { PDF_FONT_SIZES, PDF_MARGINS, PDF_COLORS } from '@/PDF/utils';
 import { Logo } from './Logo';
@@ -15,6 +16,8 @@ const METHOD_LABEL: Record<string, string> = {
   conditioned: 'Audiometría condicionada (El Tren del Sonido)',
 };
 
+const SOUNDFIELD_SUFFIX = ' · campo libre (binaural, sin discriminación de oído)';
+
 /**
  * Página de detalle de una audiometría tonal dentro del informe PDF.
  * Sirve para ambos métodos (`play` y `conditioned`), diferenciados por la
@@ -27,6 +30,7 @@ export async function AudiometryDetail(
   const { width, height } = page.getSize();
   const maxWidth = width - PDF_MARGINS.left - PDF_MARGINS.right;
   let y = height - PDF_MARGINS.top;
+  const soundfield = !!test.thresholds?.CL;
 
   // Título
   page.drawText(t('PDF.AUDIOMETRY.TITLE', 'Audiometría tonal'), {
@@ -37,7 +41,7 @@ export async function AudiometryDetail(
     color: PDF_COLORS.trueGray500,
   });
   y -= 26;
-  page.drawText(METHOD_LABEL[test.method] ?? test.method, {
+  page.drawText((METHOD_LABEL[test.method] ?? test.method) + (soundfield ? SOUNDFIELD_SUFFIX : ''), {
     x: PDF_MARGINS.left,
     y,
     size: PDF_FONT_SIZES.md,
@@ -46,18 +50,24 @@ export async function AudiometryDetail(
   });
   y -= 34;
 
-  // Tabla de umbrales
+  // Tabla de umbrales (por oído o, en campo libre, una sola fila binaural)
   const colX = [PDF_MARGINS.left, PDF_MARGINS.left + 120, PDF_MARGINS.left + 210, PDF_MARGINS.left + 300, PDF_MARGINS.left + 390];
-  page.drawText('Oído', { x: colX[0], y, size: PDF_FONT_SIZES.md, font: fonts.semiBold, color: PDF_COLORS.trueGray500 });
+  page.drawText(soundfield ? 'Canal' : 'Oído', { x: colX[0], y, size: PDF_FONT_SIZES.md, font: fonts.semiBold, color: PDF_COLORS.trueGray500 });
   FREQS.forEach((f, i) => {
     page.drawText(`${FREQ_LABEL[f]} Hz`, { x: colX[i + 1], y, size: PDF_FONT_SIZES.md, font: fonts.semiBold, color: PDF_COLORS.trueGray500 });
   });
   y -= 22;
 
-  (['OD', 'OI'] as const).forEach(ear => {
-    page.drawText(ear, { x: colX[0], y, size: PDF_FONT_SIZES.md, font: fonts.semiBold, color: PDF_COLORS.trueGray500 });
+  const channels: { key: 'OD' | 'OI' | 'CL'; label: string }[] = soundfield
+    ? [{ key: 'CL', label: 'Campo libre' }]
+    : [
+        { key: 'OD', label: 'OD' },
+        { key: 'OI', label: 'OI' },
+      ];
+  channels.forEach(({ key, label }) => {
+    page.drawText(label, { x: colX[0], y, size: PDF_FONT_SIZES.md, font: fonts.semiBold, color: PDF_COLORS.trueGray500 });
     FREQS.forEach((f, i) => {
-      const v = test.thresholds?.[ear]?.[f];
+      const v = test.thresholds?.[key]?.[f];
       page.drawText(v !== null && v !== undefined ? `${v}` : '—', {
         x: colX[i + 1],
         y,
@@ -72,10 +82,11 @@ export async function AudiometryDetail(
   y -= 14;
 
   // PTA + fiabilidad
+  const reliabilityStr = test.reliability !== null && test.reliability !== undefined ? `${test.reliability}%` : '—';
   page.drawText(
-    `PTA OD: ${test.ptaOD ?? '—'} dB HL    ·    PTA OI: ${test.ptaOI ?? '—'} dB HL    ·    Fiabilidad: ${
-      test.reliability !== null && test.reliability !== undefined ? `${test.reliability}%` : '—'
-    }`,
+    soundfield
+      ? `PTA campo libre: ${pta(test.thresholds!.CL!) ?? '—'} dB HL    ·    Fiabilidad: ${reliabilityStr}`
+      : `PTA OD: ${test.ptaOD ?? '—'} dB HL    ·    PTA OI: ${test.ptaOI ?? '—'} dB HL    ·    Fiabilidad: ${reliabilityStr}`,
     { x: PDF_MARGINS.left, y, size: PDF_FONT_SIZES.md, font: fonts.semiBold, color: PDF_COLORS.trueGray500 },
   );
   y -= 30;

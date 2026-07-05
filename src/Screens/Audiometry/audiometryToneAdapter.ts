@@ -5,8 +5,7 @@ import {
   GainNode,
   StereoPannerNode,
 } from 'react-native-audio-api';
-import type { Ear } from '@/Models/Audiometry/AudiometryTest';
-import { setAudiometryToneAdapter, ToneTarget } from './useAudiometryTest';
+import { setAudiometryToneAdapter, ToneChannel, ToneTarget } from './useAudiometryTest';
 
 /* ==========================================================================
  * Adaptador de tono REAL para Audiometría Infantil / Condicionada (Android+iOS)
@@ -20,7 +19,8 @@ import { setAudiometryToneAdapter, ToneTarget } from './useAudiometryTest';
  *   cd ios && pod install
  *
  * Síntesis: OscillatorNode (seno) -> GainNode (nivel dB HL) -> StereoPannerNode
- * (oído: OD = derecho, OI = izquierdo) -> destination. Rampa de 20 ms para
+ * (OD = derecho, OI = izquierdo, CL = campo libre centrado) -> destination.
+ * Rampa de 20 ms para
  * evitar clicks (imprescindible en audiometría). Los sonidos de control no
  * tonales ('amb' = sirena de ambulancia, 'tren' = silbato de tren con vibrato)
  * se generan modulados para condicionar la atención del niño.
@@ -44,7 +44,9 @@ function defaultDbHLtoGain(dbHL: number): number {
   return Math.min(1, Math.pow(10, dbFS / 20));
 }
 
-const panForEar = (ear: Ear): number => (ear === 'OD' ? 1 : -1);
+// OD = derecha, OI = izquierda, CL = campo libre (centrado, ambos altavoces).
+const panForChannel = (channel: ToneChannel): number =>
+  channel === 'OD' ? 1 : channel === 'OI' ? -1 : 0;
 
 /**
  * Registra el motor de tono real sobre react-native-audio-api y devuelve una
@@ -85,18 +87,19 @@ export function installAudiometryToneAdapter(opts: ToneAdapterOptions = {}): () 
     osc = null; gain = null; panner = null;
   };
 
-  const buildChain = (ear: Ear, level: number, now: number) => {
+  const buildChain = (channel: ToneChannel, level: number, now: number) => {
     if (!ctx) return null;
     gain = ctx.createGain();
     panner = ctx.createStereoPanner();
-    panner.pan.value = panForEar(ear);
+    panner.pan.value = panForChannel(channel);
     gain.gain.setValueAtTime(0, now);
     gain.gain.linearRampToValueAtTime(level, now + 0.02); // anti-click 20 ms
-    gain.connect(panner).connect(ctx.destination);
+    gain.connect(panner);
+    panner.connect(ctx.destination);
     return gain;
   };
 
-  const playTone = (freq: ToneTarget, dbHL: number, ear: Ear) => {
+  const playTone = (freq: ToneTarget, dbHL: number, channel: ToneChannel) => {
     if (!ctx) return;
     stop();
     // Si el sistema suspendió el contexto (interrupción, cambio de ruta de
@@ -114,7 +117,7 @@ export function installAudiometryToneAdapter(opts: ToneAdapterOptions = {}): () 
     if (typeof freq === 'number') {
       // --- Tono puro calibrado -------------------------------------------
       const level = dbHLtoGain(dbHL, freq);
-      const g = buildChain(ear, level, now);
+      const g = buildChain(channel, level, now);
       if (!g) return;
       osc = ctx.createOscillator();
       osc.type = 'sine';
@@ -131,7 +134,7 @@ export function installAudiometryToneAdapter(opts: ToneAdapterOptions = {}): () 
       // Nivel de control alto y fijo: solo condiciona la atención, no umbral.
       // 'amb' = sirena de ambulancia (dos tonos alternos).
       // 'tren' = silbato de tren (tono grave sostenido con vibrato lento).
-      const g = buildChain(ear, 0.18, now);
+      const g = buildChain(channel, 0.18, now);
       if (!g) return;
       osc = ctx.createOscillator();
       osc.type = freq === 'amb' ? 'square' : 'triangle';

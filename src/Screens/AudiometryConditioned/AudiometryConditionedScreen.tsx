@@ -2,14 +2,14 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Pressable } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { Box, Card, Center, HStack, Icon, Input, InputField, ScrollView, VStack } from '@gluestack-ui/themed';
-import { Bell, Headphones, Pause, Play, RotateCcw, Save, Sparkles, Train } from 'lucide-react-native';
+import { AlertTriangle, Bell, Pause, Play, RotateCcw, Save, Sparkles, Train, Volume2 } from 'lucide-react-native';
 
 import { Button, Content, Header, Text } from '@/Components/Common';
 import RadialBackground from '@/Components/Themed/RadialBackground';
 import { RootStackParamList } from '@/Navigators';
 import { RootState } from '@/Store';
 import { Evaluation } from '@/Models/Evaluation/Evaluation';
-import { AudiometryTest, Ear } from '@/Models/Audiometry/AudiometryTest';
+import { AudiometryTest } from '@/Models/Audiometry/AudiometryTest';
 import { useClassSelector } from '@/Helpers/ClassTransformer';
 import { useCreateAudiometryMutation } from '@/Services/local/modules/audiometry';
 import { showErrorToast, showSuccessToast } from '@/Helpers/showToast';
@@ -19,12 +19,17 @@ import {
   FREQS,
   interpretAudiometry,
   severityOf,
+  soundfieldNeedsReferral,
   useAudiometryTest,
 } from '@/Screens/Audiometry';
 import TrainScene from './components/TrainScene';
 
 /* -------------------------------------------------------------------------- */
-/*  Audiometría condicionada AUTOMÁTICA — «El Tren del Sonido»                 */
+/*  Audiometría condicionada AUTOMÁTICA en CAMPO LIBRE — «El Tren del Sonido»  */
+/*                                                                            */
+/*  Cribado binaural por el altavoz del dispositivo, sin auriculares y sin     */
+/*  discriminación de oído: aproxima la audición (mejor oído) y, ante          */
+/*  indicios de hipoacusia, orienta la derivación a un centro especializado.   */
 /*                                                                            */
 /*  Flujo en 4 fases, sin operador durante la prueba:                          */
 /*   1. intro     → instrucciones para el niño/a y el profesional.             */
@@ -34,8 +39,9 @@ import TrainScene from './components/TrainScene';
 /*   3. test      → prueba autónoma: la app presenta los tonos con intervalos  */
 /*                  aleatorios y aplica Hughson-Westlake (baja 10 al acierto,  */
 /*                  sube 5 al fallo, umbral con 2 respuestas al mismo nivel).   */
-/*                  Orden 1000→2000→4000→500 Hz, primero OD y luego OI.        */
-/*   4. done      → audiograma, PTA y guardado por el profesional.             */
+/*                  Orden 1000→2000→4000→500 Hz en una sola pasada (canal CL).  */
+/*   4. done      → audiograma, PTA binaural, criterio de derivación y         */
+/*                  guardado por el profesional.                               */
 /* -------------------------------------------------------------------------- */
 
 type Props = NativeStackScreenProps<RootStackParamList, 'AudiometryConditioned'>;
@@ -49,16 +55,16 @@ const PRACTICE_HITS_NEEDED = 3;
 const MAX_MISSES_AT_80 = 2; // no-respuestas a 80 dB antes de saltar la frecuencia
 
 const INTRO_STEPS: { emoji: string; title: string; text: string }[] = [
-  { emoji: '🎧', title: 'Ponte los auriculares', text: 'El profesional coloca los auriculares al niño/a y ajusta el volumen del dispositivo al máximo.' },
+  { emoji: '🔊', title: 'Prepara la sala', text: 'Sala silenciosa, volumen del dispositivo al máximo y el niño/a sentado frente al altavoz, a menos de 1 metro. Sin auriculares: el sonido sale por el altavoz.' },
   { emoji: '👂', title: 'Escucha con atención', text: 'El tren silba de vez en cuando. A veces suena muy bajito… ¡hay que estar muy atento!' },
   { emoji: '🔔', title: 'Toca el silbato', text: 'Cada vez que oigas el silbido del tren, pulsa el botón grande del silbato.' },
-  { emoji: '🚉', title: 'Llega a las estaciones', text: 'Con cada silbido acertado el tren avanza. ¡Completa las 8 estaciones para ganar!' },
+  { emoji: '🚉', title: 'Llega a las estaciones', text: 'Con cada silbido acertado el tren avanza. ¡Completa las 4 estaciones para ganar!' },
 ];
 
 export default function AudiometryConditionedScreen({ navigation }: Props) {
   const activeEvaluation = useClassSelector(Evaluation, (state: RootState) => state.activeEvaluation.evaluation);
   const [createAudiometry, { isLoading: isSaving }] = useCreateAudiometryMutation();
-  const a = useAudiometryTest();
+  const a = useAudiometryTest({ soundfield: true });
 
   const [phase, setPhase] = useState<Phase>('intro');
   const [paused, setPaused] = useState(false);
@@ -75,7 +81,7 @@ export default function AudiometryConditionedScreen({ navigation }: Props) {
   // Estado interno del secuenciador (no necesita re-render).
   const windowOpen = useRef(false); // ventana de respuesta activa (tono + gracia)
   const missesAtMax = useRef(0);
-  const skipped = useRef<Record<Ear, Set<number>>>({ OD: new Set(), OI: new Set() });
+  const skipped = useRef<Set<number>>(new Set());
   const presentTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const windowTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const phaseRef = useRef<Phase>('intro');
@@ -113,7 +119,6 @@ export default function AudiometryConditionedScreen({ navigation }: Props) {
   const startPractice = () => {
     clearTimers();
     setPracticeHits(0);
-    a.setEar('OD');
     a.setFreq(1000);
     a.setDb(60); // claramente audible: condicionamiento, no umbral
     setPhase('practice');
@@ -121,8 +126,8 @@ export default function AudiometryConditionedScreen({ navigation }: Props) {
 
   const startTest = useCallback(() => {
     clearTimers();
-    a.reset(); // OD · 1000 Hz · 40 dB, umbrales limpios
-    skipped.current = { OD: new Set(), OI: new Set() };
+    a.reset(); // campo libre · 1000 Hz · 40 dB, umbrales limpios
+    skipped.current = new Set();
     missesAtMax.current = 0;
     setPaused(false);
     setPhase('test');
@@ -131,34 +136,25 @@ export default function AudiometryConditionedScreen({ navigation }: Props) {
   const restartAll = () => {
     clearTimers();
     a.reset();
-    skipped.current = { OD: new Set(), OI: new Set() };
+    skipped.current = new Set();
     missesAtMax.current = 0;
     setPracticeHits(0);
     setPaused(false);
     setPhase('intro');
   };
 
-  /** Avanza a la siguiente frecuencia/oído pendiente; si no queda nada, fin. */
+  /** Avanza a la siguiente frecuencia pendiente; si no queda nada, fin. */
   const advance = useCallback(() => {
     missesAtMax.current = 0;
     const cur = typeof a.freq === 'number' ? a.freq : null;
-    const isPending = (e: Ear, f: number) =>
-      a.thresholds[e][f] === null && !skipped.current[e].has(f) && !(e === a.ear && f === cur);
+    const isPending = (f: number) =>
+      (a.thresholds.CL?.[f] ?? null) === null && !skipped.current.has(f) && f !== cur;
 
-    const nextFreq = FREQ_ORDER.find(f => isPending(a.ear, f));
+    const nextFreq = FREQ_ORDER.find(isPending);
     if (nextFreq !== undefined) {
       a.setFreq(nextFreq);
       a.setDb(40);
       return;
-    }
-    if (a.ear === 'OD') {
-      const nextOI = FREQ_ORDER.find(f => isPending('OI', f));
-      if (nextOI !== undefined) {
-        a.setEar('OI');
-        a.setFreq(nextOI);
-        a.setDb(40);
-        return;
-      }
     }
     clearTimers();
     setPhase('done');
@@ -195,7 +191,7 @@ export default function AudiometryConditionedScreen({ navigation }: Props) {
     const f = a.freq;
 
     // Umbral ya confirmado en esta frecuencia → avanzar a la siguiente.
-    if (a.thresholds[a.ear][f] !== null || skipped.current[a.ear].has(f)) {
+    if ((a.thresholds.CL?.[f] ?? null) !== null || skipped.current.has(f)) {
       advance();
       return;
     }
@@ -212,8 +208,8 @@ export default function AudiometryConditionedScreen({ navigation }: Props) {
           missesAtMax.current += 1;
           if (missesAtMax.current >= MAX_MISSES_AT_80) {
             // Sin respuesta al máximo nivel: se salta la frecuencia (queda sin
-            // umbral y así se refleja en el audiograma/PTA).
-            skipped.current[a.ear].add(f);
+            // umbral y así se refleja en el audiograma/PTA y en la derivación).
+            skipped.current.add(f);
             advance();
             return;
           }
@@ -228,7 +224,7 @@ export default function AudiometryConditionedScreen({ navigation }: Props) {
       if (windowTimer.current) clearTimeout(windowTimer.current);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [phase, paused, a.ear, a.freq, a.db, trialTick]);
+  }, [phase, paused, a.freq, a.db, trialTick]);
 
   /* ------------------------------ el silbato ------------------------------- */
 
@@ -272,10 +268,10 @@ export default function AudiometryConditionedScreen({ navigation }: Props) {
     try {
       const item = new AudiometryTest();
       item.method = 'conditioned';
-      item.transducer = 'air';
+      item.transducer = 'soundfield'; // campo libre: sin discriminación de oído
       item.thresholds = a.thresholds;
-      item.ptaOD = a.ptaOD;
-      item.ptaOI = a.ptaOI;
+      item.ptaOD = null;
+      item.ptaOI = null;
       item.reliability = a.reliability;
       item.interpretation = interpretAudiometry(a.thresholds);
       item.notes = notes.trim();
@@ -285,7 +281,7 @@ export default function AudiometryConditionedScreen({ navigation }: Props) {
       item.evaluation = { id: activeEvaluation.id } as Evaluation;
 
       await createAudiometry(item);
-      showSuccessToast('Audiometría guardada', `PTA OD ${a.ptaOD ?? '—'} · PTA OI ${a.ptaOI ?? '—'} dB HL.`);
+      showSuccessToast('Audiometría guardada', `PTA campo libre ${a.ptaCL ?? '—'} dB HL.`);
       navigation.goBack();
     } catch {
       showErrorToast('Error al guardar', 'No se pudo registrar la audiometría. Inténtelo de nuevo.');
@@ -294,12 +290,11 @@ export default function AudiometryConditionedScreen({ navigation }: Props) {
 
   /* -------------------------------- render --------------------------------- */
 
-  const doneForActive = a.doneForEar(a.ear);
-  const doneFlags = FREQS.map(f => a.thresholds[a.ear][f] !== null);
+  const doneForActive = a.doneForEar('CL');
+  const doneFlags = FREQS.map(f => (a.thresholds.CL?.[f] ?? null) !== null);
   const stationLabels = FREQS.map(f => FREQ_LABEL[String(f)]);
-  const earWord = a.ear === 'OD' ? 'derecho' : 'izquierdo';
-  const sevOD = severityOf(a.ptaOD);
-  const sevOI = severityOf(a.ptaOI);
+  const sevCL = severityOf(a.ptaCL);
+  const needsReferral = phase === 'done' && a.thresholds.CL ? soundfieldNeedsReferral(a.thresholds.CL) : false;
 
   const whistleActive = a.playing || windowOpen.current;
 
@@ -326,19 +321,19 @@ export default function AudiometryConditionedScreen({ navigation }: Props) {
                   </Text>
                   <Box bg="$primary50" px="$2" py="$0.5" borderRadius="$full">
                     <Text size="2xs" weight="bold" color="$primary800" style={{ letterSpacing: 0.4 }}>
-                      AUTOMÁTICA
+                      CAMPO LIBRE
                     </Text>
                   </Box>
                 </HStack>
                 <Text size="xs" color="$textLight500">
-                  {patientName ?? 'El Tren del Sonido · Hughson-Westlake autónomo'}
+                  {patientName ?? 'El Tren del Sonido · cribado binaural sin auriculares'}
                 </Text>
               </VStack>
               {phase === 'test' || phase === 'done' ? (
                 <HStack space="xs" alignItems="center" bg="$white" borderRadius="$full" px="$3" py="$1.5" borderWidth={1} borderColor="$borderLight100">
                   <Text size="sm">🎫</Text>
                   <Text size="sm" weight="bold" color="$primary600">
-                    {a.stars}/8
+                    {a.stars}/4
                   </Text>
                 </HStack>
               ) : null}
@@ -391,12 +386,14 @@ export default function AudiometryConditionedScreen({ navigation }: Props) {
 
                 <Card bgColor="$primary0" borderRadius={18} borderWidth={1} borderColor="$primary100" p="$4">
                   <HStack space="sm" alignItems="flex-start">
-                    <Icon as={Headphones} size="sm" color="$primary600" style={{ marginTop: 2 }} />
+                    <Icon as={Volume2} size="sm" color="$primary600" style={{ marginTop: 2 }} />
                     <Text size="xs" color="$primary800" style={{ flex: 1, lineHeight: 18 }}>
-                      Para el profesional: tras un breve juego de práctica ({PRACTICE_HITS_NEEDED} aciertos con tonos
-                      claramente audibles), la prueba es autónoma. La app presenta los tonos con intervalos aleatorios y
-                      aplica Hughson-Westlake (−10 dB al acierto, +5 dB al fallo, umbral con 2 respuestas) en
-                      1000→2000→4000→500 Hz, primero oído derecho y después izquierdo.
+                      Para el profesional: cribado en CAMPO LIBRE (altavoz, sin auriculares y sin discriminación de
+                      oído). Tras un breve juego de práctica ({PRACTICE_HITS_NEEDED} aciertos con tonos claramente
+                      audibles), la prueba es autónoma: tonos con intervalos aleatorios y Hughson-Westlake (−10 dB al
+                      acierto, +5 dB al fallo, umbral con 2 respuestas) en 1000→2000→4000→500 Hz, en una sola pasada.
+                      El resultado aproxima la audición del mejor oído; ante indicios de hipoacusia, derive a un
+                      centro especializado.
                     </Text>
                   </HStack>
                 </Card>
@@ -467,7 +464,7 @@ export default function AudiometryConditionedScreen({ navigation }: Props) {
                 <Card bgColor="$white" borderRadius={22} p="$4">
                   <HStack justifyContent="space-between" alignItems="center" mb="$2">
                     <Text size="sm" weight="bold" color="$textLight900">
-                      El Tren del Sonido — oído {earWord}
+                      El Tren del Sonido — campo libre
                     </Text>
                     {a.playing ? (
                       <Box bg="$primary50" px="$2.5" py="$1" borderRadius="$full">
@@ -511,8 +508,8 @@ export default function AudiometryConditionedScreen({ navigation }: Props) {
                         SECUENCIADOR AUTOMÁTICO
                       </Text>
                       <Text size="xs" weight="semiBold" color="$textLight700" mt="$0.5" style={{ fontVariant: ['tabular-nums'] }}>
-                        {a.ear} · {typeof a.freq === 'number' ? `${FREQ_LABEL[String(a.freq)]} Hz` : '—'} · {a.db} dB HL
-                        {' · '}umbrales {a.stars}/8
+                        Campo libre · {typeof a.freq === 'number' ? `${FREQ_LABEL[String(a.freq)]} Hz` : '—'} · {a.db} dB HL
+                        {' · '}umbrales {a.stars}/4
                       </Text>
                     </VStack>
                     <HStack space="sm">
@@ -545,20 +542,44 @@ export default function AudiometryConditionedScreen({ navigation }: Props) {
                         ¡Prueba completada!
                       </Text>
                       <Text size="2xs" color="$success700">
-                        {a.stars}/8 umbrales confirmados · fiabilidad {a.reliability !== null ? `${a.reliability}%` : '—'}
+                        {a.stars}/4 umbrales confirmados · fiabilidad {a.reliability !== null ? `${a.reliability}%` : '—'}
                       </Text>
                     </VStack>
                   </HStack>
                 </Card>
 
+                {/* criterio de derivación del cribado */}
+                {needsReferral ? (
+                  <Card bgColor="$warning50" borderRadius={18} borderWidth={1} borderColor="$warning200" p="$4">
+                    <HStack space="sm" alignItems="flex-start">
+                      <Icon as={AlertTriangle} size="sm" color="$warning600" style={{ marginTop: 2 }} />
+                      <VStack style={{ flex: 1 }}>
+                        <Text size="sm" weight="bold" color="$warning800">
+                          Indicios de hipoacusia — derivar
+                        </Text>
+                        <Text size="xs" color="$warning800" style={{ lineHeight: 17 }}>
+                          El cribado en campo libre sugiere una audición por debajo de lo esperado
+                          {a.ptaCL !== null ? ` (PTA ${a.ptaCL} dB HL)` : ' (respuestas insuficientes)'}. Derive a un
+                          centro especializado (ORL / audiología) para una audiometría diagnóstica con auriculares.
+                        </Text>
+                      </VStack>
+                    </HStack>
+                  </Card>
+                ) : (
+                  <Card bgColor="$primary0" borderRadius={18} borderWidth={1} borderColor="$primary100" p="$4">
+                    <Text size="xs" color="$primary800" style={{ lineHeight: 17 }}>
+                      Cribado dentro de la normalidad. Recuerde: el campo libre estima la audición del mejor oído y
+                      no descarta una pérdida unilateral; ante dudas clínicas, derive igualmente a un centro
+                      especializado.
+                    </Text>
+                  </Card>
+                )}
+
                 {/* audiograma */}
                 <Card bgColor="$white" borderRadius={20} p="$4">
                   <HStack justifyContent="space-between" alignItems="center" mb="$2">
-                    <Text size="sm" weight="bold" color="$textLight900">Audiograma clínico</Text>
-                    <HStack space="md">
-                      <Text size="2xs" style={{ color: '#E63535' }}>● OD</Text>
-                      <Text size="2xs" style={{ color: '#1E8049' }}>✕ OI</Text>
-                    </HStack>
+                    <Text size="sm" weight="bold" color="$textLight900">Audiograma de cribado</Text>
+                    <Text size="2xs" style={{ color: '#0066B3' }}>Ⓢ Campo libre (binaural)</Text>
                   </HStack>
                   <Box h={250} borderRadius={12} borderWidth={1} borderColor="$borderLight100" bg="$backgroundLight50">
                     <Audiogram thresholds={a.thresholds} cursor={null} cursorColor="#0066B3" />
@@ -570,32 +591,25 @@ export default function AudiometryConditionedScreen({ navigation }: Props) {
                   <Text size="sm" weight="bold" color="$textLight900" mb="$2">Umbrales registrados · dB HL</Text>
                   <VStack space="xs">
                     <HStack>
-                      <Text size="xs" color="$textLight400" style={{ width: 50 }}>Oído</Text>
+                      <Text size="xs" color="$textLight400" style={{ width: 90 }}>Canal</Text>
                       {FREQS.map(f => (
                         <Text key={f} size="xs" color="$textLight400" style={{ flex: 1, textAlign: 'center' }}>{FREQ_LABEL[String(f)]}</Text>
                       ))}
                     </HStack>
-                    {(['OD', 'OI'] as const).map(e => (
-                      <HStack key={e} alignItems="center">
-                        <Text size="sm" weight="bold" style={{ width: 50, color: e === 'OD' ? '#E63535' : '#1E8049' }}>{e}</Text>
-                        {FREQS.map(f => (
-                          <Text key={f} size="sm" weight="semiBold" color="$textLight700" style={{ flex: 1, textAlign: 'center', fontVariant: ['tabular-nums'] }}>
-                            {a.thresholds[e][f] ?? '—'}
-                          </Text>
-                        ))}
-                      </HStack>
-                    ))}
+                    <HStack alignItems="center">
+                      <Text size="sm" weight="bold" style={{ width: 90, color: '#0066B3' }}>Campo libre</Text>
+                      {FREQS.map(f => (
+                        <Text key={f} size="sm" weight="semiBold" color="$textLight700" style={{ flex: 1, textAlign: 'center', fontVariant: ['tabular-nums'] }}>
+                          {a.thresholds.CL?.[f] ?? '—'}
+                        </Text>
+                      ))}
+                    </HStack>
                   </VStack>
                   <HStack space="sm" mt="$3">
                     <Box flex={1} bg="$backgroundLight50" borderRadius={12} p="$2.5" alignItems="center">
-                      <Text size="2xs" color="$textLight400">PTA OD</Text>
-                      <Text size="lg" weight="bold" style={{ color: '#E63535' }}>{a.ptaOD ?? '—'}</Text>
-                      {sevOD ? <Text size="2xs" color="$textLight500">{sevOD.label}</Text> : null}
-                    </Box>
-                    <Box flex={1} bg="$backgroundLight50" borderRadius={12} p="$2.5" alignItems="center">
-                      <Text size="2xs" color="$textLight400">PTA OI</Text>
-                      <Text size="lg" weight="bold" style={{ color: '#1E8049' }}>{a.ptaOI ?? '—'}</Text>
-                      {sevOI ? <Text size="2xs" color="$textLight500">{sevOI.label}</Text> : null}
+                      <Text size="2xs" color="$textLight400">PTA CAMPO LIBRE</Text>
+                      <Text size="lg" weight="bold" style={{ color: '#0066B3' }}>{a.ptaCL ?? '—'}</Text>
+                      {sevCL ? <Text size="2xs" color="$textLight500">{sevCL.label}</Text> : null}
                     </Box>
                     <Box flex={1} bg="$backgroundLight50" borderRadius={12} p="$2.5" alignItems="center">
                       <Text size="2xs" color="$textLight400">FIABILIDAD</Text>
@@ -604,6 +618,10 @@ export default function AudiometryConditionedScreen({ navigation }: Props) {
                       </Text>
                     </Box>
                   </HStack>
+                  <Text size="2xs" color="$textLight400" mt="$2" style={{ lineHeight: 15 }}>
+                    Estimación binaural en campo libre (mejor oído), sin discriminación entre oído derecho e
+                    izquierdo. Niveles orientativos sin calibración con equipo patrón.
+                  </Text>
                 </Card>
 
                 {/* evaluador + guardar */}

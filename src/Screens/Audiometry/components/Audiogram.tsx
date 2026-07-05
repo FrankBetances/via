@@ -15,17 +15,18 @@ interface Props {
 
 /**
  * Audiograma clínico (vía aérea) con bandas de severidad, símbolos
- * normalizados (O = OD, X = OI) y cursor de la presentación en curso.
- * Reutilizado por la pantalla infantil y la condicionada.
+ * normalizados (O = OD, X = OI, S = campo libre) y cursor de la presentación
+ * en curso. Reutilizado por la pantalla infantil y la condicionada.
  */
 export default function Audiogram({ thresholds, cursor, cursorColor = '#FF7F00' }: Props) {
-  const pointsOf = (ear: 'OD' | 'OI') =>
-    FREQS.map(f => ({ f, v: thresholds[ear][f] }))
+  const pointsOf = (chan: 'OD' | 'OI' | 'CL') =>
+    FREQS.map(f => ({ f, v: thresholds[chan]?.[f] ?? null }))
       .filter(p => p.v !== null)
       .map(p => ({ f: p.f, x: X[p.f], y: yOf(p.v as number) }));
 
   const ptsOD = pointsOf('OD');
   const ptsOI = pointsOf('OI');
+  const ptsCL = thresholds.CL ? pointsOf('CL') : [];
   const pathOf = (pts: { x: number; y: number }[]) =>
     pts.length > 1 ? 'M' + pts.map(p => `${p.x},${p.y}`).join(' L') : '';
 
@@ -78,6 +79,17 @@ export default function Audiogram({ thresholds, cursor, cursorColor = '#FF7F00' 
         <G key={`oi${p.f}`}>
           <Line x1={p.x - 5} y1={p.y - 5} x2={p.x + 5} y2={p.y + 5} stroke="#1E8049" strokeWidth={2.2} />
           <Line x1={p.x + 5} y1={p.y - 5} x2={p.x - 5} y2={p.y + 5} stroke="#1E8049" strokeWidth={2.2} />
+        </G>
+      ))}
+
+      {/* CL · campo libre (símbolo S azul, convención de sound-field) */}
+      {pathOf(ptsCL) ? <Path d={pathOf(ptsCL)} fill="none" stroke="#0066B3" strokeWidth={2.2} /> : null}
+      {ptsCL.map(p => (
+        <G key={`cl${p.f}`}>
+          <Circle cx={p.x} cy={p.y} r={7} fill="#fff" stroke="#0066B3" strokeWidth={2} />
+          <SvgText x={p.x} y={p.y + 3.2} fontSize={9} fontWeight="bold" fill="#0066B3" textAnchor="middle">
+            S
+          </SvgText>
         </G>
       ))}
     </Svg>

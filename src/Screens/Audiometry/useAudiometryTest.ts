@@ -3,7 +3,7 @@ import {
   AudiometryThresholds,
   Ear,
 } from '@/Models/Audiometry/AudiometryTest';
-import { cloneThresholds, emptyThresholds, FREQS, pta } from './audiometryResult';
+import { cloneThresholds, emptySoundfieldThresholds, emptyThresholds, FREQS, pta } from './audiometryResult';
 
 /* -------------------------------------------------------------------------- */
 /*  Adaptador de audio (tono puro calibrado).                                  */
@@ -29,8 +29,11 @@ import { cloneThresholds, emptyThresholds, FREQS, pta } from './audiometryResult
 
 export type ToneTarget = number | 'amb' | 'tren';
 
+/** Canal de presentación: oído (auriculares) o `CL` = campo libre (pan centrado). */
+export type ToneChannel = Ear | 'CL';
+
 export interface AudiometryToneAdapter {
-  playTone: (freq: ToneTarget, dbHL: number, ear: Ear) => void;
+  playTone: (freq: ToneTarget, dbHL: number, channel: ToneChannel) => void;
   stop: () => void;
 }
 
@@ -45,6 +48,14 @@ interface TallyEar {
   [freq: number]: number;
 }
 
+export interface AudiometryTestOptions {
+  /**
+   * Campo libre: prueba binaural por altavoz, sin discriminación de oído.
+   * Los umbrales se registran en el canal `CL` y el tono se emite sin paneo.
+   */
+  soundfield?: boolean;
+}
+
 export interface AudiometryState {
   ear: Ear;
   freq: ToneTarget;
@@ -56,21 +67,30 @@ export interface AudiometryState {
  * Hook de la audiometría tonal condicionada (Hughson-Westlake guiado).
  * Comparte el motor clínico entre la pantalla infantil (instrumentos) y la
  * condicionada (tren). El refuerzo visual lo añade cada pantalla.
+ *
+ * Con `{ soundfield: true }` la prueba se realiza en campo libre: una sola
+ * pasada binaural (canal `CL`, sin paneo); `ear` deja de intervenir.
  */
-export function useAudiometryTest() {
+export function useAudiometryTest(options: AudiometryTestOptions = {}) {
+  const soundfield = !!options.soundfield;
   const [ear, setEar] = useState<Ear>('OD');
   const [freq, setFreq] = useState<ToneTarget>(1000);
   const [db, setDb] = useState(40);
   const [playing, setPlaying] = useState(false);
-  const [thresholds, setThresholds] = useState<AudiometryThresholds>(() => emptyThresholds());
+  const [thresholds, setThresholds] = useState<AudiometryThresholds>(() =>
+    soundfield ? emptySoundfieldThresholds() : emptyThresholds(),
+  );
   const [stars, setStars] = useState(0);
   const [presentations, setPresentations] = useState(0);
   const [consistent, setConsistent] = useState(0);
   const [lastConfirmed, setLastConfirmed] = useState<{ ear: Ear; freq: number; db: number } | null>(null);
 
+  // Canal efectivo de registro/presentación (campo libre ignora `ear`).
+  const channel: ToneChannel = soundfield ? 'CL' : ear;
+
   // tallies internos del algoritmo (no necesitan re-render)
-  const minHeard = useRef<Record<Ear, TallyEar>>({ OD: {}, OI: {} });
-  const heardCount = useRef<Record<Ear, TallyEar>>({ OD: {}, OI: {} });
+  const minHeard = useRef<Record<ToneChannel, TallyEar>>({ OD: {}, OI: {}, CL: {} });
+  const heardCount = useRef<Record<ToneChannel, TallyEar>>({ OD: {}, OI: {}, CL: {} });
   const stopTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const stop = useCallback(() => {
@@ -85,12 +105,12 @@ export function useAudiometryTest() {
   const playStimulus = useCallback(() => {
     if (stopTimer.current) clearTimeout(stopTimer.current);
     setPlaying(true);
-    toneAdapter?.playTone(freq, db, ear);
+    toneAdapter?.playTone(freq, db, channel);
     stopTimer.current = setTimeout(() => {
       toneAdapter?.stop();
       setPlaying(false);
     }, typeof freq === 'number' ? TONE_MS : 2000);
-  }, [freq, db, ear]);
+  }, [freq, db, channel]);
 
   /** Registra una respuesta (oyó el tono): aplica el descenso/confirmación HW. */
   const responded = useCallback((): { confirmed: boolean } => {
@@ -99,20 +119,20 @@ export function useAudiometryTest() {
     setPresentations(p => p + 1);
     setConsistent(c => c + 1);
 
-    const prevMin = minHeard.current[ear][freq] ?? null;
+    const prevMin = minHeard.current[channel][freq] ?? null;
     if (prevMin === null || db < prevMin) {
-      minHeard.current[ear][freq] = db;
-      heardCount.current[ear][freq] = 1;
+      minHeard.current[channel][freq] = db;
+      heardCount.current[channel][freq] = 1;
     } else if (db === prevMin) {
-      heardCount.current[ear][freq] = (heardCount.current[ear][freq] ?? 0) + 1;
+      heardCount.current[channel][freq] = (heardCount.current[channel][freq] ?? 0) + 1;
     }
 
-    const already = thresholds[ear][freq] !== null;
-    if (!already && (heardCount.current[ear][freq] ?? 0) >= 2) {
-      const level = minHeard.current[ear][freq]!;
+    const already = (thresholds[channel]?.[freq] ?? null) !== null;
+    if (!already && (heardCount.current[channel][freq] ?? 0) >= 2) {
+      const level = minHeard.current[channel][freq]!;
       setThresholds(t => {
         const next = cloneThresholds(t);
-        next[ear][freq] = level;
+        next[channel]![freq] = level;
         return next;
       });
       setStars(s => s + 1);
@@ -122,7 +142,7 @@ export function useAudiometryTest() {
       setDb(d => Math.max(20, d - 10)); // desciende 10 dB
     }
     return { confirmed };
-  }, [ear, freq, db, thresholds]);
+  }, [ear, channel, freq, db, thresholds]);
 
   /** Registra una no-respuesta: sube 5 dB (HW). */
   const noResponse = useCallback(() => {
@@ -133,30 +153,33 @@ export function useAudiometryTest() {
 
   const reset = useCallback(() => {
     stop();
-    minHeard.current = { OD: {}, OI: {} };
-    heardCount.current = { OD: {}, OI: {} };
+    minHeard.current = { OD: {}, OI: {}, CL: {} };
+    heardCount.current = { OD: {}, OI: {}, CL: {} };
     setEar('OD');
     setFreq(1000);
     setDb(40);
-    setThresholds(emptyThresholds());
+    setThresholds(soundfield ? emptySoundfieldThresholds() : emptyThresholds());
     setStars(0);
     setPresentations(0);
     setConsistent(0);
     setLastConfirmed(null);
-  }, [stop]);
+  }, [stop, soundfield]);
 
   const ptaOD = pta(thresholds.OD);
   const ptaOI = pta(thresholds.OI);
+  const ptaCL = thresholds.CL ? pta(thresholds.CL) : null;
   const reliability = presentations > 0 ? Math.round((consistent / presentations) * 100) : null;
   const isControl = typeof freq !== 'number';
-  const currentThreshold = isControl ? null : thresholds[ear][freq as number];
-  const heardAtMin = isControl ? null : minHeard.current[ear][freq as number] ?? null;
-  const heardTally = isControl ? 0 : heardCount.current[ear][freq as number] ?? 0;
-  const doneForEar = (e: Ear) => FREQS.filter(f => thresholds[e][f] !== null).length;
+  const currentThreshold = isControl ? null : thresholds[channel]?.[freq as number] ?? null;
+  const heardAtMin = isControl ? null : minHeard.current[channel][freq as number] ?? null;
+  const heardTally = isControl ? 0 : heardCount.current[channel][freq as number] ?? 0;
+  const doneForEar = (e: ToneChannel) => FREQS.filter(f => (thresholds[e]?.[f] ?? null) !== null).length;
 
   return {
     // estado
     ear,
+    channel,
+    soundfield,
     freq,
     db,
     playing,
@@ -166,6 +189,7 @@ export function useAudiometryTest() {
     reliability,
     ptaOD,
     ptaOI,
+    ptaCL,
     isControl,
     currentThreshold,
     heardAtMin,

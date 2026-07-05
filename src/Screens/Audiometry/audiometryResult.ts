@@ -23,10 +23,20 @@ export const emptyThresholds = (): AudiometryThresholds => ({
   OI: { 500: null, 1000: null, 2000: null, 4000: null },
 });
 
+/** Umbrales vacíos para el cribado en campo libre (canal binaural `CL`). */
+export const emptySoundfieldThresholds = (): AudiometryThresholds => ({
+  ...emptyThresholds(),
+  CL: { 500: null, 1000: null, 2000: null, 4000: null },
+});
+
 export const cloneThresholds = (t: AudiometryThresholds): AudiometryThresholds => ({
   OD: { ...t.OD },
   OI: { ...t.OI },
+  ...(t.CL ? { CL: { ...t.CL } } : {}),
 });
+
+/** ¿La prueba se realizó en campo libre (sin discriminación de oído)? */
+export const isSoundfield = (t: AudiometryThresholds): boolean => !!t.CL;
 
 /** PTA = media de 500·1000·2000·4000 Hz (umbrales determinados). */
 export const pta = (ear: Record<number, number | null>): number | null => {
@@ -59,7 +69,42 @@ export const SEVERITY_BANDS = [
   { from: 60, to: 90, color: '#FBE6E2', label: 'SEVERA' },
 ];
 
+/**
+ * ¿Se recomienda derivar a un centro especializado? En campo libre el cribado
+ * solo aproxima la audición: se deriva si el PTA supera 20 dB HL o si alguna
+ * frecuencia quedó sin umbral (sin respuesta al nivel máximo de la prueba).
+ */
+export const soundfieldNeedsReferral = (cl: Record<number, number | null>): boolean => {
+  const p = pta(cl);
+  if (p === null || p > 20) return true;
+  return FREQS.some(f => cl[f] === null || cl[f]! > 20);
+};
+
+const interpretSoundfield = (cl: Record<number, number | null>): string => {
+  const p = pta(cl);
+  const s = severityOf(p);
+  const missing = FREQS.filter(f => cl[f] === null);
+  const parts: string[] = [];
+  if (p === null) {
+    parts.push('Campo libre: sin respuestas suficientes para estimar la audición');
+  } else {
+    parts.push(`Campo libre (binaural): PTA ${p} dB HL (${s?.label.toLowerCase()})`);
+  }
+  if (missing.length && p !== null) {
+    parts.push(`sin respuesta al nivel máximo en ${missing.map(f => FREQ_LABEL[String(f)]).join(', ')} Hz`);
+  }
+  let text = parts.join(' · ') + '.';
+  if (soundfieldNeedsReferral(cl)) {
+    text +=
+      ' Ante indicios de hipoacusia, se recomienda derivación a un centro especializado (ORL/audiología) para audiometría diagnóstica.';
+  }
+  text +=
+    ' Cribado orientativo sin discriminación de oído: estima el mejor oído y no descarta una pérdida unilateral.';
+  return text;
+};
+
 export const interpretAudiometry = (thresholds: AudiometryThresholds): string => {
+  if (thresholds.CL) return interpretSoundfield(thresholds.CL);
   const od = pta(thresholds.OD);
   const oi = pta(thresholds.OI);
   const parts: string[] = [];

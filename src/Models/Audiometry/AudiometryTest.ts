@@ -13,16 +13,24 @@ import { Exclude, Transform, Type } from 'class-transformer';
 export type AudiometryMethod = 'play' | 'conditioned';
 export type Ear = 'OD' | 'OI';
 
-/** Umbrales por oído y frecuencia (Hz). `null` = no determinado. */
+/** Vía de presentación: 'air' (auriculares) | 'soundfield' (campo libre). */
+export type AudiometryTransducer = 'air' | 'soundfield';
+
+/**
+ * Umbrales por canal y frecuencia (Hz). `null` = no determinado.
+ * `CL` (campo libre) se usa en el cribado sin discriminación de oído: estima
+ * la audición binaural (mejor oído) con el altavoz del dispositivo.
+ */
 export interface AudiometryThresholds {
   OD: Record<number, number | null>;
   OI: Record<number, number | null>;
+  CL?: Record<number, number | null>;
 }
 
 export interface AudiometryTestDTO {
   id: number;
   method: AudiometryMethod; // 'play' (juego de instrumentos) | 'conditioned' (tren / CRA)
-  transducer: string; // 'air'
+  transducer: string; // 'air' | 'soundfield'
   thresholds: AudiometryThresholds;
   ptaOD: number | null;
   ptaOI: number | null;
