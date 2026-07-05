@@ -1,55 +1,115 @@
-# OSX
-.DS_Store
+# ==========================================================================
+# VIA+ — .gitignore (React Native 0.80 / TypeScript / Android + iOS)
+# ==========================================================================
 
-# Xcode
+# --- OSX / OS ---
+.DS_Store
+.AppleDouble
+.LSOverride
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+*~
+
+# --- Xcode / iOS ---
 build/
 *.pbxuser
+!default.pbxuser
 *.mode1v3
+!default.mode1v3
 *.mode2v3
+!default.mode2v3
 *.perspectivev3
+!default.perspectivev3
 .build/
 *.xcuserstate
-ios/Pods/
+*.xccheckout
+*.moved-aside
+xcuserdata/
+DerivedData/
+project.xcworkspace
+ios/.xcode.env.local
 ios/build/
 
-# Android/IntelliJ
+# --- CocoaPods ---
+ios/Pods/
+ios/Podfile.lock
+
+# --- Ruby / Bundler / Fastlane ---
+.bundle/
+vendor/bundle/
+**/fastlane/report.xml
+**/fastlane/Preview.html
+**/fastlane/screenshots
+**/fastlane/test_output
+
+# --- Android / Gradle / IntelliJ ---
 android/build/
 android/app/build/
 android/.gradle/
 android/local.properties
+android/.cxx/
+android/.kotlin/
+android/app/.cxx/
 *.iml
+*.hprof
 .idea/
 .gradle/
+local.properties
 
-# Android signing — nunca commitear el keystore real ni sus credenciales
+# --- Android signing — nunca commitear el keystore real ni sus credenciales ---
 *.keystore
 *.jks
 !android/app/debug.keystore
 android/keystore.properties
 
-# Node
+# --- Node ---
 node_modules/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+.pnp.*
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/sdks
+!.yarn/versions
 
-# Metro / RN
+# --- Metro / React Native ---
 .metro-health-check*
 *.jsbundle
+.expo/
 
-# Testing
+# --- Watchman ---
+.watchmanconfig
+
+# --- Testing / coverage ---
 coverage/
 
-# Env
+# --- Environment / secrets ---
 .env
-.env.local
+.env.*
+!.env.example
 
-# TypeScript
+# --- Sentry — el token de auth nunca debe subirse ---
+.sentryclirc
+.env.sentry-build-plugin
+
+# --- TypeScript ---
 *.tsbuildinfo
 
-# VIA+ local SQLite DB artifacts
+# --- VIA+ local SQLite DB artifacts ---
 *.db
 *.sqlite
+*.sqlite3
+*.db-journal
 
-# Editors
+# --- Logs / temp ---
+*.log
+*.tmp
+.cache/
+
+# --- Editors ---
 .vscode/
+!.vscode/extensions.json
