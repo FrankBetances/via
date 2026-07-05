@@ -254,8 +254,8 @@ clinical_sessions:
 | **Persistencia local** | TypeORM 0.3.27 + `react-native-nitro-sqlite` (SQLite) | Offline-first; `synchronize: true`; repositorios singleton |
 | **Navegación** | React Navigation v7 (Native Stack + Bottom Tabs) | Flujo Home → Paciente → Evaluación → Módulo → Resultado |
 | **Formularios** | react-hook-form + Yup | Validación de cuestionarios y formularios clínicos |
-| **Síntesis de tono + DSP de audio** | `react-native-audio-api` (Software Mansion, sobre Oboe en Android) | Tonos puros (audiometrías) y captura/análisis PCM (voz) |
-| **Captura de nivel sonoro** | `react-native-live-audio-stream` + `buffer` | Sonómetro Ambiental (RMS → dBFS → dB) |
+| **Síntesis de tono + DSP de audio** | `react-native-audio-api` (Software Mansion, sobre Oboe en Android) | Tonos puros (audiometrías) y captura/análisis PCM (voz y sonómetro) |
+| **Captura de nivel sonoro** | `react-native-audio-api` (`AudioRecorder`) | Sonómetro Ambiental (RMS → dBFS → dB) |
 | **Grabación/reproducción + voz** | `react-native-audio-recorder-player` · `@react-native-voice/voice` · `react-native-tts` | Articulación T.A.R. (modelo hablado, repetición, auto-evaluación) |
 | **Permisos runtime** | `react-native-permissions` | Micrófono, Bluetooth, cámara, unificados Android/iOS |
 | **Pulsioximetría BLE** | `react-native-ble-plx` (perfil Pulse Oximeter 0x1822) | Test de Disfagia MECV-V |
@@ -372,7 +372,7 @@ npm run test:coverage
 
 - **Dominio:** Gate de prerrequisito de sala
 - **Objetivo:** Medir ruido de fondo y solo permitir continuar si está bajo umbral (45 dB por defecto) y la checklist está completa
-- **Nativo:** captura real de micrófono (`react-native-live-audio-stream` + `buffer`); degrada a modo demo solo sin permiso/lib
+- **Nativo:** captura real de micrófono (`react-native-audio-api`: `AudioRecorder`); sin micrófono/permiso muestra error explícito (sin datos simulados)
 - **Datos:** no persiste — navega directamente a `GameMenu`
 
 ### 4 — Audiometría Infantil 🔊 (`Audiometry`) · *paquete base*
