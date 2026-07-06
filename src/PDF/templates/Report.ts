@@ -1,6 +1,7 @@
 import { PDFDocument, StandardFonts } from 'pdf-lib';
 import { blocks } from '@/PDF/blocks';
 import { Evaluation } from '@/Models/Evaluation/Evaluation';
+import { InformedConsentRepository } from '@/Repositories/InformedConsentRepository';
 import { ClinicalAssessmentRepository } from '@/Repositories/ClinicalAssessmentRepository';
 import { ScreeningRepository } from '@/Repositories/ScreeningRepository';
 import { AudiometryRepository } from '@/Repositories/AudiometryRepository';
@@ -49,6 +50,35 @@ export async function generateReport({ evaluation }: GenerateReportOptions): Pro
     size: 12,
     font: fonts.regular,
   });
+
+  // Constancia del consentimiento informado (trazabilidad legal del informe).
+  try {
+    const consent = await InformedConsentRepository.getLatestByEvaluation(evaluation.id);
+    if (consent) {
+      const signed = new Date(consent.signedAt);
+      const dateStr = `${String(signed.getDate()).padStart(2, '0')}-${String(signed.getMonth() + 1).padStart(2, '0')}-${signed.getFullYear()}`;
+      const signerRole =
+        consent.signerType === 'patient'
+          ? 'el propio paciente'
+          : consent.signerType === 'guardian'
+            ? `su ${consent.signerRelation || 'tutor/a legal'}`
+            : `su ${consent.signerRelation || 'representante'} (${consent.incapacityReason || 'incapacidad para firmar'})`;
+      cover.drawText(
+        `Consentimiento informado v${consent.consentVersion} firmado el ${dateStr} por ${consent.signerName}, ${signerRole}.`,
+        {
+          x: 48,
+          y: cover.getSize().height - 135,
+          size: 10,
+          font: fonts.regular,
+          maxWidth: cover.getSize().width - 96,
+          lineHeight: 14,
+        },
+      );
+    }
+  } catch (e) {
+    // El informe no debe fallar por no poder leer el consentimiento.
+    console.warn('VIA+: no se pudo incluir el consentimiento en el informe', e);
+  }
 
   // Module-specific report sections: una página por resultado de módulo
   // asociado a la evaluación, en el orden del Contrato de Compilación §2.

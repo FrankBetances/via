@@ -64,6 +64,18 @@ export class EvaluationRepository {
     }
   }
 
+  /**
+   * Marca el consentimiento como firmado con un UPDATE parcial de una sola
+   * columna. Deliberadamente NO usa `save()` (cargaría/reescribiría la fila
+   * completa con sus relaciones eager, la vía donde se han visto cuelgues del
+   * driver; ver Helpers/dbWrite.ts).
+   */
+  static async markConsentSigned(evaluationId: number, signedAt: Date): Promise<void> {
+    const instance: EvaluationRepository = this.getInstance();
+    const repository: Repository<Evaluation> = await instance.getRepository();
+    await repository.update(evaluationId, { consentSignedAt: signedAt });
+  }
+
   static async getEvaluationById(id: number): Promise<Evaluation | null> {
     const instance: EvaluationRepository = this.getInstance();
     try {

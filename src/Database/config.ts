@@ -8,6 +8,7 @@ import { MedicalCenter } from '@/Models/MedicalCenter/MedicalCenter';
 import { Media } from '@/Models/Media/Media';
 import { Patient } from '@/Models/Patient/Patient';
 import { Evaluation } from '@/Models/Evaluation/Evaluation';
+import { InformedConsent } from '@/Models/InformedConsent/InformedConsent';
 import { GameTest } from '@/Models/GameTest/GameTest';
 import { ClinicalAssessment } from '@/Models/ClinicalAssessment/ClinicalAssessment';
 import { Screening } from '@/Models/Screening/Screening';
@@ -50,6 +51,7 @@ export const AppDataSource = new DataSource({
     Media,
     Patient,
     Evaluation,
+    InformedConsent,
     GameTest,
 
     // MODULE ENTITIES
