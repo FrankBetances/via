@@ -1,8 +1,8 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { Pressable } from 'react-native';
+import { Pressable, Vibration } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { Box, Card, Center, HStack, Icon, Input, InputField, ScrollView, VStack } from '@gluestack-ui/themed';
-import { AlertTriangle, Bell, Pause, Play, RotateCcw, Save, Sparkles, Train, Volume2 } from 'lucide-react-native';
+import { AlertTriangle, Pause, Play, RotateCcw, Save, Sparkles, Train, Volume2 } from 'lucide-react-native';
 
 import { Button, Content, Header, Text } from '@/Components/Common';
 import RadialBackground from '@/Components/Themed/RadialBackground';
@@ -23,6 +23,7 @@ import {
   useAudiometryTest,
 } from '@/Screens/Audiometry';
 import TrainScene from './components/TrainScene';
+import WhistleButton from './components/WhistleButton';
 
 /* -------------------------------------------------------------------------- */
 /*  Audiometría condicionada AUTOMÁTICA en CAMPO LIBRE — «El Tren del Sonido»  */
@@ -100,13 +101,22 @@ export default function AudiometryConditionedScreen({ navigation }: Props) {
 
   useEffect(() => () => clearTimers(), [clearTimers]);
 
+  /**
+   * Recompensa inmediata al acierto (refuerzo del condicionamiento): muñeco
+   * que se ilumina + confeti + tren en marcha con vapor + vibración háptica.
+   */
   const flashCelebrate = useCallback(() => {
     setChugging(true);
     setCelebrate(true);
+    try {
+      Vibration.vibrate(150);
+    } catch {
+      /* sin vibración en este dispositivo */
+    }
     setTimeout(() => {
       setChugging(false);
       setCelebrate(false);
-    }, 1500);
+    }, 1900);
   }, []);
 
   const flashWarn = useCallback(() => {
@@ -423,7 +433,16 @@ export default function AudiometryConditionedScreen({ navigation }: Props) {
                       </Text>
                     </Box>
                   </HStack>
-                  <TrainScene progress={Math.min(3, practiceHits)} stationLabels={['¡Hola!', 'Práctica', '¡Casi!', '¡Listo!']} doneFlags={[practiceHits > 0, practiceHits > 1, practiceHits > 2, false]} chugging={chugging} celebrate={celebrate} />
+                  {/* Condicionamiento: mientras suena el tono el tren "silba" a la
+                      vista (vapor, notas, faro) para enseñar sonido → silbato. */}
+                  <TrainScene
+                    progress={Math.min(3, practiceHits)}
+                    stationLabels={['¡Hola!', 'Práctica', '¡Casi!', '¡Listo!']}
+                    doneFlags={[practiceHits > 0, practiceHits > 1, practiceHits > 2, false]}
+                    chugging={chugging}
+                    celebrate={celebrate}
+                    stimulusVisual={whistleActive}
+                  />
                   <Center mt="$3">
                     <Text size="sm" weight="semiBold" color="$textLight600" style={{ textAlign: 'center' }}>
                       {practiceHits >= PRACTICE_HITS_NEEDED
@@ -435,17 +454,12 @@ export default function AudiometryConditionedScreen({ navigation }: Props) {
                   </Center>
                 </Card>
 
-                <Pressable onPress={onWhistle}>
-                  <Center py="$6" borderRadius={24} bg={whistleActive ? '$success600' : '$primary600'}>
-                    <Icon as={Bell} size="xl" color="$white" />
-                    <Text size="lg" weight="bold" color="$white" mt="$1">
-                      ¡Toca el silbato!
-                    </Text>
-                    <Text size="xs" color="$white" style={{ opacity: 0.9 }}>
-                      Pulsa cuando oigas el tren
-                    </Text>
-                  </Center>
-                </Pressable>
+                <WhistleButton
+                  onPress={onWhistle}
+                  highlight={whistleActive}
+                  label="¡Toca el silbato!"
+                  sublabel="Pulsa cuando oigas el tren"
+                />
                 {warn ? (
                   <Center>
                     <Box bg="$error50" px="$4" py="$2" borderRadius={12}>
@@ -466,30 +480,38 @@ export default function AudiometryConditionedScreen({ navigation }: Props) {
                     <Text size="sm" weight="bold" color="$textLight900">
                       El Tren del Sonido — campo libre
                     </Text>
-                    {a.playing ? (
-                      <Box bg="$primary50" px="$2.5" py="$1" borderRadius="$full">
-                        <Text size="2xs" weight="bold" color="$primary700">SILBANDO…</Text>
-                      </Box>
-                    ) : paused ? (
+                    {paused ? (
                       <Box bg="$warning50" px="$2.5" py="$1" borderRadius="$full">
                         <Text size="2xs" weight="bold" color="$warning700">EN PAUSA</Text>
                       </Box>
-                    ) : null}
+                    ) : (
+                      <Box bg="$primary50" px="$2.5" py="$1" borderRadius="$full">
+                        <Text size="2xs" weight="bold" color="$primary700">EN MARCHA</Text>
+                      </Box>
+                    )}
                   </HStack>
-                  <TrainScene progress={doneForActive} stationLabels={stationLabels} doneFlags={doneFlags} chugging={chugging} celebrate={celebrate} />
+                  {/* Prueba real: SIN `stimulusVisual` — ninguna señal visual puede
+                      delatar el tono o el niño respondería a la vista y no al
+                      oído. El balanceo `idle` mantiene la atención sin dar pistas;
+                      la recompensa (muñeco + confeti) llega solo tras el acierto. */}
+                  <TrainScene
+                    progress={doneForActive}
+                    stationLabels={stationLabels}
+                    doneFlags={doneFlags}
+                    chugging={chugging}
+                    celebrate={celebrate}
+                    idle={!paused}
+                  />
                 </Card>
 
-                <Pressable onPress={onWhistle} disabled={paused}>
-                  <Center py="$6" borderRadius={24} bg={paused ? '$backgroundLight300' : whistleActive ? '$success600' : '$primary600'}>
-                    <Icon as={Bell} size="xl" color="$white" />
-                    <Text size="lg" weight="bold" color="$white" mt="$1">
-                      ¡Toca el silbato!
-                    </Text>
-                    <Text size="xs" color="$white" style={{ opacity: 0.9 }}>
-                      Pulsa cuando oigas el tren
-                    </Text>
-                  </Center>
-                </Pressable>
+                {/* Aspecto CONSTANTE durante la prueba (sin `highlight`): el color
+                    del botón no debe cambiar con el estímulo. */}
+                <WhistleButton
+                  onPress={onWhistle}
+                  disabled={paused}
+                  label="¡Toca el silbato!"
+                  sublabel="Pulsa cuando oigas el tren"
+                />
                 {warn ? (
                   <Center>
                     <Box bg="$error50" px="$4" py="$2" borderRadius={12}>

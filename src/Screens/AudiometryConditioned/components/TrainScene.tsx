@@ -9,6 +9,15 @@ interface Props {
   doneFlags: boolean[]; // por estación
   chugging: boolean;
   celebrate: boolean;
+  /**
+   * Refuerzo visual DEL ESTÍMULO (vapor, notas, faro encendido) mientras suena
+   * el tono. SOLO para la fase de práctica/condicionamiento: en la prueba real
+   * no debe haber ninguna señal visual ligada al estímulo o el niño respondería
+   * a la vista y no al oído (invalidaría el umbral).
+   */
+  stimulusVisual?: boolean;
+  /** Balanceo sutil continuo para mantener la atención sin dar pistas (prueba). */
+  idle?: boolean;
 }
 
 const STATION_PCT = [0.16, 0.38, 0.6, 0.82];
@@ -33,12 +42,271 @@ const Wheel = ({ size, spin }: { size: number; spin: Animated.AnimatedInterpolat
   </Animated.View>
 );
 
+/* ------------------------- vapor de la chimenea ---------------------------- */
+
+const SteamPuff = ({
+  active,
+  delay,
+  left,
+  size,
+}: {
+  active: boolean;
+  delay: number;
+  left: number;
+  size: number;
+}) => {
+  const v = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    let loop: Animated.CompositeAnimation | null = null;
+    if (active) {
+      v.setValue(0);
+      loop = Animated.loop(
+        Animated.sequence([
+          Animated.delay(delay),
+          Animated.timing(v, { toValue: 1, duration: 950, easing: Easing.out(Easing.quad), useNativeDriver: true }),
+          Animated.timing(v, { toValue: 0, duration: 0, useNativeDriver: true }),
+        ]),
+      );
+      loop.start();
+    } else {
+      v.setValue(0);
+    }
+    return () => loop?.stop();
+  }, [active, delay, v]);
+
+  const translateY = v.interpolate({ inputRange: [0, 1], outputRange: [0, -38] });
+  const translateX = v.interpolate({ inputRange: [0, 1], outputRange: [0, 10] });
+  const scale = v.interpolate({ inputRange: [0, 1], outputRange: [0.45, 1.5] });
+  const opacity = v.interpolate({ inputRange: [0, 0.12, 0.75, 1], outputRange: [0, 0.95, 0.5, 0] });
+
+  return (
+    <Animated.View
+      pointerEvents="none"
+      style={{
+        position: 'absolute',
+        bottom: 60,
+        left,
+        width: size,
+        height: size,
+        borderRadius: size / 2,
+        backgroundColor: '#FFFFFF',
+        opacity,
+        transform: [{ translateY }, { translateX }, { scale }],
+      }}
+    />
+  );
+};
+
+/* -------------------- notas musicales del silbido (práctica) --------------- */
+
+const FloatingNote = ({
+  active,
+  delay,
+  left,
+  emoji,
+}: {
+  active: boolean;
+  delay: number;
+  left: number;
+  emoji: string;
+}) => {
+  const v = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    let loop: Animated.CompositeAnimation | null = null;
+    if (active) {
+      v.setValue(0);
+      loop = Animated.loop(
+        Animated.sequence([
+          Animated.delay(delay),
+          Animated.timing(v, { toValue: 1, duration: 1100, easing: Easing.out(Easing.quad), useNativeDriver: true }),
+          Animated.timing(v, { toValue: 0, duration: 0, useNativeDriver: true }),
+        ]),
+      );
+      loop.start();
+    } else {
+      v.setValue(0);
+    }
+    return () => loop?.stop();
+  }, [active, delay, v]);
+
+  const translateY = v.interpolate({ inputRange: [0, 1], outputRange: [0, -46] });
+  const translateX = v.interpolate({ inputRange: [0, 0.5, 1], outputRange: [0, 8, -4] });
+  const opacity = v.interpolate({ inputRange: [0, 0.1, 0.8, 1], outputRange: [0, 1, 0.8, 0] });
+  const scale = v.interpolate({ inputRange: [0, 1], outputRange: [0.7, 1.25] });
+
+  return (
+    <Animated.View
+      pointerEvents="none"
+      style={{ position: 'absolute', bottom: 66, left, opacity, transform: [{ translateY }, { translateX }, { scale }] }}>
+      <Text fontSize={15}>{emoji}</Text>
+    </Animated.View>
+  );
+};
+
+/* ----------------- muñeco que se ilumina (refuerzo al acierto) ------------- */
+
+const GlowMascot = ({ visible }: { visible: boolean }) => {
+  const pop = useRef(new Animated.Value(0)).current;
+  const rot = useRef(new Animated.Value(0)).current;
+  const pulse = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    let rayLoop: Animated.CompositeAnimation | null = null;
+    let pulseLoop: Animated.CompositeAnimation | null = null;
+    if (visible) {
+      pop.setValue(0);
+      Animated.spring(pop, { toValue: 1, friction: 4, tension: 90, useNativeDriver: true }).start();
+      rot.setValue(0);
+      rayLoop = Animated.loop(
+        Animated.timing(rot, { toValue: 1, duration: 2600, easing: Easing.linear, useNativeDriver: true }),
+      );
+      rayLoop.start();
+      pulse.setValue(0);
+      pulseLoop = Animated.loop(
+        Animated.sequence([
+          Animated.timing(pulse, { toValue: 1, duration: 380, easing: Easing.inOut(Easing.quad), useNativeDriver: true }),
+          Animated.timing(pulse, { toValue: 0, duration: 380, easing: Easing.inOut(Easing.quad), useNativeDriver: true }),
+        ]),
+      );
+      pulseLoop.start();
+    } else {
+      pop.setValue(0);
+    }
+    return () => {
+      rayLoop?.stop();
+      pulseLoop?.stop();
+    };
+  }, [visible, pop, rot, pulse]);
+
+  if (!visible) return null;
+
+  const spin = rot.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '360deg'] });
+  const glowScale = pulse.interpolate({ inputRange: [0, 1], outputRange: [1, 1.18] });
+
+  return (
+    <Animated.View
+      pointerEvents="none"
+      style={{
+        position: 'absolute',
+        top: 12,
+        left: 0,
+        right: 0,
+        alignItems: 'center',
+        zIndex: 10,
+        transform: [{ scale: pop }],
+      }}>
+      <View style={{ width: 92, height: 92, alignItems: 'center', justifyContent: 'center' }}>
+        {/* rayos giratorios */}
+        <Animated.View
+          style={{ position: 'absolute', width: 92, height: 92, alignItems: 'center', justifyContent: 'center', transform: [{ rotate: spin }] }}>
+          {[0, 45, 90, 135].map(deg => (
+            <View
+              key={deg}
+              style={{
+                position: 'absolute',
+                width: 92,
+                height: 7,
+                borderRadius: 4,
+                backgroundColor: '#FFE28A',
+                opacity: 0.9,
+                transform: [{ rotate: `${deg}deg` }],
+              }}
+            />
+          ))}
+        </Animated.View>
+        {/* halo que "se enciende" */}
+        <Animated.View
+          style={{
+            position: 'absolute',
+            width: 64,
+            height: 64,
+            borderRadius: 32,
+            backgroundColor: '#FFD24A',
+            opacity: 0.95,
+            transform: [{ scale: glowScale }],
+          }}
+        />
+        <View
+          style={{
+            width: 52,
+            height: 52,
+            borderRadius: 26,
+            backgroundColor: '#FFF6DC',
+            borderWidth: 2.5,
+            borderColor: '#F2B705',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}>
+          <Text fontSize={28}>🐻</Text>
+        </View>
+      </View>
+      <Box bg="#FFF6DC" px="$2" py="$0.5" borderRadius={8} mt={-6} borderWidth={1.5} borderColor="#F2B705">
+        <Text fontSize={11} fontWeight="$bold" color="#8A5A00">
+          ¡BRAVO!
+        </Text>
+      </Box>
+    </Animated.View>
+  );
+};
+
+/* ------------------------------ lluvia de confeti --------------------------- */
+
+const CONFETTI = ['🎉', '⭐', '🎊', '✨', '🎈', '🌟', '🎫', '💫'];
+
+const ConfettiPiece = ({
+  visible,
+  index,
+}: {
+  visible: boolean;
+  index: number;
+}) => {
+  const v = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    if (visible) {
+      v.setValue(0);
+      Animated.sequence([
+        Animated.delay(index * 90),
+        Animated.timing(v, { toValue: 1, duration: 1300, easing: Easing.in(Easing.quad), useNativeDriver: true }),
+      ]).start();
+    } else {
+      v.setValue(0);
+    }
+  }, [visible, index, v]);
+
+  if (!visible) return null;
+
+  const leftPct = 6 + ((index * 13) % 88);
+  const translateY = v.interpolate({ inputRange: [0, 1], outputRange: [-24, 170] });
+  const rotate = v.interpolate({ inputRange: [0, 1], outputRange: ['0deg', index % 2 ? '300deg' : '-300deg'] });
+  const opacity = v.interpolate({ inputRange: [0, 0.08, 0.8, 1], outputRange: [0, 1, 1, 0] });
+
+  return (
+    <Animated.View
+      pointerEvents="none"
+      style={{ position: 'absolute', top: 0, left: `${leftPct}%`, zIndex: 9, opacity, transform: [{ translateY }, { rotate }] }}>
+      <Text fontSize={15 + ((index * 3) % 6)}>{CONFETTI[index % CONFETTI.length]}</Text>
+    </Animated.View>
+  );
+};
+
 /* ------------------------------ Escena del tren --------------------------- */
 
-export default function TrainScene({ progress, stationLabels, doneFlags, chugging, celebrate }: Props) {
+export default function TrainScene({
+  progress,
+  stationLabels,
+  doneFlags,
+  chugging,
+  celebrate,
+  stimulusVisual = false,
+  idle = false,
+}: Props) {
   const width = useRef(0);
   const trainX = useRef(new Animated.Value(0)).current;
   const wheel = useRef(new Animated.Value(0)).current;
+  const bob = useRef(new Animated.Value(0)).current;
 
   const targetIdx = Math.min(3, progress);
 
@@ -73,7 +341,31 @@ export default function TrainScene({ progress, stationLabels, doneFlags, chuggin
     return () => loop?.stop();
   }, [chugging, wheel]);
 
+  // Balanceo de espera: movimiento continuo NO ligado al estímulo (mantiene la
+  // mirada del niño en la escena sin dar ninguna pista auditivo-visual).
+  useEffect(() => {
+    let loop: Animated.CompositeAnimation | null = null;
+    if (idle) {
+      bob.setValue(0);
+      loop = Animated.loop(
+        Animated.sequence([
+          Animated.timing(bob, { toValue: 1, duration: 1500, easing: Easing.inOut(Easing.quad), useNativeDriver: true }),
+          Animated.timing(bob, { toValue: 0, duration: 1500, easing: Easing.inOut(Easing.quad), useNativeDriver: true }),
+        ]),
+      );
+      loop.start();
+    } else {
+      bob.setValue(0);
+    }
+    return () => loop?.stop();
+  }, [idle, bob]);
+
   const spin = wheel.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '360deg'] });
+  const bobY = bob.interpolate({ inputRange: [0, 1], outputRange: [0, -2.5] });
+
+  // Vapor: fuerte durante el estímulo (práctica) y también al avanzar (chugging),
+  // como parte de la recompensa.
+  const steamActive = stimulusVisual || chugging;
 
   return (
     <Box h={210} borderRadius={18} borderWidth={1.5} borderColor="#DCE7F0" style={{ overflow: 'hidden' }} onLayout={onLayout}>
@@ -115,7 +407,7 @@ export default function TrainScene({ progress, stationLabels, doneFlags, chuggin
       </View>
 
       {/* TREN */}
-      <Animated.View style={{ position: 'absolute', bottom: 30, left: 0, zIndex: 5, transform: [{ translateX: trainX }] }}>
+      <Animated.View style={{ position: 'absolute', bottom: 30, left: 0, zIndex: 5, transform: [{ translateX: trainX }, { translateY: bobY }] }}>
         <HStack alignItems="flex-end">
           {/* coche de pasajeros */}
           <View style={{ marginRight: 3 }}>
@@ -143,10 +435,24 @@ export default function TrainScene({ progress, stationLabels, doneFlags, chuggin
             <View style={{ position: 'absolute', bottom: 14, left: 30, width: 64, height: 30, borderTopLeftRadius: 6, borderBottomLeftRadius: 6, borderTopRightRadius: 14, borderBottomRightRadius: 14, backgroundColor: '#34495A', borderWidth: 2, borderColor: '#1F2A33' }} />
             {/* chimenea */}
             <View style={{ position: 'absolute', bottom: 42, left: 34, width: 13, height: 16, borderRadius: 3, backgroundColor: '#33414C', borderWidth: 2, borderColor: '#1F2A33' }} />
+            {/* vapor animado de la chimenea */}
+            <SteamPuff active={steamActive} delay={0} left={30} size={15} />
+            <SteamPuff active={steamActive} delay={320} left={38} size={12} />
+            <SteamPuff active={steamActive} delay={640} left={33} size={10} />
+            {/* notas del silbido: SOLO refuerzo del estímulo en la práctica */}
+            <FloatingNote active={stimulusVisual} delay={0} left={52} emoji="🎵" />
+            <FloatingNote active={stimulusVisual} delay={420} left={66} emoji="🎶" />
             {/* domo */}
             <View style={{ position: 'absolute', bottom: 42, left: 56, width: 12, height: 9, borderTopLeftRadius: 6, borderTopRightRadius: 6, backgroundColor: '#C0392B', borderWidth: 2, borderColor: '#8E2A20' }} />
+            {/* haz del faro encendido durante el silbido de práctica */}
+            {stimulusVisual ? (
+              <View
+                pointerEvents="none"
+                style={{ position: 'absolute', bottom: 18, left: 98, width: 26, height: 14, borderTopRightRadius: 10, borderBottomRightRadius: 10, backgroundColor: '#FFE9A8', opacity: 0.9 }}
+              />
+            ) : null}
             {/* faro */}
-            <View style={{ position: 'absolute', bottom: 20, left: 90, width: 8, height: 10, borderRadius: 3, backgroundColor: '#FFD24A', borderWidth: 1.5, borderColor: '#1F2A33' }} />
+            <View style={{ position: 'absolute', bottom: 20, left: 90, width: 8, height: 10, borderRadius: 3, backgroundColor: stimulusVisual ? '#FFB300' : '#FFD24A', borderWidth: 1.5, borderColor: '#1F2A33' }} />
             {/* cabina */}
             <View style={{ width: 34, height: 48, borderTopLeftRadius: 7, borderTopRightRadius: 7, borderBottomLeftRadius: 4, borderBottomRightRadius: 4, backgroundColor: '#C0392B', borderWidth: 2, borderColor: '#8E2A20', zIndex: 2 }}>
               <View style={{ width: 18, height: 16, borderRadius: 4, backgroundColor: '#BFE9FF', borderWidth: 1.5, borderColor: '#8E2A20', alignSelf: 'center', marginTop: 7 }} />
@@ -163,15 +469,11 @@ export default function TrainScene({ progress, stationLabels, doneFlags, chuggin
         </HStack>
       </Animated.View>
 
-      {/* confeti */}
-      {celebrate ? (
-        <HStack style={{ position: 'absolute', top: 10, left: 0, right: 0, justifyContent: 'center' }} space="md">
-          <Text fontSize={18}>🎉</Text>
-          <Text fontSize={15}>🎫</Text>
-          <Text fontSize={17}>✨</Text>
-          <Text fontSize={15}>🎊</Text>
-        </HStack>
-      ) : null}
+      {/* recompensa: muñeco iluminado + lluvia de confeti */}
+      <GlowMascot visible={celebrate} />
+      {Array.from({ length: 8 }).map((_, i) => (
+        <ConfettiPiece key={i} visible={celebrate} index={i} />
+      ))}
     </Box>
   );
 }
