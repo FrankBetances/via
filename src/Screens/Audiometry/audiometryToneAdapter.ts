@@ -6,6 +6,7 @@ import {
   StereoPannerNode,
 } from 'react-native-audio-api';
 import { setAudiometryToneAdapter, ToneChannel, ToneTarget } from './useAudiometryTest';
+import { dbHLtoGainFreeField } from './audiometryCalibration';
 
 /* ==========================================================================
  * Adaptador de tono REAL para Audiometría Infantil / Condicionada (Android+iOS)
@@ -27,21 +28,14 @@ import { setAudiometryToneAdapter, ToneChannel, ToneTarget } from './useAudiomet
  * ========================================================================== */
 
 export interface ToneAdapterOptions {
-  /** dB HL -> ganancia lineal. Sustituir por la tabla real medida contra
-   *  equipo patrón por transductor y frecuencia. Sin calibración el nivel es
-   *  ORIENTATIVO (debe advertirse en UI/PDF). */
+  /** dB HL -> ganancia lineal. Por defecto se usa la calibración por frecuencia
+   *  (RETSPL de campo libre, ISO 389-7) de `audiometryCalibration`, que corrige
+   *  la RELACIÓN de nivel entre bandas. Sustituible por la tabla real medida
+   *  contra equipo patrón por transductor si se dispone de ella. El nivel
+   *  ABSOLUTO sigue siendo ORIENTATIVO (debe advertirse en UI/PDF). */
   dbHLtoGain?: (dbHL: number, freq: number) => number;
   /** Duración del tono puro (ms). El hook ya corta a 1400 ms por su cuenta. */
   toneDurationMs?: number;
-}
-
-function defaultDbHLtoGain(dbHL: number): number {
-  // Placeholder lineal dB HL -> dBFS -> ganancia. Reemplazar por calibración
-  // real. Mapea 80 dB HL (máximo del algoritmo HW) a 0 dBFS: con el mapeo
-  // anterior (-90 + dbHL) los niveles de arranque (40 dB HL ≈ -50 dBFS) eran
-  // inaudibles en la práctica y la prueba parecía "sin sonido".
-  const dbFS = -80 + dbHL;
-  return Math.min(1, Math.pow(10, dbFS / 20));
 }
 
 // OD = derecha, OI = izquierda, CL = campo libre (centrado, ambos altavoces).
@@ -57,7 +51,7 @@ const panForChannel = (channel: ToneChannel): number =>
  *   useEffect(() => installAudiometryToneAdapter(), []);
  */
 export function installAudiometryToneAdapter(opts: ToneAdapterOptions = {}): () => void {
-  const dbHLtoGain = opts.dbHLtoGain ?? defaultDbHLtoGain;
+  const dbHLtoGain = opts.dbHLtoGain ?? dbHLtoGainFreeField;
   const toneDurationMs = opts.toneDurationMs ?? 1600;
 
   // Sesión de audio: reproducción a través del altavoz, permitiendo Bluetooth.

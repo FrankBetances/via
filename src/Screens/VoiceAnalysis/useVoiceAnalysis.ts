@@ -125,7 +125,11 @@ const round = (v: number, d = 2) => roundTo(v, d);
  */
 const computeParams = (r: VoiceMicResult): AcousticResult | null => {
   const { f0s, amplitudes: amps, hnrs, formants } = r;
-  const valid = f0s.filter(f => f > 100 && f < 500);
+  // Rango de F0 plausible (voz infantil/adulta). Se usa `>=`/`<=` con un pequeño
+  // margen porque el adaptador afina la F0 por interpolación y puede rozar los
+  // extremos de la banda de análisis (100–500 Hz); con `>`/`<` estrictos las
+  // ventanas de F0 ≈ 100 Hz se descartaban y la toma quedaba «sin datos».
+  const valid = f0s.filter(f => f >= 90 && f <= 520);
   if (valid.length < MIN_VOICED_FRAMES || !formants) return null;
 
   const avgF0 = valid.reduce((a, b) => a + b, 0) / valid.length;

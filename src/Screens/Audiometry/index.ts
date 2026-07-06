@@ -3,5 +3,6 @@ export { useAudiometryTest, setAudiometryToneAdapter } from './useAudiometryTest
 export type { AudiometryToneAdapter, AudiometryTestOptions, ToneChannel, ToneTarget } from './useAudiometryTest';
 export { installAudiometryToneAdapter } from './audiometryToneAdapter';
 export type { ToneAdapterOptions } from './audiometryToneAdapter';
+export { dbHLtoGainFreeField, retsplFreeField } from './audiometryCalibration';
 export { default as Audiogram } from './components/Audiogram';
 export * from './audiometryResult';
