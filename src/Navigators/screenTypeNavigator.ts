@@ -10,6 +10,8 @@ export type RootStackParamList = {
   SeleccionProfesional: undefined;
   Pacientes: undefined;
   RegistroPaciente: undefined;
+  /** Consentimiento informado (bloqueante). `next`: destino tras la firma. */
+  Consentimiento: { next?: 'cap' | 'dysphagia' } | undefined;
   RegistroProfesional: undefined;
   Creditos: undefined;
 

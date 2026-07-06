@@ -17,6 +17,7 @@ import { Professional } from '@/Models/Professional/Professional';
 import { PatientRepository } from '@/Repositories/PatientRepository';
 import { EvaluationRepository } from '@/Repositories/EvaluationRepository';
 import { ClinicalAssessmentRepository } from '@/Repositories/ClinicalAssessmentRepository';
+import { InformedConsentRepository } from '@/Repositories/InformedConsentRepository';
 import { showErrorToast } from '@/Helpers/showToast';
 import { writeWithVerify } from '@/Helpers/dbWrite';
 
@@ -161,6 +162,15 @@ export default function PacientesScreen({ navigation }: Props) {
           );
         }
 
+        // Consentimiento informado: la marca rápida vive en la evaluación
+        // (`consentSignedAt`) y la fuente de verdad en `informed_consent`
+        // (sesiones donde el UPDATE de la marca falló pero la firma sí se
+        // guardó). Sin consentimiento no se avanza al CAP ni a las pruebas.
+        let consentSigned = !!evaluation?.consentSignedAt;
+        if (!consentSigned && evaluation) {
+          consentSigned = !!(await InformedConsentRepository.getLatestByEvaluation(evaluation.id));
+        }
+
         const cap = evaluation ? await ClinicalAssessmentRepository.getLatestByEvaluation(evaluation.id) : null;
 
         dispatch(
@@ -179,7 +189,11 @@ export default function PacientesScreen({ navigation }: Props) {
           }),
         );
 
-        if (!evaluation || !cap) {
+        if (!evaluation || !consentSigned) {
+          // El consentimiento es el primer paso bloqueante; su pantalla
+          // continúa al CAP (o a la sala si el CAP ya existe).
+          navigation.navigate('Consentimiento', { next: 'cap' });
+        } else if (!cap) {
           navigation.navigate('ClinicalAssessment');
         } else {
           // Con CAP vigente, la sala debe verificarse con el sonómetro antes

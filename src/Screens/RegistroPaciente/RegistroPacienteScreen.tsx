@@ -22,7 +22,8 @@ import { writeWithVerify } from '@/Helpers/dbWrite';
 /*  RegistroPacienteScreen — alta sociodemográfica de un paciente nuevo       */
 /*  (mockup `Registro Paciente.dc.html`). Al confirmar: crea `Patient` +      */
 /*  `Evaluation` (status `in_progress`), puebla `activeEvaluation` y          */
-/*  continúa al CAP (`ClinicalAssessment`).                                   */
+/*  continúa al consentimiento informado (paso bloqueante previo al CAP o a   */
+/*  la exploración de disfagia).                                              */
 /*                                                                            */
 /*  NOTA: la seudonimización real (cifrado AES-256-GCM / HMAC del NHC) está  */
 /*  fuera de alcance de esta fase (ver `Models/Patient`); aquí se guarda el   */
@@ -93,9 +94,10 @@ export default function RegistroPacienteScreen({ navigation }: Props) {
   const ready = requiredCount === 4;
 
   /**
-   * Guarda paciente + evaluación y continúa el flujo.
-   * `destination === 'dysphagia'` salta directamente a la exploración de
-   * disfagia: esa prueba no requiere CAP ni comprobación de ruido de sala.
+   * Guarda paciente + evaluación y continúa al consentimiento informado
+   * (obligatorio en ambos caminos). `destination === 'dysphagia'` indica que
+   * tras la firma se salta directamente a la exploración de disfagia: esa
+   * prueba no requiere CAP ni comprobación de ruido de sala.
    */
   const handleSubmit = async (destination: 'cap' | 'dysphagia' = 'cap') => {
     if (!ready || isSaving) return;
@@ -166,7 +168,9 @@ export default function RegistroPacienteScreen({ navigation }: Props) {
       );
 
       showSuccessToast('Paciente registrado', `${fullName} · NHC ${trimmedNhc}`);
-      navigation.navigate(destination === 'dysphagia' ? 'DysphagiaTest' : 'ClinicalAssessment');
+      // El consentimiento informado es bloqueante: se firma antes del CAP y
+      // también antes del acceso directo a disfagia.
+      navigation.navigate('Consentimiento', { next: destination });
     } catch (e) {
       const detail = e instanceof Error && e.message ? ` (${e.message})` : '';
       console.error('VIA+: error registrando paciente', e);
@@ -211,9 +215,10 @@ export default function RegistroPacienteScreen({ navigation }: Props) {
               <HStack space="xs" alignItems="center">
                 {[
                   { n: 1, label: 'Paciente', active: true },
-                  { n: 2, label: 'Cert. clínico', active: false },
-                  { n: 3, label: 'Sala', active: false },
-                  { n: 4, label: 'Pruebas', active: false },
+                  { n: 2, label: 'Consent.', active: false },
+                  { n: 3, label: 'CAP', active: false },
+                  { n: 4, label: 'Sala', active: false },
+                  { n: 5, label: 'Pruebas', active: false },
                 ].map((step, idx) => (
                   <React.Fragment key={step.n}>
                     <HStack alignItems="center" space="xs">
@@ -226,7 +231,7 @@ export default function RegistroPacienteScreen({ navigation }: Props) {
                         {step.label}
                       </Text>
                     </HStack>
-                    {idx < 3 ? <Box style={{ flex: 1, height: 1 }} bg="$borderLight200" /> : null}
+                    {idx < 4 ? <Box style={{ flex: 1, height: 1 }} bg="$borderLight200" /> : null}
                   </React.Fragment>
                 ))}
               </HStack>
@@ -323,7 +328,7 @@ export default function RegistroPacienteScreen({ navigation }: Props) {
                 <Button action="primary" variant="solid" rounded="$full" isDisabled={!ready || isSaving} isLoading={isSaving} onPress={() => handleSubmit('cap')}>
                   <HStack space="sm" alignItems="center">
                     <Text size="md" weight="bold" color="$white">
-                      Continuar a certificado clínico
+                      Continuar al consentimiento
                     </Text>
                     <Icon as={ArrowRight} size="sm" color="$white" />
                   </HStack>
@@ -349,7 +354,7 @@ export default function RegistroPacienteScreen({ navigation }: Props) {
                   </HStack>
                 </Pressable>
                 <Text size="2xs" color="$textLight400" style={{ textAlign: 'center' }}>
-                  La disfagia no requiere CAP ni sonómetro de sala
+                  La disfagia no requiere CAP ni sonómetro de sala (el consentimiento sí)
                 </Text>
               </VStack>
             </VStack>

@@ -10,6 +10,7 @@ import PacientesScreen from '@/Screens/Pacientes/PacientesScreen';
 import RegistroPacienteScreen from '@/Screens/RegistroPaciente/RegistroPacienteScreen';
 import RegistroProfesionalScreen from '@/Screens/RegistroProfesional/RegistroProfesionalScreen';
 import CreditosScreen from '@/Screens/Creditos/CreditosScreen';
+import { ConsentimientoScreen } from '@/Screens/Consentimiento';
 
 import { ClinicalAssessmentScreen } from '@/Screens/ClinicalAssessment';
 import { AutismScreeningScreen } from '@/Screens/AutismScreening';
@@ -59,6 +60,8 @@ export default function DefaultNavigator() {
         <RootStack.Group>
           <RootStack.Screen name="Pacientes" component={PacientesScreen} />
           <RootStack.Screen name="RegistroPaciente" component={RegistroPacienteScreen} />
+          {/* Consentimiento informado: bloqueante entre el registro y el CAP */}
+          <RootStack.Screen name="Consentimiento" component={ConsentimientoScreen} />
 
           {/* Module routes (Contrato de Compilación §2) */}
           <RootStack.Screen name="ClinicalAssessment" component={ClinicalAssessmentScreen} />
