@@ -8,6 +8,10 @@
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
     <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
 
+    <!-- Vibración háptica: refuerzo de la recompensa en la audiometría
+         condicionada infantil. -->
+    <uses-permission android:name="android.permission.VIBRATE" />
+
     <!-- BLE: pulsioxímetro de la exploración de disfagia (react-native-ble-plx). -->
     <uses-permission android:name="android.permission.BLUETOOTH_SCAN" android:usesPermissionFlags="neverForLocation" />
     <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
