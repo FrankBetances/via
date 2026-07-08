@@ -19,12 +19,23 @@ import { dbHLtoGainFreeField } from './audiometryCalibration';
  *   yarn add react-native-audio-api
  *   cd ios && pod install
  *
- * Síntesis: OscillatorNode (seno) -> GainNode (nivel dB HL) -> StereoPannerNode
- * (OD = derecho, OI = izquierdo, CL = campo libre centrado) -> destination.
- * Rampa de 20 ms para
- * evitar clicks (imprescindible en audiometría). Los sonidos de control no
- * tonales ('amb' = sirena de ambulancia, 'tren' = silbato de tren con vibrato)
- * se generan modulados para condicionar la atención del niño.
+ * Síntesis: osciladores (parciales) -> GainNode maestro (envolvente × nivel
+ * dB HL) -> StereoPannerNode (OD = derecho, OI = izquierdo, CL = campo libre
+ * centrado) -> destination. Rampas de subida/bajada siempre (anti-click,
+ * imprescindible en audiometría).
+ *
+ * TIMBRES: la pantalla infantil presenta cada frecuencia como un instrumento
+ * (500 = tambor, 1000 = piano, 2000 = campana, 4000 = flauta), así que el
+ * estímulo debe SONAR a ese instrumento o el juego de identificación no
+ * funciona (antes todas las frecuencias emitían el mismo seno puro y solo
+ * 'amb'/'tren' tenían timbre propio). Cada instrumento es síntesis aditiva
+ * mínima: la fundamental en la frecuencia nominal lleva ≥ 75 % de la amplitud
+ * (desviación ≤ 2.5 dB respecto al tono puro calibrado, muy por debajo del
+ * paso de 5 dB del algoritmo) y la envolvente aporta el gesto (golpes de
+ * tambor, nota pulsada, tañido con batido, soplo con vibrato). La suma de
+ * parciales nunca supera 1.0 → sin recorte ni a nivel máximo. Los sonidos de
+ * control no tonales ('amb' = sirena de ambulancia, 'tren' = silbato de tren
+ * con vibrato) se generan modulados para condicionar la atención del niño.
  * ========================================================================== */
 
 export interface ToneAdapterOptions {
@@ -68,29 +79,55 @@ export function installAudiometryToneAdapter(opts: ToneAdapterOptions = {}): () 
 
   let ctx: AudioContext | null = new AudioContext({ sampleRate: 48000 });
 
-  // Nodos activos del estímulo en curso (para poder detenerlos).
-  let osc: OscillatorNode | null = null;
-  let gain: GainNode | null = null;
+  // Nodos activos del estímulo en curso (para poder detenerlos). Un estímulo
+  // con timbre usa varios osciladores (parciales), de ahí las listas.
+  let oscs: OscillatorNode[] = [];
+  let gains: GainNode[] = [];
   let panner: StereoPannerNode | null = null;
   let sirenTimer: ReturnType<typeof setInterval> | null = null;
 
   const stop = () => {
     if (sirenTimer) { clearInterval(sirenTimer); sirenTimer = null; }
-    if (osc) { try { osc.stop(); } catch {} }
-    try { osc?.disconnect(); gain?.disconnect(); panner?.disconnect(); } catch {}
-    osc = null; gain = null; panner = null;
+    for (const o of oscs) { try { o.stop(); } catch {} }
+    for (const o of oscs) { try { o.disconnect(); } catch {} }
+    for (const g of gains) { try { g.disconnect(); } catch {} }
+    try { panner?.disconnect(); } catch {}
+    oscs = []; gains = []; panner = null;
   };
 
-  const buildChain = (channel: ToneChannel, level: number, now: number) => {
+  /** Cadena maestra: GainNode (envolvente, arranca en 0) -> panner -> salida. */
+  const buildChain = (channel: ToneChannel, now: number): GainNode | null => {
     if (!ctx) return null;
-    gain = ctx.createGain();
+    const master = ctx.createGain();
     panner = ctx.createStereoPanner();
     panner.pan.value = panForChannel(channel);
-    gain.gain.setValueAtTime(0, now);
-    gain.gain.linearRampToValueAtTime(level, now + 0.02); // anti-click 20 ms
-    gain.connect(panner);
+    master.gain.setValueAtTime(0, now);
+    master.connect(panner);
     panner.connect(ctx.destination);
-    return gain;
+    gains.push(master);
+    return master;
+  };
+
+  /** Añade un parcial (oscilador + ganancia fija `coef`) al nodo maestro. */
+  const addPartial = (
+    master: GainNode,
+    freqHz: number,
+    coef: number,
+    now: number,
+    type: 'sine' | 'square' | 'triangle' = 'sine',
+  ): OscillatorNode | null => {
+    if (!ctx) return null;
+    const o = ctx.createOscillator();
+    o.type = type;
+    o.frequency.value = freqHz;
+    const g = ctx.createGain();
+    g.gain.value = coef;
+    o.connect(g);
+    g.connect(master);
+    o.start(now);
+    oscs.push(o);
+    gains.push(g);
+    return o;
   };
 
   const playTone = (freq: ToneTarget, dbHL: number, channel: ToneChannel) => {
@@ -109,20 +146,80 @@ export function installAudiometryToneAdapter(opts: ToneAdapterOptions = {}): () 
     const now = ctx.currentTime;
 
     if (typeof freq === 'number') {
-      // --- Tono puro calibrado -------------------------------------------
+      // --- Estímulo tonal calibrado con timbre de instrumento -------------
+      // Envolvente = ganancia maestra en fracciones del nivel calibrado.
+      // Los recorridos terminan en 0 antes del corte del hook (1400 ms) para
+      // cerrar siempre sin click. Frecuencias sin instrumento asignado suenan
+      // como tono puro (comportamiento anterior).
       const level = dbHLtoGain(dbHL, freq);
-      const g = buildChain(channel, level, now);
-      if (!g) return;
-      osc = ctx.createOscillator();
-      osc.type = 'sine';
-      osc.frequency.value = freq;
-      // rampa de salida para cerrar sin click
-      const end = now + toneDurationMs / 1000;
-      g.gain.setValueAtTime(level, end - 0.02);
-      g.gain.linearRampToValueAtTime(0, end);
-      osc.connect(g);
-      osc.start(now);
-      osc.stop(end);
+      const master = buildChain(channel, now);
+      if (!master) return;
+      const seg = (v: number, t: number) =>
+        master.gain.linearRampToValueAtTime(v * level, now + t);
+      const stopAll = (t: number) => {
+        for (const o of oscs) { try { o.stop(now + t); } catch {} }
+      };
+
+      if (freq === 500) {
+        // Tambor: tres golpes secos, cada uno con caída rápida de tono en el
+        // ataque (el «boing» de la piel) y decaimiento percusivo.
+        const o = addPartial(master, 500, 1, now);
+        if (!o) return;
+        for (const tS of [0, 0.45, 0.9]) {
+          o.frequency.setValueAtTime(565, now + tS);
+          o.frequency.linearRampToValueAtTime(500, now + tS + 0.05);
+          master.gain.setValueAtTime(0, now + tS);
+          seg(1, tS + 0.012);
+          seg(0.3, tS + 0.13);
+          seg(0.06, tS + 0.3);
+          seg(0, tS + 0.42);
+        }
+        stopAll(1.35);
+      } else if (freq === 1000) {
+        // Piano: nota pulsada — ataque casi instantáneo, brillo de armónicos
+        // 2 y 3 y caída natural de cuerda.
+        addPartial(master, 1000, 0.75, now);
+        addPartial(master, 2000, 0.18, now);
+        addPartial(master, 3000, 0.07, now);
+        seg(1, 0.008);
+        seg(0.45, 0.25);
+        seg(0.2, 0.7);
+        seg(0, 1.3);
+        stopAll(1.35);
+      } else if (freq === 2000) {
+        // Campana: tañido largo con batido lento (par desafinado ±1.5 Hz
+        // alrededor de la nominal) y un parcial agudo inarmónico (~×2.5).
+        addPartial(master, 1998.5, 0.4, now);
+        addPartial(master, 2001.5, 0.4, now);
+        addPartial(master, 4960, 0.18, now);
+        seg(1, 0.006);
+        seg(0.5, 0.4);
+        seg(0.22, 0.85);
+        seg(0, 1.32);
+        stopAll(1.35);
+      } else if (freq === 4000) {
+        // Flauta: ataque suave (soplo), sostenido con vibrato de ~5 Hz y
+        // cierre en fundido.
+        const o = addPartial(master, 4000, 0.9, now);
+        if (!o) return;
+        addPartial(master, 8000, 0.08, now);
+        seg(1, 0.15);
+        seg(0.95, 1.1);
+        seg(0, 1.3);
+        for (let k = 0; k < 10; k++) {
+          o.frequency.linearRampToValueAtTime(4000 + (k % 2 ? -25 : 25), now + 0.2 + k * 0.1);
+        }
+        stopAll(1.35);
+      } else {
+        // Tono puro con rampas anti-click (frecuencias no clínicas).
+        const o = addPartial(master, freq, 1, now);
+        if (!o) return;
+        const end = now + toneDurationMs / 1000;
+        master.gain.linearRampToValueAtTime(level, now + 0.02);
+        master.gain.setValueAtTime(level, end - 0.02);
+        master.gain.linearRampToValueAtTime(0, end);
+        try { o.stop(end); } catch {}
+      }
     } else {
       // --- Sonido de control no tonal ------------------------------------
       // Nivel de control alto y fijo: solo condiciona la atención, no umbral.
@@ -131,22 +228,20 @@ export function installAudiometryToneAdapter(opts: ToneAdapterOptions = {}): () 
       // del rango de trabajo (el 0.18 anterior quedaba flojo por el altavoz).
       // 'amb' = sirena de ambulancia (dos tonos alternos).
       // 'tren' = silbato de tren (tono grave sostenido con vibrato lento).
-      const g = buildChain(channel, 0.5, now);
-      if (!g) return;
-      osc = ctx.createOscillator();
-      osc.type = freq === 'amb' ? 'square' : 'triangle';
-      osc.frequency.value = freq === 'amb' ? 650 : 520;
-      osc.connect(g);
-      osc.start(now);
+      const master = buildChain(channel, now);
+      if (!master) return;
+      master.gain.linearRampToValueAtTime(0.5, now + 0.02); // anti-click 20 ms
+      const o = addPartial(master, freq === 'amb' ? 650 : 520, 1, now, freq === 'amb' ? 'square' : 'triangle');
+      if (!o) return;
       let phase = 0;
       sirenTimer = setInterval(() => {
-        if (!osc || !ctx) return;
+        if (!ctx) return;
         if (freq === 'amb') {
           phase = 1 - phase;
-          osc.frequency.setValueAtTime(phase ? 900 : 650, ctx.currentTime);
+          o.frequency.setValueAtTime(phase ? 900 : 650, ctx.currentTime);
         } else {
           phase += 0.35;
-          osc.frequency.setValueAtTime(520 + 26 * Math.sin(phase), ctx.currentTime);
+          o.frequency.setValueAtTime(520 + 26 * Math.sin(phase), ctx.currentTime);
         }
       }, freq === 'amb' ? 420 : 90);
     }
