@@ -69,23 +69,34 @@ export const CLINICAL_FREQS = [500, 1000, 2000, 4000] as const;
 /** Nivel máximo del algoritmo Hughson-Westlake de la app (dB HL). */
 export const MAX_DB_HL = 80;
 /**
- * Techo digital (dBFS) al que se ancla la presentación MÁS ALTA (la frecuencia
- * clínica con mayor RETSPL a `MAX_DB_HL`). 0 dBFS = fondo de escala: se ancla
- * ahí para conservar la sonoridad del ajuste previo en un altavoz de móvil, y
- * como es el máximo absoluto ninguna banda puede exceder 0 dBFS (sin recorte).
+ * Nivel (dB HL) que se ancla al fondo de escala digital para la reproducción
+ * por ALTAVOZ. La prueba se hace con el altavoz de la tableta (campo libre,
+ * sin auriculares): anclar el máximo del algoritmo (80 dB HL) a 0 dBFS dejaba
+ * el rango de trabajo habitual (20–40 dB HL) a −45…−65 dBFS, prácticamente
+ * inaudible sobre el ruido de sala — «sonaba a niveles de auricular». Con el
+ * ancla en 60 dB HL toda la escala sube 20 dB; los niveles por encima saturan
+ * en el fondo de escala (el altavoz tampoco podía reproducirlos de verdad) y
+ * eso no cambia ninguna decisión de cribado: la derivación se dispara ya con
+ * PTA > 20 dB HL, muy por debajo de la zona comprimida.
+ */
+export const SPEAKER_ANCHOR_DB_HL = 60;
+/**
+ * Techo digital (dBFS) al que se ancla la presentación del nivel de anclaje
+ * (la frecuencia clínica con mayor RETSPL a `SPEAKER_ANCHOR_DB_HL`).
+ * 0 dBFS = fondo de escala.
  */
 export const CEILING_DBFS = 0;
 
 /**
  * dBFS de referencia: SPL que corresponde a 0 dBFS. Se elige para que la
- * presentación más exigente (mayor SPL entre las frecuencias clínicas a
- * `MAX_DB_HL`) quede exactamente en `CEILING_DBFS`, garantizando que ninguna
- * banda supere el fondo de escala.
+ * presentación más exigente del tramo lineal (mayor SPL entre las frecuencias
+ * clínicas a `SPEAKER_ANCHOR_DB_HL`) quede exactamente en `CEILING_DBFS`; por
+ * encima del ancla la ganancia se recorta a 1.0 (saturación controlada).
  */
 const REF_DBFS = (() => {
   let maxSpl = -Infinity;
   for (const f of CLINICAL_FREQS) {
-    const spl = MAX_DB_HL + retsplFreeField(f);
+    const spl = SPEAKER_ANCHOR_DB_HL + retsplFreeField(f);
     if (spl > maxSpl) maxSpl = spl;
   }
   return maxSpl - CEILING_DBFS;
@@ -93,8 +104,10 @@ const REF_DBFS = (() => {
 
 /**
  * dB HL → ganancia lineal (0..1) con corrección de frecuencia por RETSPL de
- * campo libre. Reemplaza al mapeo plano `-80 + dbHL`. Sustituible por una tabla
- * medida contra equipo patrón por transductor si se dispone de ella.
+ * campo libre. Reemplaza al mapeo plano `-80 + dbHL`. Por encima de
+ * `SPEAKER_ANCHOR_DB_HL` la ganancia satura en 1.0 (ver nota del ancla).
+ * Sustituible por una tabla medida contra equipo patrón por transductor si se
+ * dispone de ella.
  */
 export function dbHLtoGainFreeField(dbHL: number, freq: number): number {
   const dbFS = dbHL + retsplFreeField(freq) - REF_DBFS;
