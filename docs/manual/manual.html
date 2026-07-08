@@ -1,0 +1,1210 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>VIA+ · Manual de Usuario</title>
+<style>
+/* ==========================================================================
+   VIA+ — Manual de Usuario (documento imprimible A4)
+   Tokens replicados de src/Theme/gluestack-ui.config.ts
+   ========================================================================== */
+:root{
+  --bg:#F1ECE2; --bg-soft:#ECE7DE; --paper:#F7F4EE;
+  --card:#FFFFFF; --line:#EAE3D7; --line-soft:#F0ECE4;
+  --accent:#FF7F00; --accent-600:#E85F12; --accent-50:#FBE8D3;
+  --ink:#2B2620; --ink-2:#3A352F; --muted:#6B635A; --muted-2:#9A9183; --faint:#BDB5A8;
+  --ok:#4F9A66; --ok-bg:#E8F3EC; --warn:#E0A93D; --warn-bg:#FBF1DC; --err:#D1564A; --err-bg:#F8E4E1;
+  /* colores por módulo */
+  --m-voice:#7C3AED; --m-voice-bg:#F3E8FF;
+  --m-audio:#0284C7; --m-audio-bg:#E0F2FE;
+  --m-cond:#0D9488; --m-cond-bg:#CCFBF1;
+  --m-art:#EA580C; --m-art-bg:#FFEDD5;
+  --m-dys:#DC2626; --m-dys-bg:#FEE2E2;
+  --m-mchat:#DB2777; --m-mchat-bg:#FCE7F3;
+  --m-sahs:#4F46E5; --m-sahs-bg:#E0E7FF;
+}
+*{box-sizing:border-box; -webkit-print-color-adjust:exact; print-color-adjust:exact;}
+html,body{margin:0;padding:0;}
+body{
+  font-family:-apple-system,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;
+  color:var(--ink); background:#ccc; font-size:11px; line-height:1.5;
+}
+
+/* --------- Página A4 --------- */
+.page{
+  width:210mm; height:297mm; background:var(--paper); position:relative;
+  padding:14mm 15mm 12mm; margin:0 auto; overflow:hidden;
+  display:flex; flex-direction:column; page-break-after:always;
+}
+.page:last-child{page-break-after:auto;}
+.page-head{display:flex; justify-content:space-between; align-items:center;
+  border-bottom:1.5px solid var(--line); padding-bottom:7px; margin-bottom:12px;}
+.page-head .ph-left{display:flex; align-items:center; gap:8px;}
+.page-head .ph-mark{font-weight:800; letter-spacing:-.5px; color:var(--ink-2); font-size:13px;}
+.page-head .ph-mark span{color:var(--accent);}
+.page-head .ph-sec{color:var(--muted-2); font-size:9.5px; letter-spacing:.4px; text-transform:uppercase;}
+.page-foot{position:absolute; left:15mm; right:15mm; bottom:8mm;
+  display:flex; justify-content:space-between; align-items:center;
+  border-top:1px solid var(--line); padding-top:6px; color:var(--faint); font-size:8.5px; letter-spacing:.3px;}
+.content{flex:1; display:flex; flex-direction:column; min-height:0;}
+
+/* --------- Tipografía de sección --------- */
+.kicker{display:inline-flex; align-items:center; gap:6px; align-self:flex-start;
+  background:var(--accent-50); color:var(--accent-600); font-weight:800; font-size:9px;
+  letter-spacing:1px; text-transform:uppercase; padding:4px 10px; border-radius:999px; margin-bottom:9px;}
+h1.h{font-size:23px; line-height:1.15; letter-spacing:-.6px; margin:0 0 6px; color:var(--ink-2); font-weight:800;}
+h2.h{font-size:16px; letter-spacing:-.3px; margin:0 0 5px; color:var(--ink-2); font-weight:800;}
+.lead{color:var(--muted); font-size:11.5px; line-height:1.55; margin:0 0 12px; max-width:640px;}
+p{margin:0 0 8px;}
+.small{font-size:9.5px; color:var(--muted-2);}
+
+/* --------- Grids del manual --------- */
+.grid2{display:grid; grid-template-columns:1fr 1fr; gap:14px;}
+.grid2-shot{display:grid; grid-template-columns:300px 1fr; gap:20px; align-items:start;}
+.grid2-shot.rev{grid-template-columns:1fr 300px;}
+.content.spread{justify-content:flex-start;}
+.content.spread > :last-child{margin-top:auto;}
+.fill{flex:1;}
+
+/* --------- Bloque captura + descripción (la descripción NUNCA se superpone) --------- */
+.shot{display:flex; flex-direction:column; align-items:center;}
+.shot-caption{margin-top:11px; width:100%;}
+.shot-caption .sc-title{font-weight:800; font-size:11.5px; color:var(--ink-2); display:flex; align-items:center; gap:7px;}
+.sc-num{background:var(--accent); color:#fff; font-weight:800; font-size:9px; width:17px; height:17px;
+  border-radius:999px; display:inline-flex; align-items:center; justify-content:center; flex:0 0 auto;}
+.shot-caption .sc-text{color:var(--muted); font-size:9.7px; line-height:1.5; margin-top:4px;}
+
+/* --------- Componentes del manual --------- */
+.usecase{background:linear-gradient(180deg,#fff,#FBF8F2); border:1.5px solid var(--line);
+  border-left:4px solid var(--accent); border-radius:12px; padding:11px 13px; margin-top:10px;}
+.usecase .uc-h{font-weight:800; font-size:10px; letter-spacing:.6px; text-transform:uppercase; color:var(--accent-600);
+  display:flex; align-items:center; gap:6px; margin-bottom:4px;}
+.usecase .uc-b{color:var(--ink); font-size:10px; line-height:1.55;}
+.note{background:var(--warn-bg); border:1px solid #F0D9A6; border-radius:10px; padding:9px 12px; color:#8A6A17; font-size:9.7px; line-height:1.5;}
+.note.crit{background:var(--err-bg); border-color:#EFC3BD; color:#9A3A31;}
+.note.ok{background:var(--ok-bg); border-color:#BFE0CB; color:#2F6B44;}
+.featurelist{list-style:none; padding:0; margin:0;}
+.featurelist li{display:flex; gap:9px; padding:6px 0; border-bottom:1px dashed var(--line); font-size:10.3px; line-height:1.45;}
+.featurelist li:last-child{border-bottom:none;}
+.featurelist .fi-ic{flex:0 0 auto; width:20px; height:20px; border-radius:7px; background:var(--accent-50);
+  display:flex; align-items:center; justify-content:center; font-size:11px;}
+.featurelist b{color:var(--ink-2);}
+
+/* tablas informativas */
+table.info{width:100%; border-collapse:collapse; font-size:10px;}
+table.info th{background:var(--bg-soft); color:var(--ink-2); text-align:left; font-weight:800; padding:7px 9px; border-bottom:1.5px solid var(--line);}
+table.info td{padding:7px 9px; border-bottom:1px solid var(--line-soft); color:var(--muted); vertical-align:top;}
+table.info tr:last-child td{border-bottom:none;}
+table.info td b{color:var(--ink-2);}
+.tag{display:inline-block; font-weight:800; font-size:8.5px; padding:2px 7px; border-radius:999px; letter-spacing:.4px;}
+.tag.ok{background:var(--ok-bg); color:var(--ok);}
+.tag.warn{background:var(--warn-bg); color:#B07E12;}
+.tag.err{background:var(--err-bg); color:var(--err);}
+.tag.info{background:var(--m-audio-bg); color:var(--m-audio);}
+
+/* ==========================================================================
+   MOCKUP: marco de tablet + componentes de la app
+   ========================================================================== */
+.device{width:300px; border-radius:30px; background:#141210; padding:9px;
+  box-shadow:0 18px 40px rgba(60,45,20,.22), 0 3px 8px rgba(0,0,0,.12);}
+.device.land{width:640px;}
+.screen{border-radius:22px; overflow:hidden; background:var(--bg); position:relative;
+  height:430px; display:flex; flex-direction:column;}
+.device.land .screen{height:404px;}
+.statusbar{height:20px; display:flex; align-items:center; justify-content:space-between;
+  padding:0 14px; font-size:8.5px; font-weight:700; color:var(--ink-2); flex:0 0 auto;}
+.statusbar .sb-r{display:flex; gap:4px; align-items:center;}
+.statusbar .dot{width:5px;height:5px;border-radius:9px;background:var(--ink-2);opacity:.55;}
+/* barra de app VIA+ */
+.appbar{display:flex; align-items:center; justify-content:space-between; padding:6px 14px 8px; flex:0 0 auto;}
+.appbar .ab-brand{display:flex; align-items:center; gap:7px;}
+.appbar .ab-word{font-weight:800; font-size:13px; letter-spacing:-.5px; color:var(--ink-2);}
+.appbar .ab-word i{color:var(--accent); font-style:normal;}
+.appbar .ab-chip{font-size:7.5px; font-weight:700; color:var(--muted-2); border:1px solid var(--line);
+  padding:2px 7px; border-radius:999px; background:#fff;}
+.scr-body{flex:1; overflow:hidden; padding:2px 14px 12px; position:relative;}
+
+/* logo tesela */
+.logo{border-radius:9px; overflow:hidden; display:inline-block; line-height:0;}
+
+/* componentes internos */
+.i-title{font-weight:800; font-size:15px; color:var(--ink-2); letter-spacing:-.3px;}
+.i-sub{font-size:9px; color:var(--muted-2); margin-top:1px;}
+.i-card{background:#fff; border-radius:15px; border:1px solid var(--line-soft); padding:11px 12px; box-shadow:0 4px 10px rgba(60,45,20,.05);}
+.i-label{font-size:8px; font-weight:700; color:var(--muted); margin-bottom:4px; text-transform:none;}
+.i-input{border:1.4px solid #E6DFD3; border-radius:9px; padding:7px 9px; font-size:9.5px; color:var(--muted-2); background:#fff;}
+.i-input.fill{color:var(--ink-2); font-weight:600;}
+.i-row{display:flex; gap:8px;}
+.i-btn{background:var(--accent); color:#fff; font-weight:800; font-size:11px; border-radius:999px;
+  padding:11px; text-align:center; box-shadow:0 8px 18px rgba(255,127,0,.30);}
+.i-btn.ghost{background:#fff; color:var(--accent); border:1.5px solid #F0D9BE; box-shadow:none;}
+.i-btn.sec{background:#fff; color:var(--muted); border:1.5px solid var(--line); box-shadow:none; font-weight:700;}
+.pill{display:inline-flex; align-items:center; gap:4px; font-size:8px; font-weight:800; padding:3px 8px; border-radius:999px;}
+.stepper{display:flex; align-items:center; gap:4px; margin:2px 0;}
+.stepper .st{display:flex; align-items:center; gap:4px;}
+.stepper .sc-c{width:16px;height:16px;border-radius:999px;display:flex;align-items:center;justify-content:center;font-size:8px;font-weight:800;background:#fff;border:1.4px solid #E0D8C9;color:var(--muted-2);}
+.stepper .st.on .sc-c{background:var(--accent);border:none;color:#fff;}
+.stepper .sc-l{font-size:7.5px;font-weight:700;color:var(--muted-2);}
+.stepper .st.on .sc-l{color:var(--ink-2);}
+.stepper .sc-line{flex:1;height:1.4px;background:var(--line);}
+.banner{display:flex; gap:8px; align-items:center; border-radius:12px; padding:9px 10px;}
+.banner .bn-ic{width:26px;height:26px;border-radius:999px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:12px;flex:0 0 auto;}
+.banner .bn-t{font-weight:800; font-size:9.5px;}
+.banner .bn-s{font-size:8px; margin-top:1px;}
+
+/* grid de módulos (hub) */
+.modgrid{display:grid; grid-template-columns:1fr 1fr; gap:7px;}
+.modcard{background:#fff; border-radius:13px; border:1.6px solid var(--line-soft); overflow:hidden; box-shadow:0 3px 7px rgba(60,45,20,.05);}
+.modcard.sel{border-width:2px;}
+.modcard .mc-top{height:38px; position:relative;}
+.modcard .mc-emoji{position:absolute; left:8px; top:8px; width:26px;height:26px;border-radius:9px;background:#fff;
+  display:flex;align-items:center;justify-content:center;font-size:14px;box-shadow:0 2px 5px rgba(0,0,0,.08);}
+.modcard .mc-tag{position:absolute; left:40px; top:13px; background:#fff; font-size:6.5px; font-weight:800; padding:2px 6px; border-radius:999px; letter-spacing:.4px;}
+.modcard .mc-chk{position:absolute; right:7px; bottom:6px; width:16px;height:16px;border-radius:999px; display:flex;align-items:center;justify-content:center; color:#fff; font-size:8px; font-weight:800;}
+.modcard .mc-body{padding:7px 9px 9px;}
+.modcard .mc-h{font-weight:800; font-size:9px; color:var(--ink-2); line-height:1.15;}
+.modcard .mc-d{font-size:7.3px; color:var(--muted-2); line-height:1.35; margin-top:3px; min-height:19px;}
+.modcard .mc-meta{display:flex; gap:4px; margin-top:5px; flex-wrap:wrap;}
+.modcard .mc-meta .mm{font-size:6.5px; font-weight:800; padding:2px 6px; border-radius:999px;}
+.modcard .mc-bar{height:3px;}
+
+/* audiograma / tabla de resultados */
+.audtab{border:1px solid var(--line-soft); border-radius:12px; overflow:hidden;}
+.audtab .at-row{display:grid; grid-template-columns:34px repeat(6,1fr);}
+.audtab .at-h{background:var(--bg-soft);}
+.audtab .at-c{padding:5px 2px; text-align:center; font-size:8px; font-weight:800; color:var(--muted); border-bottom:1px solid var(--line-soft);}
+.audtab .at-lbl{text-align:left; padding-left:8px; color:var(--ink-2);}
+.audtab .cell{margin:3px; border-radius:6px; padding:3px 0; font-size:8px; font-weight:800; text-align:center;}
+.legend{display:flex; gap:10px; margin-top:7px;}
+.legend .lg{display:flex; align-items:center; gap:4px; font-size:7.5px; color:var(--muted-2);}
+.legend .sw{width:9px;height:9px;border-radius:2.5px;}
+
+/* barras de métrica (resultados voz) */
+.metric{margin-bottom:9px;}
+.metric .mt-top{display:flex; justify-content:space-between; align-items:baseline;}
+.metric .mt-l{font-size:9px; font-weight:700; color:var(--muted);}
+.metric .mt-v{font-size:11px; font-weight:800;}
+.metric .mt-bar{height:6px; border-radius:999px; background:#EFEAE0; margin-top:4px; overflow:hidden;}
+.metric .mt-fill{height:100%; border-radius:999px;}
+.metric .mt-ref{font-size:7.5px; color:var(--muted-2); margin-top:3px;}
+
+/* medidor sonómetro */
+.gauge{width:150px;height:150px;border-radius:999px; margin:6px auto; display:flex; align-items:center; justify-content:center; position:relative;}
+.gauge .gv{font-size:30px; font-weight:800; color:var(--ok); line-height:1;}
+.gauge .gu{font-size:9px; color:var(--muted-2); font-weight:700;}
+
+/* firma */
+.sign{border:1.5px dashed #D9CFBE; border-radius:12px; height:96px; background:#FCFAF6; position:relative; display:flex; align-items:flex-end; justify-content:center; padding-bottom:8px;}
+.sign .sg-line{position:absolute; left:16px; right:16px; bottom:26px; border-top:1.4px solid #E0D6C4;}
+.sign .sg-hint{font-size:8px; color:var(--muted-2);}
+.sign svg{position:absolute; left:50%; top:24px; transform:translateX(-50%);}
+
+/* checklist CAP */
+.check{display:flex; align-items:center; gap:9px; padding:8px 10px; border:1px solid var(--line-soft); border-radius:11px; background:#fff; margin-bottom:6px;}
+.check .ck-box{width:20px;height:20px;border-radius:6px; background:var(--ok); color:#fff; display:flex; align-items:center; justify-content:center; font-size:11px; flex:0 0 auto;}
+.check .ck-t{font-size:9px; font-weight:700; color:var(--ink-2);}
+.check .ck-s{font-size:7.5px; color:var(--muted-2);}
+
+/* particulas onda (bienvenida) */
+.wavefield{height:96px; position:relative; margin:8px 0;}
+
+/* diagrama de flujo */
+.flow{display:flex; flex-direction:column; gap:0;}
+.flow .fl-step{display:flex; gap:12px; align-items:stretch;}
+.flow .fl-rail{display:flex; flex-direction:column; align-items:center; flex:0 0 auto; width:34px;}
+.flow .fl-node{width:34px;height:34px;border-radius:999px; background:var(--accent); color:#fff; font-weight:800; font-size:14px; display:flex; align-items:center; justify-content:center; box-shadow:0 4px 10px rgba(255,127,0,.25);}
+.flow .fl-node.block{background:var(--err);}
+.flow .fl-line{flex:1; width:2.5px; background:var(--line); margin:2px 0;}
+.flow .fl-card{flex:1; background:#fff; border:1.5px solid var(--line); border-radius:12px; padding:10px 13px; margin-bottom:10px;}
+.flow .fl-card.block{border-color:#EFC3BD; background:linear-gradient(180deg,#fff,#FCF0EE);}
+.flow .fl-t{font-weight:800; font-size:11px; color:var(--ink-2); display:flex; align-items:center; gap:8px;}
+.flow .fl-d{font-size:9.3px; color:var(--muted); margin-top:2px; line-height:1.45;}
+.flow.fill{flex:1;}
+.flow.fill .fl-step{flex:1;}
+.flow.fill .fl-card{margin-bottom:11px; display:flex; flex-direction:column; justify-content:center;}
+
+/* portada */
+.cover{background:radial-gradient(120% 80% at 15% 5%, #FBE8D3 0%, #F1ECE2 45%, #ECE4D6 100%);
+  height:297mm; padding:0; display:flex; flex-direction:column; overflow:hidden; position:relative;}
+.cover .cv-blob{position:absolute; border-radius:999px; filter:blur(2px);}
+.cover .b1{width:520px;height:520px; top:-180px; left:-160px; background:rgba(240,174,108,.20);}
+.cover .b2{width:460px;height:460px; bottom:-220px; right:-160px; background:rgba(255,204,128,.16);}
+.cover .cv-main{flex:1; display:flex; flex-direction:column; justify-content:center; align-items:center; text-align:center; padding:0 30mm; position:relative; z-index:2;}
+.cover .cv-word{font-size:64px; font-weight:800; letter-spacing:-3px; color:var(--ink-2); line-height:1;}
+.cover .cv-word i{color:var(--accent); font-style:normal;}
+.cover .cv-tag{font-size:15px; color:var(--muted); letter-spacing:3px; text-transform:uppercase; margin-top:10px; font-weight:700;}
+.cover .cv-h{font-size:34px; font-weight:800; letter-spacing:-1px; color:var(--ink-2); margin-top:34px; line-height:1.12;}
+.cover .cv-h i{color:var(--accent); font-style:normal;}
+.cover .cv-p{font-size:13px; color:var(--muted); max-width:430px; margin-top:14px; line-height:1.6;}
+.cover .cv-badges{display:flex; gap:8px; flex-wrap:wrap; justify-content:center; margin-top:26px;}
+.cover .cv-badge{background:#fff; border:1px solid var(--line); border-radius:999px; padding:6px 14px; font-size:10px; font-weight:700; color:var(--ink-2); box-shadow:0 3px 8px rgba(60,45,20,.06);}
+.cover .cv-foot{position:absolute; bottom:22mm; left:0; right:0; text-align:center; z-index:2;}
+.cover .cv-foot .l1{font-size:11px; color:var(--muted); font-weight:700;}
+.cover .cv-foot .l2{font-size:9.5px; color:var(--faint); margin-top:4px;}
+.cover .cv-strip{height:8px; background:linear-gradient(90deg,#FDB35C,#FF8A1E,#E85F12); position:absolute; left:0; right:0; bottom:0; z-index:2;}
+
+/* índice */
+.toc{list-style:none; padding:0; margin:0;}
+.toc li{display:flex; align-items:center; gap:12px; padding:15.5px 0; border-bottom:1px solid var(--line-soft);}
+.toc .tc-n{width:24px;height:24px;border-radius:8px; background:var(--accent-50); color:var(--accent-600); font-weight:800; font-size:11px; display:flex; align-items:center; justify-content:center; flex:0 0 auto;}
+.toc .tc-t{font-weight:700; color:var(--ink-2); font-size:12px;}
+.toc .tc-d{flex:1; border-bottom:1.5px dotted var(--line); margin:0 4px;}
+.toc .tc-p{color:var(--muted-2); font-weight:800; font-size:11px;}
+.seqrow{display:flex; flex-wrap:wrap; gap:5px; align-items:center; margin-top:9px;}
+.seqchip{font-size:8px; font-weight:700; color:var(--muted); background:#F2EEE6; border:1px solid var(--line); border-radius:999px; padding:3px 9px; white-space:nowrap;}
+.seqchip.on{background:var(--accent-50); color:var(--accent-600); border-color:#F3D9BE;}
+.seqrow .ar{color:var(--faint); font-size:9px; font-weight:700;}
+.seqmap{display:flex; flex-wrap:nowrap; gap:3px; align-items:center; justify-content:space-between; background:linear-gradient(180deg,#fff,#FBF8F2); border:1.5px solid var(--line); border-radius:14px; padding:14px 10px;}
+.seqmap .node{display:flex; flex-direction:column; align-items:center; gap:5px; width:64px; text-align:center; flex:0 0 auto;}
+.seqmap .ic{width:34px;height:34px;border-radius:11px; background:var(--accent-50); display:flex; align-items:center; justify-content:center; font-size:16px;}
+.seqmap .lb{font-size:8px; font-weight:700; color:var(--ink-2); line-height:1.2;}
+.seqmap .ar{color:var(--accent); font-size:14px; font-weight:800;}
+</style>
+</head>
+<body>
+
+<!-- ============================ 1 · PORTADA ============================ -->
+<div class="page cover">
+  <div class="cv-blob b1"></div><div class="cv-blob b2"></div>
+  <div class="cv-main">
+    <div class="logo" style="margin-bottom:22px;">__LOGO_120__</div>
+    <div class="cv-word">VIA<i>+</i></div>
+    <div class="cv-tag">Del ruido a la información</div>
+    <div class="cv-h">Manual de <i>Usuario</i></div>
+    <div class="cv-p">Valoración Interactiva de Audición y Lenguaje · Software como Dispositivo Médico (SaMD) Clase IIa · Guía de uso clínico con capturas de pantalla y casos de uso.</div>
+    <div class="cv-badges">
+      <div class="cv-badge">SaMD · Clase IIa (MDR)</div>
+      <div class="cv-badge">9 módulos de evaluación</div>
+      <div class="cv-badge">Offline-first</div>
+      <div class="cv-badge">Informe PDF</div>
+    </div>
+  </div>
+  <div class="cv-foot">
+    <div class="l1">Earlify Health · Ecosistema de salud pediátrica</div>
+    <div class="l2">Versión 0.1.0 · Documento de uso clínico · © 2024–2026 · Todos los derechos reservados</div>
+  </div>
+  <div class="cv-strip"></div>
+</div>
+
+<!-- ============================ 2 · ÍNDICE + AVISO ============================ -->
+<div class="page">
+  <div class="page-head"><div class="ph-left"><span class="ph-mark">VIA<span>+</span></span><span class="ph-sec">Manual de usuario</span></div><span class="ph-sec">Contenido</span></div>
+  <div class="content">
+    <div class="kicker">Índice</div>
+    <h1 class="h">Contenido del manual</h1>
+    <p class="lead">Este manual describe el uso clínico de VIA+ pantalla a pantalla. Cada apartado incluye una captura representativa de la interfaz y un caso de uso real de la consulta.</p>
+    <ol class="toc">
+      <li><span class="tc-n">1</span><span class="tc-t">Introducción · Qué es y qué no es VIA+</span><span class="tc-d"></span><span class="tc-p">3</span></li>
+      <li><span class="tc-n">2</span><span class="tc-t">Flujo clínico general</span><span class="tc-d"></span><span class="tc-p">4</span></li>
+      <li><span class="tc-n">3</span><span class="tc-t">Acceso · Bienvenida y perfil profesional</span><span class="tc-d"></span><span class="tc-p">5</span></li>
+      <li><span class="tc-n">4</span><span class="tc-t">Pacientes · Lista y alta de paciente</span><span class="tc-d"></span><span class="tc-p">6</span></li>
+      <li><span class="tc-n">5</span><span class="tc-t">Consentimiento informado y CAP (bloqueantes)</span><span class="tc-d"></span><span class="tc-p">7</span></li>
+      <li><span class="tc-n">6</span><span class="tc-t">Sonómetro de sala y selección de pruebas</span><span class="tc-d"></span><span class="tc-p">8</span></li>
+      <li><span class="tc-n">7</span><span class="tc-t">Módulos de audición · Audiometrías</span><span class="tc-d"></span><span class="tc-p">9</span></li>
+      <li><span class="tc-n">8</span><span class="tc-t">Módulos de voz y lenguaje · Voz y T.A.R.</span><span class="tc-d"></span><span class="tc-p">10</span></li>
+      <li><span class="tc-n">9</span><span class="tc-t">Módulos clínicos · Disfagia, M-CHAT y SAHS</span><span class="tc-d"></span><span class="tc-p">11</span></li>
+      <li><span class="tc-n">10</span><span class="tc-t">Resultados detallados y compartir informe PDF</span><span class="tc-d"></span><span class="tc-p">12</span></li>
+      <li><span class="tc-n">11</span><span class="tc-t">Casos de uso de principio a fin</span><span class="tc-d"></span><span class="tc-p">13</span></li>
+      <li><span class="tc-n">12</span><span class="tc-t">Buenas prácticas, privacidad y soporte</span><span class="tc-d"></span><span class="tc-p">14</span></li>
+    </ol>
+    <div class="fill"></div>
+    <div class="note crit">
+      <b>⚠ Aviso de seguridad clínica.</b> VIA+ es una herramienta de <b>apoyo a la decisión clínica</b>. No emite diagnósticos automatizados ni sustituye el juicio del profesional sanitario. Su uso está restringido a entornos clínicos bajo supervisión de un profesional cualificado; la interpretación de todos los resultados es responsabilidad exclusiva del clínico evaluador.
+    </div>
+  </div>
+  <div class="page-foot"><span>VIA+ · Manual de Usuario</span><span>Página 2</span></div>
+</div>
+
+<!-- ============================ 3 · INTRODUCCIÓN ============================ -->
+<div class="page">
+  <div class="page-head"><div class="ph-left"><span class="ph-mark">VIA<span>+</span></span><span class="ph-sec">1 · Introducción</span></div><span class="ph-sec">Qué es VIA+</span></div>
+  <div class="content">
+    <div>
+      <div class="kicker">Sección 1</div>
+      <h1 class="h">¿Qué es VIA+?</h1>
+      <p class="lead">VIA+ (Valoración Interactiva de Audición y Lenguaje) es un software de apoyo a la decisión clínica que se ejecuta sobre <b>tablet</b> en la consulta. Reúne una batería de <b>9 pruebas gamificadas</b> adaptadas a la población pediátrica que capturan biomarcadores vocales y respuestas conductuales bajo supervisión profesional directa.</p>
+      <div class="grid2">
+        <div>
+          <h2 class="h" style="font-size:12px; margin-bottom:7px;">Dominios que cubre</h2>
+          <ul class="featurelist">
+            <li><span class="fi-ic">🎧</span><span><b>Audiología pediátrica.</b> Tamizaje auditivo y audiometría condicionada gamificada.</span></li>
+            <li><span class="fi-ic">🗣️</span><span><b>Logopedia y lenguaje.</b> Articulación, discriminación y repetición verbal.</span></li>
+            <li><span class="fi-ic">🧠</span><span><b>Neurodesarrollo.</b> Indicadores de atención, sueño y conducta.</span></li>
+            <li><span class="fi-ic">💧</span><span><b>Deglución.</b> Cribado de disfagia con pulsioximetría.</span></li>
+          </ul>
+        </div>
+        <div>
+          <h2 class="h" style="font-size:12px; margin-bottom:7px;">Qué NO hace</h2>
+          <ul class="featurelist">
+            <li><span class="fi-ic">🚫</span><span>Emitir <b>diagnósticos</b> automatizados.</span></li>
+            <li><span class="fi-ic">🚫</span><span>Sustituir el <b>juicio clínico</b> del profesional.</span></li>
+            <li><span class="fi-ic">🚫</span><span>Clasificar resultados como patológicos/normales.</span></li>
+            <li><span class="fi-ic">🚫</span><span>Funcionar sin <b>supervisión</b> profesional.</span></li>
+          </ul>
+        </div>
+      </div>
+    </div>
+    <div>
+      <h2 class="h" style="font-size:12px; margin-bottom:6px;">Características principales</h2>
+      <table class="info">
+        <tr><th style="width:34%;">Capacidad</th><th>Descripción</th></tr>
+        <tr><td><b>Offline-first</b></td><td>Operación completa sin conexión en salas clínicas aisladas; sincronización diferida con la HCE (HL7 FHIR R4).</td></tr>
+        <tr><td><b>UX dual</b></td><td>Modo profesional analítico y modo niño lúdico en un único dispositivo.</td></tr>
+        <tr><td><b>Seguridad</b></td><td>Cifrado AES-256 en reposo · TLS 1.3 en tránsito · seudonimización del NHC.</td></tr>
+        <tr><td><b>Consentimiento</b></td><td>Firma digital del tutor legal, obligatoria antes de evaluar.</td></tr>
+        <tr><td><b>Informe PDF</b></td><td>Generación automática de informe clínico estructurado por módulo.</td></tr>
+      </table>
+      <h2 class="h" style="font-size:12px; margin:16px 0 8px;">La batería en un vistazo · 9 módulos</h2>
+      <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:8px;">
+        __CHIP_📋_#EA580C_#FFEDD5_Evaluación Clínica (CAP)_Anamnesis + firma__
+        __CHIP_🧩_#DB2777_#FCE7F3_Autismo M-CHAT-R_Cribado de TEA__
+        __CHIP_🎙️_#0D9488_#CCFBF1_Sonómetro Ambiental_Gate de sala__
+        __CHIP_🎧_#0284C7_#E0F2FE_Audiometría Infantil_Tonal por juego__
+        __CHIP_🚂_#0D9488_#CCFBF1_Audiometría Condicionada_El Tren del Sonido__
+        __CHIP_🎤_#7C3AED_#F3E8FF_Análisis de Voz_F0 · jitter · HNR__
+        __CHIP_💧_#DC2626_#FEE2E2_Disfagia MECV-V_Pulsioximetría BLE__
+        __CHIP_😴_#4F46E5_#E0E7FF_Cribado SAHS_PSQ de Chervin__
+        __CHIP_🗣️_#EA580C_#FFEDD5_Articulación T.A.R._Registro SODA__
+      </div>
+      <div class="usecase" style="margin-top:12px;">
+        <div class="uc-h">⬦ Perfil de usuario</div>
+        <div class="uc-b">Médico, logopeda, psicopedagogo o enfermero acreditado que evalúa a un paciente pediátrico en consulta, con el tutor legal presente para firmar el consentimiento.</div>
+      </div>
+    </div>
+  </div>
+  <div class="page-foot"><span>VIA+ · Manual de Usuario</span><span>Página 3</span></div>
+</div>
+
+<!-- ============================ 4 · FLUJO CLÍNICO ============================ -->
+<div class="page">
+  <div class="page-head"><div class="ph-left"><span class="ph-mark">VIA<span>+</span></span><span class="ph-sec">2 · Flujo clínico</span></div><span class="ph-sec">Recorrido obligatorio</span></div>
+  <div class="content">
+    <div class="kicker">Sección 2</div>
+    <h1 class="h">Flujo clínico general</h1>
+    <p class="lead">El recorrido es <b>secuencial y obligatorio</b>: cada fase es prerrequisito de la siguiente. Los pasos marcados en rojo son <b>bloqueantes</b> — sin superarlos no se accede a la batería de evaluación.</p>
+    <div class="flow fill">
+      <div class="fl-step"><div class="fl-rail"><div class="fl-node">0</div><div class="fl-line"></div></div>
+        <div class="fl-card"><div class="fl-t">Acceso profesional</div><div class="fl-d">Selección o alta del perfil del profesional sanitario que realiza la sesión.</div></div></div>
+      <div class="fl-step"><div class="fl-rail"><div class="fl-node">1</div><div class="fl-line"></div></div>
+        <div class="fl-card"><div class="fl-t">Identificación del paciente</div><div class="fl-d">Búsqueda en la lista o alta sociodemográfica del paciente pediátrico (NHC, fecha de nacimiento, sexo).</div></div></div>
+      <div class="fl-step"><div class="fl-rail"><div class="fl-node block">2</div><div class="fl-line"></div></div>
+        <div class="fl-card block"><div class="fl-t">Consentimiento informado <span class="tag err">bloqueante</span></div><div class="fl-d">Firma digital del tutor legal. Sin consentimiento válido, el acceso a la evaluación queda denegado.</div></div></div>
+      <div class="fl-step"><div class="fl-rail"><div class="fl-node block">3</div><div class="fl-line"></div></div>
+        <div class="fl-card block"><div class="fl-t">Pre-screening clínico · CAP <span class="tag err">bloqueante</span></div><div class="fl-d">Certificado de Aptitud para la Prueba: checklist de capacidad visual, motora, auditiva y cognitiva. Si «no apto», bloqueo con sugerencia de metodologías alternativas.</div></div></div>
+      <div class="fl-step"><div class="fl-rail"><div class="fl-node">4</div><div class="fl-line"></div></div>
+        <div class="fl-card"><div class="fl-t">Batería de evaluación gamificada</div><div class="fl-d">9 módulos adaptados al perfil del paciente. El modo niño oculta todo elemento clínico.</div></div></div>
+      <div class="fl-step"><div class="fl-rail"><div class="fl-node">5</div><div class="fl-line"></div></div>
+        <div class="fl-card"><div class="fl-t">Generación de resultados</div><div class="fl-d">Informe PDF estructurado para el profesional y sincronización diferida con la HCE.</div></div></div>
+      <div class="fl-step"><div class="fl-rail"><div class="fl-node">6</div></div>
+        <div class="fl-card"><div class="fl-t">Archivo y seguimiento</div><div class="fl-d">Historial de evaluaciones del paciente para su seguimiento longitudinal.</div></div></div>
+    </div>
+    <div class="note ok" style="margin-top:2px;"><b>Excepción.</b> La exploración de disfagia no requiere CAP ni sonómetro de sala (el consentimiento informado sí): tras el alta del paciente se accede directamente a la prueba.</div>
+  </div>
+  <div class="page-foot"><span>VIA+ · Manual de Usuario</span><span>Página 4</span></div>
+</div>
+
+<!-- ============================ 5 · ACCESO / BIENVENIDA ============================ -->
+<div class="page">
+  <div class="page-head"><div class="ph-left"><span class="ph-mark">VIA<span>+</span></span><span class="ph-sec">3 · Acceso</span></div><span class="ph-sec">Bienvenida · Perfil profesional</span></div>
+  <div class="content spread">
+    <div>
+      <div class="kicker">Sección 3</div>
+      <h1 class="h">Acceso y perfil profesional</h1>
+      <p class="lead">Al abrir la aplicación, la pantalla de bienvenida introduce la propuesta de VIA+ («del ruido a la información») y da paso a la selección o alta del profesional que firmará la sesión.</p>
+    </div>
+    <div class="grid2" style="gap:26px; align-items:start;">
+      <!-- Bienvenida -->
+      <div class="shot">
+        <div class="device"><div class="screen" style="background:#F1ECE2;">
+          <div class="statusbar"><span>9:41</span><div class="sb-r"><span>100%</span><div class="dot"></div></div></div>
+          <div class="scr-body" style="display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center;">
+            <div style="font-size:26px; font-weight:800; letter-spacing:-1.5px; color:var(--ink-2); margin-bottom:6px;">VIA<span style="color:var(--accent)">+</span></div>
+            <div class="logo" style="margin:4px 0 8px;">__LOGO_78__</div>
+            <div class="wavefield">__WAVE__</div>
+            <div style="font-size:15px; font-weight:800; color:var(--ink-2); letter-spacing:-.4px; line-height:1.2;">Del ruido a la <span style="color:var(--accent)">información</span></div>
+            <div style="font-size:9px; color:var(--muted); margin-top:6px; max-width:210px;">VIA+ procesa cada voz y la convierte en medidas clínicas objetivas.</div>
+            <div class="i-btn" style="margin-top:16px; padding:9px 26px;">Comenzar →</div>
+          </div>
+        </div></div>
+        <div class="shot-caption">
+          <div class="sc-title"><span class="sc-num">A</span>Pantalla de bienvenida</div>
+          <div class="sc-text">Animación de partículas que pasan «del ruido al orden» al cruzar el isotipo. El botón <b>Comenzar</b> lleva a los créditos y al acceso profesional.</div>
+        </div>
+      </div>
+      <!-- Selección profesional -->
+      <div class="shot">
+        <div class="device"><div class="screen">
+          <div class="statusbar"><span>9:41</span><div class="sb-r"><span>100%</span><div class="dot"></div></div></div>
+          <div class="appbar"><div class="ab-brand"><div class="logo">__LOGO_22__</div><div class="ab-word">VIA<i>+</i></div></div><div class="ab-chip">Acceso</div></div>
+          <div class="scr-body">
+            <div class="i-title">Profesional</div>
+            <div class="i-sub">Selecciona tu perfil para esta sesión</div>
+            <div style="margin-top:10px; display:flex; flex-direction:column; gap:7px;">
+              <div class="i-card" style="display:flex; align-items:center; gap:9px; border-color:#F0D9BE;">
+                <div style="width:32px;height:32px;border-radius:999px;background:var(--accent-50); display:flex;align-items:center;justify-content:center;font-size:15px;">🩺</div>
+                <div style="flex:1;"><div style="font-weight:800; font-size:10px; color:var(--ink-2);">Dra. L. Marín</div><div style="font-size:8px; color:var(--muted-2);">Logopeda · Col. 28/1042</div></div>
+                <div class="pill" style="background:var(--ok-bg); color:var(--ok);">Activo</div>
+              </div>
+              <div class="i-card" style="display:flex; align-items:center; gap:9px;">
+                <div style="width:32px;height:32px;border-radius:999px;background:#EDEAF7; display:flex;align-items:center;justify-content:center;font-size:15px;">👩‍⚕️</div>
+                <div style="flex:1;"><div style="font-weight:800; font-size:10px; color:var(--ink-2);">Dr. J. Sáez</div><div style="font-size:8px; color:var(--muted-2);">Audiólogo · Col. 28/0771</div></div>
+              </div>
+            </div>
+            <div class="i-btn ghost" style="margin-top:10px;">＋ Registrar nuevo profesional</div>
+            <div class="i-btn" style="margin-top:7px;">Entrar</div>
+          </div>
+        </div></div>
+        <div class="shot-caption">
+          <div class="sc-title"><span class="sc-num">B</span>Selección / alta del profesional</div>
+          <div class="sc-text">Cada evaluación queda asociada al profesional acreditado (nombre y nº de colegiado). Desde aquí también se da de alta un profesional nuevo.</div>
+        </div>
+      </div>
+    </div>
+    <div class="usecase">
+      <div class="uc-h">⬦ Caso de uso — Inicio de jornada</div>
+      <div class="uc-b">La logopeda abre VIA+ en la tablet de consulta, pulsa <b>Comenzar</b>, selecciona su perfil «Dra. L. Marín» y entra. Todas las pruebas de esa sesión quedarán firmadas con su número de colegiado.</div>
+    </div>
+  </div>
+  <div class="page-foot"><span>VIA+ · Manual de Usuario</span><span>Página 5</span></div>
+</div>
+
+<!-- ============================ 6 · PACIENTES ============================ -->
+<div class="page">
+  <div class="page-head"><div class="ph-left"><span class="ph-mark">VIA<span>+</span></span><span class="ph-sec">4 · Pacientes</span></div><span class="ph-sec">Lista · Alta de paciente</span></div>
+  <div class="content spread">
+    <div>
+      <div class="kicker">Sección 4</div>
+      <h1 class="h">Identificación del paciente</h1>
+      <p class="lead">Una vez dentro, se busca al paciente en la lista o se da de alta uno nuevo. El alta recoge los datos sociodemográficos mínimos y crea la evaluación de la sesión.</p>
+    </div>
+    <div class="grid2" style="gap:26px; align-items:start;">
+      <!-- Lista pacientes -->
+      <div class="shot">
+        <div class="device"><div class="screen">
+          <div class="statusbar"><span>9:42</span><div class="sb-r"><span>100%</span><div class="dot"></div></div></div>
+          <div class="appbar"><div class="ab-brand"><div class="logo">__LOGO_22__</div><div class="ab-word">VIA<i>+</i></div></div><div class="ab-chip">Dra. Marín</div></div>
+          <div class="scr-body">
+            <div class="i-title">Pacientes</div>
+            <div class="i-sub">Busca o registra un paciente</div>
+            <div class="i-input" style="margin-top:9px; display:flex; align-items:center; gap:7px;"><span>🔍</span><span>Buscar por nombre o NHC…</span></div>
+            <div style="margin-top:9px; display:flex; flex-direction:column; gap:6px;">
+              <div class="i-card" style="display:flex; align-items:center; gap:9px; padding:9px 10px;">
+                <div style="width:30px;height:30px;border-radius:999px;background:var(--m-mchat-bg); display:flex;align-items:center;justify-content:center;font-size:12px;">🧒</div>
+                <div style="flex:1;"><div style="font-weight:800; font-size:9.5px; color:var(--ink-2);">Mateo R. G.</div><div style="font-size:7.5px; color:var(--muted-2);">NHC PT-0231 · 4 a · F. nac. 2021-05-12</div></div>
+                <span style="color:var(--muted-2); font-size:13px;">›</span>
+              </div>
+              <div class="i-card" style="display:flex; align-items:center; gap:9px; padding:9px 10px;">
+                <div style="width:30px;height:30px;border-radius:999px;background:var(--m-audio-bg); display:flex;align-items:center;justify-content:center;font-size:12px;">👧</div>
+                <div style="flex:1;"><div style="font-weight:800; font-size:9.5px; color:var(--ink-2);">Lucía P. M.</div><div style="font-size:7.5px; color:var(--muted-2);">NHC PT-0198 · 3 a · F. nac. 2022-02-03</div></div>
+                <span style="color:var(--muted-2); font-size:13px;">›</span>
+              </div>
+            </div>
+            <div class="i-btn" style="margin-top:11px;">＋ Nuevo paciente</div>
+          </div>
+        </div></div>
+        <div class="shot-caption">
+          <div class="sc-title"><span class="sc-num">A</span>Lista de pacientes</div>
+          <div class="sc-text">Búsqueda por nombre o NHC. Cada ficha muestra edad calculada y fecha de nacimiento. El botón inferior abre el alta de un paciente nuevo.</div>
+        </div>
+      </div>
+      <!-- Registro paciente -->
+      <div class="shot">
+        <div class="device"><div class="screen">
+          <div class="statusbar"><span>9:43</span><div class="sb-r"><span>100%</span><div class="dot"></div></div></div>
+          <div class="appbar"><div class="ab-brand"><div class="logo">__LOGO_22__</div><div class="ab-word">VIA<i>+</i></div></div><div class="ab-chip">Alta</div></div>
+          <div class="scr-body">
+            <div class="i-title">Nuevo paciente</div>
+            <div class="i-sub">Registro sociodemográfico</div>
+            <div class="stepper" style="margin-top:9px;">
+              <div class="st on"><div class="sc-c">1</div><div class="sc-l">Paciente</div></div><div class="sc-line"></div>
+              <div class="st"><div class="sc-c">2</div><div class="sc-l">Consent.</div></div><div class="sc-line"></div>
+              <div class="st"><div class="sc-c">3</div><div class="sc-l">CAP</div></div><div class="sc-line"></div>
+              <div class="st"><div class="sc-c">4</div><div class="sc-l">Sala</div></div>
+            </div>
+            <div class="i-card" style="margin-top:9px; padding:10px;">
+              <div class="i-label">Nombre y apellidos</div>
+              <div class="i-row"><div class="i-input fill" style="flex:1;">Mateo</div><div class="i-input fill" style="flex:1;">R. García</div></div>
+              <div class="i-row" style="margin-top:8px;">
+                <div style="flex:1;"><div class="i-label">Fecha nac.</div><div class="i-input fill">2021-05-12</div></div>
+                <div style="flex:1;"><div class="i-label">Edad</div><div class="i-input" style="background:#F4F0E8;">4 a</div></div>
+              </div>
+              <div class="i-label" style="margin-top:8px;">Sexo</div>
+              <div class="i-row">
+                <div class="i-input" style="flex:1; text-align:center;">Fem.</div>
+                <div class="i-input fill" style="flex:1; text-align:center; border-color:var(--accent); color:var(--accent); background:var(--accent-50);">Masc.</div>
+                <div class="i-input" style="flex:1; text-align:center;">Otro</div>
+              </div>
+              <div class="i-label" style="margin-top:8px;">NHC</div>
+              <div class="i-input fill">PT-0231</div>
+            </div>
+            <div class="i-btn" style="margin-top:8px;">Continuar al consentimiento →</div>
+          </div>
+        </div></div>
+        <div class="shot-caption">
+          <div class="sc-title"><span class="sc-num">B</span>Alta de paciente</div>
+          <div class="sc-text">Un <b>stepper</b> marca dónde estás en el flujo. La edad se calcula sola desde la fecha de nacimiento y el NHC debe ser único. 4 campos obligatorios habilitan el botón.</div>
+        </div>
+      </div>
+    </div>
+    <div class="usecase">
+      <div class="uc-h">⬦ Caso de uso — Primera visita</div>
+      <div class="uc-b">Mateo acude por primera vez. La profesional pulsa <b>Nuevo paciente</b>, introduce nombre, fecha de nacimiento (la app muestra «4 a»), sexo y NHC <b>PT-0231</b>, y continúa. VIA+ crea la evaluación y avanza al consentimiento.</div>
+    </div>
+  </div>
+  <div class="page-foot"><span>VIA+ · Manual de Usuario</span><span>Página 6</span></div>
+</div>
+
+<!-- ============================ 7 · CONSENTIMIENTO + CAP ============================ -->
+<div class="page">
+  <div class="page-head"><div class="ph-left"><span class="ph-mark">VIA<span>+</span></span><span class="ph-sec">5 · Pasos bloqueantes</span></div><span class="ph-sec">Consentimiento · CAP</span></div>
+  <div class="content spread">
+    <div>
+      <div class="kicker">Sección 5</div>
+      <h1 class="h">Consentimiento informado y CAP</h1>
+      <p class="lead">Dos pasos <b>bloqueantes</b> protegen al paciente: la firma del tutor legal y el Certificado de Aptitud para la Prueba (CAP). Sin ambos, la batería permanece cerrada.</p>
+    </div>
+    <div class="grid2" style="gap:26px; align-items:start;">
+      <!-- Consentimiento -->
+      <div class="shot">
+        <div class="device"><div class="screen">
+          <div class="statusbar"><span>9:44</span><div class="sb-r"><span>100%</span><div class="dot"></div></div></div>
+          <div class="appbar"><div class="ab-brand"><div class="logo">__LOGO_22__</div><div class="ab-word">VIA<i>+</i></div></div><div class="ab-chip">Paso 2 · Consent.</div></div>
+          <div class="scr-body">
+            <div class="i-title">Consentimiento informado</div>
+            <div class="i-sub">Firma del tutor legal · obligatoria</div>
+            <div class="i-card" style="margin-top:9px; font-size:8.3px; color:var(--muted); line-height:1.5; max-height:96px; overflow:hidden;">
+              <b style="color:var(--ink-2);">Tratamiento de datos (GDPR/LOPDGDD).</b> Autorizo la realización de las pruebas de audición y lenguaje y el tratamiento seudonimizado de los datos clínicos con fines asistenciales, pudiendo revocar este consentimiento en cualquier momento…
+            </div>
+            <div class="i-row" style="margin-top:8px; gap:6px; align-items:center;">
+              <div style="width:18px;height:18px;border-radius:5px;background:var(--ok); color:#fff; display:flex; align-items:center; justify-content:center; font-size:11px;">✓</div>
+              <div style="font-size:8px; color:var(--ink-2);">He leído y acepto en nombre del menor</div>
+            </div>
+            <div class="i-label" style="margin-top:9px;">Firma del tutor legal</div>
+            <div class="sign"><div class="sg-line"></div>__SIGN__<div class="sg-hint">María G. · tutora</div></div>
+            <div class="i-btn" style="margin-top:8px;">Firmar y continuar al CAP →</div>
+          </div>
+        </div></div>
+        <div class="shot-caption">
+          <div class="sc-title"><span class="sc-num">A</span>Consentimiento informado</div>
+          <div class="sc-text">Texto legal, casilla de aceptación y <b>firma manuscrita</b> del tutor sobre el lienzo. Se registra la fecha y hora de firma en la evaluación.</div>
+        </div>
+      </div>
+      <!-- CAP -->
+      <div class="shot">
+        <div class="device"><div class="screen">
+          <div class="statusbar"><span>9:46</span><div class="sb-r"><span>100%</span><div class="dot"></div></div></div>
+          <div class="appbar"><div class="ab-brand"><div class="logo">__LOGO_22__</div><div class="ab-word">VIA<i>+</i></div></div><div class="ab-chip">Paso 3 · CAP</div></div>
+          <div class="scr-body">
+            <div class="i-title">Evaluación clínica previa</div>
+            <div class="i-sub">Certificado de Aptitud para la Prueba</div>
+            <div style="margin-top:10px;">
+              <div class="check"><div class="ck-box">✓</div><div><div class="ck-t">Capacidad visual</div><div class="ck-s">Identifica estímulos en pantalla</div></div></div>
+              <div class="check"><div class="ck-box">✓</div><div><div class="ck-t">Motora fina</div><div class="ck-s">Interacción táctil (tap, arrastrar)</div></div></div>
+              <div class="check"><div class="ck-box">✓</div><div><div class="ck-t">Auditiva periférica</div><div class="ck-s">Percibe instrucciones básicas</div></div></div>
+              <div class="check"><div class="ck-box">✓</div><div><div class="ck-t">Estado cognitivo</div><div class="ck-s">Alerta y atención mínimas</div></div></div>
+            </div>
+            <div class="banner" style="background:var(--ok-bg); margin-top:8px;">
+              <div class="bn-ic" style="background:var(--ok);">✓</div>
+              <div><div class="bn-t" style="color:#2F6B44;">Paciente APTO</div><div class="bn-s" style="color:#3D7A54;">Todas las pruebas disponibles</div></div>
+            </div>
+            <div class="i-btn" style="margin-top:8px;">Emitir CAP y continuar →</div>
+          </div>
+        </div></div>
+        <div class="shot-caption">
+          <div class="sc-title"><span class="sc-num">B</span>Pre-screening clínico (CAP)</div>
+          <div class="sc-text">Checklist de 4 capacidades. Si alguna no se cumple, el CAP marca <b>«no apto»</b>, bloquea la batería y sugiere metodologías alternativas.</div>
+        </div>
+      </div>
+    </div>
+    <div class="note crit"><b>Ambos pasos son bloqueantes.</b> Sin firma de consentimiento válida y sin CAP «apto» no se habilita ningún módulo de evaluación (salvo la excepción de disfagia, que sí exige consentimiento).</div>
+  </div>
+  <div class="page-foot"><span>VIA+ · Manual de Usuario</span><span>Página 7</span></div>
+</div>
+
+<!-- ============================ 8 · SONÓMETRO + HUB ============================ -->
+<div class="page">
+  <div class="page-head"><div class="ph-left"><span class="ph-mark">VIA<span>+</span></span><span class="ph-sec">6 · Sala y batería</span></div><span class="ph-sec">Sonómetro · Selección de pruebas</span></div>
+  <div class="content spread">
+    <div>
+      <div class="kicker">Sección 6</div>
+      <h1 class="h">Sonómetro de sala y selección de pruebas</h1>
+      <p class="lead">Antes de las pruebas de audición se comprueba el ruido de fondo. Superado el umbral, el hub central permite elegir y ordenar las exploraciones de la sesión.</p>
+    </div>
+    <div class="grid2" style="gap:26px; align-items:start;">
+      <!-- Sonómetro -->
+      <div class="shot">
+        <div class="device"><div class="screen">
+          <div class="statusbar"><span>9:48</span><div class="sb-r"><span>100%</span><div class="dot"></div></div></div>
+          <div class="appbar"><div class="ab-brand"><div class="logo">__LOGO_22__</div><div class="ab-word">VIA<i>+</i></div></div><div class="ab-chip">Sala</div></div>
+          <div class="scr-body" style="text-align:center;">
+            <div class="i-title" style="text-align:left;">Sonómetro ambiental</div>
+            <div class="i-sub" style="text-align:left;">Umbral máximo 45 dB · micrófono real</div>
+            <div class="gauge" style="background:conic-gradient(var(--ok) 0 62%, #EDE7DB 62% 100%);">
+              <div style="width:120px;height:120px;border-radius:999px;background:#fff; display:flex; flex-direction:column; align-items:center; justify-content:center;">
+                <div class="gv">31</div><div class="gu">dB</div>
+              </div>
+            </div>
+            <div class="pill" style="background:var(--ok-bg); color:var(--ok); font-size:9px;">● Sala apta · por debajo del umbral</div>
+            <div style="display:flex; flex-direction:column; gap:5px; margin-top:9px; text-align:left;">
+              <div class="check" style="padding:6px 9px;"><div class="ck-box">✓</div><div class="ck-t">Puerta cerrada</div></div>
+              <div class="check" style="padding:6px 9px;"><div class="ck-box">✓</div><div class="ck-t">Sin fuentes de ruido activas</div></div>
+            </div>
+            <div class="i-btn" style="margin-top:9px;">Generar CAP de sala →</div>
+          </div>
+        </div></div>
+        <div class="shot-caption">
+          <div class="sc-title"><span class="sc-num">A</span>Sonómetro de sala</div>
+          <div class="sc-text">Mide el ruido de fondo con el micrófono real del dispositivo. Solo permite continuar si el nivel está bajo el umbral y la checklist de sala está completa. No persiste datos.</div>
+        </div>
+      </div>
+      <!-- Hub -->
+      <div class="shot">
+        <div class="device"><div class="screen">
+          <div class="statusbar"><span>9:50</span><div class="sb-r"><span>100%</span><div class="dot"></div></div></div>
+          <div class="appbar"><div class="ab-brand"><div class="logo">__LOGO_22__</div><div class="ab-word">VIA<i>+</i></div></div><div class="ab-chip">Mateo · PT-0231</div></div>
+          <div class="scr-body">
+            <div class="i-title">Selección de pruebas</div>
+            <div class="i-sub">Elige las exploraciones de esta sesión</div>
+            <div class="banner" style="background:var(--ok-bg); margin-top:8px;">
+              <div class="bn-ic" style="background:var(--ok);">✓</div>
+              <div><div class="bn-t" style="color:#2F6B44;">CAP de sala generado</div><div class="bn-s" style="color:#3D7A54;">Sala apta · todas las pruebas disponibles</div></div>
+            </div>
+            <div class="modgrid" style="margin-top:8px;">
+              __MODCARD_audio_🎧_AUDICIÓN_Audiometría Infantil_1__
+              __MODCARD_voice_🎤_VOZ_Análisis de Voz_2__
+              __MODCARD_art_🗣️_LENGUAJE_Articulación · T.A.R._x__
+              __MODCARD_mchat_🧩_CONDUCTA_Cuestionario Autismo_x__
+            </div>
+            <div class="i-btn" style="margin-top:9px;">Iniciar batería →</div>
+          </div>
+        </div></div>
+        <div class="shot-caption">
+          <div class="sc-title"><span class="sc-num">B</span>Selección de pruebas (hub)</div>
+          <div class="sc-text">Tarjetas por módulo con color, duración y rango de edad. Al tocarlas se numeran en el <b>orden de la batería</b>. Accesos rápidos al CAP y al sonómetro.</div>
+        </div>
+      </div>
+    </div>
+    <div class="usecase">
+      <div class="uc-h">⬦ Caso de uso — Componer la batería</div>
+      <div class="uc-b">Con la sala apta, la profesional selecciona <b>Audiometría Infantil</b> (1) y <b>Análisis de Voz</b> (2). El botón cambia a <b>«Iniciar batería»</b> y las pruebas se ejecutarán en ese orden.</div>
+    </div>
+  </div>
+  <div class="page-foot"><span>VIA+ · Manual de Usuario</span><span>Página 8</span></div>
+</div>
+
+<!-- ============================ 9 · MÓDULOS AUDICIÓN ============================ -->
+<div class="page">
+  <div class="page-head"><div class="ph-left"><span class="ph-mark">VIA<span>+</span></span><span class="ph-sec">7 · Audición</span></div><span class="ph-sec">Audiometrías</span></div>
+  <div class="content spread">
+    <div>
+      <div class="kicker">Sección 7 · Módulos de audición</div>
+      <h1 class="h">Audiometría infantil y condicionada</h1>
+      <p class="lead">Dos formas de explorar el umbral auditivo: la audiometría tonal por juego (Hughson-Westlake) y la audiometría condicionada gamificada «El Tren del Sonido», en la que el niño responde al oír.</p>
+    </div>
+    <div class="grid2" style="gap:26px; align-items:start;">
+      <!-- Audiometría infantil -->
+      <div class="shot">
+        <div class="device"><div class="screen">
+          <div class="statusbar"><span>9:52</span><div class="sb-r"><span>100%</span><div class="dot"></div></div></div>
+          <div class="appbar"><div class="ab-brand"><div class="logo">__LOGO_22__</div><div class="ab-word">VIA<i>+</i></div></div><span class="pill" style="background:var(--m-audio-bg); color:var(--m-audio);">AUDICIÓN</span></div>
+          <div class="scr-body">
+            <div class="i-title">Audiometría infantil</div>
+            <div class="i-sub">Tonal liminar · 250–4000 Hz · vía aérea</div>
+            <div class="i-card" style="margin-top:9px; text-align:center; background:linear-gradient(180deg,#EAF6FE,#fff); border-color:#CDE9FA;">
+              <div style="font-size:8px; font-weight:800; color:var(--m-audio); letter-spacing:.5px;">FRECUENCIA ACTUAL</div>
+              <div style="font-size:30px; font-weight:800; color:var(--ink-2); letter-spacing:-1px;">1000 <span style="font-size:13px; color:var(--muted-2);">Hz</span></div>
+              <div style="font-size:9px; color:var(--muted);">Oído derecho · nivel 25 dB HL</div>
+              <div style="margin-top:6px; height:44px; display:flex; align-items:flex-end; justify-content:center; gap:5px;">
+                <div style="width:8px;height:16px;background:#BFE0F7;border-radius:3px;"></div>
+                <div style="width:8px;height:26px;background:#8FCBF0;border-radius:3px;"></div>
+                <div style="width:8px;height:40px;background:var(--m-audio);border-radius:3px;"></div>
+                <div style="width:8px;height:26px;background:#8FCBF0;border-radius:3px;"></div>
+                <div style="width:8px;height:16px;background:#BFE0F7;border-radius:3px;"></div>
+              </div>
+            </div>
+            <div class="i-row" style="margin-top:9px;">
+              <div class="i-btn sec" style="flex:1;">No responde</div>
+              <div class="i-btn" style="flex:1; background:var(--m-audio); box-shadow:none;">▶ Presentar tono</div>
+            </div>
+            <div style="font-size:7.5px; color:var(--muted-2); margin-top:8px;">Requiere calibración dB HL → dB SPL por transductor.</div>
+          </div>
+        </div></div>
+        <div class="shot-caption">
+          <div class="sc-title"><span class="sc-num">A</span>Audiometría infantil</div>
+          <div class="sc-text">Síntesis de tono puro real. El profesional presenta el tono y marca la respuesta; el motor Hughson-Westlake busca el umbral por frecuencia y oído.</div>
+        </div>
+      </div>
+      <!-- Audiometría condicionada -->
+      <div class="shot">
+        <div class="device"><div class="screen">
+          <div class="statusbar"><span>9:56</span><div class="sb-r"><span>100%</span><div class="dot"></div></div></div>
+          <div class="appbar"><div class="ab-brand"><div class="logo">__LOGO_22__</div><div class="ab-word">VIA<i>+</i></div></div><span class="pill" style="background:var(--m-cond-bg); color:var(--m-cond);">MODO NIÑO</span></div>
+          <div class="scr-body" style="background:linear-gradient(180deg,#E7FBF6,#F1ECE2);">
+            <div style="text-align:center; font-weight:800; font-size:12px; color:var(--m-cond);">🚂 El Tren del Sonido</div>
+            <div style="font-size:8.5px; color:var(--muted); text-align:center; margin-bottom:6px;">¡Pulsa el silbato cuando lo oigas!</div>
+            <div style="height:120px; background:linear-gradient(180deg,#CFF3EA,#EAFBF6); border-radius:14px; position:relative; overflow:hidden; border:1px solid #B6E7DB;">
+              <div style="position:absolute; bottom:20px; left:12px; font-size:34px;">🚂</div>
+              <div style="position:absolute; bottom:22px; right:14px; font-size:20px;">🎪</div>
+              <div style="position:absolute; bottom:14px; left:0; right:0; height:8px; background:repeating-linear-gradient(90deg,#8FD8C6 0 10px,#B6E7DB 10px 20px);"></div>
+              <div style="position:absolute; top:12px; left:20px; font-size:14px;">☁️</div><div style="position:absolute; top:20px; right:40px; font-size:12px;">☁️</div>
+            </div>
+            <div style="display:flex; justify-content:center; gap:5px; margin:8px 0;">
+              <span style="width:9px;height:9px;border-radius:9px;background:var(--m-cond);"></span>
+              <span style="width:9px;height:9px;border-radius:9px;background:var(--m-cond);"></span>
+              <span style="width:9px;height:9px;border-radius:9px;background:#BFE7DC;"></span>
+              <span style="width:9px;height:9px;border-radius:9px;background:#BFE7DC;"></span>
+            </div>
+            <div style="width:70px;height:70px;border-radius:999px;background:var(--m-cond); margin:2px auto 0; display:flex; align-items:center; justify-content:center; box-shadow:0 8px 18px rgba(13,148,136,.35);">
+              <span style="font-size:30px;">🚂</span>
+            </div>
+            <div style="text-align:center; font-size:8px; color:var(--m-cond); font-weight:800; margin-top:5px;">SILBATO</div>
+          </div>
+        </div></div>
+        <div class="shot-caption">
+          <div class="sc-title"><span class="sc-num">B</span>Audiometría condicionada</div>
+          <div class="sc-text">Modo niño lúdico: el tren avanza por estaciones (frecuencias) al confirmar umbrales. El niño pulsa el silbato al oír el tono. Comparte motor de audio con la audiometría infantil.</div>
+        </div>
+      </div>
+    </div>
+    <h2 class="h" style="font-size:12px; margin:16px 0 8px;">Parámetros de exploración</h2>
+    <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:14px;">
+      <div class="i-card" style="border-top:3px solid var(--m-audio); padding:11px 13px;">
+        <div style="font-weight:800; font-size:10px; color:var(--ink-2); margin-bottom:4px;">🎚️ Frecuencias</div>
+        <div style="font-size:9px; color:var(--muted); line-height:1.5;">Barrido tonal a <b>250 · 500 · 1000 · 2000 · 4000 Hz</b> por vía aérea, cada oído por separado.</div>
+      </div>
+      <div class="i-card" style="border-top:3px solid var(--m-audio); padding:11px 13px;">
+        <div style="font-weight:800; font-size:10px; color:var(--ink-2); margin-bottom:4px;">📊 Umbrales</div>
+        <div style="font-size:9px; color:var(--muted); line-height:1.5;"><b>≤ 20 dB HL</b> normal · <b>21–40</b> leve · <b>&gt; 40</b> requiere ampliar estudio. Coloreado por severidad.</div>
+      </div>
+      <div class="i-card" style="border-top:3px solid var(--m-cond); padding:11px 13px;">
+        <div style="font-weight:800; font-size:10px; color:var(--ink-2); margin-bottom:4px;">🔁 Método</div>
+        <div style="font-size:9px; color:var(--muted); line-height:1.5;">Hughson-Westlake guiado: <b>−10 / +5 dB</b> hasta fijar umbral. La versión condicionada añade refuerzo lúdico.</div>
+      </div>
+    </div>
+    <div class="note" style="margin-top:12px;"><b>Hardware.</b> Ambas pruebas requieren síntesis de tono calibrada. Úsense auriculares/transductor calibrados; los umbrales son orientativos y no sustituyen a un audiómetro certificado.</div>
+  </div>
+  <div class="page-foot"><span>VIA+ · Manual de Usuario</span><span>Página 9</span></div>
+</div>
+
+<!-- ============================ 10 · MÓDULOS VOZ / LENGUAJE ============================ -->
+<div class="page">
+  <div class="page-head"><div class="ph-left"><span class="ph-mark">VIA<span>+</span></span><span class="ph-sec">8 · Voz y lenguaje</span></div><span class="ph-sec">Voz · Articulación T.A.R.</span></div>
+  <div class="content spread">
+    <div>
+      <div class="kicker">Sección 8 · Módulos de voz y lenguaje</div>
+      <h1 class="h">Análisis de voz y articulación (T.A.R.)</h1>
+      <p class="lead">El análisis acústico extrae biomarcadores de una vocal sostenida; el T.A.R. registra la articulación fonema a fonema mediante repetición, con clasificación SODA.</p>
+    </div>
+    <div class="grid2" style="gap:26px; align-items:start;">
+      <!-- Voz -->
+      <div class="shot">
+        <div class="device"><div class="screen">
+          <div class="statusbar"><span>10:02</span><div class="sb-r"><span>98%</span><div class="dot"></div></div></div>
+          <div class="appbar"><div class="ab-brand"><div class="logo">__LOGO_22__</div><div class="ab-word">VIA<i>+</i></div></div><span class="pill" style="background:var(--m-voice-bg); color:var(--m-voice);">VOZ</span></div>
+          <div class="scr-body">
+            <div class="i-title">Análisis acústico de voz</div>
+            <div class="i-sub">Vocal sostenida /a/ · captura PCM</div>
+            <div class="i-card" style="margin-top:9px; background:linear-gradient(180deg,#F6EEFF,#fff); border-color:#E4D4F7;">
+              <div style="display:flex; align-items:center; gap:8px;">
+                <div style="width:34px;height:34px;border-radius:999px;background:var(--m-voice); display:flex;align-items:center;justify-content:center;font-size:15px;">🎤</div>
+                <div style="flex:1; height:30px; display:flex; align-items:center; gap:2px;">__VOICEWAVE__</div>
+                <div style="font-size:9px; font-weight:800; color:var(--m-voice); font-variant-numeric:tabular-nums;">3.2s</div>
+              </div>
+            </div>
+            <div style="margin-top:10px;">
+              <div class="metric"><div class="mt-top"><span class="mt-l">F0 fundamental</span><span class="mt-v" style="color:var(--ok);">268 Hz</span></div><div class="mt-bar"><div class="mt-fill" style="width:64%; background:var(--ok);"></div></div><div class="mt-ref">Referencia 200–320 Hz</div></div>
+              <div class="metric"><div class="mt-top"><span class="mt-l">Jitter</span><span class="mt-v" style="color:var(--ok);">0.6 %</span></div><div class="mt-bar"><div class="mt-fill" style="width:30%; background:var(--ok);"></div></div><div class="mt-ref">Referencia &lt; 1.0 %</div></div>
+              <div class="metric" style="margin-bottom:0;"><div class="mt-top"><span class="mt-l">HNR</span><span class="mt-v" style="color:var(--warn);">18 dB</span></div><div class="mt-bar"><div class="mt-fill" style="width:55%; background:var(--warn);"></div></div><div class="mt-ref">Referencia &gt; 20 dB · revisar</div></div>
+            </div>
+          </div>
+        </div></div>
+        <div class="shot-caption">
+          <div class="sc-title"><span class="sc-num">A</span>Análisis acústico de voz</div>
+          <div class="sc-text">Mide F0, jitter, shimmer y HNR (más formantes F1–F3) de la vocal /a/ sostenida. Cada parámetro se colorea según su rango de referencia clínico.</div>
+        </div>
+      </div>
+      <!-- Articulación -->
+      <div class="shot">
+        <div class="device"><div class="screen">
+          <div class="statusbar"><span>10:08</span><div class="sb-r"><span>98%</span><div class="dot"></div></div></div>
+          <div class="appbar"><div class="ab-brand"><div class="logo">__LOGO_22__</div><div class="ab-word">VIA<i>+</i></div></div><span class="pill" style="background:var(--m-art-bg); color:var(--m-art);">LENGUAJE</span></div>
+          <div class="scr-body">
+            <div class="i-title">Articulación · T.A.R.</div>
+            <div class="i-sub">Repite la palabra · registro SODA</div>
+            <div class="i-card" style="margin-top:9px; text-align:center; background:linear-gradient(180deg,#FFF3E8,#fff); border-color:#F6D8B8;">
+              <div style="font-size:8px; font-weight:800; color:var(--m-art); letter-spacing:.5px;">ÍTEM 7 / 24</div>
+              <div style="font-size:26px; font-weight:800; color:var(--ink-2); letter-spacing:-.5px;">🐭 «ratón»</div>
+              <div style="font-size:8.5px; color:var(--muted);">Modelo hablado 🔊 · escuchando repetición…</div>
+              <div style="margin-top:6px; display:flex; justify-content:center; gap:3px;">__VOICEWAVE_ART__</div>
+            </div>
+            <div class="i-label" style="margin-top:9px;">Clasificación SODA del fonema /r/</div>
+            <div class="i-row" style="flex-wrap:wrap; gap:5px;">
+              <div class="i-input fill" style="flex:1; text-align:center; background:var(--ok-bg); border-color:#BFE0CB; color:var(--ok);">✓ Correcto</div>
+              <div class="i-input" style="flex:1; text-align:center;">Sustit.</div>
+              <div class="i-input" style="flex:1; text-align:center;">Omis.</div>
+            </div>
+            <div class="i-row" style="gap:5px; margin-top:5px;">
+              <div class="i-input" style="flex:1; text-align:center;">Distors.</div>
+              <div class="i-input" style="flex:1; text-align:center;">Adición</div>
+            </div>
+            <div style="margin-top:8px; display:flex; justify-content:space-between; font-size:8px; color:var(--muted);"><span>Acierto acumulado</span><b style="color:var(--m-art);">86 %</b></div>
+          </div>
+        </div></div>
+        <div class="shot-caption">
+          <div class="sc-title"><span class="sc-num">B</span>Articulación · T.A.R.</div>
+          <div class="sc-text">El niño repite el modelo hablado (TTS); el reconocimiento de voz auto-evalúa y el clínico confirma la clasificación <b>SODA</b> (Sustitución / Omisión / Distorsión / Adición) por fonema.</div>
+        </div>
+      </div>
+    </div>
+    <h2 class="h" style="font-size:12px; margin:16px 0 8px;">Parámetros de referencia</h2>
+    <div style="display:grid; grid-template-columns:1fr 1fr 1fr 1fr; gap:12px;">
+      <div class="i-card" style="border-top:3px solid var(--m-voice); padding:10px 12px;">
+        <div style="font-weight:800; font-size:9.5px; color:var(--ink-2);">F0 fundamental</div>
+        <div style="font-size:9px; color:var(--muted); margin-top:3px;">200–320 Hz<br><span style="color:var(--muted-2);">tono de la voz</span></div>
+      </div>
+      <div class="i-card" style="border-top:3px solid var(--m-voice); padding:10px 12px;">
+        <div style="font-weight:800; font-size:9.5px; color:var(--ink-2);">Jitter</div>
+        <div style="font-size:9px; color:var(--muted); margin-top:3px;">&lt; 1.0 %<br><span style="color:var(--muted-2);">estabilidad de F0</span></div>
+      </div>
+      <div class="i-card" style="border-top:3px solid var(--m-voice); padding:10px 12px;">
+        <div style="font-weight:800; font-size:9.5px; color:var(--ink-2);">Shimmer</div>
+        <div style="font-size:9px; color:var(--muted); margin-top:3px;">&lt; 3.0 %<br><span style="color:var(--muted-2);">estabilidad de amplitud</span></div>
+      </div>
+      <div class="i-card" style="border-top:3px solid var(--m-voice); padding:10px 12px;">
+        <div style="font-weight:800; font-size:9.5px; color:var(--ink-2);">HNR</div>
+        <div style="font-size:9px; color:var(--muted); margin-top:3px;">&gt; 20 dB<br><span style="color:var(--muted-2);">armónico-ruido</span></div>
+      </div>
+    </div>
+    <div class="usecase" style="margin-top:12px;">
+      <div class="uc-h">⬦ Caso de uso — Degradación sin hardware</div>
+      <div class="uc-b">Si el micrófono o el reconocimiento de voz no están disponibles, el T.A.R. <b>degrada a SODA manual</b>: el profesional marca cada fonema a mano, sin perder la prueba. En articulación, la clasificación SODA registra por fonema: <b>S</b>ustitución · <b>O</b>misión · <b>D</b>istorsión · <b>A</b>dición.</div>
+    </div>
+  </div>
+  <div class="page-foot"><span>VIA+ · Manual de Usuario</span><span>Página 10</span></div>
+</div>
+
+<!-- ============================ 11 · MÓDULOS CLÍNICOS ============================ -->
+<div class="page">
+  <div class="page-head"><div class="ph-left"><span class="ph-mark">VIA<span>+</span></span><span class="ph-sec">9 · Clínicos</span></div><span class="ph-sec">Disfagia · M-CHAT · SAHS</span></div>
+  <div class="content spread">
+    <div>
+      <div class="kicker">Sección 9 · Módulos clínicos</div>
+      <h1 class="h">Disfagia, autismo (M-CHAT) y SAHS</h1>
+      <p class="lead">Tres cribados basados en protocolos: MECV-V con pulsioximetría, el cuestionario M-CHAT-R de autismo y el PSQ de Chervin para el sueño.</p>
+    </div>
+    <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:14px; align-items:start;">
+      <!-- Disfagia -->
+      <div class="shot">
+        <div class="device" style="width:238px;"><div class="screen" style="height:360px;">
+          <div class="statusbar"><span>10:15</span><div class="sb-r"><span>96%</span><div class="dot"></div></div></div>
+          <div class="appbar" style="padding:5px 12px 6px;"><div class="ab-word" style="font-size:12px;">VIA<i>+</i></div><span class="pill" style="background:var(--m-dys-bg); color:var(--m-dys);">DEGLUCIÓN</span></div>
+          <div class="scr-body" style="padding:2px 11px 10px;">
+            <div style="font-weight:800; font-size:12px; color:var(--ink-2);">Disfagia · MECV-V</div>
+            <div style="font-size:7.5px; color:var(--muted-2);">Bolo 5/9 · néctar 10 ml</div>
+            <div class="i-card" style="margin-top:8px; text-align:center; background:linear-gradient(180deg,#FEECEC,#fff); border-color:#F6C9C4; padding:9px;">
+              <div style="font-size:7.5px; font-weight:800; color:var(--m-dys); letter-spacing:.5px;">📶 SpO₂ · pulsioxímetro BLE</div>
+              <div style="font-size:26px; font-weight:800; color:var(--ink-2);">97<span style="font-size:12px; color:var(--muted-2);">%</span></div>
+              <div style="font-size:7.5px; color:var(--muted);">basal 98 % · caída &lt; 3 %</div>
+            </div>
+            <div style="margin-top:8px; display:flex; flex-direction:column; gap:5px;">
+              <div class="i-input" style="display:flex; justify-content:space-between; font-size:8px;"><span>Seguridad (tos/voz)</span><b style="color:var(--ok);">OK</b></div>
+              <div class="i-input" style="display:flex; justify-content:space-between; font-size:8px;"><span>Eficacia (sello/residuo)</span><b style="color:var(--warn);">Revisar</b></div>
+            </div>
+            <div class="i-row" style="margin-top:8px; gap:5px;">
+              <div class="i-btn sec" style="flex:1; padding:8px;">Inseguro</div>
+              <div class="i-btn" style="flex:1; padding:8px; background:var(--m-dys); box-shadow:none;">Siguiente bolo</div>
+            </div>
+          </div>
+        </div></div>
+        <div class="shot-caption">
+          <div class="sc-title" style="font-size:10.5px;"><span class="sc-num">A</span>Disfagia MECV-V</div>
+          <div class="sc-text">9 bolos volumen-viscosidad con <b>pulsioximetría BLE</b> integrada. Bifurca seguro/inseguro y recomienda dieta. No requiere CAP ni sonómetro.</div>
+        </div>
+      </div>
+      <!-- M-CHAT -->
+      <div class="shot">
+        <div class="device" style="width:238px;"><div class="screen" style="height:360px;">
+          <div class="statusbar"><span>10:22</span><div class="sb-r"><span>96%</span><div class="dot"></div></div></div>
+          <div class="appbar" style="padding:5px 12px 6px;"><div class="ab-word" style="font-size:12px;">VIA<i>+</i></div><span class="pill" style="background:var(--m-mchat-bg); color:var(--m-mchat);">CONDUCTA</span></div>
+          <div class="scr-body" style="padding:2px 11px 10px;">
+            <div style="font-weight:800; font-size:12px; color:var(--ink-2);">Cuestionario Autismo</div>
+            <div style="font-size:7.5px; color:var(--muted-2);">M-CHAT-R · 16–30 meses</div>
+            <div style="margin-top:8px; height:5px; border-radius:9px; background:#F0E4EC; overflow:hidden;"><div style="width:60%; height:100%; background:var(--m-mchat);"></div></div>
+            <div style="font-size:7px; color:var(--muted-2); margin-top:3px;">Pregunta 12 / 20</div>
+            <div class="i-card" style="margin-top:8px; padding:10px;">
+              <div style="font-size:9.5px; color:var(--ink-2); font-weight:700; line-height:1.4;">¿Responde el niño cuando le llaman por su nombre?</div>
+            </div>
+            <div class="i-row" style="margin-top:9px; gap:6px;">
+              <div class="i-btn" style="flex:1; background:var(--ok); box-shadow:none;">Sí</div>
+              <div class="i-btn sec" style="flex:1;">No</div>
+            </div>
+            <div class="banner" style="background:var(--m-mchat-bg); margin-top:10px;">
+              <div class="bn-ic" style="background:var(--m-mchat); font-size:11px;">◔</div>
+              <div><div class="bn-t" style="color:#9D2464; font-size:9px;">Riesgo medio (parcial)</div><div class="bn-s" style="color:#B0407E;">Entrevista de seguimiento sugerida</div></div>
+            </div>
+          </div>
+        </div></div>
+        <div class="shot-caption">
+          <div class="sc-title" style="font-size:10.5px;"><span class="sc-num">B</span>M-CHAT-R (autismo)</div>
+          <div class="sc-text">20 ítems Sí/No con puntuación 0–20 y bandas de riesgo bajo/medio/alto. En riesgo medio activa la entrevista de seguimiento.</div>
+        </div>
+      </div>
+      <!-- SAHS -->
+      <div class="shot">
+        <div class="device" style="width:238px;"><div class="screen" style="height:360px;">
+          <div class="statusbar"><span>10:30</span><div class="sb-r"><span>95%</span><div class="dot"></div></div></div>
+          <div class="appbar" style="padding:5px 12px 6px;"><div class="ab-word" style="font-size:12px;">VIA<i>+</i></div><span class="pill" style="background:var(--m-sahs-bg); color:var(--m-sahs);">SUEÑO</span></div>
+          <div class="scr-body" style="padding:2px 11px 10px;">
+            <div style="font-weight:800; font-size:12px; color:var(--ink-2);">Cribado SAHS</div>
+            <div style="font-size:7.5px; color:var(--muted-2);">PSQ de Chervin · 2–12 años</div>
+            <div class="i-card" style="margin-top:8px; padding:10px;">
+              <div style="font-size:9px; color:var(--ink-2); font-weight:700; line-height:1.4;">Mientras duerme, ¿ronca más de la mitad de las noches?</div>
+              <div class="i-row" style="margin-top:8px; gap:6px;">
+                <div class="i-input fill" style="flex:1; text-align:center; background:var(--m-sahs-bg); border-color:#C3C8F2; color:var(--m-sahs);">Sí</div>
+                <div class="i-input" style="flex:1; text-align:center;">No</div>
+                <div class="i-input" style="flex:1; text-align:center;">Ns/Nc</div>
+              </div>
+            </div>
+            <div style="margin-top:8px; display:flex; flex-direction:column; gap:5px;">
+              <div class="i-input" style="display:flex; justify-content:space-between; font-size:8px;"><span>Brodsky (amígdalas)</span><b style="color:var(--warn);">Grado III</b></div>
+              <div class="i-input" style="display:flex; justify-content:space-between; font-size:8px;"><span>IMC</span><b style="color:var(--ok);">Normopeso</b></div>
+            </div>
+            <div class="banner" style="background:var(--warn-bg); margin-top:9px;">
+              <div class="bn-ic" style="background:var(--warn); font-size:11px;">!</div>
+              <div><div class="bn-t" style="color:#8A6A17; font-size:9px;">Sospecha moderada</div><div class="bn-s" style="color:#A07F22;">Valorar Unidad de Sueño</div></div>
+            </div>
+          </div>
+        </div></div>
+        <div class="shot-caption">
+          <div class="sc-title" style="font-size:10.5px;"><span class="sc-num">C</span>Cribado SAHS</div>
+          <div class="sc-text">PSQ de Chervin (SRBD-22) + exploración (Brodsky, IMC). Orientativo: el diagnóstico exige polisomnografía en Unidad de Sueño.</div>
+        </div>
+      </div>
+    </div>
+    <h2 class="h" style="font-size:12px; margin:16px 0 8px;">Umbrales y criterios de referencia</h2>
+    <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:14px;">
+      <div class="i-card" style="border-top:3px solid var(--m-dys); padding:11px 13px;">
+        <div style="font-weight:800; font-size:10px; color:var(--ink-2); margin-bottom:4px;">💧 Disfagia MECV-V</div>
+        <div style="font-size:9px; color:var(--muted); line-height:1.5;">9 bolos (néctar / líquido / pudin × 5-10-20 ml). Desaturación de <b>SpO₂ ≥ 3 %</b> = alteración de seguridad. Bifurca seguro / inseguro.</div>
+      </div>
+      <div class="i-card" style="border-top:3px solid var(--m-mchat); padding:11px 13px;">
+        <div style="font-weight:800; font-size:10px; color:var(--ink-2); margin-bottom:4px;">🧩 M-CHAT-R</div>
+        <div style="font-size:9px; color:var(--muted); line-height:1.5;">Puntuación 0–20. Bandas: <b>0–2</b> bajo · <b>3–7</b> medio (entrevista de seguimiento) · <b>8–20</b> alto.</div>
+      </div>
+      <div class="i-card" style="border-top:3px solid var(--m-sahs); padding:11px 13px;">
+        <div style="font-weight:800; font-size:10px; color:var(--ink-2); margin-bottom:4px;">😴 SAHS · PSQ Chervin</div>
+        <div style="font-size:9px; color:var(--muted); line-height:1.5;">Positivo si índice <b>≥ 0.33</b> (≈ ≥ 8 de 22 ítems). Confirmación siempre por polisomnografía en Unidad de Sueño.</div>
+      </div>
+    </div>
+    <div class="note" style="margin-top:12px;"><b>Leyenda de hardware.</b> 🟢 sin hardware · 🎙️ micrófono · 🔊 síntesis de tono · 🗣️ voz/TTS · 📶 Bluetooth LE (pulsioxímetro). Cada módulo indica sus requisitos y degrada con elegancia cuando el hardware no está disponible.</div>
+  </div>
+  <div class="page-foot"><span>VIA+ · Manual de Usuario</span><span>Página 11</span></div>
+</div>
+
+<!-- ============================ 12 · RESULTADOS + COMPARTIR ============================ -->
+<div class="page">
+  <div class="page-head"><div class="ph-left"><span class="ph-mark">VIA<span>+</span></span><span class="ph-sec">10 · Resultados</span></div><span class="ph-sec">Detalle · Informe PDF</span></div>
+  <div class="content spread">
+    <div>
+      <div class="kicker">Sección 10</div>
+      <h1 class="h">Resultados detallados e informe PDF</h1>
+      <p class="lead">Al terminar la batería, VIA+ reúne los resultados por prueba con su interpretación orientativa y permite generar y compartir un informe PDF estructurado.</p>
+    </div>
+    <!-- Resultados detallados (landscape) -->
+    <div class="shot">
+      <div class="device land"><div class="screen">
+        <div class="statusbar"><span>10:40</span><span style="font-weight:800; letter-spacing:-.3px;">VIA<span style="color:var(--accent)">+</span> · Resultados</span><div class="sb-r"><span>95%</span><div class="dot"></div></div></div>
+        <div class="scr-body" style="display:flex; gap:12px; padding-top:8px;">
+          <!-- sidebar -->
+          <div style="width:150px; display:flex; flex-direction:column; gap:6px;">
+            <div style="font-weight:800; font-size:13px; color:var(--ink-2);">Resultados</div>
+            <div style="font-size:8px; color:var(--muted-2); margin-bottom:2px;">Mateo · NHC PT-0231</div>
+            <div class="i-card" style="padding:8px; display:flex; align-items:center; gap:7px; border-color:var(--accent); background:#FFF9F2;"><span style="width:8px;height:8px;border-radius:9px;background:var(--ok);"></span><div><div style="font-weight:800; font-size:8.5px; color:var(--ink-2);">Audiometría Infantil</div><div style="font-size:7px; color:var(--muted-2);">Normal</div></div></div>
+            <div class="i-card" style="padding:8px; display:flex; align-items:center; gap:7px;"><span style="width:8px;height:8px;border-radius:9px;background:var(--warn);"></span><div><div style="font-weight:800; font-size:8.5px; color:var(--ink-2);">Análisis de Voz</div><div style="font-size:7px; color:var(--muted-2);">Revisar</div></div></div>
+            <div class="i-card" style="padding:8px; display:flex; align-items:center; gap:7px;"><span style="width:8px;height:8px;border-radius:9px;background:var(--ok);"></span><div><div style="font-weight:800; font-size:8.5px; color:var(--ink-2);">Articulación T.A.R.</div><div style="font-size:7px; color:var(--muted-2);">Normal</div></div></div>
+            <div class="i-btn" style="margin-top:4px; padding:8px; font-size:9px;">📤 Compartir PDF</div>
+          </div>
+          <!-- detalle -->
+          <div class="i-card" style="flex:1; padding:0; overflow:hidden;">
+            <div style="display:flex; align-items:center; justify-content:space-between; padding:10px 12px; border-bottom:1px solid var(--line-soft);">
+              <div style="display:flex; align-items:center; gap:8px;"><div style="width:30px;height:30px;border-radius:9px;background:var(--m-audio-bg); display:flex;align-items:center;justify-content:center;font-size:14px;">👂</div><div><div style="font-weight:800; font-size:10px; color:var(--ink-2);">Audiometría Infantil</div><div style="font-size:7.5px; color:var(--muted-2);">Umbrales por vía aérea</div></div></div>
+              <span class="pill" style="background:var(--ok-bg); color:var(--ok);">Normal</span>
+            </div>
+            <div style="padding:11px 12px;">
+              <div class="audtab">
+                <div class="at-row at-h"><div class="at-c at-lbl">Hz</div><div class="at-c">250</div><div class="at-c">500</div><div class="at-c">1k</div><div class="at-c">2k</div><div class="at-c">4k</div><div class="at-c">8k</div></div>
+                <div class="at-row"><div class="at-c at-lbl" style="border-bottom:none;">OD</div>
+                  <div style="padding:2px;"><div class="cell" style="background:var(--ok-bg); color:var(--ok);">10</div></div>
+                  <div style="padding:2px;"><div class="cell" style="background:var(--ok-bg); color:var(--ok);">15</div></div>
+                  <div style="padding:2px;"><div class="cell" style="background:var(--ok-bg); color:var(--ok);">10</div></div>
+                  <div style="padding:2px;"><div class="cell" style="background:var(--ok-bg); color:var(--ok);">20</div></div>
+                  <div style="padding:2px;"><div class="cell" style="background:var(--warn-bg); color:#B07E12;">25</div></div>
+                  <div style="padding:2px;"><div class="cell" style="background:var(--ok-bg); color:var(--ok);">15</div></div>
+                </div>
+                <div class="at-row"><div class="at-c at-lbl" style="border-bottom:none;">OI</div>
+                  <div style="padding:2px;"><div class="cell" style="background:var(--ok-bg); color:var(--ok);">15</div></div>
+                  <div style="padding:2px;"><div class="cell" style="background:var(--ok-bg); color:var(--ok);">10</div></div>
+                  <div style="padding:2px;"><div class="cell" style="background:var(--ok-bg); color:var(--ok);">15</div></div>
+                  <div style="padding:2px;"><div class="cell" style="background:var(--ok-bg); color:var(--ok);">15</div></div>
+                  <div style="padding:2px;"><div class="cell" style="background:var(--ok-bg); color:var(--ok);">20</div></div>
+                  <div style="padding:2px;"><div class="cell" style="background:var(--ok-bg); color:var(--ok);">10</div></div>
+                </div>
+              </div>
+              <div class="legend"><div class="lg"><span class="sw" style="background:var(--ok-bg); border:1px solid #BFE0CB;"></span>Normal ≤20</div><div class="lg"><span class="sw" style="background:var(--warn-bg); border:1px solid #F0D9A6;"></span>Leve 21–40</div><div class="lg"><span class="sw" style="background:var(--err-bg); border:1px solid #EFC3BD;"></span>&gt;40 dB HL</div></div>
+              <div style="margin-top:9px; background:var(--ok-bg); border-radius:10px; padding:9px 11px;">
+                <div style="font-weight:800; font-size:8.5px; color:var(--ok); margin-bottom:2px;">⬦ Interpretación</div>
+                <div style="font-size:8.5px; color:var(--muted); line-height:1.5;">Umbrales dentro de límites normales en ambos oídos, con leve elevación aislada a 4 kHz en OD. Sin indicios de hipoacusia significativa. Medida orientativa.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div></div>
+      <div class="shot-caption" style="max-width:640px;">
+        <div class="sc-title"><span class="sc-num">A</span>Resultados detallados (vista profesional)</div>
+        <div class="sc-text">Panel lateral con el estado de cada prueba (normal / revisar / alterado) y panel de detalle con la tabla de umbrales, la leyenda de color y una interpretación orientativa. Nunca es un diagnóstico.</div>
+      </div>
+    </div>
+    <div class="grid2-shot" style="grid-template-columns:200px 1fr; gap:20px; margin-top:4px;">
+      <div class="shot">
+        <div class="device" style="width:200px;"><div class="screen" style="height:250px;">
+          <div class="statusbar"><span>10:41</span><div class="sb-r"><span>95%</span></div></div>
+          <div class="scr-body" style="padding:8px 12px; display:flex; flex-direction:column; justify-content:flex-end;">
+            <div style="background:#fff; border-radius:16px 16px 0 0; padding:12px; box-shadow:0 -6px 16px rgba(0,0,0,.06);">
+              <div style="width:40px;height:4px;border-radius:9px;background:#E4DDD0; margin:0 auto 10px;"></div>
+              <div style="display:flex; align-items:center; gap:8px; margin-bottom:10px;"><div style="width:34px;height:34px;border-radius:9px;background:var(--err-bg); display:flex;align-items:center;justify-content:center;font-size:15px;">📄</div><div><div style="font-weight:800; font-size:10px; color:var(--ink-2);">Compartir informe PDF</div><div style="font-size:7px; color:var(--muted-2);">VIA_PT-0231_detallado.pdf</div></div></div>
+              <div style="display:flex; gap:7px;">
+                <div style="flex:1; text-align:center; background:#F7F4EE; border:1px solid var(--line-soft); border-radius:11px; padding:8px 4px;"><div style="font-size:16px;">🟢</div><div style="font-size:7px; font-weight:700; color:var(--muted);">WhatsApp</div></div>
+                <div style="flex:1; text-align:center; background:#F7F4EE; border:1px solid var(--line-soft); border-radius:11px; padding:8px 4px;"><div style="font-size:16px;">✉️</div><div style="font-size:7px; font-weight:700; color:var(--muted);">Correo</div></div>
+                <div style="flex:1; text-align:center; background:#F7F4EE; border:1px solid var(--line-soft); border-radius:11px; padding:8px 4px;"><div style="font-size:16px;">🖨️</div><div style="font-size:7px; font-weight:700; color:var(--muted);">Imprimir</div></div>
+              </div>
+            </div>
+          </div>
+        </div></div>
+        <div class="shot-caption">
+          <div class="sc-title"><span class="sc-num">B</span>Compartir PDF</div>
+          <div class="sc-text">Hoja inferior para enviar el informe por WhatsApp, correo, impresión u otras apps.</div>
+        </div>
+      </div>
+      <div style="align-self:center;">
+        <div class="usecase" style="margin-top:0;">
+          <div class="uc-h">⬦ Caso de uso — Cierre e informe</div>
+          <div class="uc-b">Terminada la batería de Mateo, la profesional revisa los resultados, comprueba la audiometría normal y el HNR marcado como «revisar» en voz, pulsa <b>Compartir PDF</b> y envía el informe <b>VIA_PT-0231_detallado.pdf</b> al correo del centro. El documento queda además archivado para el seguimiento.</div>
+        </div>
+        <ul class="featurelist" style="margin-top:8px;">
+          <li><span class="fi-ic">🟢</span><span><b>Normal.</b> Dentro de límites de referencia.</span></li>
+          <li><span class="fi-ic">🟡</span><span><b>Revisar.</b> Valor límite; requiere criterio clínico.</span></li>
+          <li><span class="fi-ic">🔴</span><span><b>Alterado.</b> Fuera de rango; ampliar estudio.</span></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+  <div class="page-foot"><span>VIA+ · Manual de Usuario</span><span>Página 12</span></div>
+</div>
+
+<!-- ============================ 13 · CASOS DE USO ============================ -->
+<div class="page">
+  <div class="page-head"><div class="ph-left"><span class="ph-mark">VIA<span>+</span></span><span class="ph-sec">11 · Casos de uso</span></div><span class="ph-sec">Recorridos completos</span></div>
+  <div class="content spread">
+    <div>
+      <div class="kicker">Sección 11</div>
+      <h1 class="h">Casos de uso de principio a fin</h1>
+      <p class="lead">Tres recorridos típicos que combinan varias pantallas del manual, tal como ocurren en la consulta.</p>
+    </div>
+    <div style="display:flex; flex-direction:column; gap:11px;">
+      <div class="i-card" style="border-left:4px solid var(--m-audio); padding:12px 14px;">
+        <div style="font-weight:800; font-size:12px; color:var(--ink-2); display:flex; align-items:center; gap:8px;"><span style="font-size:16px;">🎧</span> Caso 1 · Cribado auditivo de un niño de 4 años</div>
+        <div style="font-size:10px; color:var(--muted); line-height:1.6; margin-top:5px;">
+          Acceso con perfil de audiólogo → alta del paciente (NHC PT-0231) → firma del consentimiento por el tutor → CAP «apto» → sonómetro de sala 31 dB (apta) → selección de <b>Audiometría Infantil</b> → exploración tonal por juego (250–4000 Hz, ambos oídos) → resultados normales con leve elevación a 4 kHz → informe PDF compartido con el pediatra. <b>Duración aproximada: 12 min.</b>
+        </div>
+        <div class="seqrow"><span class="seqchip">Acceso</span><span class="ar">→</span><span class="seqchip">Paciente</span><span class="ar">→</span><span class="seqchip">Consent.</span><span class="ar">→</span><span class="seqchip">CAP</span><span class="ar">→</span><span class="seqchip">Sala</span><span class="ar">→</span><span class="seqchip on">Audiometría</span><span class="ar">→</span><span class="seqchip">Resultados</span><span class="ar">→</span><span class="seqchip">PDF</span></div>
+      </div>
+      <div class="i-card" style="border-left:4px solid var(--m-art); padding:12px 14px;">
+        <div style="font-weight:800; font-size:12px; color:var(--ink-2); display:flex; align-items:center; gap:8px;"><span style="font-size:16px;">🗣️</span> Caso 2 · Valoración de lenguaje y voz</div>
+        <div style="font-size:10px; color:var(--muted); line-height:1.6; margin-top:5px;">
+          Sesión de logopedia: tras consentimiento y CAP se compone una batería con <b>Análisis de Voz</b> (1) y <b>Articulación T.A.R.</b> (2). En voz se obtiene F0 268 Hz normal y HNR 18 dB «revisar»; en T.A.R. el niño repite 24 ítems con 86 % de acierto y una sustitución en /r/. El informe agrupa ambos resultados con su registro SODA. <b>Duración aproximada: 15 min.</b>
+        </div>
+        <div class="seqrow"><span class="seqchip">Acceso</span><span class="ar">→</span><span class="seqchip">Paciente</span><span class="ar">→</span><span class="seqchip">Consent.</span><span class="ar">→</span><span class="seqchip">CAP</span><span class="ar">→</span><span class="seqchip">Sala</span><span class="ar">→</span><span class="seqchip on">Voz</span><span class="ar">→</span><span class="seqchip on">T.A.R.</span><span class="ar">→</span><span class="seqchip">Resultados</span><span class="ar">→</span><span class="seqchip">PDF</span></div>
+      </div>
+      <div class="i-card" style="border-left:4px solid var(--m-dys); padding:12px 14px;">
+        <div style="font-weight:800; font-size:12px; color:var(--ink-2); display:flex; align-items:center; gap:8px;"><span style="font-size:16px;">💧</span> Caso 3 · Exploración de disfagia (vía rápida)</div>
+        <div style="font-size:10px; color:var(--muted); line-height:1.6; margin-top:5px;">
+          Alta del paciente y firma del consentimiento → <b>acceso directo</b> a la exploración de disfagia (sin CAP ni sonómetro) → emparejamiento del pulsioxímetro por Bluetooth → 9 bolos MECV-V con vigilancia de SpO₂ → alteración de eficacia en néctar 10 ml, seguridad conservada → recomendación de textura y volumen → informe compartido. <b>Duración aproximada: 14 min.</b>
+        </div>
+        <div class="seqrow"><span class="seqchip">Paciente</span><span class="ar">→</span><span class="seqchip">Consent.</span><span class="ar">→</span><span class="seqchip on">Disfagia</span><span class="ar">→</span><span class="seqchip">Resultados</span><span class="ar">→</span><span class="seqchip">PDF</span><span style="font-size:8px; color:var(--muted-2); margin-left:6px;">(sin CAP ni sonómetro)</span></div>
+      </div>
+    </div>
+    <h2 class="h" style="font-size:12px; margin:16px 0 9px;">Mapa de la sesión completa</h2>
+    <div class="seqmap">
+      <div class="node"><div class="ic">🔑</div><div class="lb">Acceso</div></div><span class="ar">›</span>
+      <div class="node"><div class="ic">🧒</div><div class="lb">Paciente</div></div><span class="ar">›</span>
+      <div class="node"><div class="ic">✍️</div><div class="lb">Consent.</div></div><span class="ar">›</span>
+      <div class="node"><div class="ic">📋</div><div class="lb">CAP</div></div><span class="ar">›</span>
+      <div class="node"><div class="ic">🔇</div><div class="lb">Sala</div></div><span class="ar">›</span>
+      <div class="node"><div class="ic">🎮</div><div class="lb">Pruebas</div></div><span class="ar">›</span>
+      <div class="node"><div class="ic">📊</div><div class="lb">Resultados</div></div><span class="ar">›</span>
+      <div class="node"><div class="ic">📄</div><div class="lb">Informe PDF</div></div>
+    </div>
+    <div class="note ok" style="margin-top:12px;"><b>Consejo.</b> El orden en que se tocan las tarjetas en el hub define el orden de ejecución de la batería. Puedes reordenar las pruebas antes de pulsar «Iniciar batería».</div>
+  </div>
+  <div class="page-foot"><span>VIA+ · Manual de Usuario</span><span>Página 13</span></div>
+</div>
+
+<!-- ============================ 14 · BUENAS PRÁCTICAS ============================ -->
+<div class="page">
+  <div class="page-head"><div class="ph-left"><span class="ph-mark">VIA<span>+</span></span><span class="ph-sec">12 · Buenas prácticas</span></div><span class="ph-sec">Privacidad · Soporte</span></div>
+  <div class="content">
+    <div>
+      <div class="kicker">Sección 12</div>
+      <h1 class="h">Buenas prácticas, privacidad y soporte</h1>
+      <p class="lead">Recomendaciones para un uso seguro y conforme a la normativa de dispositivos médicos y protección de datos.</p>
+      <div class="grid2">
+        <div>
+          <h2 class="h" style="font-size:12px;">Antes de evaluar</h2>
+          <ul class="featurelist">
+            <li><span class="fi-ic">🔇</span><span>Comprueba el <b>ruido de sala</b> con el sonómetro antes de audiometrías.</span></li>
+            <li><span class="fi-ic">🎧</span><span>Usa <b>transductores calibrados</b> y verifica el volumen del dispositivo.</span></li>
+            <li><span class="fi-ic">🔋</span><span>Asegura <b>batería</b> y emparejamiento BLE del pulsioxímetro para disfagia.</span></li>
+            <li><span class="fi-ic">🧒</span><span>Explica la tarea en <b>modo niño</b> y mantén al tutor cerca.</span></li>
+          </ul>
+        </div>
+        <div>
+          <h2 class="h" style="font-size:12px;">Privacidad de datos</h2>
+          <ul class="featurelist">
+            <li><span class="fi-ic">🔐</span><span>Cifrado <b>AES-256</b> en reposo y <b>TLS 1.3</b> en tránsito.</span></li>
+            <li><span class="fi-ic">🪪</span><span><b>Seudonimización</b>: el NHC se almacena como HMAC, separado del dato clínico.</span></li>
+            <li><span class="fi-ic">✍️</span><span>El <b>consentimiento</b> es requisito legal; puede revocarse.</span></li>
+            <li><span class="fi-ic">🗑️</span><span><b>Borrado seguro</b> verificable al revocar el consentimiento.</span></li>
+          </ul>
+        </div>
+      </div>
+    </div>
+    <h2 class="h" style="font-size:12px; margin:18px 0 8px;">Marco de cumplimiento</h2>
+    <div style="display:grid; grid-template-columns:repeat(5,1fr); gap:10px;">
+      <div class="i-card" style="text-align:center; padding:11px 8px;"><div style="font-size:18px;">⚖️</div><div style="font-weight:800; font-size:9px; color:var(--ink-2); margin-top:4px;">MDR 2017/745</div><div style="font-size:7.5px; color:var(--muted-2); margin-top:2px;">SaMD Clase IIa</div></div>
+      <div class="i-card" style="text-align:center; padding:11px 8px;"><div style="font-size:18px;">💻</div><div style="font-weight:800; font-size:9px; color:var(--ink-2); margin-top:4px;">IEC 62304</div><div style="font-size:7.5px; color:var(--muted-2); margin-top:2px;">Ciclo de vida · B</div></div>
+      <div class="i-card" style="text-align:center; padding:11px 8px;"><div style="font-size:18px;">🖐️</div><div style="font-weight:800; font-size:9px; color:var(--ink-2); margin-top:4px;">IEC 62366-1</div><div style="font-size:7.5px; color:var(--muted-2); margin-top:2px;">Usabilidad</div></div>
+      <div class="i-card" style="text-align:center; padding:11px 8px;"><div style="font-size:18px;">🛡️</div><div style="font-weight:800; font-size:9px; color:var(--ink-2); margin-top:4px;">ISO 14971</div><div style="font-size:7.5px; color:var(--muted-2); margin-top:2px;">Gestión de riesgos</div></div>
+      <div class="i-card" style="text-align:center; padding:11px 8px;"><div style="font-size:18px;">🔒</div><div style="font-weight:800; font-size:9px; color:var(--ink-2); margin-top:4px;">GDPR / LOPDGDD</div><div style="font-size:7.5px; color:var(--muted-2); margin-top:2px;">Protección de datos</div></div>
+    </div>
+    <div style="margin-top:16px;">
+      <div class="note crit"><b>Recordatorio clínico.</b> Todos los valores y las «interpretaciones» de VIA+ son <b>orientativos</b> y de apoyo. No constituyen diagnóstico ni sustituyen equipos certificados ni el juicio del profesional. La responsabilidad de la interpretación es siempre del clínico evaluador.</div>
+      <table class="info" style="margin-top:12px;">
+        <tr><th style="width:34%;">Recurso</th><th>Detalle</th></tr>
+        <tr><td><b>Soporte técnico</b></td><td>A través del canal de licencia de Earlify Health.</td></tr>
+        <tr><td><b>Incidentes de seguridad</b></td><td>safety@earlify.com</td></tr>
+        <tr><td><b>Contacto</b></td><td>fbetances@futureforkids.eu</td></tr>
+        <tr><td><b>Marco normativo</b></td><td>MDR 2017/745 · IEC 62304 (Clase B) · ISO 14971 · GDPR/LOPDGDD.</td></tr>
+      </table>
+      <div style="text-align:center; margin-top:22px;">
+        <div class="logo" style="display:inline-block;">__LOGO_54__</div>
+        <div style="font-weight:800; font-size:16px; color:var(--ink-2); letter-spacing:-.5px; margin-top:8px;">VIA<span style="color:var(--accent)">+</span></div>
+        <div style="font-size:9.5px; color:var(--muted-2); margin-top:2px;">Del ruido a la información · Earlify Health S.L.</div>
+        <div style="font-size:8.5px; color:var(--faint); margin-top:6px;">© 2024–2026 · Software propietario · Todos los derechos reservados</div>
+      </div>
+    </div>
+  </div>
+  <div class="page-foot"><span>VIA+ · Manual de Usuario</span><span>Página 14</span></div>
+</div>
+
+</body>
+</html>
