@@ -1,6 +1,7 @@
 import {
   CLINICAL_FREQS,
   MAX_DB_HL,
+  SPEAKER_ANCHOR_DB_HL,
   dbHLtoGainFreeField,
   retsplFreeField,
 } from '../audiometryCalibration';
@@ -30,12 +31,17 @@ describe('retsplFreeField', () => {
 });
 
 describe('dbHLtoGainFreeField', () => {
-  it('es monótona creciente con el nivel en dB HL a cada frecuencia', () => {
+  it('es estrictamente creciente hasta el ancla de altavoz y no decrece después', () => {
     for (const f of CLINICAL_FREQS) {
       let prev = -1;
       for (let hl = 20; hl <= MAX_DB_HL; hl += 5) {
         const g = dbHLtoGainFreeField(hl, f);
-        expect(g).toBeGreaterThan(prev);
+        if (hl <= SPEAKER_ANCHOR_DB_HL) {
+          expect(g).toBeGreaterThan(prev);
+        } else {
+          // Por encima del ancla puede saturar en 1.0 (el altavoz no da más).
+          expect(g).toBeGreaterThanOrEqual(prev);
+        }
         prev = g;
       }
     }
@@ -60,18 +66,25 @@ describe('dbHLtoGainFreeField', () => {
     expect(g500 / g4000).toBeGreaterThan(1.1);
   });
 
-  it('a nivel máximo la banda más exigente llega al fondo de escala (0 dBFS)', () => {
+  it('en el ancla de altavoz la banda más exigente llega al fondo de escala (0 dBFS)', () => {
     // Por construcción el techo se ancla en la frecuencia clínica de mayor
-    // RETSPL (500 Hz) a MAX_DB_HL → ganancia 1.0.
+    // RETSPL (500 Hz) a SPEAKER_ANCHOR_DB_HL → ganancia 1.0.
+    const gAnchor = Math.max(...CLINICAL_FREQS.map(f => dbHLtoGainFreeField(SPEAKER_ANCHOR_DB_HL, f)));
+    expect(gAnchor).toBeCloseTo(1, 6);
+    // Y a nivel máximo nunca se supera el fondo de escala (saturación, no recorte).
     const gMax = Math.max(...CLINICAL_FREQS.map(f => dbHLtoGainFreeField(MAX_DB_HL, f)));
     expect(gMax).toBeCloseTo(1, 6);
   });
 
-  it('mantiene audibilidad en el arranque (40 dB HL @ 1 kHz por encima de -50 dBFS)', () => {
-    // El ajuste previo elevó los niveles porque 40 dB HL ≈ -50 dBFS resultaba
-    // inaudible; la calibración conserva esa sonoridad en el ancla de 1 kHz.
+  it('el arranque es claramente audible por altavoz (40 dB HL @ 1 kHz ≥ -30 dBFS)', () => {
+    // Regresión del ancla anterior (80 dB HL → 0 dBFS): dejaba 40 dB HL a
+    // ≈ -42 dBFS, un susurro por el altavoz de una tableta («sonaba a
+    // auriculares»). Con el ancla de altavoz debe quedar en torno a -22 dBFS.
     const g = dbHLtoGainFreeField(40, 1000);
     const dbFS = 20 * Math.log10(g);
-    expect(dbFS).toBeGreaterThan(-50);
+    expect(dbFS).toBeGreaterThanOrEqual(-30);
+    // El suelo del algoritmo (20 dB HL) también debe seguir siendo emitible.
+    const gFloor = dbHLtoGainFreeField(20, 500);
+    expect(20 * Math.log10(gFloor)).toBeGreaterThanOrEqual(-45);
   });
 });

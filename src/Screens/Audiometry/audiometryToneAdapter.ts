@@ -126,9 +126,12 @@ export function installAudiometryToneAdapter(opts: ToneAdapterOptions = {}): () 
     } else {
       // --- Sonido de control no tonal ------------------------------------
       // Nivel de control alto y fijo: solo condiciona la atención, no umbral.
+      // 0.5 (≈ −6 dBFS): con la escala de tonos anclada al altavoz, el sonido
+      // de control debe seguir siendo claramente más llamativo que los tonos
+      // del rango de trabajo (el 0.18 anterior quedaba flojo por el altavoz).
       // 'amb' = sirena de ambulancia (dos tonos alternos).
       // 'tren' = silbato de tren (tono grave sostenido con vibrato lento).
-      const g = buildChain(channel, 0.18, now);
+      const g = buildChain(channel, 0.5, now);
       if (!g) return;
       osc = ctx.createOscillator();
       osc.type = freq === 'amb' ? 'square' : 'triangle';

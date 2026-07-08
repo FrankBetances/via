@@ -64,7 +64,7 @@ const SteamPuff = ({
       loop = Animated.loop(
         Animated.sequence([
           Animated.delay(delay),
-          Animated.timing(v, { toValue: 1, duration: 950, easing: Easing.out(Easing.quad), useNativeDriver: true }),
+          Animated.timing(v, { toValue: 1, duration: 1250, easing: Easing.out(Easing.quad), useNativeDriver: true }),
           Animated.timing(v, { toValue: 0, duration: 0, useNativeDriver: true }),
         ]),
       );
@@ -75,10 +75,13 @@ const SteamPuff = ({
     return () => loop?.stop();
   }, [active, delay, v]);
 
-  const translateY = v.interpolate({ inputRange: [0, 1], outputRange: [0, -38] });
-  const translateX = v.interpolate({ inputRange: [0, 1], outputRange: [0, 10] });
-  const scale = v.interpolate({ inputRange: [0, 1], outputRange: [0.45, 1.5] });
-  const opacity = v.interpolate({ inputRange: [0, 0.12, 0.75, 1], outputRange: [0, 0.95, 0.5, 0] });
+  // Recorrido alto y crecimiento marcado, con opacidad casi plena la mayor
+  // parte del ciclo: las nubes pequeñas y translúcidas de antes apenas se
+  // distinguían contra el cielo claro de la escena.
+  const translateY = v.interpolate({ inputRange: [0, 1], outputRange: [0, -64] });
+  const translateX = v.interpolate({ inputRange: [0, 1], outputRange: [0, 14] });
+  const scale = v.interpolate({ inputRange: [0, 1], outputRange: [0.55, 2] });
+  const opacity = v.interpolate({ inputRange: [0, 0.1, 0.7, 1], outputRange: [0, 1, 0.85, 0] });
 
   return (
     <Animated.View
@@ -91,6 +94,9 @@ const SteamPuff = ({
         height: size,
         borderRadius: size / 2,
         backgroundColor: '#FFFFFF',
+        // Contorno gris suave: da volumen y separa el humo del cielo claro.
+        borderWidth: 1.5,
+        borderColor: 'rgba(122,144,160,0.55)',
         opacity,
         transform: [{ translateY }, { translateX }, { scale }],
       }}
@@ -436,9 +442,10 @@ export default function TrainScene({
             {/* chimenea */}
             <View style={{ position: 'absolute', bottom: 42, left: 34, width: 13, height: 16, borderRadius: 3, backgroundColor: '#33414C', borderWidth: 2, borderColor: '#1F2A33' }} />
             {/* vapor animado de la chimenea */}
-            <SteamPuff active={steamActive} delay={0} left={30} size={15} />
-            <SteamPuff active={steamActive} delay={320} left={38} size={12} />
-            <SteamPuff active={steamActive} delay={640} left={33} size={10} />
+            <SteamPuff active={steamActive} delay={0} left={27} size={26} />
+            <SteamPuff active={steamActive} delay={320} left={37} size={20} />
+            <SteamPuff active={steamActive} delay={640} left={31} size={16} />
+            <SteamPuff active={steamActive} delay={960} left={40} size={13} />
             {/* notas del silbido: SOLO refuerzo del estímulo en la práctica */}
             <FloatingNote active={stimulusVisual} delay={0} left={52} emoji="🎵" />
             <FloatingNote active={stimulusVisual} delay={420} left={66} emoji="🎶" />
