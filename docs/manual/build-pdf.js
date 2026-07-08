@@ -175,7 +175,9 @@ fs.writeFileSync(built, html);
   const launchOpts = { args: ['--no-sandbox', '--font-render-hinting=none'] };
   if (process.env.CHROMIUM_PATH) launchOpts.executablePath = process.env.CHROMIUM_PATH;
   const browser = await chromium.launch(launchOpts);
-  const page = await browser.newPage();
+  const emitDir = process.env.EMIT_PAGES;
+  const scale = emitDir ? 3 : 1;
+  const page = await browser.newPage({ viewport: { width: 794, height: 1123 }, deviceScaleFactor: scale });
   await page.goto('file://' + built, { waitUntil: 'networkidle' });
   await page.emulateMedia({ media: 'print' });
   await page.pdf({
@@ -185,6 +187,17 @@ fs.writeFileSync(built, html);
     printBackground: true,
     margin: { top: '0', bottom: '0', left: '0', right: '0' },
   });
+
+  // Modo opcional: exporta cada página como PNG (para armar el .docx).
+  if (emitDir) {
+    fs.mkdirSync(emitDir, { recursive: true });
+    const pages = await page.$$('.page');
+    for (let i = 0; i < pages.length; i++) {
+      await pages[i].screenshot({ path: path.join(emitDir, `p${String(i + 1).padStart(2, '0')}.png`) });
+    }
+    console.log('Páginas PNG:', pages.length, '→', emitDir);
+  }
+
   await browser.close();
   fs.unlinkSync(built);
   const kb = (fs.statSync(OUT).size / 1024).toFixed(0);

@@ -7,9 +7,11 @@ interfaz real de la app) y casos de uso clínicos.
 
 | Fichero | Descripción |
 |---|---|
-| `VIA+_Manual_de_Usuario.pdf` | **Manual final** (14 páginas, A4). |
+| `VIA+_Manual_de_Usuario.pdf` | **Manual final en PDF** (14 páginas, A4). |
+| `VIA+_Manual_de_Usuario.docx` | **Manual en Word** (14 páginas A4, réplica visual del PDF). |
 | `manual.html` | Fuente maquetada del manual (con marcadores para los SVG). |
 | `build-pdf.js` | Genera los SVG (isotipo, ondas, firma, tarjetas) y renderiza el PDF. |
+| `build-docx.py` | Rasteriza cada página y las incrusta a página completa en el `.docx`. |
 
 ## Regenerar el PDF
 
