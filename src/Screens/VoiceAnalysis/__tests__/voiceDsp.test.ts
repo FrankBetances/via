@@ -121,6 +121,37 @@ describe('analysePcm – análisis completo de una toma /a/ infantil', () => {
     expect(r.formants!.f2).toBeGreaterThan(r.formants!.f1);
   });
 
+  // Regresión del bug «siempre insuficiente» con micrófonos de ganancia baja:
+  // la captura sin AGC (modo measurement) puede entregar RMS muy por debajo del
+  // antiguo umbral absoluto (0.015) aunque la voz se oiga bien al reproducir.
+  // El umbral de sonoridad ahora es relativo al nivel de la propia toma.
+  it.each([0.05, 0.02, 0.01])(
+    'una toma de nivel bajo (amp=%d) sigue siendo analizable',
+    async amp => {
+      const pcm = synthVowel({ f0: 250, formants: cases[0].formants, amp, noise: amp / 25 });
+      const r = await analysePcm(pcm);
+      const valid = r.f0s.filter(f => f >= 90 && f <= 520);
+      expect(valid.length).toBeGreaterThanOrEqual(8);
+      const meanF0 = valid.reduce((a, b) => a + b, 0) / valid.length;
+      expect(meanF0).toBeGreaterThan(220);
+      expect(meanF0).toBeLessThan(280);
+      expect(r.formants).not.toBeNull();
+    },
+  );
+
+  it('una toma en silencio (solo ruido de fondo ínfimo) sigue siendo insuficiente', async () => {
+    const n = SAMPLE_RATE * 4;
+    const pcm = new Float32Array(n);
+    let seed = 4242;
+    for (let i = 0; i < n; i++) {
+      seed = (seed * 1103515245 + 12345) & 0x7fffffff;
+      pcm[i] = (seed / 0x7fffffff - 0.5) * 0.002; // ~-60 dBFS
+    }
+    const r = await analysePcm(pcm);
+    expect(r.f0s.length).toBe(0);
+    expect(r.formants).toBeNull();
+  });
+
   it('una toma de puro ruido sigue considerándose insuficiente (sin formantes)', async () => {
     const n = SAMPLE_RATE * 4;
     const pcm = new Float32Array(n);

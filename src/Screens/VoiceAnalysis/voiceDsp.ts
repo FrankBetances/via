@@ -22,7 +22,20 @@ export const FRAME = 1024;
 
 const MIN_LAG = Math.floor(SAMPLE_RATE / 500); // 500 Hz
 const MAX_LAG = Math.ceil(SAMPLE_RATE / 100); // 100 Hz
-const MIN_RMS = 0.015; // umbral de sonoridad
+/** Suelo ABSOLUTO de sonoridad: solo descarta silencio digital / ruido de fondo
+ *  remoto. La puerta de voz real es la periodicidad (`MIN_PEAK`), no el nivel:
+ *  la captura de micrófono en Android/iOS llega sin AGC (modo «measurement») y
+ *  su RMS depende del hardware y la distancia — un umbral absoluto alto
+ *  (0.015, el valor histórico) descartaba TODAS las ventanas en dispositivos
+ *  de ganancia baja y el análisis siempre acababa en «captura insuficiente»
+ *  aunque la toma se oyera perfectamente al reproducirla. */
+const MIN_RMS = 0.004; // feedback en vivo (evita parpadeo de F0 con ruido de sala)
+const SILENCE_RMS = 0.0015; // análisis de la toma (solo silencio digital)
+/** Umbral RELATIVO de sonoridad de `analysePcm`: una ventana cuenta como
+ *  candidata a voz si su RMS alcanza esta fracción del nivel alto (p95) de la
+ *  propia toma (≈ −10 dB). Así el análisis es invariante a la ganancia del
+ *  micrófono y sigue descartando los silencios entre emisiones. */
+const VOICED_RMS_FRACTION = 0.3;
 const MIN_PEAK = 0.45; // umbral de periodicidad
 /** Un pico de autocorrelación que alcance esta fracción del máximo cuenta como
  *  candidato a periodo: así se elige el lag MÁS CORTO fuerte (F0 real) en vez del
@@ -35,12 +48,17 @@ const LPC_ORDER = 14; // 16 kHz: order 12 no resolvía F1 en voz infantil (F1 se
 
 /** F0 + fuerza de periodicidad de una ventana por autocorrelación normalizada.
  *  Elige el primer máximo local que supere `PEAK_FRACTION·max` (evita el salto
- *  de octava a subarmónicos) y afina el lag por interpolación parabólica. */
-export function analyseFrame(x: Float32Array): { f0: number; peak: number; rms: number } | null {
+ *  de octava a subarmónicos) y afina el lag por interpolación parabólica.
+ *  `minRms` permite a `analysePcm` pasar un umbral adaptado al nivel real de
+ *  la toma (por defecto, el suelo absoluto para el feedback en vivo). */
+export function analyseFrame(
+  x: Float32Array,
+  minRms: number = MIN_RMS,
+): { f0: number; peak: number; rms: number } | null {
   let energy = 0;
   for (let i = 0; i < x.length; i++) energy += x[i] * x[i];
   const rms = Math.sqrt(energy / x.length);
-  if (rms < MIN_RMS) return null;
+  if (rms < minRms) return null;
 
   const maxLag = Math.min(MAX_LAG, x.length - 1);
   const r = new Float64Array(maxLag + 1);
@@ -209,9 +227,23 @@ export async function analysePcm(pcm: Float32Array): Promise<VoiceMicResult> {
   const hnrs: number[] = [];
   const voicedOffsets: number[] = [];
 
+  // Umbral de sonoridad RELATIVO al nivel de la toma: RMS por ventana (barato),
+  // nivel de referencia = percentil 95 (las ventanas con voz, aunque la emisión
+  // ocupe solo parte de la grabación) y umbral a −10 dB de esa referencia, sin
+  // bajar nunca del suelo absoluto de silencio.
+  const frameRms: number[] = [];
+  for (let i = 0; i + FRAME <= pcm.length; i += FRAME) {
+    let energy = 0;
+    for (let j = i; j < i + FRAME; j++) energy += pcm[j] * pcm[j];
+    frameRms.push(Math.sqrt(energy / FRAME));
+  }
+  const sorted = [...frameRms].sort((a, b) => a - b);
+  const ref = sorted.length ? sorted[Math.min(sorted.length - 1, Math.floor(sorted.length * 0.95))] : 0;
+  const minRms = Math.max(SILENCE_RMS, ref * VOICED_RMS_FRACTION);
+
   let sinceYield = 0;
   for (let i = 0; i + FRAME <= pcm.length; i += FRAME) {
-    const frame = analyseFrame(pcm.subarray(i, i + FRAME));
+    const frame = analyseFrame(pcm.subarray(i, i + FRAME), minRms);
     if (frame) {
       voicedOffsets.push(i);
       f0s.push(frame.f0);
