@@ -106,8 +106,8 @@ describe('analysePcm – análisis completo de una toma /a/ infantil', () => {
     const r = await analysePcm(pcm);
 
     // (1) Suficientes ventanas sonoras con F0 en rango plausible (el filtro de
-    // computeParams exige >= 8 en [90, 520] Hz).
-    const valid = r.f0s.filter(f => f >= 90 && f <= 520);
+    // computeParams exige >= 8 en [65, 520] Hz).
+    const valid = r.f0s.filter(f => f >= 65 && f <= 520);
     expect(valid.length).toBeGreaterThanOrEqual(8);
 
     // La F0 media cae cerca de la real (sin colapsar al subarmónico ~100 Hz).
@@ -130,7 +130,7 @@ describe('analysePcm – análisis completo de una toma /a/ infantil', () => {
     async amp => {
       const pcm = synthVowel({ f0: 250, formants: cases[0].formants, amp, noise: amp / 25 });
       const r = await analysePcm(pcm);
-      const valid = r.f0s.filter(f => f >= 90 && f <= 520);
+      const valid = r.f0s.filter(f => f >= 65 && f <= 520);
       expect(valid.length).toBeGreaterThanOrEqual(8);
       const meanF0 = valid.reduce((a, b) => a + b, 0) / valid.length;
       expect(meanF0).toBeGreaterThan(220);
@@ -138,6 +138,46 @@ describe('analysePcm – análisis completo de una toma /a/ infantil', () => {
       expect(r.formants).not.toBeNull();
     },
   );
+
+  // Regresión del bug «voz insuficiente» con voz ADULTA: la banda de análisis
+  // histórica (100–500 Hz) dejaba fuera la voz masculina grave (una /a/
+  // relajada cae en 80–100 Hz). Con el paso-alto típico del micrófono de un
+  // móvil (que atenúa el fundamental) la autocorrelación no hallaba ningún
+  // periodo y toda toma de un adulto acababa en «captura insuficiente» aunque
+  // la grabación fuera perfecta. La banda ahora baja hasta 70 Hz.
+  describe('voz adulta grave (p. ej. el clínico probando la app con su voz)', () => {
+    /** Paso-alto de 1er orden ~150 Hz, como el acoplamiento AC del mic MEMS. */
+    const highpass = (pcm: Float32Array, fc = 150): Float32Array => {
+      const rc = 1 / (2 * Math.PI * fc);
+      const dt = 1 / SAMPLE_RATE;
+      const a = rc / (rc + dt);
+      const out = new Float32Array(pcm.length);
+      let yPrev = 0;
+      let xPrev = 0;
+      for (let i = 0; i < pcm.length; i++) {
+        yPrev = a * (yPrev + pcm[i] - xPrev);
+        xPrev = pcm[i];
+        out[i] = yPrev;
+      }
+      return out;
+    };
+
+    it.each([80, 90, 100, 120])(
+      'F0=%i Hz con fundamental atenuado produce parámetros interpretables',
+      async f0 => {
+        const pcm = highpass(
+          synthVowel({ f0, formants: [[750, 60], [1200, 90], [2600, 130]], jitterPct: 1 }),
+        );
+        const r = await analysePcm(pcm);
+        const valid = r.f0s.filter(f => f >= 65 && f <= 520);
+        expect(valid.length).toBeGreaterThanOrEqual(8);
+        const meanF0 = valid.reduce((a, b) => a + b, 0) / valid.length;
+        expect(meanF0).toBeGreaterThan(f0 * 0.85);
+        expect(meanF0).toBeLessThan(f0 * 1.15);
+        expect(r.formants).not.toBeNull();
+      },
+    );
+  });
 
   it('una toma en silencio (solo ruido de fondo ínfimo) sigue siendo insuficiente', async () => {
     const n = SAMPLE_RATE * 4;

@@ -29,7 +29,7 @@ import { analyseFrame, analysePcm, FRAME, SAMPLE_RATE } from './voiceDsp';
 /*   · `analyse(pcm)` — bajo demanda, por ventanas de 1024 muestras (~64 ms),  */
 /*     cediendo el hilo JS cada pocas ventanas para no congelar la UI:         */
 /*       - RMS (amplitud → shimmer aguas arriba)                               */
-/*       - F0 por autocorrelación normalizada en 100–500 Hz                    */
+/*       - F0 por autocorrelación normalizada en 70–500 Hz                     */
 /*       - HNR desde el pico de autocorrelación r: 10·log10(r/(1−r))           */
 /*       - Formantes F1–F3 por LPC (Levinson-Durbin) + picos de la envolvente  */
 /*     Solo se aceptan ventanas sonoras (RMS y periodicidad mínimos).          */

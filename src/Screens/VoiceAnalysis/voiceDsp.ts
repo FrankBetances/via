@@ -10,7 +10,7 @@ import type { VoiceMicResult } from './useVoiceAnalysis';
 /*                                                                            */
 /*  Sobre PCM mono a 16 kHz (el adaptador decima ×3 desde 48 kHz):             */
 /*   - RMS (amplitud → shimmer aguas arriba)                                   */
-/*   - F0 por autocorrelación normalizada en 100–500 Hz                        */
+/*   - F0 por autocorrelación normalizada en 70–500 Hz                         */
 /*   - HNR desde el pico de autocorrelación r: 10·log10(r/(1−r))               */
 /*   - Formantes F1–F3 por LPC (Levinson-Durbin) + picos de la envolvente      */
 /* -------------------------------------------------------------------------- */
@@ -21,7 +21,14 @@ export const SAMPLE_RATE = 16000;
 export const FRAME = 1024;
 
 const MIN_LAG = Math.floor(SAMPLE_RATE / 500); // 500 Hz
-const MAX_LAG = Math.ceil(SAMPLE_RATE / 100); // 100 Hz
+/** Techo de periodo (suelo de F0) a 70 Hz. El valor histórico (100 Hz) estaba
+ *  pensado solo para voz infantil y dejaba FUERA de banda la voz masculina
+ *  adulta (una /a/ sostenida relajada cae en 80–100 Hz): la autocorrelación no
+ *  encontraba el periodo, todas las ventanas se descartaban y cualquier prueba
+ *  con voz de adulto acababa en «captura insuficiente» aunque la toma se oyera
+ *  perfectamente — o, entre 85 y 100 Hz, devolvía una F0 falsa clavada en el
+ *  borde de la banda. */
+const MAX_LAG = Math.ceil(SAMPLE_RATE / 70); // 70 Hz
 /** Suelo ABSOLUTO de sonoridad: solo descarta silencio digital / ruido de fondo
  *  remoto. La puerta de voz real es la periodicidad (`MIN_PEAK`), no el nivel:
  *  la captura de micrófono en Android/iOS llega sin AGC (modo «measurement») y
@@ -261,5 +268,14 @@ export async function analysePcm(pcm: Float32Array): Promise<VoiceMicResult> {
   const sampled = voicedOffsets.filter((_, idx) => idx % 3 === 0).slice(0, 20);
   const formants = await estimateFormants(pcm, sampled);
 
-  return { f0s, amplitudes, hnrs, formants };
+  return {
+    f0s,
+    amplitudes,
+    hnrs,
+    formants,
+    // Estadísticas de la toma para que, si el análisis resulta insuficiente,
+    // la pantalla pueda decir POR QUÉ (silencio, ruido sin periodicidad, tono
+    // fuera de banda…) en vez de un mensaje genérico.
+    stats: { totalFrames: frameRms.length, levelRef: ref, voicedFrames: f0s.length },
+  };
 }
