@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Platform,
   Pressable,
@@ -11,7 +11,9 @@ import {
 import Animated, {
   cancelAnimation,
   Easing,
+  Extrapolation,
   interpolate,
+  interpolateColor,
   useAnimatedStyle,
   useSharedValue,
   withDelay,
@@ -27,8 +29,11 @@ import { RootStackParamList } from '@/Navigators';
 /* -------------------------------------------------------------------------- */
 /*  CreditosScreen — presentación del proyecto "Quisqueya Habla".              */
 /*  Mismo lenguaje visual que Bienvenida (crema + naranja + etiquetas mono):   */
-/*  emblema con anillos de pulso y satélites orbitando, onda respirando como   */
-/*  separador, créditos con medallones de color y sello normativo. El CTA     */
+/*  emblema con anillos de pulso y satélites orbitando de verdad, onda        */
+/*  respirando como separador y sello normativo. La tarjeta del autor es una  */
+/*  banda de partículas: fluyen caóticas desde la izquierda y, tras atravesar */
+/*  el nombre, se ordenan en carriles alineados naranjas (el nombre actúa     */
+/*  como filtro que ordena el caos). El CTA                                   */
 /*  continúa a la selección de perfil profesional (esta ruta solo existe en    */
 /*  el flujo de acceso, antes de abrir sesión).                                */
 /* -------------------------------------------------------------------------- */
@@ -48,6 +53,104 @@ const SATELLITES = [
   { emoji: '🗣️', angle: 145, radius: 78 },
   { emoji: '🎵', angle: 65, radius: 82 },
 ];
+const ORBIT_DURATION = 26000;
+
+/* ----------------------- banda de partículas del autor ---------------------- */
+/*  Cada partícula recorre la banda de izquierda a derecha en bucle. En la     */
+/*  mitad izquierda deambula caótica (trayectoria aleatoria + temblor, tonos   */
+/*  apagados y tamaños dispares); al atravesar la zona del nombre (55–78 % del */
+/*  ancho) converge a su carril: y fija, temblor nulo, naranja de marca y      */
+/*  opacidad plena. Todo se calcula en el hilo de UI a partir de un único      */
+/*  valor de progreso por partícula.                                           */
+
+const BAND_H = 118;
+const PARTICLE_COUNT = 30;
+/** Carriles ordenados (offsets respecto al centro de la banda). */
+const LANES = [-18, -6, 6, 18];
+const CHAOS_COLORS = ['#C9BEA9', '#B3A791', '#D8CFC0', '#F0AE6C'];
+const ORDER_COLOR = '#FF7F00';
+
+/* Generación determinista (misma constelación en cada montaje). */
+const makeRand = (seed: number) => () => {
+  seed = (seed * 1103515245 + 12345) & 0x7fffffff;
+  return seed / 0x7fffffff;
+};
+const prand = makeRand(20260710);
+
+interface ParticleCfg {
+  id: number;
+  duration: number;
+  delay: number;
+  size: number;
+  color: string;
+  /** Trayectoria caótica: y (px) en 5 puntos del recorrido. */
+  yStops: number[];
+  /** Carril al que converge tras atravesar el nombre. */
+  lane: number;
+  phase: number;
+  wobbleAmp: number;
+  wobbleFreq: number;
+}
+
+const PARTICLES: ParticleCfg[] = Array.from({ length: PARTICLE_COUNT }, (_, id) => ({
+  id,
+  duration: 5200 + prand() * 4200,
+  delay: prand() * 7000,
+  size: 3.5 + prand() * 3.5,
+  color: CHAOS_COLORS[id % CHAOS_COLORS.length],
+  yStops: Array.from({ length: 5 }, () => 16 + prand() * (BAND_H - 32)),
+  lane: LANES[id % LANES.length],
+  phase: prand() * Math.PI * 2,
+  wobbleAmp: 3 + prand() * 6,
+  wobbleFreq: 2 + prand() * 3,
+}));
+
+function FlowParticle({ cfg, width }: { cfg: ParticleCfg; width: number }) {
+  const t = useSharedValue(0);
+
+  useEffect(() => {
+    t.value = 0;
+    t.value = withDelay(
+      cfg.delay,
+      withRepeat(withTiming(1, { duration: cfg.duration, easing: Easing.linear }), -1, false),
+    );
+    return () => cancelAnimation(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [width]);
+
+  const style = useAnimatedStyle(() => {
+    const x = interpolate(t.value, [0, 1], [-16, width + 16]);
+    // Grado de orden: 0 = caos (antes del nombre), 1 = carril (después).
+    const k = interpolate(x, [width * 0.55, width * 0.78], [0, 1], Extrapolation.CLAMP);
+    const chaosY = interpolate(t.value, [0, 0.25, 0.5, 0.75, 1], cfg.yStops);
+    const wobble =
+      Math.sin(t.value * cfg.wobbleFreq * 2 * Math.PI + cfg.phase) * cfg.wobbleAmp * (1 - k);
+    const orderY = BAND_H / 2 + cfg.lane + Math.sin(x / 30 + cfg.phase) * 2 * k;
+    const y = chaosY + (orderY - chaosY) * k + wobble;
+    // Evita el "pop" al reiniciar el bucle en los bordes.
+    const edgeFade = interpolate(t.value, [0, 0.05, 0.95, 1], [0, 1, 1, 0]);
+    return {
+      transform: [
+        { translateX: x - cfg.size / 2 },
+        { translateY: y - cfg.size / 2 },
+        { scale: 1 - 0.2 * (1 - k) },
+      ],
+      opacity: (0.38 + 0.62 * k) * edgeFade,
+      backgroundColor: interpolateColor(k, [0, 1], [cfg.color, ORDER_COLOR]),
+    };
+  });
+
+  return (
+    <Animated.View
+      pointerEvents="none"
+      style={[
+        styles.particle,
+        { width: cfg.size, height: cfg.size, borderRadius: cfg.size / 2 },
+        style,
+      ]}
+    />
+  );
+}
 
 function WaveBar({ index, height }: { index: number; height: number }) {
   const breathe = useSharedValue(0);
@@ -77,6 +180,8 @@ export default function CreditosScreen({ navigation }: Props) {
   const ring1 = useSharedValue(0);
   const ring2 = useSharedValue(0);
   const float = useSharedValue(0);
+  const orbit = useSharedValue(0);
+  const [bandWidth, setBandWidth] = useState(0);
 
   useEffect(() => {
     const makePulse = () =>
@@ -98,10 +203,16 @@ export default function CreditosScreen({ navigation }: Props) {
       -1,
       false,
     );
+    orbit.value = withRepeat(
+      withTiming(360, { duration: ORBIT_DURATION, easing: Easing.linear }),
+      -1,
+      false,
+    );
     return () => {
       cancelAnimation(ring1);
       cancelAnimation(ring2);
       cancelAnimation(float);
+      cancelAnimation(orbit);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -116,6 +227,13 @@ export default function CreditosScreen({ navigation }: Props) {
   }));
   const floatStyle = useAnimatedStyle(() => ({
     transform: [{ translateY: float.value }],
+  }));
+  const orbitStyle = useAnimatedStyle(() => ({
+    transform: [{ rotate: `${orbit.value}deg` }],
+  }));
+  // Contrarrota cada satélite para que el emoji se mantenga derecho.
+  const counterOrbitStyle = useAnimatedStyle(() => ({
+    transform: [{ rotate: `${-orbit.value}deg` }],
   }));
 
   return (
@@ -143,24 +261,28 @@ export default function CreditosScreen({ navigation }: Props) {
           <View style={styles.emblem}>
             <Text style={styles.emblemEmoji}>🎙️</Text>
           </View>
-          {SATELLITES.map(s => {
-            const rad = (s.angle * Math.PI) / 180;
-            return (
-              <View
-                key={s.emoji}
-                style={[
-                  styles.satellite,
-                  {
-                    transform: [
-                      { translateX: Math.cos(rad) * s.radius },
-                      { translateY: Math.sin(rad) * s.radius },
-                    ],
-                  },
-                ]}>
-                <Text style={styles.satelliteEmoji}>{s.emoji}</Text>
-              </View>
-            );
-          })}
+          <Animated.View style={[styles.orbitLayer, orbitStyle]} pointerEvents="none">
+            {SATELLITES.map(s => {
+              const rad = (s.angle * Math.PI) / 180;
+              return (
+                <View
+                  key={s.emoji}
+                  style={[
+                    styles.satelliteAnchor,
+                    {
+                      transform: [
+                        { translateX: Math.cos(rad) * s.radius },
+                        { translateY: Math.sin(rad) * s.radius },
+                      ],
+                    },
+                  ]}>
+                  <Animated.View style={[styles.satellite, counterOrbitStyle]}>
+                    <Text style={styles.satelliteEmoji}>{s.emoji}</Text>
+                  </Animated.View>
+                </View>
+              );
+            })}
+          </Animated.View>
         </Animated.View>
 
         {/* ----- título ----- */}
@@ -186,16 +308,23 @@ export default function CreditosScreen({ navigation }: Props) {
           <View style={styles.sectionLine} />
         </View>
 
+        {/* Banda de partículas: caos → nombre → orden. */}
         <View style={styles.authorCard}>
           <View style={styles.authorAccent} />
-          <View style={styles.authorAvatar}>
-            <Text style={styles.authorAvatarText}>FB</Text>
+          <View
+            style={styles.particleBand}
+            onLayout={e => setBandWidth(Math.round(e.nativeEvent.layout.width))}>
+            {bandWidth > 0
+              ? PARTICLES.map(cfg => <FlowParticle key={cfg.id} cfg={cfg} width={bandWidth} />)
+              : null}
+            <View style={styles.authorOverlay} pointerEvents="none">
+              <View style={styles.authorAvatar}>
+                <Text style={styles.authorAvatarText}>FB</Text>
+              </View>
+              <Text style={styles.authorName}>Dr. Frank Betances</Text>
+              <Text style={styles.authorRole}>Dirección clínica e investigación 🩺</Text>
+            </View>
           </View>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.authorName}>Dr. Frank Betances</Text>
-            <Text style={styles.authorRole}>Dirección clínica e investigación</Text>
-          </View>
-          <Text style={styles.authorEmoji}>🩺</Text>
         </View>
 
         {/* ----- colaboradores ----- */}
@@ -337,8 +466,15 @@ const styles = StyleSheet.create({
   emblemEmoji: {
     fontSize: 40,
   },
-  satellite: {
+  orbitLayer: {
+    ...StyleSheet.absoluteFillObject,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  satelliteAnchor: {
     position: 'absolute',
+  },
+  satellite: {
     width: 36,
     height: 36,
     borderRadius: 18,
@@ -422,14 +558,10 @@ const styles = StyleSheet.create({
 
   authorCard: {
     alignSelf: 'stretch',
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
     backgroundColor: '#FFFFFF',
     borderRadius: 18,
     borderWidth: 1,
     borderColor: '#EFE8DB',
-    padding: 14,
     overflow: 'hidden',
   },
   authorAccent: {
@@ -439,32 +571,46 @@ const styles = StyleSheet.create({
     bottom: 0,
     width: 4,
     backgroundColor: '#FF7F00',
+    zIndex: 1,
   },
-  authorAvatar: {
-    width: 48,
-    height: 48,
-    borderRadius: 16,
-    backgroundColor: '#3A352F',
+  particleBand: {
+    alignSelf: 'stretch',
+    height: BAND_H + 46,
+    justifyContent: 'center',
+  },
+  particle: {
+    position: 'absolute',
+    left: 0,
+    top: 23, // centra la franja de partículas (BAND_H) dentro de la banda
+  },
+  authorOverlay: {
+    ...StyleSheet.absoluteFillObject,
     alignItems: 'center',
     justifyContent: 'center',
   },
+  authorAvatar: {
+    width: 40,
+    height: 40,
+    borderRadius: 14,
+    backgroundColor: '#3A352F',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 8,
+  },
   authorAvatarText: {
     color: '#FFFFFF',
-    fontSize: 15,
+    fontSize: 13,
     fontWeight: '800',
   },
   authorName: {
-    fontSize: 15,
+    fontSize: 17,
     fontWeight: '800',
     color: '#3A352F',
   },
   authorRole: {
     fontSize: 11,
     color: '#8A8274',
-    marginTop: 2,
-  },
-  authorEmoji: {
-    fontSize: 22,
+    marginTop: 3,
   },
 
   partnersRow: {
