@@ -437,6 +437,11 @@ export default function VoiceAnalysisScreen({ navigation }: Props) {
                       No se detectó suficiente voz sonora para calcular los parámetros. Acerque el micrófono
                       (~10 cm), pida una «A» sostenida y firme, y grabe una nueva toma.
                     </Text>
+                    {voice.insufficientReason ? (
+                      <Text size="xs" weight="bold" color="$warning800" mt="$1" style={{ lineHeight: 17 }}>
+                        Detalle: {voice.insufficientReason}
+                      </Text>
+                    ) : null}
                     <Pressable onPress={voice.startRecording} style={{ marginTop: 8 }}>
                       <HStack space="xs" alignItems="center">
                         <Icon as={RotateCcw} size="xs" color="$warning700" />

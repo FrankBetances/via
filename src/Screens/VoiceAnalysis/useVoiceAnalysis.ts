@@ -33,6 +33,12 @@ export interface VoiceMicResult {
   amplitudes: number[]; // RMS por frame de voz
   hnrs?: number[]; // dB por frame (opcional; si no, se estima)
   formants?: VoiceFormants | null; // F1–F3 por LPC (null = no estimables)
+  /** Estadísticas de la toma para diagnosticar una captura insuficiente. */
+  stats?: {
+    totalFrames: number; // ventanas totales de la toma
+    levelRef: number; // nivel RMS de referencia (p95) de la toma
+    voicedFrames: number; // ventanas con voz periódica detectada
+  };
 }
 
 export interface VoiceMicAdapter {
@@ -90,6 +96,12 @@ export interface VoiceTake {
 const DURATION_MS = 5000;
 /** Ventanas sonoras mínimas para un resultado clínicamente interpretable. */
 const MIN_VOICED_FRAMES = 8;
+/** Rango de F0 aceptado, con margen sobre la banda de análisis del DSP
+ *  (70–500 Hz): cubre desde voz masculina adulta grave hasta voz infantil
+ *  aguda. El suelo histórico (90 Hz) descartaba la voz de un adulto probando
+ *  la app y toda la toma acababa en «captura insuficiente». */
+const F0_VALID_MIN = 65;
+const F0_VALID_MAX = 520;
 /** Duración mínima de una toma para conservarla en la lista. */
 const MIN_TAKE_SEC = 0.8;
 /** Si la parada nativa no responde en este plazo, se aborta con error. */
@@ -127,9 +139,9 @@ const computeParams = (r: VoiceMicResult): AcousticResult | null => {
   const { f0s, amplitudes: amps, hnrs, formants } = r;
   // Rango de F0 plausible (voz infantil/adulta). Se usa `>=`/`<=` con un pequeño
   // margen porque el adaptador afina la F0 por interpolación y puede rozar los
-  // extremos de la banda de análisis (100–500 Hz); con `>`/`<` estrictos las
-  // ventanas de F0 ≈ 100 Hz se descartaban y la toma quedaba «sin datos».
-  const valid = f0s.filter(f => f >= 90 && f <= 520);
+  // extremos de la banda de análisis (70–500 Hz); con `>`/`<` estrictos las
+  // ventanas del borde de banda se descartaban y la toma quedaba «sin datos».
+  const valid = f0s.filter(f => f >= F0_VALID_MIN && f <= F0_VALID_MAX);
   if (valid.length < MIN_VOICED_FRAMES || !formants) return null;
 
   const avgF0 = valid.reduce((a, b) => a + b, 0) / valid.length;
@@ -168,6 +180,30 @@ const computeParams = (r: VoiceMicResult): AcousticResult | null => {
   };
 };
 
+/** Nivel p95 por debajo del cual la toma se considera silencio digital
+ *  (~-52 dBFS): el micrófono no entregó señal audible. */
+const SILENT_TAKE_LEVEL = 0.0025;
+
+/**
+ * Explica por qué `computeParams` devolvió `null`, en orden de diagnóstico:
+ * silencio → sin periodicidad → tono fuera de banda → sin formantes. Este
+ * detalle se muestra en la tarjeta «captura insuficiente» para distinguir un
+ * problema de captura (micrófono mudo) de uno de emisión o de análisis.
+ */
+const describeInsufficiency = (r: VoiceMicResult): string => {
+  if (r.stats && r.stats.levelRef < SILENT_TAKE_LEVEL) {
+    return 'La toma está prácticamente en silencio: el micrófono no entregó señal audible. Compruebe que ninguna otra aplicación usa el micrófono y que no está silenciado por el sistema.';
+  }
+  if (r.f0s.length === 0) {
+    return 'Hay señal en la toma, pero sin voz periódica reconocible (solo ruido o soplo). Pida una «A» sostenida con voz plena, no susurrada.';
+  }
+  const valid = r.f0s.filter(f => f >= F0_VALID_MIN && f <= F0_VALID_MAX);
+  if (valid.length < MIN_VOICED_FRAMES) {
+    return `Se detectó voz, pero con un tono fuera del rango analizable (${F0_VALID_MIN}–${F0_VALID_MAX} Hz) o demasiado inestable.`;
+  }
+  return 'Se detectó voz, pero no se pudieron estimar los formantes (la emisión puede ser demasiado breve o irregular).';
+};
+
 /* -------------------------------------------------------------------------- */
 /*  Hook principal                                                             */
 /* -------------------------------------------------------------------------- */
@@ -184,6 +220,8 @@ export function useVoiceAnalysis() {
   const [analyzedTakeId, setAnalyzedTakeId] = useState<number | null>(null);
   const [result, setResult] = useState<AcousticResult | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  /** Detalle de por qué la última captura/análisis fue insuficiente. */
+  const [insufficientReason, setInsufficientReason] = useState<string | null>(null);
   const [hasMic, setHasMic] = useState(() => !!micAdapter);
 
   // Refleja el (des)registro del adaptador aunque ocurra después del montaje.
@@ -255,6 +293,11 @@ export function useVoiceAnalysis() {
       );
       const durationSec = pcm.length / micAdapter.sampleRate;
       if (durationSec < MIN_TAKE_SEC) {
+        setInsufficientReason(
+          durationSec === 0
+            ? 'El motor de audio no entregó ninguna muestra: el micrófono puede estar ocupado por otra aplicación.'
+            : `La grabación duró solo ${durationSec.toFixed(1)} s (mínimo ${MIN_TAKE_SEC} s).`,
+        );
         setPhase('insufficient');
         return;
       }
@@ -291,6 +334,7 @@ export function useVoiceAnalysis() {
     setLiveF0(null);
     setLevel(0);
     setErrorMsg(null);
+    setInsufficientReason(null);
 
     try {
       await micAdapter.startRecording(frame => {
@@ -332,6 +376,7 @@ export function useVoiceAnalysis() {
       setResult(null);
       setAnalyzedTakeId(null);
       setErrorMsg(null);
+      setInsufficientReason(null);
       setPhase('analyzing');
       try {
         const r = await withTimeout(
@@ -345,6 +390,7 @@ export function useVoiceAnalysis() {
           setAnalyzedTakeId(take.id);
           setPhase('analyzed');
         } else {
+          setInsufficientReason(describeInsufficiency(r));
           setPhase('insufficient');
         }
       } catch (e) {
@@ -412,6 +458,7 @@ export function useVoiceAnalysis() {
     setAnalyzedTakeId(null);
     setResult(null);
     setErrorMsg(null);
+    setInsufficientReason(null);
   }, [teardown, stopPlayback]);
 
   const source: VoiceSource = 'mic';
@@ -428,6 +475,7 @@ export function useVoiceAnalysis() {
     analyzedTakeId,
     result,
     errorMsg,
+    insufficientReason,
     isRecording: phase === 'recording',
     isAnalyzing: phase === 'analyzing',
     hasMic,
