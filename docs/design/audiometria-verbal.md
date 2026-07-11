@@ -1,6 +1,8 @@
 # Plan de implementación — Audiometría Verbal en Campo Libre
 
 > **Estado:** diseño (Iteración 1). El desarrollo se aborda en la Iteración 2.
+> **Mockup visual:** `docs/design/audiometria-verbal.dc.html` (interactivo:
+> pantalla de la prueba + especificación de la tarjeta `WordCard`).
 > **Módulo nuevo:** `VerbalAudiometry` — logoaudiometría de reconocimiento
 > por selección de tarjetas, en **campo libre** (altavoces de la tableta),
 > **sin audífonos**, con listas adaptadas a la **edad** del paciente.
