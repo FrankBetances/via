@@ -38,16 +38,17 @@ export interface VoiceAnalysisDTO {
   source: VoiceSource;
   durationSec: number;
   quality: VoiceQuality;
-  f0: number; // Hz
-  jitter: number; // %
-  shimmer: number; // %
-  hnr: number; // dB
-  formants: VoiceFormants; // Hz
+  f0: number | null; // Hz (null = análisis acústico no disponible, cierre manual)
+  jitter: number | null; // %
+  shimmer: number | null; // %
+  hnr: number | null; // dB
+  formants: VoiceFormants | null; // Hz (null = no estimables en la toma)
   grbas: GrbasScores | null; // valoración perceptual (null = no realizada)
   interpretation: string;
   notes: string;
   evaluatorName: string;
   evaluatorLicense: string;
+  evaluatorSignatureSvg: string | null; // firma manuscrita (path SVG)
   completedAt: string; // ISO
   evaluationId: number;
   createdAt: string; // ISO
@@ -78,20 +79,25 @@ export class VoiceAnalysis {
   @Column({ type: 'varchar', default: 'med' })
   quality: VoiceQuality;
 
-  @Column({ type: 'float' })
-  f0: number;
+  /** Parámetros acústicos. `null` = análisis no disponible: la prueba se cerró
+   *  manualmente con la valoración perceptual (GRBAS) y la firma del
+   *  explorador como constancia. */
+  @Column({ type: 'float', nullable: true })
+  f0: number | null;
 
-  @Column({ type: 'float' })
-  jitter: number;
+  @Column({ type: 'float', nullable: true })
+  jitter: number | null;
 
-  @Column({ type: 'float' })
-  shimmer: number;
+  @Column({ type: 'float', nullable: true })
+  shimmer: number | null;
 
-  @Column({ type: 'float' })
-  hnr: number;
+  @Column({ type: 'float', nullable: true })
+  hnr: number | null;
 
-  @Column('simple-json')
-  formants: VoiceFormants;
+  /** F1–F3 (Hz). `null` = no estimables en la toma (el resto de parámetros
+   *  puede seguir siendo válido). */
+  @Column({ type: 'simple-json', nullable: true })
+  formants: VoiceFormants | null;
 
   @Column({ type: 'simple-json', nullable: true })
   grbas: GrbasScores | null;
@@ -107,6 +113,10 @@ export class VoiceAnalysis {
 
   @Column({ type: 'varchar', default: '' })
   evaluatorLicense: string;
+
+  /** Trazo de la firma del explorador como path SVG (null = sin firma). */
+  @Column({ type: 'text', nullable: true })
+  evaluatorSignatureSvg: string | null;
 
   @Column({ type: 'datetime' })
   @Transform(({ value }) => value?.toISOString(), { toPlainOnly: true })

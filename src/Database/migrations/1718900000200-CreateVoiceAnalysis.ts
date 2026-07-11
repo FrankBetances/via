@@ -21,15 +21,17 @@ export class CreateVoiceAnalysis1718900000200 implements MigrationInterface {
           { name: 'source', type: 'varchar', default: "'demo'" },
           { name: 'durationSec', type: 'float', default: 5 },
           { name: 'quality', type: 'varchar', default: "'med'" },
-          { name: 'f0', type: 'float' },
-          { name: 'jitter', type: 'float' },
-          { name: 'shimmer', type: 'float' },
-          { name: 'hnr', type: 'float' },
-          { name: 'formants', type: 'text' }, // simple-json
+          // Acústica anulable: null = prueba cerrada manualmente (solo GRBAS).
+          { name: 'f0', type: 'float', isNullable: true },
+          { name: 'jitter', type: 'float', isNullable: true },
+          { name: 'shimmer', type: 'float', isNullable: true },
+          { name: 'hnr', type: 'float', isNullable: true },
+          { name: 'formants', type: 'text', isNullable: true }, // simple-json
           { name: 'interpretation', type: 'varchar', default: "''" },
           { name: 'notes', type: 'varchar', default: "''" },
           { name: 'evaluatorName', type: 'varchar', default: "''" },
           { name: 'evaluatorLicense', type: 'varchar', default: "''" },
+          { name: 'evaluatorSignatureSvg', type: 'text', isNullable: true },
           { name: 'completedAt', type: 'datetime' },
           { name: 'evaluationId', type: 'integer', isNullable: true },
           { name: 'createdAt', type: 'datetime', default: 'CURRENT_TIMESTAMP' },

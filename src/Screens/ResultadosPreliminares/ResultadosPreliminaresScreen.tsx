@@ -91,6 +91,19 @@ export default function ResultadosPreliminaresScreen({ navigation }: Props) {
 
         const voiceAnalyses = await VoiceAnalysisRepository.getVoiceAnalysisByEvaluation(evaluationId);
         voiceAnalyses.forEach(v => {
+          // Cierre manual: sin acústica, se muestra la valoración GRBAS registrada.
+          if (v.f0 == null || v.jitter == null || v.shimmer == null || v.hnr == null) {
+            result.push({
+              key: `voice-${v.id}`,
+              title: 'Análisis Acústico de Voz',
+              status: v.grbas && v.grbas.g >= 1 ? 'warn' : 'ok',
+              headline: v.interpretation || 'Prueba de voz cerrada manualmente (análisis acústico no disponible).',
+              metric: v.grbas
+                ? `GRBAS G${v.grbas.g} R${v.grbas.r} B${v.grbas.b} A${v.grbas.a} S${v.grbas.s}`
+                : 'Cierre manual',
+            });
+            return;
+          }
           const params = { f0: v.f0, jitter: v.jitter, shimmer: v.shimmer, hnr: v.hnr, formants: v.formants };
           const interp = buildVoiceInterpretation(params);
           const altered = interp.startsWith('Se observa');

@@ -26,7 +26,7 @@ import {
   Trash2,
 } from 'lucide-react-native';
 
-import { Button, Content, Header, Text } from '@/Components/Common';
+import { Button, Content, Header, SignaturePad, Text } from '@/Components/Common';
 import RadialBackground from '@/Components/Themed/RadialBackground';
 import { RootStackParamList } from '@/Navigators';
 import { RootState } from '@/Store';
@@ -116,6 +116,10 @@ export default function VoiceAnalysisScreen({ navigation }: Props) {
   const [grbas, setGrbas] = useState<GrbasDraft>(EMPTY_GRBAS);
   const [evaluatorName, setEvaluatorName] = useState(activeEvaluation?.professional?.name ?? '');
   const [evaluatorLicense, setEvaluatorLicense] = useState(activeEvaluation?.professional?.licenseNumber ?? '');
+  const [signaturePaths, setSignaturePaths] = useState<string[]>([]);
+  // El pad de firma congela el scroll mientras se traza (si no, el gesto
+  // desplaza la pantalla en lugar de firmar).
+  const [scrollEnabled, setScrollEnabled] = useState(true);
 
   const patient = activeEvaluation?.patient;
   const patientName = patient ? `${patient.name} ${patient.lastName}`.trim() : null;
@@ -125,6 +129,14 @@ export default function VoiceAnalysisScreen({ navigation }: Props) {
   const grbasScores: GrbasScores | null = grbasComplete(grbas) ? { ...grbas } : null;
   const analyzedTake = voice.takes.find(t => t.id === voice.analyzedTakeId) ?? null;
   const selectedTake = voice.takes.find(t => t.id === voice.selectedTakeId) ?? null;
+
+  /** Cierre MANUAL: sin resultado acústico pero con tomas grabadas y la
+   *  valoración perceptual GRBAS completa. La prueba queda registrada con la
+   *  firma del explorador como constancia aunque el análisis no funcionara. */
+  const canCloseManually = !r && voice.takes.length > 0 && !!grbasScores;
+  const canSave = !!r || canCloseManually;
+  /** Para el cierre manual la firma es obligatoria (es la constancia). */
+  const signatureMissing = !r && signaturePaths.length === 0;
 
   const setGrbasScore = (key: keyof GrbasScores, value: number) =>
     setGrbas(prev => ({ ...prev, [key]: prev[key] === value ? null : value }));
@@ -230,8 +242,8 @@ export default function VoiceAnalysisScreen({ navigation }: Props) {
   };
 
   const handleSave = async () => {
-    if (!r || isSaving) return;
-    if (!evaluatorName.trim() || !evaluatorLicense.trim()) return;
+    if (!canSave || isSaving) return;
+    if (!evaluatorName.trim() || !evaluatorLicense.trim() || signatureMissing) return;
     if (!activeEvaluation) {
       showErrorToast('No se puede guardar', 'No hay una evaluación activa asociada al paciente.');
       return;
@@ -240,25 +252,34 @@ export default function VoiceAnalysisScreen({ navigation }: Props) {
       const item = new VoiceAnalysis();
       item.vowel = 'a';
       item.source = voice.source;
-      item.durationSec = analyzedTake?.durationSec ?? 5;
-      item.quality = r.quality;
-      item.f0 = r.f0;
-      item.jitter = r.jitter;
-      item.shimmer = r.shimmer;
-      item.hnr = r.hnr;
-      item.formants = r.formants;
+      item.durationSec = (analyzedTake ?? selectedTake)?.durationSec ?? 5;
+      item.quality = r?.quality ?? 'low';
+      item.f0 = r?.f0 ?? null;
+      item.jitter = r?.jitter ?? null;
+      item.shimmer = r?.shimmer ?? null;
+      item.hnr = r?.hnr ?? null;
+      item.formants = r?.formants ?? null;
       item.grbas = grbasScores;
+      const baseInterpretation = r
+        ? interpretation
+        : 'Análisis acústico no disponible (captura insuficiente); prueba cerrada manualmente por el explorador tras la escucha de las tomas.';
       item.interpretation = grbasScores
-        ? `${interpretation} Valoración perceptual GRBAS: ${grbasSummary(grbasScores)} (${grbasSeverityLabel(grbasScores).toLowerCase()}).`
-        : interpretation;
+        ? `${baseInterpretation} Valoración perceptual GRBAS: ${grbasSummary(grbasScores)} (${grbasSeverityLabel(grbasScores).toLowerCase()}).`
+        : baseInterpretation;
       item.notes = notes.trim();
       item.evaluatorName = evaluatorName.trim();
       item.evaluatorLicense = evaluatorLicense.trim();
+      item.evaluatorSignatureSvg = signaturePaths.length ? signaturePaths.join(' ') : null;
       item.completedAt = new Date();
       item.evaluation = { id: activeEvaluation.id } as Evaluation;
 
       await createVoiceAnalysis(item);
-      showSuccessToast('Análisis guardado', `F0 ${r.f0} Hz · HNR ${r.hnr} dB · Jitter ${r.jitter}%.`);
+      showSuccessToast(
+        r ? 'Análisis guardado' : 'Prueba registrada',
+        r
+          ? `F0 ${r.f0} Hz · HNR ${r.hnr} dB · Jitter ${r.jitter}%.`
+          : `Cierre manual con valoración GRBAS firmado por ${evaluatorName.trim()}.`,
+      );
       navigation.goBack();
     } catch {
       showErrorToast('Error al guardar', 'No se pudo registrar el análisis. Inténtelo de nuevo.');
@@ -278,7 +299,7 @@ export default function VoiceAnalysisScreen({ navigation }: Props) {
       <VStack flex={1}>
         <Header animationType="expand" />
 
-        <ScrollView showsVerticalScrollIndicator={false}>
+        <ScrollView showsVerticalScrollIndicator={false} scrollEnabled={scrollEnabled}>
           <VStack flex={1} px="$6" mt="$2" space="md" pb="$10">
             {/* título */}
             <VStack>
@@ -442,6 +463,10 @@ export default function VoiceAnalysisScreen({ navigation }: Props) {
                         Detalle: {voice.insufficientReason}
                       </Text>
                     ) : null}
+                    <Text size="xs" color="$warning800" mt="$1" style={{ lineHeight: 17 }}>
+                      Si el análisis sigue fallando, puede completar la valoración perceptual
+                      GRBAS escuchando las tomas y cerrar la prueba manualmente con su firma.
+                    </Text>
                     <Pressable onPress={voice.startRecording} style={{ marginTop: 8 }}>
                       <HStack space="xs" alignItems="center">
                         <Icon as={RotateCcw} size="xs" color="$warning700" />
@@ -565,18 +590,26 @@ export default function VoiceAnalysisScreen({ navigation }: Props) {
                       ESPACIO VOCÁLICO · F1 × F2
                     </Text>
                   </HStack>
-                  <VowelSpace f1={r.formants.f1} f2={r.formants.f2} />
-                  <HStack justifyContent="space-between" mt="$3">
-                    <Text size="sm" weight="bold" style={{ color: '#FF7F00' }}>
-                      F1 {r.formants.f1} Hz
+                  <VowelSpace f1={r.formants?.f1 ?? null} f2={r.formants?.f2 ?? null} />
+                  {r.formants ? (
+                    <HStack justifyContent="space-between" mt="$3">
+                      <Text size="sm" weight="bold" style={{ color: '#FF7F00' }}>
+                        F1 {r.formants.f1} Hz
+                      </Text>
+                      <Text size="sm" weight="bold" style={{ color: '#0EA5E9' }}>
+                        F2 {r.formants.f2} Hz
+                      </Text>
+                      <Text size="sm" weight="bold" style={{ color: '#A855F7' }}>
+                        F3 {r.formants.f3} Hz
+                      </Text>
+                    </HStack>
+                  ) : (
+                    <Text size="xs" color="$textLight500" mt="$3" style={{ lineHeight: 17 }}>
+                      Los formantes F1–F3 no pudieron estimarse en esta toma; el resto de
+                      parámetros (F0, jitter, shimmer, HNR) sí es válido. Puede grabar y
+                      analizar otra toma si necesita el espacio vocálico.
                     </Text>
-                    <Text size="sm" weight="bold" style={{ color: '#0EA5E9' }}>
-                      F2 {r.formants.f2} Hz
-                    </Text>
-                    <Text size="sm" weight="bold" style={{ color: '#A855F7' }}>
-                      F3 {r.formants.f3} Hz
-                    </Text>
-                  </HStack>
+                  )}
                 </Card>
 
                 <Card bgColor="$white" borderRadius={20} p="$5">
@@ -587,7 +620,25 @@ export default function VoiceAnalysisScreen({ navigation }: Props) {
                     {interpretation}
                   </Text>
                 </Card>
+              </>
+            ) : null}
 
+            {/* cierre manual: sin análisis pero con tomas + GRBAS completa */}
+            {canCloseManually ? (
+              <Card bgColor="$primary0" borderRadius={18} borderWidth={1} borderColor="$primary100" p="$4">
+                <Text size="sm" weight="bold" color="$primary800">
+                  Cierre manual de la prueba
+                </Text>
+                <Text size="xs" color="$primary800" mt="$1" style={{ lineHeight: 17 }}>
+                  El análisis acústico no está disponible, pero hay tomas grabadas y la
+                  valoración perceptual GRBAS está completa. Puede registrar la prueba
+                  igualmente: firme abajo para dejar constancia.
+                </Text>
+              </Card>
+            ) : null}
+
+            {canSave ? (
+              <>
                 <Card bgColor="$white" borderRadius={20} p="$5">
                   <Text size="sm" weight="bold" color="$textLight700" mb="$2">
                     Observaciones
@@ -607,7 +658,7 @@ export default function VoiceAnalysisScreen({ navigation }: Props) {
                   <Text size="sm" weight="bold" color="$textLight700" mb="$2">
                     Evaluador responsable
                   </Text>
-                  <HStack space="sm">
+                  <HStack space="sm" mb="$3">
                     <Input variant="outline" borderRadius={12} style={{ flex: 2 }}>
                       <InputField placeholder="Nombre" value={evaluatorName} onChangeText={setEvaluatorName} />
                     </Input>
@@ -615,19 +666,33 @@ export default function VoiceAnalysisScreen({ navigation }: Props) {
                       <InputField placeholder="Colegiado" value={evaluatorLicense} onChangeText={setEvaluatorLicense} />
                     </Input>
                   </HStack>
+                  <Text size="xs" weight="bold" color="$textLight600" mb="$1">
+                    Firma del explorador{r ? ' (opcional)' : ''}
+                  </Text>
+                  <SignaturePad
+                    paths={signaturePaths}
+                    onAddPath={p => setSignaturePaths(prev => [...prev, p])}
+                    onClear={() => setSignaturePaths([])}
+                    setScrollEnabled={setScrollEnabled}
+                  />
+                  {signatureMissing ? (
+                    <Text size="2xs" color="$warning700" mt="$1">
+                      Para el cierre manual la firma es obligatoria: deja constancia de la prueba.
+                    </Text>
+                  ) : null}
                 </Card>
 
                 <Button
                   action="primary"
                   variant="solid"
                   rounded="$full"
-                  isDisabled={isSaving || !evaluatorName.trim() || !evaluatorLicense.trim()}
+                  isDisabled={isSaving || !evaluatorName.trim() || !evaluatorLicense.trim() || signatureMissing}
                   isLoading={isSaving}
                   onPress={handleSave}>
                   <HStack space="sm" alignItems="center">
                     <Icon as={Save} size="sm" color="$white" />
                     <Text size="sm" weight="bold" color="$white">
-                      Guardar análisis
+                      {r ? 'Guardar análisis' : 'Registrar prueba con firma'}
                     </Text>
                   </HStack>
                 </Button>
@@ -638,7 +703,7 @@ export default function VoiceAnalysisScreen({ navigation }: Props) {
                   <Icon as={AudioWaveform} size="xl" color="$textLight300" />
                   <Text size="sm" color="$textLight400" mt="$2" style={{ textAlign: 'center' }}>
                     {voice.takes.length
-                      ? 'Seleccione una toma y pulse «Analizar» para obtener los parámetros acústicos.'
+                      ? 'Seleccione una toma y pulse «Analizar» para obtener los parámetros acústicos. Si el análisis no funciona, complete la valoración GRBAS para poder cerrar la prueba manualmente con su firma.'
                       : 'Grabe una o varias tomas de la vocal /a/ para empezar.'}
                   </Text>
                 </Center>

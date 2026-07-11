@@ -17,8 +17,72 @@ import type { VoiceMicResult } from './useVoiceAnalysis';
 
 /** Frecuencia efectiva del PCM analizado (48 kHz decimado ×3 en el adaptador). */
 export const SAMPLE_RATE = 16000;
+/** Factor de decimación de la cadena de captura (48 kHz → 16 kHz). */
+export const DECIMATION = 3;
 /** Tamaño de ventana de análisis (~64 ms a 16 kHz). */
 export const FRAME = 1024;
+
+/* ------------------------- decimación anti-alias ×3 ------------------------ */
+
+/** Nº de coeficientes (impar) del FIR paso-bajo previo a la decimación. */
+const AA_TAPS_N = 33;
+/** Corte del FIR (Hz, a 48 kHz): bajo la nueva Nyquist (8 kHz) con margen de
+ *  transición para que la banda plegada quede realmente atenuada. */
+const AA_CUTOFF_HZ = 6600;
+
+/** FIR paso-bajo (sinc enventanada con Hamming, ganancia 1 en DC). */
+const AA_TAPS: Float64Array = (() => {
+  const taps = new Float64Array(AA_TAPS_N);
+  const half = (AA_TAPS_N - 1) / 2;
+  const fc = AA_CUTOFF_HZ / (SAMPLE_RATE * DECIMATION);
+  let sum = 0;
+  for (let i = 0; i < AA_TAPS_N; i++) {
+    const m = i - half;
+    const sinc = m === 0 ? 2 * fc : Math.sin(2 * Math.PI * fc * m) / (Math.PI * m);
+    const hamming = 0.54 - 0.46 * Math.cos((2 * Math.PI * i) / (AA_TAPS_N - 1));
+    taps[i] = sinc * hamming;
+    sum += taps[i];
+  }
+  for (let i = 0; i < AA_TAPS_N; i++) taps[i] /= sum;
+  return taps;
+})();
+
+/**
+ * Decimador ×3 (48 kHz → 16 kHz) con filtro FIR anti-alias y estado entre
+ * bloques (cola del bloque anterior + fase del diezmado), para usar sobre el
+ * stream de captura por chunks.
+ *
+ * La decimación histórica tomaba 1 de cada 3 muestras SIN filtrar: todo el
+ * contenido de 8–24 kHz del micrófono real (fricción, siseo, ruido ambiente)
+ * se plegaba sobre la banda de análisis. La F0 por autocorrelación sobrevive
+ * al aliasing, pero la envolvente LPC no: los picos espurios enmascaraban
+ * F1–F3 y la toma acababa en «se detectó voz pero sin formantes» aunque el
+ * pitch en vivo se hubiera visto perfectamente durante la grabación.
+ */
+export function createDecimator3(): (raw: Float32Array) => Float32Array {
+  const hist = new Float32Array(AA_TAPS_N - 1); // últimas muestras del bloque anterior
+  let phase = 0; // posición (mod 3) de la primera muestra de salida del bloque
+  return (raw: Float32Array): Float32Array => {
+    if (raw.length === 0) return new Float32Array(0);
+    const ext = new Float32Array(hist.length + raw.length);
+    ext.set(hist);
+    ext.set(raw, hist.length);
+    const out = new Float32Array(
+      raw.length > phase ? Math.ceil((raw.length - phase) / DECIMATION) : 0,
+    );
+    let o = 0;
+    for (let p = phase; p < raw.length; p += DECIMATION) {
+      // y[p] = Σ taps[k] · x[p − k], con x extendido con la cola anterior.
+      const base = p + hist.length;
+      let acc = 0;
+      for (let k = 0; k < AA_TAPS_N; k++) acc += AA_TAPS[k] * ext[base - k];
+      out[o++] = acc;
+    }
+    phase = raw.length > phase ? (DECIMATION - ((raw.length - phase) % DECIMATION)) % DECIMATION : phase - raw.length;
+    hist.set(ext.subarray(ext.length - hist.length));
+    return out;
+  };
+}
 
 const MIN_LAG = Math.floor(SAMPLE_RATE / 500); // 500 Hz
 /** Techo de periodo (suelo de F0) a 70 Hz. El valor histórico (100 Hz) estaba
@@ -214,11 +278,14 @@ async function estimateFormants(
       await yieldToEventLoop();
     }
   }
-  if (f1s.length < 3 || f2s.length < 3) return null;
+  // Bastan 2 ventanas coincidentes: la mediana sigue filtrando espurios y el
+  // mínimo histórico (3) tiraba tomas enteras cuando la emisión solo tenía un
+  // tramo corto estable — «se detectó voz pero sin formantes».
+  if (f1s.length < 2 || f2s.length < 2) return null;
   return {
     f1: Math.round(median(f1s)),
     f2: Math.round(median(f2s)),
-    f3: f3s.length >= 3 ? Math.round(median(f3s)) : Math.round(median(f2s) * 2),
+    f3: f3s.length >= 2 ? Math.round(median(f3s)) : Math.round(median(f2s) * 2),
   };
 }
 
@@ -264,8 +331,16 @@ export async function analysePcm(pcm: Float32Array): Promise<VoiceMicResult> {
     }
   }
 
-  // Formantes solo sobre una muestra de ventanas sonoras (coste acotado).
-  const sampled = voicedOffsets.filter((_, idx) => idx % 3 === 0).slice(0, 20);
+  // Formantes solo sobre una muestra de ventanas sonoras (coste acotado),
+  // repartida por TODA la toma: el muestreo histórico (las ~60 primeras
+  // ventanas sonoras) hacía que el resultado dependiera de que la emisión
+  // empezara limpia — un arranque ronco o con ruido dejaba la toma entera
+  // «sin formantes» aunque el tramo central fuera perfecto.
+  const MAX_FORMANT_WINDOWS = 32;
+  const step = Math.max(1, Math.floor(voicedOffsets.length / MAX_FORMANT_WINDOWS));
+  const sampled = voicedOffsets
+    .filter((_, idx) => idx % step === 0)
+    .slice(0, MAX_FORMANT_WINDOWS);
   const formants = await estimateFormants(pcm, sampled);
 
   return {

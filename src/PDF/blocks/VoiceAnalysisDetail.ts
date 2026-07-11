@@ -30,15 +30,27 @@ export async function VoiceAnalysisDetail(
   });
   y -= 40;
 
-  // Parámetros principales (tabla simple en 2 columnas)
-  const rows: [string, string][] = [
-    ['F0 (pitch medio)', `${analysis.f0} Hz`],
-    ['Jitter', `${analysis.jitter} %`],
-    ['Shimmer', `${analysis.shimmer} %`],
-    ['HNR', `${analysis.hnr} dB`],
-    ['Formantes', `F1 ${analysis.formants?.f1} · F2 ${analysis.formants?.f2} · F3 ${analysis.formants?.f3} Hz`],
-    ['Vocal / fuente', `/${analysis.vowel}/ · ${analysis.source === 'mic' ? 'micrófono' : 'demostración'}`],
-  ];
+  // Parámetros principales (tabla simple en 2 columnas). Los campos acústicos
+  // son anulables: null = prueba cerrada manualmente (solo valoración GRBAS).
+  const manualClosure = analysis.f0 == null;
+  const rows: [string, string][] = manualClosure
+    ? [
+        ['Análisis acústico', 'No disponible · cierre manual de la prueba'],
+        ['Vocal / fuente', `/${analysis.vowel}/ · ${analysis.source === 'mic' ? 'micrófono' : 'demostración'}`],
+      ]
+    : [
+        ['F0 (pitch medio)', `${analysis.f0} Hz`],
+        ['Jitter', `${analysis.jitter} %`],
+        ['Shimmer', `${analysis.shimmer} %`],
+        ['HNR', `${analysis.hnr} dB`],
+        [
+          'Formantes',
+          analysis.formants
+            ? `F1 ${analysis.formants.f1} · F2 ${analysis.formants.f2} · F3 ${analysis.formants.f3} Hz`
+            : 'No estimables en la toma',
+        ],
+        ['Vocal / fuente', `/${analysis.vowel}/ · ${analysis.source === 'mic' ? 'micrófono' : 'demostración'}`],
+      ];
   if (analysis.grbas) {
     rows.push(['GRBAS (perceptual)', `${grbasSummary(analysis.grbas)} — ${grbasSeverityLabel(analysis.grbas)}`]);
   }
@@ -118,6 +130,31 @@ export async function VoiceAnalysisDetail(
     color: PDF_COLORS.trueGray500,
     maxWidth,
   });
+
+  // Firma manuscrita del explorador (constancia de la prueba, obligatoria en
+  // el cierre manual). El path SVG se dibuja tal cual: drawSvgPath usa el
+  // convenio SVG (y hacia abajo) desde la esquina (x, y).
+  if (analysis.evaluatorSignatureSvg) {
+    y -= 20;
+    page.drawText(t('PDF.VOICE.SIGNATURE', 'Firma del explorador:'), {
+      x: PDF_MARGINS.left,
+      y,
+      size: PDF_FONT_SIZES.sm,
+      font: fonts.semiBold,
+      color: PDF_COLORS.trueGray500,
+    });
+    try {
+      page.drawSvgPath(analysis.evaluatorSignatureSvg, {
+        x: PDF_MARGINS.left + 130,
+        y: y + 14,
+        scale: 0.45, // pad de 150 px de alto → ~68 pt en el informe
+        borderColor: PDF_COLORS.trueGray500,
+        borderWidth: 1,
+      });
+    } catch {
+      // Un trazo corrupto no debe tumbar la generación del informe.
+    }
+  }
 
   await Logo({ page, fonts, t });
 }

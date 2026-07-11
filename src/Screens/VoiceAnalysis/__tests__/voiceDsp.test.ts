@@ -1,4 +1,4 @@
-import { analyseFrame, analysePcm, FRAME, SAMPLE_RATE } from '../voiceDsp';
+import { analyseFrame, analysePcm, createDecimator3, FRAME, SAMPLE_RATE } from '../voiceDsp';
 
 /* -------------------------------------------------------------------------- */
 /*  Pruebas del DSP acústico. Regresión del bug «captura insuficiente»:        */
@@ -19,6 +19,7 @@ function synthVowel({
   jitterPct = 0.4,
   amp = 0.25,
   noise = 0.01,
+  sr = SAMPLE_RATE,
 }: {
   f0: number;
   seconds?: number;
@@ -26,8 +27,10 @@ function synthVowel({
   jitterPct?: number;
   amp?: number;
   noise?: number;
+  /** Frecuencia de muestreo de la síntesis (48 kHz para probar la decimación). */
+  sr?: number;
 }): Float32Array {
-  const n = Math.floor(SAMPLE_RATE * seconds);
+  const n = Math.floor(sr * seconds);
   const src = new Float64Array(n);
   let t = 0;
   // Semilla determinista para reproducibilidad de la prueba.
@@ -38,13 +41,13 @@ function synthVowel({
   };
   while (t < n) {
     src[Math.floor(t)] = 1;
-    const period = SAMPLE_RATE / (f0 * (1 + (rand() - 0.5) * 2 * (jitterPct / 100)));
+    const period = sr / (f0 * (1 + (rand() - 0.5) * 2 * (jitterPct / 100)));
     t += period;
   }
   const out = new Float64Array(n);
   for (const [fc, bw] of formants) {
-    const r = Math.exp((-Math.PI * bw) / SAMPLE_RATE);
-    const theta = (2 * Math.PI * fc) / SAMPLE_RATE;
+    const r = Math.exp((-Math.PI * bw) / sr);
+    const theta = (2 * Math.PI * fc) / sr;
     const a1 = 2 * r * Math.cos(theta);
     const a2 = -r * r;
     let y1 = 0;
@@ -209,5 +212,91 @@ describe('coherencia de la cadena de captura', () => {
   it('SAMPLE_RATE es 16 kHz (48 kHz decimado ×3)', () => {
     expect(SAMPLE_RATE).toBe(16000);
     expect(CAPTURE_SR).toBe(48000);
+  });
+});
+
+/* -------------------------------------------------------------------------- */
+/*  Regresión del bug «se detectó voz pero no se pudieron estimar formantes»: */
+/*  la decimación ×3 histórica tomaba 1 de cada 3 muestras SIN filtro          */
+/*  anti-alias, y el contenido de 8–24 kHz del micrófono real se plegaba       */
+/*  sobre la banda de análisis corrompiendo la envolvente LPC (la F0 por      */
+/*  autocorrelación sobrevivía, por eso el pitch en vivo sí se veía).          */
+/* -------------------------------------------------------------------------- */
+
+describe('createDecimator3 – decimación anti-alias 48→16 kHz', () => {
+  const sine = (freq: number, seconds: number, sr: number, amp = 0.3): Float32Array => {
+    const x = new Float32Array(Math.floor(sr * seconds));
+    for (let i = 0; i < x.length; i++) x[i] = amp * Math.sin((2 * Math.PI * freq * i) / sr);
+    return x;
+  };
+  const rmsOf = (x: Float32Array): number => {
+    let e = 0;
+    for (let i = 0; i < x.length; i++) e += x[i] * x[i];
+    return Math.sqrt(e / (x.length || 1));
+  };
+  /** Decima por bloques (como el adaptador) y concatena el resultado. */
+  const decimateInChunks = (raw: Float32Array, chunkLen: number): Float32Array => {
+    const dec = createDecimator3();
+    const parts: Float32Array[] = [];
+    for (let i = 0; i < raw.length; i += chunkLen) {
+      parts.push(dec(raw.subarray(i, Math.min(raw.length, i + chunkLen))));
+    }
+    const total = parts.reduce((a, p) => a + p.length, 0);
+    const out = new Float32Array(total);
+    let off = 0;
+    for (const p of parts) {
+      out.set(p, off);
+      off += p.length;
+    }
+    return out;
+  };
+
+  it('conserva la banda de voz (300 Hz pasa casi intacto)', () => {
+    const raw = sine(300, 1, CAPTURE_SR);
+    const out = createDecimator3()(raw);
+    expect(out.length).toBe(raw.length / 3);
+    expect(rmsOf(out)).toBeGreaterThan(rmsOf(raw) * 0.95);
+  });
+
+  it('atenúa fuertemente el contenido que se plegaría como alias (11 kHz)', () => {
+    const raw = sine(11000, 1, CAPTURE_SR);
+    const out = createDecimator3()(raw);
+    expect(rmsOf(out)).toBeLessThan(rmsOf(raw) * 0.05);
+  });
+
+  it('procesar por bloques (incluso de tamaño no múltiplo de 3) equivale a procesar la señal entera', () => {
+    const raw = synthVowel({ f0: 250, seconds: 1, formants: [[900, 60], [1500, 90]], sr: CAPTURE_SR });
+    const whole = createDecimator3()(raw);
+    for (const chunkLen of [4800, 4801, 1024]) {
+      const chunked = decimateInChunks(raw, chunkLen);
+      expect(chunked.length).toBe(whole.length);
+      for (let i = 0; i < whole.length; i++) {
+        if (Math.abs(chunked[i] - whole[i]) > 1e-6) {
+          throw new Error(`bloques de ${chunkLen}: divergencia en la muestra ${i}`);
+        }
+      }
+    }
+  });
+
+  it('una toma a 48 kHz con siseo agudo (como un mic real) produce F0 y formantes tras decimar', async () => {
+    // Vocal /a/ infantil sintetizada a 48 kHz + tonos agudos que, sin filtro,
+    // se plegarían justo sobre la banda de formantes (9.7k→6.3k, 13.3k→2.7k,
+    // 18.1k→2.1k a 16 kHz de muestreo).
+    const raw = synthVowel({ f0: 250, formants: [[900, 60], [1500, 90], [2900, 120]], sr: CAPTURE_SR });
+    for (const hf of [9700, 13300, 18100]) {
+      const tone = sine(hf, raw.length / CAPTURE_SR, CAPTURE_SR, 0.08);
+      for (let i = 0; i < raw.length; i++) raw[i] += tone[i];
+    }
+    const pcm = decimateInChunks(raw, Math.round(CAPTURE_SR * 0.1));
+    const r = await analysePcm(pcm);
+
+    const valid = r.f0s.filter(f => f >= 65 && f <= 520);
+    expect(valid.length).toBeGreaterThanOrEqual(8);
+    const meanF0 = valid.reduce((a, b) => a + b, 0) / valid.length;
+    expect(meanF0).toBeGreaterThan(220);
+    expect(meanF0).toBeLessThan(280);
+    expect(r.formants).not.toBeNull();
+    expect(r.formants!.f1).toBeGreaterThan(300);
+    expect(r.formants!.f2).toBeGreaterThan(r.formants!.f1);
   });
 });

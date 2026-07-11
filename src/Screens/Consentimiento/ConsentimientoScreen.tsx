@@ -1,6 +1,5 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { PanResponder, Pressable, View } from 'react-native';
-import Svg, { Path } from 'react-native-svg';
+import React, { useEffect, useMemo, useState } from 'react';
+import { Pressable } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useSelector } from 'react-redux';
 import {
@@ -17,13 +16,11 @@ import {
 import {
   ArrowRight,
   Check,
-  Eraser,
-  PenLine,
   ShieldCheck,
   Users,
 } from 'lucide-react-native';
 
-import { Button, Content, Header, Text } from '@/Components/Common';
+import { Button, Content, Header, SignaturePad, Text } from '@/Components/Common';
 import RadialBackground from '@/Components/Themed/RadialBackground';
 import { RootStackParamList } from '@/Navigators';
 import { RootState } from '@/Store';
@@ -89,104 +86,6 @@ function ageFromDob(isoDob: string | null | undefined): number | null {
   }
   return years;
 }
-
-/* ---------------------------- pad de firma (SVG) --------------------------- */
-
-const SignaturePad = ({
-  paths,
-  onAddPath,
-  onClear,
-  setScrollEnabled,
-}: {
-  paths: string[];
-  onAddPath: (path: string) => void;
-  onClear: () => void;
-  setScrollEnabled: (enabled: boolean) => void;
-}) => {
-  const [livePath, setLivePath] = useState('');
-  const currentPath = useRef('');
-
-  // Callbacks vivos para el PanResponder (se crea una sola vez).
-  const addPathRef = useRef(onAddPath);
-  addPathRef.current = onAddPath;
-  const setScrollRef = useRef(setScrollEnabled);
-  setScrollRef.current = setScrollEnabled;
-
-  const responder = useRef(
-    PanResponder.create({
-      onStartShouldSetPanResponder: () => true,
-      onMoveShouldSetPanResponder: () => true,
-      onPanResponderGrant: e => {
-        setScrollRef.current(false);
-        const { locationX, locationY } = e.nativeEvent;
-        currentPath.current = `M${locationX.toFixed(1)},${locationY.toFixed(1)}`;
-        setLivePath(currentPath.current);
-      },
-      onPanResponderMove: e => {
-        const { locationX, locationY } = e.nativeEvent;
-        currentPath.current += ` L${locationX.toFixed(1)},${locationY.toFixed(1)}`;
-        setLivePath(currentPath.current);
-      },
-      onPanResponderRelease: () => {
-        setScrollRef.current(true);
-        if (currentPath.current.includes('L')) addPathRef.current(currentPath.current);
-        currentPath.current = '';
-        setLivePath('');
-      },
-      onPanResponderTerminate: () => {
-        setScrollRef.current(true);
-        currentPath.current = '';
-        setLivePath('');
-      },
-    }),
-  ).current;
-
-  const hasInk = paths.length > 0 || !!livePath;
-
-  return (
-    <VStack>
-      <View
-        {...responder.panHandlers}
-        style={{
-          height: 150,
-          borderRadius: 14,
-          borderWidth: 1.5,
-          borderColor: '#E5DED2',
-          backgroundColor: '#FDFCFA',
-          overflow: 'hidden',
-        }}>
-        {/* pointerEvents none: el View contenedor es el objetivo táctil y las
-            coordenadas locationX/Y quedan siempre referidas a él. */}
-        <Svg width="100%" height="100%" pointerEvents="none">
-          {paths.map((d, i) => (
-            <Path key={i} d={d} stroke="#3A3630" strokeWidth={2.5} fill="none" strokeLinecap="round" strokeLinejoin="round" />
-          ))}
-          {livePath ? (
-            <Path d={livePath} stroke="#3A3630" strokeWidth={2.5} fill="none" strokeLinecap="round" strokeLinejoin="round" />
-          ) : null}
-        </Svg>
-        {!hasInk ? (
-          <Center style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }} pointerEvents="none">
-            <Icon as={PenLine} size="md" color="$textLight300" />
-            <Text size="2xs" color="$textLight400" mt="$1">
-              Firme aquí con el dedo o un lápiz táctil
-            </Text>
-          </Center>
-        ) : null}
-      </View>
-      <HStack justifyContent="flex-end" mt="$2">
-        <Pressable onPress={onClear} disabled={!paths.length} hitSlop={8}>
-          <HStack space="xs" alignItems="center" style={{ opacity: paths.length ? 1 : 0.4 }}>
-            <Icon as={Eraser} size="xs" color="$textLight500" />
-            <Text size="xs" weight="bold" color="$textLight500">
-              Borrar firma
-            </Text>
-          </HStack>
-        </Pressable>
-      </HStack>
-    </VStack>
-  );
-};
 
 /* --------------------------------- Pantalla -------------------------------- */
 
