@@ -247,5 +247,9 @@ export function useVerbalAudiometryTest(initialBand: AgeBand = 'A') {
     next,
     stop,
     reset,
+    /** Reinicia solo la pasada actual (índice de lámina): permite repetir la
+     *  lista al MISMO nivel; las respuestas re-presentadas sobrescriben su
+     *  clave ítem@nivel. */
+    resetRun,
   };
 }

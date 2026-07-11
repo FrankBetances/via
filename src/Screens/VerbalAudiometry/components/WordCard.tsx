@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Image, ImageSourcePropType, Pressable } from 'react-native';
 import { Center } from '@gluestack-ui/themed';
 
@@ -68,6 +68,10 @@ export default function WordCard({
   const lg = size === 'lg';
   const showImage = modality !== 'words';
   const showWord = modality !== 'images';
+  // Asset ilegible en runtime (archivo corrupto / no empaquetado): degradar a
+  // pictograma o tile — el paciente SIEMPRE debe ver una ilustración en las
+  // bandas con imagen, la prueba es autónoma y no puede quedarse en blanco.
+  const [imageFailed, setImageFailed] = useState(false);
 
   // Área táctil pediátrica ≥ 96 px; adultos ≥ 64 px (espec §8).
   const minHeight = lg ? 96 : 64;
@@ -75,8 +79,15 @@ export default function WordCard({
 
   const illustration = () => {
     if (!showImage) return null;
-    if (imageSource) {
-      return <Image source={imageSource} resizeMode="contain" style={{ width: imgSide, height: imgSide }} />;
+    if (imageSource && !imageFailed) {
+      return (
+        <Image
+          source={imageSource}
+          resizeMode="contain"
+          style={{ width: imgSide, height: imgSide }}
+          onError={() => setImageFailed(true)}
+        />
+      );
     }
     if (glyph) {
       return <Text style={{ fontSize: lg ? 54 : 42, lineHeight: lg ? 64 : 50 }}>{glyph}</Text>;

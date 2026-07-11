@@ -14,20 +14,23 @@ import {
 /*  (pan = 0, binaural — mismo criterio que el canal `CL` de la audiometría    */
 /*  tonal). Dos motores con DEGRADACIÓN (principio VIA+):                      */
 /*                                                                             */
-/*   1. 'tts' — SINTETIZADOR NATIVO del sistema vía `react-native-tts`        */
-/*      (Android: android.speech.tts.TextToSpeech con la voz es-ES del         */
-/*      dispositivo — el motor por defecto del producto para el dictado).      */
-/*      El nivel relativo SÍ se aplica: KEY_PARAM_VOLUME (0..1) recibe la      */
-/*      misma ganancia `speechLevelToGain` que el motor de recortes y          */
+/*   1. 'assets' (POR DEFECTO) — recortes es-ES empaquetados                   */
+/*      (`assets/audio/verbal/<clave>.m4a`), decodificados con                 */
+/*      react-native-audio-api y reproducidos vía BufferSource → Gain →        */
+/*      StereoPanner(0) → destination. Castellano garantizado (no depende de   */
+/*      las voces TTS del dispositivo); es también la vía de las locuciones    */
+/*      de locutor profesional (validación clínica). Si un recorte falta o no  */
+/*      decodifica, degrada a TTS por palabra.                                 */
+/*   2. 'tts' — SINTETIZADOR NATIVO del sistema vía `react-native-tts`        */
+/*      (Android: android.speech.tts.TextToSpeech). Solo dicta si hay una voz  */
+/*      ESPAÑOLA verificada (setDefaultLanguage('es-ES') o una voz `es-*`      */
+/*      instalada): dictar castellano con la voz en-US por defecto del         */
+/*      sistema invalidaba el estímulo (bug reportado en campo). El nivel      */
+/*      relativo SÍ se aplica: KEY_PARAM_VOLUME (0..1) recibe la misma         */
+/*      ganancia `speechLevelToGain` que el motor de recortes y                */
 /*      KEY_PARAM_PAN = 0 mantiene la presentación binaural centrada. Sigue    */
 /*      sin calibración ABSOLUTA (la sonoridad base depende de la voz          */
 /*      instalada): etiquetar como orientativo en UI/PDF.                      */
-/*   2. 'assets' — recortes grabados (`assets/audio/verbal/<clave>.m4a`),      */
-/*      decodificados con react-native-audio-api (decodeAudioDataSource) y     */
-/*      reproducidos vía BufferSource → Gain → StereoPanner(0) → destination.  */
-/*      Es la vía prevista para las locuciones de locutor profesional          */
-/*      (validación clínica); si un recorte falta o no decodifica, degrada     */
-/*      a TTS por palabra.                                                     */
 /*                                                                             */
 /*  Sin ninguno de los dos motores, la pantalla sigue operativa en modo        */
 /*  demostración (el clínico presenta el modelo con su voz), igual que la      */
@@ -78,10 +81,11 @@ const optionalTts = (): any => {
 
 export interface VerbalAudioAdapterOptions {
   /**
-   * Motor preferido para el dictado. Por defecto 'tts' (sintetizador nativo
-   * del sistema, decisión de producto: voz natural del dispositivo). Con
-   * 'assets' se usan los recortes de `assetSource` (locuciones de locutor)
-   * degradando a TTS palabra a palabra si un recorte falta o no decodifica.
+   * Motor preferido para el dictado. Por defecto 'assets': recortes es-ES
+   * empaquetados (castellano GARANTIZADO, independiente de las voces TTS que
+   * tenga el dispositivo), degradando a TTS palabra a palabra si un recorte
+   * falta o no decodifica. 'tts' fuerza el sintetizador nativo (solo se usa
+   * si hay una voz española verificada).
    */
   engine?: VerbalAudioEngine;
   /**
@@ -105,9 +109,10 @@ export interface VerbalAudioAdapterOptions {
 export function installVerbalAudioAdapter(opts: VerbalAudioAdapterOptions = {}): () => void {
   const levelToGain = opts.levelToGain ?? speechLevelToGain;
   const assetSource = opts.assetSource ?? null;
-  // Motor por defecto: sintetizador nativo del sistema (dictado con la voz
-  // es-ES del dispositivo). 'assets' queda para las locuciones de locutor.
-  const engine: VerbalAudioEngine = opts.engine ?? 'tts';
+  // Motor por defecto: recortes es-ES empaquetados. El TTS del sistema como
+  // motor principal resultó inviable en campo: sin datos de voz es-ES
+  // instalados, Android dictaba las palabras castellanas con voz inglesa.
+  const engine: VerbalAudioEngine = opts.engine ?? 'assets';
 
   // Sesión de audio por altavoz (misma configuración que audiometryToneAdapter).
   try {
@@ -131,13 +136,42 @@ export function installVerbalAudioAdapter(opts: VerbalAudioAdapterOptions = {}):
 
   const tts = optionalTts();
   const ttsEngine = tts?.default ?? tts;
-  try {
-    ttsEngine?.setDefaultLanguage?.('es-ES');
-    // Ritmo pausado: presentación clínica de palabra aislada.
-    ttsEngine?.setDefaultRate?.(0.4);
-  } catch {
-    /* noop */
-  }
+  // Configuración es-ES VERIFICADA del sintetizador. `setDefaultLanguage` en
+  // Android rechaza si el dispositivo no tiene datos de voz es-ES; en ese caso
+  // se busca cualquier voz `es-*` instalada y se fija con `setDefaultVoice`.
+  // Sin esta verificación el motor quedaba con la voz por defecto del sistema
+  // (a menudo en-US) y las palabras castellanas sonaban «en inglés» — el bug
+  // reportado en campo. Si no hay ninguna voz española, el dictado TTS se
+  // desactiva por completo (mejor sin ayuda que con un estímulo inválido:
+  // esta prueba mide discriminación de fonemas del castellano).
+  let ttsSpanishReady = false;
+  const configureTts = async () => {
+    if (!ttsEngine) return;
+    try {
+      await ttsEngine.getInitStatus?.();
+      // Ritmo pausado: presentación clínica de palabra aislada.
+      try { await ttsEngine.setDefaultRate?.(0.4); } catch { /* opcional */ }
+      try {
+        await ttsEngine.setDefaultLanguage?.('es-ES');
+        ttsSpanishReady = true;
+        return;
+      } catch {
+        /* sin datos es-ES: probar con las voces instaladas */
+      }
+      const voices: Array<{ id?: string; language?: string; notInstalled?: boolean }> =
+        (await ttsEngine.voices?.()) ?? [];
+      const spanish = voices.find(
+        vo => !vo.notInstalled && typeof vo.language === 'string' && vo.language.toLowerCase().startsWith('es'),
+      );
+      if (spanish?.id) {
+        await ttsEngine.setDefaultVoice?.(spanish.id);
+        ttsSpanishReady = true;
+      }
+    } catch {
+      /* motor TTS no inicializable: queda desactivado */
+    }
+  };
+  void configureTts();
 
   const stop = () => {
     try { source?.stop(); } catch {}
@@ -149,7 +183,9 @@ export function installVerbalAudioAdapter(opts: VerbalAudioAdapterOptions = {}):
   };
 
   const speakWord = (word: string, levelDb: number) => {
-    if (!ttsEngine) return; // sin motores: modo demostración
+    // Sin motor o sin voz española verificada: modo demostración (el clínico
+    // presenta el modelo con su voz). Nunca dictar castellano con voz inglesa.
+    if (!ttsEngine || !ttsSpanishReady) return;
     try {
       ttsEngine.stop?.();
       // Sintetizador nativo (Android: TextToSpeech). El nivel relativo se
@@ -195,9 +231,28 @@ export function installVerbalAudioAdapter(opts: VerbalAudioAdapterOptions = {}):
     source.start(now);
   };
 
+  /**
+   * Decodifica un recorte probando dos vías: ruta local directa
+   * (`decodeAudioDataSource`) y, si falla, descarga + `decodeAudioData`
+   * (cubre las URIs http:// que entrega el bundler de desarrollo, donde la
+   * vía de ruta local no existe y el motor caía siempre a TTS).
+   */
+  const decodeClip = async (path: string): Promise<AudioBuffer> => {
+    if (!ctx) throw new Error('sin AudioContext');
+    try {
+      return await ctx.decodeAudioDataSource(path);
+    } catch (e) {
+      const res = await fetch(path);
+      const data = await res.arrayBuffer();
+      if (!ctx) throw e;
+      return await ctx.decodeAudioData(data);
+    }
+  };
+
   const playWord = (audioKey: string, word: string, levelDb: number) => {
     stop();
-    // Motor 'tts' (por defecto): dictado directo con el sintetizador nativo.
+    // Motor 'assets' (por defecto): recortes es-ES empaquetados; TTS solo como
+    // degradación por palabra (recorte ausente o ilegible).
     const path = engine === 'assets' ? assetSource?.(audioKey) ?? null : null;
     if (!path || !ctx) {
       speakWord(word, levelDb);
@@ -208,8 +263,7 @@ export function installVerbalAudioAdapter(opts: VerbalAudioAdapterOptions = {}):
       playBuffer(cached, levelDb);
       return;
     }
-    ctx
-      .decodeAudioDataSource(path)
+    decodeClip(path)
       .then(buffer => {
         bufferCache.set(audioKey, buffer);
         playBuffer(buffer, levelDb);
