@@ -542,8 +542,8 @@ for (const test of verbals) {
 ## 12. Checklist de implementación (Iteración 2)
 
 - [ ] `src/Models/VerbalAudiometry/VerbalAudiometryTest.ts` (+ `index.ts`)
-- [ ] `src/Screens/VerbalAudiometry/verbalAudiometryResult.ts` (tipos + lógica)
-- [ ] `src/Screens/VerbalAudiometry/verbalAudiometryLists.ts` (bandas A–D)
+- [x] `src/Screens/VerbalAudiometry/verbalAudiometryResult.ts` (tipos + lógica)
+- [x] `src/Screens/VerbalAudiometry/verbalAudiometryLists.ts` (bandas A–D)
 - [ ] `src/Screens/VerbalAudiometry/verbalAudiometryAudio.ts` (assets + TTS fallback)
 - [ ] `src/Screens/VerbalAudiometry/useVerbalAudiometryTest.ts` (hook de estado)
 - [ ] `src/Screens/VerbalAudiometry/components/WordCard.tsx`
@@ -557,7 +557,7 @@ for (const test of verbals) {
 - [ ] `src/Screens/SeleccionEjercicios/SeleccionEjerciciosScreen.tsx` (tarjeta módulo)
 - [ ] `src/Screens/ResultadosFinal/ResultadosFinalScreen.tsx` (bloque de resultado)
 - [ ] **Assets:** `assets/audio/verbal/*.m4a`, `assets/img/verbal/*.png`
-- [ ] **Tests:** `verbalAudiometryResult.test.ts` (puntuación, cortes, banda por edad)
+- [x] **Tests:** `verbalAudiometryResult.test.ts` + `verbalAudiometryLists.test.ts` (31 tests: puntuación, cortes, banda por edad, invariantes de listas, barajado determinista, inventario de assets)
 - [ ] **Validación clínica** de listas y cortes por el logopeda; localización es-XX
 - [ ] `i18next`: claves de textos y del PDF
 
