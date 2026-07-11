@@ -15,7 +15,7 @@
     "LEVEL_CONVERSATIONAL": "voz conversacional",
     "LEVEL_QUIET": "voz baja",
     "WARNING_LEVEL": "Nivel orientativo: la presentación por altavoz no está calibrada clínicamente. La salida robusta es el % de discriminación a voz conversacional. Resultado binaural (mejor oído): no descarta pérdida unilateral.",
-    "WARNING_TTS": "Estímulo por síntesis de voz (TTS): nivel no aplicable.",
+    "WARNING_TTS": "Dictado por síntesis de voz nativa del dispositivo (TTS): nivel relativo aplicado, sin calibración absoluta.",
     "LISTEN": "Escuchar palabra",
     "LISTENED": "Palabra presentada",
     "REPEAT": "Repetir",
@@ -60,7 +60,7 @@
     "TOAST_NO_EVALUATION_TEXT": "No hay una evaluación activa asociada al paciente.",
     "TOAST_ERROR_TITLE": "Error al guardar",
     "TOAST_ERROR_TEXT": "No se pudo registrar la audiometría verbal. Inténtelo de nuevo.",
-    "NOTE_TTS": "Estímulo por síntesis de voz (TTS): nivel no calibrado."
+    "NOTE_TTS": "Dictado por síntesis de voz nativa del dispositivo (TTS): nivel relativo, sin calibración absoluta."
   },
   "RESULT": {
     "BAND_A": "Banda A · < 4 años",

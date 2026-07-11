@@ -32,11 +32,12 @@ function AppShell() {
   // emisión de sonido). Devuelve la función de limpieza del AudioContext.
   useEffect(() => installAudiometryToneAdapter(), []);
 
-  // Motor de palabras de la audiometría verbal (campo libre): recortes del
-  // registro de assets (locuciones provisionales espeak-ng hasta la
-  // producción con locutor); si un recorte falta o no decodifica, el
-  // adaptador degrada a TTS por palabra.
-  useEffect(() => installVerbalAudioAdapter({ assetSource: verbalAudioSource }), []);
+  // Motor de palabras de la audiometría verbal (campo libre): dictado con el
+  // SINTETIZADOR NATIVO del sistema (Android TextToSpeech, voz es-ES del
+  // dispositivo) con nivel relativo por volumen de síntesis. El registro de
+  // recortes queda cableado para cambiar a engine: 'assets' cuando existan
+  // las locuciones de locutor profesional (validación clínica).
+  useEffect(() => installVerbalAudioAdapter({ engine: 'tts', assetSource: verbalAudioSource }), []);
 
   useEffect(() => {
     let mounted = true;

@@ -116,7 +116,7 @@ export default function VerbalAudiometryScreen({ navigation }: Props) {
       item.discriminationPct = v.score.discriminationPct;
       item.reliability = v.reliability;
       item.interpretation = interpretVerbal(v.band, v.score, v.srtDb);
-      item.notes = [notes.trim(), v.audioEngine !== 'assets' ? 'Estímulo por síntesis de voz (TTS): nivel no calibrado.' : '']
+      item.notes = [notes.trim(), v.audioEngine !== 'assets' ? 'Dictado por síntesis de voz nativa del dispositivo (TTS): nivel relativo, sin calibración absoluta.' : '']
         .filter(Boolean)
         .join(' ');
       item.evaluatorName = evaluatorName.trim();
@@ -243,7 +243,7 @@ export default function VerbalAudiometryScreen({ navigation }: Props) {
                   ⚠️ Nivel orientativo: la presentación por altavoz no está calibrada clínicamente. La salida robusta es
                   el % de discriminación a voz conversacional. Resultado binaural (mejor oído): no descarta pérdida
                   unilateral.
-                  {v.audioEngine !== 'assets' ? ' Estímulo por síntesis de voz (TTS): nivel no aplicable.' : ''}
+                  {v.audioEngine !== 'assets' ? ' Dictado por síntesis de voz nativa del dispositivo (TTS): nivel relativo aplicado, sin calibración absoluta.' : ''}
                 </Text>
               </Box>
             </Card>

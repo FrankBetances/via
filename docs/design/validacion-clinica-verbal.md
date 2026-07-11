@@ -45,12 +45,17 @@ Para **cada banda** (A–D), el validador debe revisar y firmar:
    inequívoca para la edad diana. ⚠️ Las ilustraciones actuales son
    **provisionales** (pictogramas emoji / tiles de inicial, ver §5): sirven
    para desarrollo y pilotos técnicos, **no para uso clínico**.
-4. **Locuciones (todas las bandas)**: la locución FINAL es voz humana
-   profesional, dicción neutra, sin coarticulación con carrier phrase, y
-   normalizada en sonoridad. ⚠️ Las locuciones actuales son **síntesis
-   espeak-ng provisional**: inteligible pero robótica; **no válida para
-   medir discriminación clínica** (la síntesis degrada la naturalidad
-   espectral de la que depende la prueba).
+4. **Locuciones (todas las bandas)**: el dictado usa por decisión de
+   producto el **sintetizador de voz NATIVO de Android** (TextToSpeech,
+   voz es-ES del dispositivo), con nivel relativo aplicado por volumen de
+   síntesis (KEY_PARAM_VOLUME) y presentación binaural centrada. El
+   validador debe valorar si la voz nativa es aceptable para el cribado o
+   si exige locución humana profesional (dicción neutra, sin carrier
+   phrase, sonoridad normalizada); en tal caso los recortes sustituyen a
+   la síntesis cambiando el motor a `engine: 'assets'` en App.tsx, sin
+   otro cambio de código. ⚠️ La calidad de la voz nativa depende del motor
+   TTS instalado en cada tableta: fijar/verificar el motor (p. ej. Speech
+   Services de Google, voz es-ES) en el dispositivo de despliegue.
 5. **Protocolo**: nº de láminas por pasada, repeticiones de ayuda (2),
    familiarización (1 lámina no puntuable) y niveles (65/50 dB orientativos).
 
@@ -105,7 +110,8 @@ Inventario generado por `node scripts/verbal-assets.js manifest`
 
 | Asset | Ahora (provisional) | Producción clínica |
 |---|---|---|
-| 37 locuciones `assets/audio/verbal/*.m4a` | espeak-ng (es), loudnorm −20 LUFS | Locutor profesional, estudio, misma normalización, misma clave de archivo |
+| Dictado (motor por defecto) | **TTS nativo de Android** (voz es-ES del dispositivo, nivel relativo por volumen de síntesis) | Confirmar voz/motor por dispositivo, o pasar a recortes de locutor (`engine: 'assets'`) |
+| 37 locuciones `assets/audio/verbal/*.m4a` | espeak-ng (es), loudnorm −20 LUFS — **no usadas en runtime** (respaldo cableado del motor 'assets') | Locutor profesional, estudio, misma normalización, misma clave de archivo |
 | 97 ilustraciones `assets/img/verbal/*.png` | Pictograma emoji o tile de inicial | Ilustrador, estilo homogéneo, validadas con niños, misma clave |
 
 La sustitución es archivo a archivo (misma clave = mismo nombre): no requiere

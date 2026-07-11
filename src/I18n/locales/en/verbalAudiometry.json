@@ -15,7 +15,7 @@
     "LEVEL_CONVERSATIONAL": "conversational speech",
     "LEVEL_QUIET": "quiet speech",
     "WARNING_LEVEL": "Approximate level: loudspeaker presentation is not clinically calibrated. The robust outcome is the discrimination % at conversational level. Binaural (best-ear) result: does not rule out a unilateral loss.",
-    "WARNING_TTS": "Speech-synthesis (TTS) stimulus: level not applicable.",
+    "WARNING_TTS": "Dictation via the device's native speech synthesizer (TTS): relative level applied, no absolute calibration.",
     "LISTEN": "Play word",
     "LISTENED": "Word presented",
     "REPEAT": "Repeat",
@@ -60,7 +60,7 @@
     "TOAST_NO_EVALUATION_TEXT": "There is no active evaluation associated with the patient.",
     "TOAST_ERROR_TITLE": "Save error",
     "TOAST_ERROR_TEXT": "The speech audiometry could not be recorded. Please try again.",
-    "NOTE_TTS": "Speech-synthesis (TTS) stimulus: level not calibrated."
+    "NOTE_TTS": "Dictation via the device's native speech synthesizer (TTS): relative level, no absolute calibration."
   },
   "RESULT": {
     "BAND_A": "Band A · < 4 years",
