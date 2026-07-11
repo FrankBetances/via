@@ -9,6 +9,7 @@ import { VoiceAnalysisRepository } from '@/Repositories/VoiceAnalysisRepository'
 import { DysphagiaTestRepository } from '@/Repositories/DysphagiaTestRepository';
 import { SahsScreeningRepository } from '@/Repositories/SahsScreeningRepository';
 import { ArticulationTestRepository } from '@/Repositories/ArticulationTestRepository';
+import { VerbalAudiometryRepository } from '@/Repositories/VerbalAudiometryRepository';
 
 /* -------------------------------------------------------------------------- */
 /*  Generador de informe PDF — VIA+.                                        */
@@ -99,6 +100,12 @@ export async function generateReport({ evaluation }: GenerateReportOptions): Pro
   for (const test of audiometries) {
     const page = pdfDoc.addPage(PAGE_SIZE);
     await blocks.AudiometryDetail({ test }, { page, fonts, t });
+  }
+
+  const verbalAudiometries = await VerbalAudiometryRepository.getVerbalAudiometryByEvaluation(evaluation.id);
+  for (const test of verbalAudiometries) {
+    const page = pdfDoc.addPage(PAGE_SIZE);
+    await blocks.VerbalAudiometryDetail({ test }, { page, fonts, t });
   }
 
   const voiceAnalyses = await VoiceAnalysisRepository.getVoiceAnalysisByEvaluation(evaluation.id);

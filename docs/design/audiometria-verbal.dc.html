@@ -1,0 +1,640 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Audiometría Verbal · Mockup VIA+</title>
+<style>
+  /* ------------------------------------------------------------------ */
+  /*  Tokens VIA+ (src/Theme/gluestack-ui.config.ts) + acento de módulo  */
+  /* ------------------------------------------------------------------ */
+  :root {
+    --bg0: #F5F2EC; --bg50: #ECE7DE; --bg100: #E3DCD0;
+    --accent50: #FBE8D3; --accent100: #F6D2AC; --accent300: #F0AE6C;
+    --accent500: #E08A3D; --accent700: #B86A26;
+    --text: #2B2620; --text2: #6B635A; --muted: #9A9183;
+    --success: #4F9A66; --success-soft: #E7F3EB; --success-border: #BBDCC6;
+    --warning: #E0A93D; --warning-soft: #FBF4E3; --warning-deep: #8A6516;
+    --error: #D1564A; --error-soft: #FBE9E7; --error-border: #EFC2BC;
+    --mod: #2563EB; --mod-soft: #DBEAFE; --mod-deep: #1E40AF;   /* acento del módulo (AUDICIÓN · verbal) */
+    --border: #EAE4D9; --border2: #DDD5C7;
+    --card-r: 20px;
+    font-family: "Rethink Sans", "Segoe UI", system-ui, -apple-system, sans-serif;
+  }
+  * { box-sizing: border-box; margin: 0; }
+  body { background: var(--bg50); color: var(--text); padding: 28px 16px 80px; }
+
+  /* fondo radial cálido de la app (RadialBackground) */
+  .radial {
+    position: fixed; inset: 0; z-index: -1; background: var(--bg50);
+    background-image:
+      radial-gradient(circle 620px at 88% -6%, #FDF9F1 0%, rgba(253,249,241,0) 70%),
+      radial-gradient(circle 700px at -12% 32%, #F8F3EA 0%, rgba(248,243,234,0) 70%);
+  }
+
+  .frame { max-width: 860px; margin: 0 auto; }
+
+  /* ---------- cabecera del documento (fuera de la "tableta") ---------- */
+  .doc-head { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; margin-bottom: 6px; }
+  .doc-head h1 { font-size: 21px; letter-spacing: -0.2px; }
+  .doc-chip { font-size: 10px; font-weight: 800; letter-spacing: 1px; color: var(--accent700);
+    background: var(--accent50); border: 1px solid var(--accent100); border-radius: 999px; padding: 4px 10px; }
+  .doc-sub { font-size: 12px; color: var(--text2); margin-bottom: 22px; }
+  .doc-sub code { background: #fff; border: 1px solid var(--border); border-radius: 6px; padding: 1px 6px; font-size: 11px; }
+
+  h2.section { font-size: 13px; font-weight: 800; letter-spacing: 1.4px; color: var(--muted);
+    text-transform: uppercase; margin: 40px 0 14px; display: flex; align-items: center; gap: 10px; }
+  h2.section::after { content: ""; flex: 1; height: 1px; background: var(--border2); }
+
+  /* ------------------------------ tableta ----------------------------- */
+  .tablet { background: var(--bg0); border: 1px solid var(--border2); border-radius: 34px;
+    padding: 22px 22px 30px; box-shadow: 0 24px 60px -30px rgba(43,38,32,.35); }
+
+  /* header de app */
+  .app-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+  .brand { display: flex; align-items: center; gap: 9px; }
+  .brand .logo { width: 34px; height: 34px; border-radius: 11px; background: var(--accent300);
+    display: grid; place-items: center; font-weight: 800; color: #fff; font-size: 13px; }
+  .brand b { font-size: 15px; } .brand span { color: var(--muted); font-size: 11px; }
+  .patient-chip { background: #fff; border: 1px solid var(--border); border-radius: 999px;
+    padding: 6px 14px; font-size: 11.5px; color: var(--text2); }
+  .patient-chip b { color: var(--text); }
+
+  /* fila de título */
+  .title-row { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 14px; }
+  .title-row h3 { font-size: 22px; letter-spacing: -0.3px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .chip-mode { font-size: 9.5px; font-weight: 800; letter-spacing: .6px; color: var(--mod-deep);
+    background: var(--mod-soft); padding: 4px 9px; border-radius: 999px; }
+  .title-row .sub { font-size: 11.5px; color: var(--text2); margin-top: 3px; }
+  .stars { background: #fff; border: 1px solid var(--border); border-radius: 999px; padding: 7px 14px;
+    font-size: 13px; font-weight: 800; color: var(--mod); display: flex; gap: 6px; align-items: center; white-space: nowrap; }
+
+  .card { background: #fff; border-radius: var(--card-r); padding: 16px; margin-bottom: 12px;
+    box-shadow: 0 6px 18px -12px rgba(43,38,32,.18); }
+  .card h4 { font-size: 13px; margin-bottom: 10px; }
+  .lbl { font-size: 10.5px; font-weight: 700; color: var(--text2); margin: 10px 0 5px; }
+  .lbl:first-of-type { margin-top: 0; }
+
+  /* selectores tipo chip (banda / modo / nivel) */
+  .seg { display: flex; gap: 7px; flex-wrap: wrap; }
+  .seg button { border: 1.5px solid var(--border2); background: #fff; color: var(--text2);
+    border-radius: 11px; padding: 8px 12px; font: inherit; font-size: 11.5px; font-weight: 700;
+    cursor: pointer; transition: all .15s; }
+  .seg button small { display: block; font-size: 9px; font-weight: 600; color: var(--muted); margin-top: 1px; }
+  .seg button.on { background: var(--text); border-color: var(--text); color: #fff; }
+  .seg button.on small { color: #CFC9BF; }
+  .seg.mod button.on { background: var(--mod); border-color: var(--mod); }
+  .seg.mod button.on small { color: #C7DBFF; }
+
+  .hint-orientativo { display: flex; gap: 8px; align-items: flex-start; background: var(--warning-soft);
+    border-radius: 12px; padding: 9px 12px; margin-top: 12px; }
+  .hint-orientativo p { font-size: 10.5px; color: var(--warning-deep); line-height: 1.45; }
+
+  /* -------------------------- panel de estímulo ------------------------ */
+  .stim { display: flex; gap: 12px; align-items: stretch; }
+  .btn-listen { flex: 1; border: none; border-radius: 16px; background: var(--mod); color: #fff;
+    font: inherit; font-size: 16px; font-weight: 800; padding: 18px; cursor: pointer;
+    display: flex; align-items: center; justify-content: center; gap: 10px; transition: all .15s; }
+  .btn-listen:active { transform: scale(.985); }
+  .btn-listen.playing { background: var(--mod-deep); }
+  .btn-listen .pulse { width: 10px; height: 10px; border-radius: 50%; background: #fff; }
+  .btn-listen.playing .pulse { animation: pulse 1s infinite; }
+  @keyframes pulse { 0%,100% { transform: scale(1); opacity: 1 } 50% { transform: scale(1.7); opacity: .55 } }
+  .btn-repeat { width: 118px; border: 1.5px solid var(--border2); background: #fff; border-radius: 16px;
+    font: inherit; font-size: 11.5px; font-weight: 700; color: var(--text2); cursor: pointer; }
+  .btn-repeat b { display: block; font-size: 15px; color: var(--text); }
+  .btn-repeat:disabled { opacity: .45; cursor: default; }
+  .stim-meta { display: flex; justify-content: space-between; align-items: center; margin-top: 10px; }
+  .stim-meta .prog { font-size: 11px; color: var(--text2); font-variant-numeric: tabular-nums; }
+  .bar { flex: 1; height: 7px; border-radius: 999px; background: var(--bg100); margin: 0 12px; overflow: hidden; }
+  .bar i { display: block; height: 100%; width: 0%; background: var(--mod); border-radius: 999px; transition: width .3s; }
+  .chip-sounding { font-size: 9.5px; font-weight: 800; color: var(--warning-deep); background: var(--warning-soft);
+    padding: 4px 10px; border-radius: 999px; visibility: hidden; }
+  .chip-sounding.show { visibility: visible; }
+
+  /* --------------------------- rejilla de tarjetas --------------------- */
+  .grid { display: grid; gap: 12px; }
+  .grid.g4 { grid-template-columns: repeat(2, 1fr); }
+  .grid.g6 { grid-template-columns: repeat(3, 1fr); }
+
+  .wc { position: relative; border: 1.5px solid var(--border2); border-radius: 18px; background: #fff;
+    cursor: pointer; text-align: center; padding: 14px 10px; font: inherit; transition: all .15s;
+    min-height: 64px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; }
+  .wc:hover { border-color: var(--accent300); }
+  .wc .img { font-size: 58px; line-height: 1.15; }
+  .grid.g6 .wc .img { font-size: 44px; }
+  .wc .img.placeholder { width: 74px; height: 58px; border-radius: 12px; background: var(--bg50);
+    border: 1.5px dashed var(--border2); display: grid; place-items: center; font-size: 20px;
+    font-weight: 800; color: var(--muted); }
+  .grid.g6 .wc .img.placeholder { width: 62px; height: 46px; font-size: 16px; }
+  .wc .word { font-size: 15px; font-weight: 800; letter-spacing: .2px; }
+  .wc.words-only .word { font-size: 21px; padding: 14px 0; }
+  .wc .badge { position: absolute; top: 8px; right: 8px; width: 24px; height: 24px; border-radius: 50%;
+    display: none; place-items: center; font-size: 13px; font-weight: 800; color: #fff; }
+  /* estados */
+  .wc.correct { border-color: var(--success); border-width: 2.5px; background: var(--success-soft); }
+  .wc.correct .badge { display: grid; background: var(--success); }
+  .wc.wrong { border-color: var(--error); border-width: 2.5px; background: var(--error-soft); }
+  .wc.wrong .badge { display: grid; background: var(--error); }
+  .wc.reveal { border-color: var(--mod); border-width: 2.5px; background: var(--mod-soft);
+    box-shadow: 0 0 0 4px rgba(37,99,235,.14); }
+  .wc.disabled { opacity: .55; cursor: default; background: var(--bg0); }
+  .wc.locked { cursor: default; }
+  .grid.waiting .wc { opacity: .55; cursor: default; }
+  .grid-hint { font-size: 10.5px; color: var(--muted); text-align: center; margin-top: 10px; }
+
+  .next-row { display: flex; gap: 10px; margin-top: 12px; }
+  .feedback { flex: 1; border-radius: 13px; padding: 10px 14px; font-size: 12px; font-weight: 700;
+    display: none; align-items: center; gap: 8px; }
+  .feedback.ok { display: flex; background: var(--success-soft); color: #2A7948; }
+  .feedback.ko { display: flex; background: var(--error-soft); color: #A63B31; }
+  .btn-next { display: none; border: none; border-radius: 13px; background: var(--text); color: #fff;
+    font: inherit; font-size: 12.5px; font-weight: 800; padding: 10px 22px; cursor: pointer; }
+  .btn-next.show { display: block; }
+
+  /* ------------------------------ marcador ----------------------------- */
+  .stats { display: flex; gap: 10px; }
+  .stat { flex: 1; background: var(--bg0); border-radius: 13px; padding: 11px; text-align: center; }
+  .stat .k { font-size: 9.5px; font-weight: 800; letter-spacing: .5px; color: var(--muted); }
+  .stat .v { font-size: 21px; font-weight: 800; margin-top: 2px; font-variant-numeric: tabular-nums; }
+  .stat .s { font-size: 9.5px; color: var(--text2); margin-top: 1px; }
+  .v.ok { color: var(--success); } .v.warn { color: var(--warning); } .v.alt { color: var(--error); }
+  .levels-mini { margin-top: 11px; display: flex; flex-direction: column; gap: 6px; }
+  .lvl-row { display: flex; align-items: center; gap: 10px; font-size: 11px; }
+  .lvl-row .tag { width: 106px; font-weight: 700; color: var(--text2); }
+  .lvl-row .track { flex: 1; height: 8px; background: var(--bg100); border-radius: 999px; overflow: hidden; }
+  .lvl-row .track i { display: block; height: 100%; border-radius: 999px; background: var(--success); transition: width .3s; }
+  .lvl-row .pct { width: 88px; text-align: right; font-weight: 800; font-variant-numeric: tabular-nums; }
+
+  /* -------------------------- evaluador + guardar ----------------------- */
+  .fields { display: flex; gap: 10px; margin-bottom: 10px; }
+  .fields input, .obs { border: 1.5px solid var(--border2); border-radius: 12px; padding: 10px 12px;
+    font: inherit; font-size: 12px; background: #fff; color: var(--text); }
+  .fields input:focus, .obs:focus { outline: 2px solid var(--accent100); }
+  .fields .f2 { flex: 2; } .fields .f1 { flex: 1; }
+  .obs { width: 100%; height: 58px; resize: none; margin-bottom: 12px; }
+  .btn-save { width: 100%; border: none; border-radius: 999px; background: var(--accent500); color: #fff;
+    font: inherit; font-size: 14px; font-weight: 800; padding: 14px; cursor: pointer; }
+  .btn-save:disabled { background: var(--bg100); color: var(--muted); cursor: default; }
+  .foot-note { font-size: 10px; color: var(--muted); line-height: 1.5; text-align: center; margin-top: 14px; padding: 0 20px; }
+
+  /* ======================= HOJA DE ESPECIFICACIÓN ======================= */
+  .spec { background: #fff; border: 1px solid var(--border); border-radius: 24px; padding: 22px; margin-bottom: 14px; }
+  .spec h3 { font-size: 15px; margin-bottom: 4px; }
+  .spec .sub { font-size: 11.5px; color: var(--text2); margin-bottom: 18px; }
+  .spec-row { display: flex; gap: 18px; flex-wrap: wrap; }
+  .spec-col { flex: 1; min-width: 200px; }
+  .spec-col h5 { font-size: 10px; font-weight: 800; letter-spacing: 1px; color: var(--muted);
+    text-transform: uppercase; margin-bottom: 10px; text-align: center; }
+  .anno { font-size: 10px; color: var(--text2); line-height: 1.55; margin-top: 10px; }
+  .anno b { color: var(--text); }
+  .anno li { margin-left: 14px; margin-bottom: 3px; }
+  .demo-wc { max-width: 190px; margin: 0 auto; }
+  .states-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; }
+  .state-cell { text-align: center; }
+  .state-cell .cap { font-size: 9.5px; font-weight: 800; color: var(--muted); letter-spacing: .5px; margin-top: 8px; }
+  .state-cell .cap code { display: block; font-weight: 600; color: var(--text2); letter-spacing: 0; font-size: 9px; margin-top: 2px; }
+  .layout-diagram { border: 1.5px dashed var(--border2); border-radius: 16px; padding: 12px; background: var(--bg0); }
+  .layout-diagram .mini-grid { display: grid; gap: 6px; }
+  .layout-diagram .mini-grid div { background: #fff; border: 1.5px solid var(--border2); border-radius: 8px; }
+  .kv { width: 100%; border-collapse: collapse; font-size: 11px; margin-top: 6px; }
+  .kv td { padding: 6px 8px; border-top: 1px solid var(--border); vertical-align: top; }
+  .kv td:first-child { font-weight: 700; color: var(--text2); width: 42%; }
+
+  @media (max-width: 620px) {
+    .grid.g6 { grid-template-columns: repeat(2, 1fr); }
+    .states-grid { grid-template-columns: repeat(2, 1fr); }
+    .stim { flex-direction: column; } .btn-repeat { width: 100%; padding: 10px; }
+  }
+</style>
+</head>
+<body>
+<div class="radial"></div>
+<div class="frame">
+
+  <!-- ================= cabecera del documento ================= -->
+  <div class="doc-head">
+    <h1>Audiometría Verbal · campo libre</h1>
+    <span class="doc-chip">MOCKUP · ITERACIÓN 1</span>
+  </div>
+  <p class="doc-sub">
+    Mockup interactivo del módulo <code>VerbalAudiometry</code> — acompaña al plan
+    <code>docs/design/audiometria-verbal.md</code>. Cambia la <b>banda de edad</b> para ver las tres
+    modalidades de tarjeta; pulsa <b>«Escuchar palabra»</b> y selecciona una tarjeta para simular el flujo completo.
+    Las ilustraciones definitivas (assets) se producen en la Iteración 2; aquí se usan pictogramas provisionales.
+  </p>
+
+  <h2 class="section">1 · Pantalla de la prueba</h2>
+
+  <!-- ============================ TABLETA ============================ -->
+  <div class="tablet">
+
+    <!-- header app -->
+    <div class="app-head">
+      <div class="brand">
+        <div class="logo">V+</div>
+        <div><b>VIA+</b><br /><span>Valoración Interactiva de Audición y Lenguaje</span></div>
+      </div>
+      <div class="patient-chip">👧 <b>Lucía G.</b> · NHC 48A2F1 · CAP ✓</div>
+    </div>
+
+    <!-- título -->
+    <div class="title-row">
+      <div>
+        <h3>Audiometría verbal <span class="chip-mode">CAMPO LIBRE · SIN AUDÍFONOS</span></h3>
+        <div class="sub">Reconocimiento de palabras por selección de tarjetas · conjunto cerrado</div>
+      </div>
+      <div class="stars">⭐ <span id="starCount">0</span>/<span id="starTotal">4</span></div>
+    </div>
+
+    <!-- configuración de sesión -->
+    <div class="card">
+      <h4>Configuración de la sesión</h4>
+      <div class="lbl">Banda de edad · lista de estímulos <span style="font-weight:600;color:var(--muted)">(autopropuesta por edad · override manual)</span></div>
+      <div class="seg" id="bandSeg">
+        <button data-band="A">Banda A <small>&lt; 4 años · solo imágenes · 4 opc.</small></button>
+        <button data-band="B" class="on">Banda B <small>4–5 años · imagen + palabra · 6 opc.</small></button>
+        <button data-band="C">Banda C <small>6–8 años · mixto (pares mínimos) · 6 opc.</small></button>
+        <button data-band="D">Banda D <small>9 a – adulto · solo palabras · 6 opc.</small></button>
+      </div>
+      <div class="lbl">Modo</div>
+      <div class="seg mod" id="modeSeg">
+        <button class="on">Discriminación <small>% aciertos a nivel fijo</small></button>
+        <button>Umbral · URV <small>desciende hasta ≈50 %</small></button>
+      </div>
+      <div class="lbl">Nivel de presentación</div>
+      <div class="seg mod" id="levelSeg">
+        <button data-level="65" class="on">65 dB <small>voz conversacional</small></button>
+        <button data-level="50">50 dB <small>voz baja</small></button>
+      </div>
+      <div class="hint-orientativo">
+        <span>⚠️</span>
+        <p><b>Nivel orientativo:</b> la presentación por altavoz en campo libre no está calibrada
+        clínicamente. La salida robusta es el <b>% de discriminación</b> a voz conversacional.
+        Resultado binaural (mejor oído): no descarta pérdida unilateral.</p>
+      </div>
+    </div>
+
+    <!-- estímulo -->
+    <div class="card">
+      <div class="stim">
+        <button class="btn-listen" id="btnListen"><span class="pulse"></span> Escuchar palabra</button>
+        <button class="btn-repeat" id="btnRepeat" disabled>Repetir<b id="repeatCount">0/2</b></button>
+      </div>
+      <div class="stim-meta">
+        <span class="prog">Lámina <b id="itemNow">1</b>/<b id="itemTotal">4</b></span>
+        <div class="bar"><i id="progBar"></i></div>
+        <span class="chip-sounding" id="chipSounding">SONANDO…</span>
+      </div>
+    </div>
+
+    <!-- tarjetas -->
+    <div class="card">
+      <h4 id="gridTitle">¿Qué palabra has oído? Toca su tarjeta</h4>
+      <div class="grid g6 waiting" id="grid"></div>
+      <div class="grid-hint" id="gridHint">Pulsa «Escuchar palabra» para presentar el estímulo</div>
+      <div class="next-row">
+        <div class="feedback" id="feedback"></div>
+        <button class="btn-next" id="btnNext">Siguiente →</button>
+      </div>
+    </div>
+
+    <!-- marcador -->
+    <div class="card">
+      <h4>Marcador de la prueba</h4>
+      <div class="stats">
+        <div class="stat"><div class="k">DISCRIMINACIÓN</div><div class="v" id="statPct">—</div><div class="s" id="statPctSub">65 dB · voz normal</div></div>
+        <div class="stat"><div class="k">ACIERTOS</div><div class="v" id="statHits">0/0</div><div class="s">láminas respondidas</div></div>
+        <div class="stat"><div class="k">FIABILIDAD</div><div class="v" id="statRel">—</div><div class="s">repeticiones · latencia</div></div>
+      </div>
+      <div class="levels-mini" id="levelsMini"></div>
+    </div>
+
+    <!-- evaluador -->
+    <div class="card">
+      <h4>Evaluador responsable</h4>
+      <div class="fields">
+        <input class="f2" placeholder="Nombre" value="María Sánchez" />
+        <input class="f1" placeholder="Colegiado" value="28/0941" />
+      </div>
+      <textarea class="obs" placeholder="Observaciones clínicas…"></textarea>
+      <button class="btn-save" id="btnSave" disabled>💾 Guardar audiometría verbal</button>
+    </div>
+
+    <p class="foot-note">Medida orientativa sobre el dispositivo (SaMD IIa · MDR 2017/745). No sustituye
+      equipo certificado ni constituye diagnóstico. Prueba en campo libre binaural, sin audífonos.</p>
+  </div>
+
+  <!-- ==================== 2 · ESPEC. DE LA TARJETA ==================== -->
+  <h2 class="section">2 · WordCard — anatomía por modalidad</h2>
+  <div class="spec">
+    <h3>Tres modalidades, un solo componente</h3>
+    <p class="sub"><code>&lt;WordCard word image? modality state onPress size? /&gt;</code> · Gluestack · radio 18 · borde 1.5 · sombra suave</p>
+    <div class="spec-row">
+      <div class="spec-col">
+        <h5>images · Banda A</h5>
+        <div class="demo-wc"><div class="wc" style="cursor:default"><span class="img">🦆</span></div></div>
+        <div class="anno"><b>Solo imagen</b>, sin texto. Ilustración ≥ 96–120 px. Tamaño <b>lg</b>,
+        rejilla 2 × 2 (4 opciones). Refuerzo lúdico al acertar (estrella).</div>
+      </div>
+      <div class="spec-col">
+        <h5>mixed · Bandas B/C</h5>
+        <div class="demo-wc"><div class="wc" style="cursor:default"><span class="img">🐴</span><span class="word">caballo</span></div></div>
+        <div class="anno"><b>Imagen dominante + palabra de apoyo</b> debajo (transición lectora).
+        Tamaño <b>lg</b>, rejilla 3 × 2 (6 opciones). En Banda C las opciones son <b>pares mínimos</b>.</div>
+      </div>
+      <div class="spec-col">
+        <h5>words · Banda D (adultos)</h5>
+        <div class="demo-wc"><div class="wc words-only" style="cursor:default"><span class="word">peso</span></div></div>
+        <div class="anno"><b>Solo palabra</b>, tipografía grande (≥ 21 px). Tamaño <b>md</b>, estética
+        sobria sin decoración lúdica. Rejilla 3 × 2.</div>
+      </div>
+    </div>
+    <table class="kv">
+      <tr><td>Área táctil</td><td>≥ 64 px de alto en todas las modalidades (pediátrico: ≥ 96 px)</td></tr>
+      <tr><td>Accesibilidad</td><td><code>accessibilityLabel = word</code> · estado nunca solo por color (icono ✓/✕ + grosor de borde)</td></tr>
+      <tr><td>Ilustración pendiente</td><td>tile crema con borde discontinuo + inicial de la palabra (ver Banda C en el mockup) hasta disponer del asset</td></tr>
+      <tr><td>Orden</td><td>opciones barajadas por lámina con semilla de sesión (evita aprendizaje posicional)</td></tr>
+    </table>
+  </div>
+
+  <h2 class="section">3 · WordCard — estados</h2>
+  <div class="spec">
+    <div class="states-grid">
+      <div class="state-cell">
+        <div class="wc words-only" style="cursor:default"><span class="word">peso</span><span class="badge"></span></div>
+        <div class="cap">IDLE<code>$borderLight200 · $white</code></div>
+      </div>
+      <div class="state-cell">
+        <div class="wc words-only correct" style="cursor:default"><span class="word">peso</span><span class="badge">✓</span></div>
+        <div class="cap">CORRECT<code>$success400 (2.5) · $success50</code></div>
+      </div>
+      <div class="state-cell">
+        <div class="wc words-only wrong" style="cursor:default"><span class="word">beso</span><span class="badge">✕</span></div>
+        <div class="cap">WRONG<code>$error400 (2.5) · $error50</code></div>
+      </div>
+      <div class="state-cell">
+        <div class="wc words-only reveal" style="cursor:default"><span class="word">peso</span><span class="badge"></span></div>
+        <div class="cap">REVEAL TARGET<code>$primary400 + halo</code></div>
+      </div>
+      <div class="state-cell">
+        <div class="wc words-only disabled" style="cursor:default"><span class="word">queso</span><span class="badge"></span></div>
+        <div class="cap">DISABLED<code>opacidad 0.6 · $bgLight50</code></div>
+      </div>
+    </div>
+    <div class="anno" style="margin-top:16px">
+      <b>Transiciones:</b> al tocar una tarjeta la lámina se bloquea; la elegida pasa a
+      <b>correct</b> o <b>wrong</b>; si el protocolo lo permite, la correcta se resalta con
+      <b>revealTarget</b> y el resto queda <b>disabled</b>. En niños el fallo se señala de forma
+      breve y sin penalización visual agresiva; el refuerzo positivo (estrella) solo en acierto.
+    </div>
+  </div>
+
+  <h2 class="section">4 · Rejillas por banda</h2>
+  <div class="spec">
+    <div class="spec-row">
+      <div class="spec-col">
+        <h5>Banda A · 2 × 2 · tarjetas lg</h5>
+        <div class="layout-diagram">
+          <div class="mini-grid" style="grid-template-columns:repeat(2,1fr)">
+            <div style="height:64px"></div><div style="height:64px"></div>
+            <div style="height:64px"></div><div style="height:64px"></div>
+          </div>
+        </div>
+        <div class="anno">4 opciones · ancho ~46 % · imagen protagonista.</div>
+      </div>
+      <div class="spec-col">
+        <h5>Bandas B/C/D · 3 × 2 · tarjetas lg/md</h5>
+        <div class="layout-diagram">
+          <div class="mini-grid" style="grid-template-columns:repeat(3,1fr)">
+            <div style="height:48px"></div><div style="height:48px"></div><div style="height:48px"></div>
+            <div style="height:48px"></div><div style="height:48px"></div><div style="height:48px"></div>
+          </div>
+        </div>
+        <div class="anno">6 opciones · ancho ~31 % (como los instrumentos de la audiometría tonal) ·
+        en móvil/estrecho colapsa a 2 columnas.</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+/* ------------------------------------------------------------------ */
+/*  Datos de demo: subconjunto de las listas del plan (§3 del .md).    */
+/*  img: emoji provisional · null → tile placeholder (asset pendiente) */
+/* ------------------------------------------------------------------ */
+const BANDS = {
+  A: { modality: 'images', cols: 4, label: 'Banda A · solo imágenes', items: [
+    { target: 'pato',   options: [['pato','🦆'],['gato','🐱'],['pan','🍞'],['mano','✋']] },
+    { target: 'gato',   options: [['gato','🐱'],['pato','🦆'],['vaca','🐄'],['mano','✋']] },
+    { target: 'flor',   options: [['flor','🌸'],['sol','☀️'],['pan','🍞'],['pez','🐟']] },
+    { target: 'pelota', options: [['pelota','⚽'],['galleta','🍪'],['zapato','👟'],['manzana','🍎']] },
+  ]},
+  B: { modality: 'mixed', cols: 6, label: 'Banda B · imagen + palabra', items: [
+    { target: 'caballo', options: [['caballo','🐴'],['cebolla','🧅'],['pastilla','💊'],['botella','🍾'],['rodilla','🦵'],['zapato','👟']] },
+    { target: 'mariposa',options: [['mariposa','🦋'],['tijeras','✂️'],['escalera','🪜'],['bandera','🚩'],['pelota','⚽'],['escoba','🧹']] },
+    { target: 'botella', options: [['botella','🍾'],['ballena','🐋'],['estrella','⭐'],['botón','🔘'],['pelota','⚽'],['maleta','🧳']] },
+    { target: 'tijeras', options: [['tijeras','✂️'],['orejas','👂'],['abejas','🐝'],['cerezas','🍒'],['maderas','🪵'],['escoba','🧹']] },
+  ]},
+  C: { modality: 'mixed', cols: 6, label: 'Banda C · mixto · pares mínimos', items: [
+    { target: 'boca',  options: [['boca','👄'],['foca','🦭'],['roca','🪨'],['loca',null],['toca',null],['bota','👢']] },
+    { target: 'queso', options: [['queso','🧀'],['beso','💋'],['peso','⚖️'],['hueso','🦴'],['yeso',null],['seso',null]] },
+    { target: 'rata',  options: [['rata','🐀'],['lata','🥫'],['pata','🐾'],['bata','🥼'],['gata','🐈'],['rana','🐸']] },
+    { target: 'gota',  options: [['gota','💧'],['bota','👢'],['nota','🎵'],['rota',null],['gorra','🧢'],['pota',null]] },
+  ]},
+  D: { modality: 'words', cols: 6, label: 'Banda D · solo palabras (9 a – adulto)', items: [
+    { target: 'peso', options: [['peso'],['beso'],['queso'],['yeso'],['hueso'],['seso']] },
+    { target: 'coma', options: [['coma'],['goma'],['toma'],['loma'],['roma'],['cama']] },
+    { target: 'pala', options: [['pala'],['bala'],['mala'],['gala'],['sala'],['tala']] },
+    { target: 'vaca', options: [['vaca'],['baca'],['faca'],['maca'],['saca'],['placa']] },
+  ]},
+};
+
+const MAX_REPEATS = 2;
+let band = 'B', level = 65, itemIdx = 0, repeats = 0, played = false, answered = false;
+let scores = {};   // { level: { presented, correct } }
+let totalRepeatsUsed = 0;
+
+const $ = id => document.getElementById(id);
+const grid = $('grid');
+
+function speak(word) {
+  $('chipSounding').classList.add('show');
+  $('btnListen').classList.add('playing');
+  try {
+    const u = new SpeechSynthesisUtterance(word);
+    u.lang = 'es-ES'; u.rate = 0.85;
+    u.onend = stopSounding;
+    speechSynthesis.cancel(); speechSynthesis.speak(u);
+    setTimeout(stopSounding, 2600); // salvaguarda
+  } catch (e) { setTimeout(stopSounding, 900); }
+}
+function stopSounding() {
+  $('chipSounding').classList.remove('show');
+  $('btnListen').classList.remove('playing');
+}
+
+function shuffled(arr) {
+  const a = arr.slice();
+  for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; }
+  return a;
+}
+
+function renderItem() {
+  const b = BANDS[band]; const item = b.items[itemIdx];
+  played = false; answered = false; repeats = 0;
+  $('repeatCount').textContent = `0/${MAX_REPEATS}`;
+  $('btnRepeat').disabled = true;
+  $('itemNow').textContent = itemIdx + 1;
+  $('itemTotal').textContent = b.items.length;
+  $('starTotal').textContent = b.items.length;
+  $('progBar').style.width = `${(itemIdx / b.items.length) * 100}%`;
+  $('feedback').className = 'feedback'; $('feedback').textContent = '';
+  $('btnNext').classList.remove('show');
+  $('gridHint').style.display = '';
+  $('gridTitle').textContent = b.modality === 'images'
+    ? '¿Qué has oído? Toca su dibujo' : '¿Qué palabra has oído? Toca su tarjeta';
+
+  grid.className = `grid ${b.cols === 4 ? 'g4' : 'g6'} waiting`;
+  grid.innerHTML = '';
+  shuffled(item.options).forEach(opt => {
+    const [word, img] = opt;
+    const btn = document.createElement('button');
+    btn.className = 'wc' + (b.modality === 'words' ? ' words-only' : '');
+    btn.setAttribute('aria-label', word);
+    let inner = '';
+    if (b.modality !== 'words') {
+      inner += img ? `<span class="img">${img}</span>`
+                   : `<span class="img placeholder">${word[0].toUpperCase()}</span>`;
+    }
+    if (b.modality !== 'images') inner += `<span class="word">${word}</span>`;
+    inner += `<span class="badge"></span>`;
+    btn.innerHTML = inner;
+    btn.onclick = () => choose(btn, word);
+    grid.appendChild(btn);
+  });
+}
+
+function choose(btn, word) {
+  if (!played || answered) return;
+  answered = true;
+  const item = BANDS[band].items[itemIdx];
+  const ok = word === item.target;
+
+  const s = scores[level] || (scores[level] = { presented: 0, correct: 0 });
+  s.presented++; if (ok) s.correct++;
+
+  grid.querySelectorAll('.wc').forEach(c => c.classList.add('disabled', 'locked'));
+  btn.classList.remove('disabled');
+  if (ok) {
+    btn.classList.add('correct'); btn.querySelector('.badge').textContent = '✓';
+    $('feedback').className = 'feedback ok';
+    $('feedback').textContent = `⭐ ¡Muy bien! «${item.target}»`;
+  } else {
+    btn.classList.add('wrong'); btn.querySelector('.badge').textContent = '✕';
+    // revelar la correcta (revealTarget)
+    grid.querySelectorAll('.wc').forEach(c => {
+      if (c.getAttribute('aria-label') === item.target) { c.classList.remove('disabled'); c.classList.add('reveal'); }
+    });
+    $('feedback').className = 'feedback ko';
+    $('feedback').textContent = `La palabra era «${item.target}»`;
+  }
+  $('btnNext').classList.add('show');
+  $('progBar').style.width = `${((itemIdx + 1) / BANDS[band].items.length) * 100}%`;
+  updateStats();
+}
+
+function updateStats() {
+  const s = scores[level];
+  const pctEl = $('statPct');
+  if (s && s.presented) {
+    const pct = Math.round((s.correct / s.presented) * 100);
+    pctEl.textContent = pct + ' %';
+    pctEl.className = 'v ' + (pct >= 90 ? 'ok' : pct >= 70 ? 'warn' : 'alt');
+  } else { pctEl.textContent = '—'; pctEl.className = 'v'; }
+  $('statPctSub').textContent = `${level} dB · ${level === 65 ? 'voz normal' : 'voz baja'}`;
+
+  let presented = 0, correct = 0;
+  Object.values(scores).forEach(x => { presented += x.presented; correct += x.correct; });
+  $('statHits').textContent = `${correct}/${presented}`;
+  $('starCount').textContent = correct;
+
+  if (presented) {
+    const rel = Math.max(40, 100 - totalRepeatsUsed * 8);
+    $('statRel').textContent = rel + ' %';
+    $('statRel').className = 'v ' + (rel >= 80 ? 'ok' : 'warn');
+  }
+  $('btnSave').disabled = presented === 0;
+
+  // mini-barras por nivel
+  const mini = $('levelsMini'); mini.innerHTML = '';
+  [65, 50].forEach(lv => {
+    const x = scores[lv];
+    if (!x || !x.presented) return;
+    const pct = Math.round((x.correct / x.presented) * 100);
+    const color = pct >= 90 ? 'var(--success)' : pct >= 70 ? 'var(--warning)' : 'var(--error)';
+    mini.insertAdjacentHTML('beforeend',
+      `<div class="lvl-row"><span class="tag">${lv} dB · ${lv === 65 ? 'voz normal' : 'voz baja'}</span>
+       <div class="track"><i style="width:${pct}%;background:${color}"></i></div>
+       <span class="pct" style="color:${color}">${pct} % <small style="color:var(--muted);font-weight:600">(${x.correct}/${x.presented})</small></span></div>`);
+  });
+}
+
+/* ------------------------------ eventos ------------------------------ */
+$('btnListen').onclick = () => {
+  const item = BANDS[band].items[itemIdx];
+  if (answered) return;
+  if (played) { doRepeat(); return; }
+  played = true;
+  $('btnRepeat').disabled = false;
+  grid.classList.remove('waiting');
+  $('gridHint').style.display = 'none';
+  speak(item.target);
+};
+function doRepeat() {
+  if (repeats >= MAX_REPEATS || answered || !played) return;
+  repeats++; totalRepeatsUsed++;
+  $('repeatCount').textContent = `${repeats}/${MAX_REPEATS}`;
+  if (repeats >= MAX_REPEATS) $('btnRepeat').disabled = true;
+  speak(BANDS[band].items[itemIdx].target);
+  updateStats();
+}
+$('btnRepeat').onclick = doRepeat;
+
+$('btnNext').onclick = () => {
+  const n = BANDS[band].items.length;
+  if (itemIdx + 1 < n) { itemIdx++; renderItem(); }
+  else {
+    itemIdx = 0;
+    renderItem();
+    $('feedback').className = 'feedback ok';
+    $('feedback').textContent = '✓ Lista completada a este nivel · cambie a 50 dB o guarde el resultado';
+  }
+};
+
+$('bandSeg').querySelectorAll('button').forEach(b => b.onclick = () => {
+  $('bandSeg').querySelectorAll('button').forEach(x => x.classList.remove('on'));
+  b.classList.add('on');
+  band = b.dataset.band; itemIdx = 0; scores = {}; totalRepeatsUsed = 0;
+  renderItem(); updateStats();
+});
+$('levelSeg').querySelectorAll('button').forEach(b => b.onclick = () => {
+  $('levelSeg').querySelectorAll('button').forEach(x => x.classList.remove('on'));
+  b.classList.add('on');
+  level = Number(b.dataset.level); itemIdx = 0;
+  renderItem(); updateStats();
+});
+$('modeSeg').querySelectorAll('button').forEach(b => b.onclick = () => {
+  $('modeSeg').querySelectorAll('button').forEach(x => x.classList.remove('on'));
+  b.classList.add('on');
+});
+$('btnSave').onclick = () => {
+  $('btnSave').textContent = '✓ Audiometría verbal guardada (demo)';
+  setTimeout(() => { $('btnSave').textContent = '💾 Guardar audiometría verbal'; }, 1800);
+};
+
+renderItem(); updateStats();
+</script>
+</body>
+</html>

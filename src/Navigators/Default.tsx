@@ -21,6 +21,7 @@ import { VoiceAnalysisScreen } from '@/Screens/VoiceAnalysis';
 import { DysphagiaTestScreen } from '@/Screens/DysphagiaTest';
 import { SahsScreeningScreen } from '@/Screens/SahsScreening';
 import { ArticulationTestScreen } from '@/Screens/Articulation';
+import { VerbalAudiometryScreen } from '@/Screens/VerbalAudiometry';
 import SeleccionEjerciciosScreen from '@/Screens/SeleccionEjercicios/SeleccionEjerciciosScreen';
 import ResultadosPreliminaresScreen from '@/Screens/ResultadosPreliminares/ResultadosPreliminaresScreen';
 import ResultadosFinalScreen from '@/Screens/ResultadosFinal/ResultadosFinalScreen';
@@ -73,6 +74,7 @@ export default function DefaultNavigator() {
           <RootStack.Screen name="DysphagiaTest" component={DysphagiaTestScreen} />
           <RootStack.Screen name="SahsScreening" component={SahsScreeningScreen} />
           <RootStack.Screen name="Articulation" component={ArticulationTestScreen} />
+          <RootStack.Screen name="VerbalAudiometry" component={VerbalAudiometryScreen} />
 
           {/* Hub y resultados */}
           <RootStack.Screen name="SeleccionEjercicios" component={SeleccionEjerciciosScreen} />

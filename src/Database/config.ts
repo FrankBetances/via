@@ -17,6 +17,7 @@ import { VoiceAnalysis } from '@/Models/VoiceAnalysis/VoiceAnalysis';
 import { DysphagiaTest } from '@/Models/DysphagiaTest/DysphagiaTest';
 import { SahsScreening } from '@/Models/SahsScreening/SahsScreening';
 import { ArticulationTest } from '@/Models/ArticulationTest/ArticulationTest';
+import { VerbalAudiometryTest } from '@/Models/VerbalAudiometry/VerbalAudiometryTest';
 
 /* -------------------------------------------------------------------------- */
 /*  TypeORM DataSource — VIA+ (offline-first, SQLite local).                  */
@@ -62,6 +63,7 @@ export const AppDataSource = new DataSource({
     DysphagiaTest,
     SahsScreening,
     ArticulationTest,
+    VerbalAudiometryTest,
   ],
   migrations: [],
   subscribers: [],

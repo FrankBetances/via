@@ -13,6 +13,7 @@ import { initDatabase } from '@/Database/config';
 import DefaultNavigator from '@/Navigators/Default';
 import SplashScreen from '@/Screens/Splash/SplashScreen';
 import { installAudiometryToneAdapter } from '@/Screens/Audiometry';
+import { installVerbalAudioAdapter } from '@/Screens/VerbalAudiometry';
 import '@/Navigators/screenTypeNavigator';
 
 /* -------------------------------------------------------------------------- */
@@ -30,6 +31,11 @@ function AppShell() {
   // Sin esta instalación las pantallas quedaban en modo demostración (sin
   // emisión de sonido). Devuelve la función de limpieza del AudioContext.
   useEffect(() => installAudiometryToneAdapter(), []);
+
+  // Motor de palabras de la audiometría verbal (campo libre). Sin resolutor
+  // de recortes (assets pendientes, Iteración 2) arranca en modo TTS; la
+  // pantalla marca el nivel como no calibrado.
+  useEffect(() => installVerbalAudioAdapter(), []);
 
   useEffect(() => {
     let mounted = true;
