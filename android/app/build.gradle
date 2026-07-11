@@ -76,6 +76,12 @@ def ksProps = new Properties()
 def ksFile = rootProject.file('keystore.properties')
 if (ksFile.exists()) { ksProps.load(new FileInputStream(ksFile)) }
 
+// En CI el versionCode viene del número de run de GitHub Actions
+// (MYAPP_VERSION_CODE), garantizando que cada build subido a Play
+// Console sea estrictamente mayor que el anterior. En builds locales
+// se usa 1: los .aab locales no se suben a la tienda.
+def appVersionCode = (System.getenv('MYAPP_VERSION_CODE') ?: '1').toInteger()
+
 android {
     ndkVersion rootProject.ext.ndkVersion
     buildToolsVersion rootProject.ext.buildToolsVersion
@@ -86,7 +92,7 @@ android {
         applicationId "com.viaplus.app"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 1
+        versionCode appVersionCode
         versionName "1.0"
     }
     signingConfigs {

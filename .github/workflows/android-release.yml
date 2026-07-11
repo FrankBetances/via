@@ -46,6 +46,7 @@ jobs:
 
       - name: Build signed release APK and AAB
         env:
+          MYAPP_VERSION_CODE: ${{ github.run_number }}
           MYAPP_RELEASE_STORE_FILE: viaplus-release.keystore
           MYAPP_RELEASE_STORE_PASSWORD: ${{ secrets.MYAPP_RELEASE_STORE_PASSWORD }}
           MYAPP_RELEASE_KEY_ALIAS: ${{ secrets.MYAPP_RELEASE_KEY_ALIAS }}
