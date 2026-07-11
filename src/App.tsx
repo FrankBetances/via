@@ -13,7 +13,7 @@ import { initDatabase } from '@/Database/config';
 import DefaultNavigator from '@/Navigators/Default';
 import SplashScreen from '@/Screens/Splash/SplashScreen';
 import { installAudiometryToneAdapter } from '@/Screens/Audiometry';
-import { installVerbalAudioAdapter } from '@/Screens/VerbalAudiometry';
+import { installVerbalAudioAdapter, verbalAudioSource } from '@/Screens/VerbalAudiometry';
 import '@/Navigators/screenTypeNavigator';
 
 /* -------------------------------------------------------------------------- */
@@ -32,10 +32,12 @@ function AppShell() {
   // emisión de sonido). Devuelve la función de limpieza del AudioContext.
   useEffect(() => installAudiometryToneAdapter(), []);
 
-  // Motor de palabras de la audiometría verbal (campo libre). Sin resolutor
-  // de recortes (assets pendientes, Iteración 2) arranca en modo TTS; la
-  // pantalla marca el nivel como no calibrado.
-  useEffect(() => installVerbalAudioAdapter(), []);
+  // Motor de palabras de la audiometría verbal (campo libre): dictado con el
+  // SINTETIZADOR NATIVO del sistema (Android TextToSpeech, voz es-ES del
+  // dispositivo) con nivel relativo por volumen de síntesis. El registro de
+  // recortes queda cableado para cambiar a engine: 'assets' cuando existan
+  // las locuciones de locutor profesional (validación clínica).
+  useEffect(() => installVerbalAudioAdapter({ engine: 'tts', assetSource: verbalAudioSource }), []);
 
   useEffect(() => {
     let mounted = true;

@@ -82,10 +82,30 @@ describe('assetKeyForWord', () => {
   it('normaliza a minúsculas sin tildes ni signos', () => {
     expect(assetKeyForWord('plátano')).toBe('platano');
     expect(assetKeyForWord('Pájaro')).toBe('pajaro');
-    expect(assetKeyForWord('cabaña')).toBe('cabana');
     expect(assetKeyForWord('número')).toBe('numero');
     expect(assetKeyForWord('¡flor!')).toBe('flor');
     expect(assetKeyForWord('')).toBe('');
+  });
+
+  it('la ñ se translitera a ny para no colisionar con pares mínimos reales', () => {
+    expect(assetKeyForWord('cabaña')).toBe('cabanya');
+    expect(assetKeyForWord('caña')).toBe('canya');
+    expect(assetKeyForWord('cana')).toBe('cana');
+    expect(assetKeyForWord('caña')).not.toBe(assetKeyForWord('cana'));
+  });
+
+  it('la clave de asset es biyectiva sobre el banco (misma clave ⇒ misma palabra)', () => {
+    const byKey = new Map<string, string>();
+    for (const band of VERBAL_BANDS) {
+      for (const item of band.items) {
+        for (const opt of item.options) {
+          const key = assetKeyForWord(opt.word);
+          const prev = byKey.get(key);
+          expect(prev ?? opt.word).toBe(opt.word);
+          byKey.set(key, opt.word);
+        }
+      }
+    }
   });
 
   it('todas las claves de audio del banco son estables y no vacías', () => {

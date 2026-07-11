@@ -25,31 +25,12 @@ import {
   verbalDiscriminationStatus,
 } from './verbalAudiometryResult';
 import { VERBAL_BANDS } from './verbalAudiometryLists';
+import { VERBAL_GLYPHS } from './verbalAudiometryGlyphs';
+import { verbalImageSource } from './verbalAssets';
 import WordCard, { WordCardState } from './components/WordCard';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'VerbalAudiometry'>;
 
-/**
- * Pictogramas PROVISIONALES por palabra (bandas con imagen) mientras no
- * existan las ilustraciones (`assets/img/verbal/*`, Iteración 2). Palabra sin
- * pictograma → WordCard pinta el tile de asset pendiente con la inicial.
- */
-const GLYPHS: Record<string, string> = {
-  pato: '🦆', gato: '🐱', pan: '🍞', mano: '✋', vaca: '🐄', casa: '🏠', taza: '☕',
-  boca: '👄', mono: '🐒', pelota: '⚽', galleta: '🍪', zapato: '👟', manzana: '🍎',
-  plátano: '🍌', flor: '🌸', sol: '☀️', pez: '🐟',
-  ventana: '🪟', campana: '🔔', cabaña: '🛖', caballo: '🐴', cebolla: '🧅',
-  pastilla: '💊', botella: '🍾', rodilla: '🦵', mariposa: '🦋', escalera: '🪜',
-  tijeras: '✂️', bandera: '🚩', pájaro: '🐦', lámpara: '💡', cámara: '📷',
-  número: '🔢', orejas: '👂', abejas: '🐝', cerezas: '🍒', maderas: '🪵',
-  escoba: '🧹', escuela: '🏫', estrella: '⭐', ballena: '🐋', botón: '🔘',
-  maleta: '🧳', semilla: '🌱', gallina: '🐔',
-  pino: '🌲', vino: '🍷', niño: '👦', pila: '🔋', foca: '🦭', roca: '🪨',
-  bota: '👢', gota: '💧', nota: '🎵', gorra: '🧢', rata: '🐀', lata: '🥫',
-  pata: '🐾', bata: '🥼', gata: '🐈', rana: '🐸', caña: '🎣', reina: '👑',
-  fuente: '⛲', puente: '🌉', diente: '🦷', queso: '🧀', beso: '💋', peso: '⚖️',
-  hueso: '🦴', jarra: '🏺', carta: '✉️',
-};
 
 const MODE_META: { key: VerbalMode; label: string; hint: string }[] = [
   { key: 'discrimination', label: 'Discriminación', hint: '% aciertos a nivel fijo' },
@@ -135,7 +116,7 @@ export default function VerbalAudiometryScreen({ navigation }: Props) {
       item.discriminationPct = v.score.discriminationPct;
       item.reliability = v.reliability;
       item.interpretation = interpretVerbal(v.band, v.score, v.srtDb);
-      item.notes = [notes.trim(), v.audioEngine !== 'assets' ? 'Estímulo por síntesis de voz (TTS): nivel no calibrado.' : '']
+      item.notes = [notes.trim(), v.audioEngine !== 'assets' ? 'Dictado por síntesis de voz nativa del dispositivo (TTS): nivel relativo, sin calibración absoluta.' : '']
         .filter(Boolean)
         .join(' ');
       item.evaluatorName = evaluatorName.trim();
@@ -262,7 +243,7 @@ export default function VerbalAudiometryScreen({ navigation }: Props) {
                   ⚠️ Nivel orientativo: la presentación por altavoz no está calibrada clínicamente. La salida robusta es
                   el % de discriminación a voz conversacional. Resultado binaural (mejor oído): no descarta pérdida
                   unilateral.
-                  {v.audioEngine !== 'assets' ? ' Estímulo por síntesis de voz (TTS): nivel no aplicable.' : ''}
+                  {v.audioEngine !== 'assets' ? ' Dictado por síntesis de voz nativa del dispositivo (TTS): nivel relativo aplicado, sin calibración absoluta.' : ''}
                 </Text>
               </Box>
             </Card>
@@ -337,7 +318,8 @@ export default function VerbalAudiometryScreen({ navigation }: Props) {
                       <Box key={opt.word} style={{ width: cardWidth, marginBottom: 2 }}>
                         <WordCard
                           word={opt.word}
-                          glyph={GLYPHS[opt.word]}
+                          imageSource={opt.image ? verbalImageSource(opt.image) : undefined}
+                          glyph={VERBAL_GLYPHS[opt.word]}
                           modality={v.modality}
                           state={cardStateOf(opt.word)}
                           size={v.band === 'D' ? 'md' : 'lg'}

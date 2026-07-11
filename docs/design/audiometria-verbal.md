@@ -556,10 +556,10 @@ for (const test of verbals) {
 - [x] `src/Navigators/screenTypeNavigator.ts` + `Default.tsx` (ruta)
 - [x] `src/Screens/SeleccionEjercicios/SeleccionEjerciciosScreen.tsx` (tarjeta módulo)
 - [x] `src/Screens/ResultadosFinal/ResultadosFinalScreen.tsx` (bloque de resultado)
-- [ ] **Assets:** `assets/audio/verbal/*.m4a`, `assets/img/verbal/*.png`
+- [x] **Assets:** `assets/audio/verbal/*.m4a` (37, locución provisional espeak-ng), `assets/img/verbal/*.png` (97, pictogramas provisionales) — pipeline `scripts/verbal-assets.js` + registro `verbalAssets.ts`; producción final: ver `validacion-clinica-verbal.md` §5
 - [x] **Tests:** `verbalAudiometryResult.test.ts` + `verbalAudiometryLists.test.ts` (31 tests: puntuación, cortes, banda por edad, invariantes de listas, barajado determinista, inventario de assets)
-- [ ] **Validación clínica** de listas y cortes por el logopeda; localización es-XX
-- [ ] `i18next`: claves de textos y del PDF
+- [x] **Validación clínica**: checks estructurales automatizados (CI) + protocolo y hoja de firma en `docs/design/validacion-clinica-verbal.md` — PENDIENTE DE FIRMA por el logopeda; localización es-XX pendiente
+- [x] `i18next`: catálogos es/en del módulo (`src/I18n`, pantalla + interpretación + PDF + hoja de resultados) con test de paridad; `initI18n()` listo para activar (la app sigue monolingüe es hasta decidirlo)
 
 ---
 

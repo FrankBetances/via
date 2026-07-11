@@ -14,15 +14,20 @@ import {
 /*  (pan = 0, binaural — mismo criterio que el canal `CL` de la audiometría    */
 /*  tonal). Dos motores con DEGRADACIÓN (principio VIA+):                      */
 /*                                                                             */
-/*   1. 'assets' — recortes grabados por locutor (`assets/audio/verbal/        */
-/*      <clave>.m4a`), decodificados con react-native-audio-api               */
-/*      (decodeAudioDataSource) y reproducidos vía BufferSource → Gain (nivel  */
-/*      orientativo) → StereoPanner(0) → destination. Requiere un              */
-/*      `assetSource` que resuelva la clave de audio a una ruta local          */
-/*      (Iteración 2, cuando existan los recortes).                            */
-/*   2. 'tts' — fallback con `react-native-tts` (es-ES). El nivel dB NO es     */
-/*      aplicable (el volumen de la síntesis no está anclado): la UI/PDF       */
-/*      deben marcar la prueba como «nivel no calibrado (TTS)».                */
+/*   1. 'tts' — SINTETIZADOR NATIVO del sistema vía `react-native-tts`        */
+/*      (Android: android.speech.tts.TextToSpeech con la voz es-ES del         */
+/*      dispositivo — el motor por defecto del producto para el dictado).      */
+/*      El nivel relativo SÍ se aplica: KEY_PARAM_VOLUME (0..1) recibe la      */
+/*      misma ganancia `speechLevelToGain` que el motor de recortes y          */
+/*      KEY_PARAM_PAN = 0 mantiene la presentación binaural centrada. Sigue    */
+/*      sin calibración ABSOLUTA (la sonoridad base depende de la voz          */
+/*      instalada): etiquetar como orientativo en UI/PDF.                      */
+/*   2. 'assets' — recortes grabados (`assets/audio/verbal/<clave>.m4a`),      */
+/*      decodificados con react-native-audio-api (decodeAudioDataSource) y     */
+/*      reproducidos vía BufferSource → Gain → StereoPanner(0) → destination.  */
+/*      Es la vía prevista para las locuciones de locutor profesional          */
+/*      (validación clínica); si un recorte falta o no decodifica, degrada     */
+/*      a TTS por palabra.                                                     */
 /*                                                                             */
 /*  Sin ninguno de los dos motores, la pantalla sigue operativa en modo        */
 /*  demostración (el clínico presenta el modelo con su voz), igual que la      */
@@ -41,7 +46,11 @@ export interface VerbalAudioAdapter {
   /** Reproduce la palabra objetivo al nivel indicado (dB, orientativo). */
   playWord: (audioKey: string, word: string, levelDb: number) => void;
   stop: () => void;
-  /** Motor activo: con 'tts' el nivel no es aplicable (no calibrado). */
+  /**
+   * Motor activo. 'tts' = sintetizador nativo del sistema (nivel RELATIVO
+   * aplicado por volumen de síntesis, sin calibración absoluta); 'assets' =
+   * recortes grabados (vía prevista para locuciones de locutor).
+   */
   engine: VerbalAudioEngine;
 }
 
@@ -69,13 +78,19 @@ const optionalTts = (): any => {
 
 export interface VerbalAudioAdapterOptions {
   /**
+   * Motor preferido para el dictado. Por defecto 'tts' (sintetizador nativo
+   * del sistema, decisión de producto: voz natural del dispositivo). Con
+   * 'assets' se usan los recortes de `assetSource` (locuciones de locutor)
+   * degradando a TTS palabra a palabra si un recorte falta o no decodifica.
+   */
+  engine?: VerbalAudioEngine;
+  /**
    * Resuelve la clave de audio de una palabra (`assetKeyForWord`) a una ruta
-   * local reproducible (file:// o ruta de bundle). `null` = sin recorte para
-   * esa palabra → se degrada a TTS por palabra. Sin `assetSource`, el motor
-   * es TTS para todo el banco.
+   * local reproducible (file:// o ruta de bundle). Solo interviene con
+   * `engine: 'assets'`; `null` = sin recorte para esa palabra → TTS.
    */
   assetSource?: (audioKey: string) => string | null;
-  /** dB → ganancia del motor 'assets'. Por defecto `speechLevelToGain`. */
+  /** dB → ganancia (recortes y volumen TTS). Por defecto `speechLevelToGain`. */
   levelToGain?: (levelDb: number) => number;
 }
 
@@ -90,6 +105,9 @@ export interface VerbalAudioAdapterOptions {
 export function installVerbalAudioAdapter(opts: VerbalAudioAdapterOptions = {}): () => void {
   const levelToGain = opts.levelToGain ?? speechLevelToGain;
   const assetSource = opts.assetSource ?? null;
+  // Motor por defecto: sintetizador nativo del sistema (dictado con la voz
+  // es-ES del dispositivo). 'assets' queda para las locuciones de locutor.
+  const engine: VerbalAudioEngine = opts.engine ?? 'tts';
 
   // Sesión de audio por altavoz (misma configuración que audiometryToneAdapter).
   try {
@@ -130,11 +148,21 @@ export function installVerbalAudioAdapter(opts: VerbalAudioAdapterOptions = {}):
     try { ttsEngine?.stop?.(); } catch {}
   };
 
-  const speakFallback = (word: string) => {
+  const speakWord = (word: string, levelDb: number) => {
     if (!ttsEngine) return; // sin motores: modo demostración
     try {
       ttsEngine.stop?.();
-      ttsEngine.speak?.(word);
+      // Sintetizador nativo (Android: TextToSpeech). El nivel relativo se
+      // aplica con KEY_PARAM_VOLUME (misma ganancia que los recortes) y la
+      // presentación binaural centrada con KEY_PARAM_PAN = 0, por el stream
+      // de música (mismo canal de salida que el resto de estímulos).
+      ttsEngine.speak?.(word, {
+        androidParams: {
+          KEY_PARAM_VOLUME: levelToGain(levelDb),
+          KEY_PARAM_PAN: 0,
+          KEY_PARAM_STREAM: 'STREAM_MUSIC',
+        },
+      });
     } catch {
       /* noop */
     }
@@ -169,9 +197,10 @@ export function installVerbalAudioAdapter(opts: VerbalAudioAdapterOptions = {}):
 
   const playWord = (audioKey: string, word: string, levelDb: number) => {
     stop();
-    const path = assetSource?.(audioKey) ?? null;
+    // Motor 'tts' (por defecto): dictado directo con el sintetizador nativo.
+    const path = engine === 'assets' ? assetSource?.(audioKey) ?? null : null;
     if (!path || !ctx) {
-      speakFallback(word);
+      speakWord(word, levelDb);
       return;
     }
     const cached = bufferCache.get(audioKey);
@@ -185,15 +214,15 @@ export function installVerbalAudioAdapter(opts: VerbalAudioAdapterOptions = {}):
         bufferCache.set(audioKey, buffer);
         playBuffer(buffer, levelDb);
       })
-      .catch(() => speakFallback(word)); // recorte ilegible → degradar a TTS
+      .catch(() => speakWord(word, levelDb)); // recorte ilegible → degradar a TTS
   };
 
   setVerbalAudioAdapter({
     playWord,
     stop,
-    // Motor declarado: 'assets' solo si hay resolutor de recortes; la
-    // degradación por palabra (recorte ausente/ilegible) se hace en runtime.
-    engine: assetSource ? 'assets' : 'tts',
+    // Motor declarado. Con 'assets' la degradación por palabra (recorte
+    // ausente/ilegible) se sigue haciendo en runtime.
+    engine: engine === 'assets' && assetSource ? 'assets' : 'tts',
   });
 
   return () => {
