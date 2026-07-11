@@ -77,6 +77,9 @@
     "node": ">=18"
   },
   "jest": {
-    "preset": "react-native"
+    "preset": "react-native",
+    "moduleNameMapper": {
+      "\\.(m4a|mp3|wav|aac)$": "<rootDir>/jest/assetMock.js"
+    }
   }
 }

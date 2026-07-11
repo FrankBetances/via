@@ -41,10 +41,16 @@ export interface VerbalBandDef {
   items: VerbalItem[]; // [0] = familiarización, resto puntúan
 }
 
-/** minúsculas · sin tildes · sin signos → clave estable de asset. */
+/**
+ * minúsculas · sin tildes · sin signos → clave estable de asset.
+ * La ñ se translitera a `ny` (no a `n`): plegarla a `n` colisionaba pares
+ * mínimos reales del banco («caña»/«cana» compartían clave y, por tanto,
+ * ilustración dentro de la misma lámina).
+ */
 export const assetKeyForWord = (word: string): string =>
   (word || '')
     .toLowerCase()
+    .replace(/ñ/g, 'ny')
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '')
     .replace(/[^a-z0-9]/g, '');

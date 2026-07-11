@@ -13,7 +13,7 @@ import { initDatabase } from '@/Database/config';
 import DefaultNavigator from '@/Navigators/Default';
 import SplashScreen from '@/Screens/Splash/SplashScreen';
 import { installAudiometryToneAdapter } from '@/Screens/Audiometry';
-import { installVerbalAudioAdapter } from '@/Screens/VerbalAudiometry';
+import { installVerbalAudioAdapter, verbalAudioSource } from '@/Screens/VerbalAudiometry';
 import '@/Navigators/screenTypeNavigator';
 
 /* -------------------------------------------------------------------------- */
@@ -32,10 +32,11 @@ function AppShell() {
   // emisión de sonido). Devuelve la función de limpieza del AudioContext.
   useEffect(() => installAudiometryToneAdapter(), []);
 
-  // Motor de palabras de la audiometría verbal (campo libre). Sin resolutor
-  // de recortes (assets pendientes, Iteración 2) arranca en modo TTS; la
-  // pantalla marca el nivel como no calibrado.
-  useEffect(() => installVerbalAudioAdapter(), []);
+  // Motor de palabras de la audiometría verbal (campo libre): recortes del
+  // registro de assets (locuciones provisionales espeak-ng hasta la
+  // producción con locutor); si un recorte falta o no decodifica, el
+  // adaptador degrada a TTS por palabra.
+  useEffect(() => installVerbalAudioAdapter({ assetSource: verbalAudioSource }), []);
 
   useEffect(() => {
     let mounted = true;
