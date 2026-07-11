@@ -1,13 +1,10 @@
-name: Android Release APK
+name: Android Release (APK + AAB)
 
 on:
   workflow_dispatch:
   push:
     branches:
       - main
-      - claude/apk-secrets-config-oskji6
-      - claude/pensive-feynman-uphv11
-      - claude/dazzling-brahmagupta-l99jzo
     paths:
       - "android/**"
       - "src/**"
@@ -46,7 +43,7 @@ jobs:
           chmod +x gradlew
           ./gradlew generateCodegenArtifactsFromSchema --no-daemon
 
-      - name: Build release APK
+      - name: Build signed release APK and AAB
         env:
           MYAPP_RELEASE_STORE_FILE: viaplus-release.keystore
           MYAPP_RELEASE_STORE_PASSWORD: ${{ secrets.MYAPP_RELEASE_STORE_PASSWORD }}
@@ -54,7 +51,11 @@ jobs:
           MYAPP_RELEASE_KEY_PASSWORD: ${{ secrets.MYAPP_RELEASE_KEY_PASSWORD }}
         run: |
           cd android
-          ./gradlew assembleRelease --no-daemon
+          ./gradlew assembleRelease bundleRelease --no-daemon
+
+      - name: Verify AAB signature
+        run: |
+          jarsigner -verify android/app/build/outputs/bundle/release/app-release.aab
 
       - name: Remove keystore from runner
         if: always()
@@ -65,4 +66,11 @@ jobs:
         with:
           name: viaplus-release-apk
           path: android/app/build/outputs/apk/release/*.apk
+          retention-days: 30
+
+      - name: Upload release AAB
+        uses: actions/upload-artifact@v4
+        with:
+          name: viaplus-release-aab
+          path: android/app/build/outputs/bundle/release/*.aab
           retention-days: 30
