@@ -81,7 +81,8 @@ export interface AcousticResult {
   jitter: number;
   shimmer: number;
   hnr: number;
-  formants: VoiceFormants;
+  /** null = F1–F3 no estimables en esta toma (el resto de parámetros vale). */
+  formants: VoiceFormants | null;
   quality: VoiceQuality;
 }
 
@@ -134,15 +135,20 @@ const round = (v: number, d = 2) => roundTo(v, d);
  * Parámetros acústicos desde las series por ventana. Devuelve `null` si la
  * captura no tiene suficientes ventanas sonoras: la pantalla pide repetir la
  * emisión (antes se devolvían valores simulados, eliminado con el modo demo).
+ *
+ * Los formantes NO son condición de suficiencia: si la LPC no los resuelve el
+ * resultado sale con `formants: null` y el resto de parámetros (F0, jitter,
+ * shimmer, HNR) intactos. El comportamiento histórico (tirar toda la toma por
+ * no tener F1–F3) convertía un extra opcional en un bloqueo de la prueba.
  */
-const computeParams = (r: VoiceMicResult): AcousticResult | null => {
+export const computeParams = (r: VoiceMicResult): AcousticResult | null => {
   const { f0s, amplitudes: amps, hnrs, formants } = r;
   // Rango de F0 plausible (voz infantil/adulta). Se usa `>=`/`<=` con un pequeño
   // margen porque el adaptador afina la F0 por interpolación y puede rozar los
   // extremos de la banda de análisis (70–500 Hz); con `>`/`<` estrictos las
   // ventanas del borde de banda se descartaban y la toma quedaba «sin datos».
   const valid = f0s.filter(f => f >= F0_VALID_MIN && f <= F0_VALID_MAX);
-  if (valid.length < MIN_VOICED_FRAMES || !formants) return null;
+  if (valid.length < MIN_VOICED_FRAMES) return null;
 
   const avgF0 = valid.reduce((a, b) => a + b, 0) / valid.length;
 
@@ -175,7 +181,7 @@ const computeParams = (r: VoiceMicResult): AcousticResult | null => {
     jitter: round(jitter),
     shimmer: round(shimmer),
     hnr: round(hnr, 1),
-    formants,
+    formants: formants ?? null,
     quality,
   };
 };
@@ -186,9 +192,10 @@ const SILENT_TAKE_LEVEL = 0.0025;
 
 /**
  * Explica por qué `computeParams` devolvió `null`, en orden de diagnóstico:
- * silencio → sin periodicidad → tono fuera de banda → sin formantes. Este
+ * silencio → sin periodicidad → tono fuera de banda / voz insuficiente. Este
  * detalle se muestra en la tarjeta «captura insuficiente» para distinguir un
- * problema de captura (micrófono mudo) de uno de emisión o de análisis.
+ * problema de captura (micrófono mudo) de uno de emisión. (Los formantes ya
+ * no son motivo de insuficiencia: sin F1–F3 el resultado sale igualmente.)
  */
 const describeInsufficiency = (r: VoiceMicResult): string => {
   if (r.stats && r.stats.levelRef < SILENT_TAKE_LEVEL) {
@@ -197,11 +204,7 @@ const describeInsufficiency = (r: VoiceMicResult): string => {
   if (r.f0s.length === 0) {
     return 'Hay señal en la toma, pero sin voz periódica reconocible (solo ruido o soplo). Pida una «A» sostenida con voz plena, no susurrada.';
   }
-  const valid = r.f0s.filter(f => f >= F0_VALID_MIN && f <= F0_VALID_MAX);
-  if (valid.length < MIN_VOICED_FRAMES) {
-    return `Se detectó voz, pero con un tono fuera del rango analizable (${F0_VALID_MIN}–${F0_VALID_MAX} Hz) o demasiado inestable.`;
-  }
-  return 'Se detectó voz, pero no se pudieron estimar los formantes (la emisión puede ser demasiado breve o irregular).';
+  return `Se detectó voz, pero con muy pocas ventanas sonoras estables en el rango analizable (${F0_VALID_MIN}–${F0_VALID_MAX} Hz). Pida una «A» sostenida y firme de al menos 3 segundos.`;
 };
 
 /* -------------------------------------------------------------------------- */

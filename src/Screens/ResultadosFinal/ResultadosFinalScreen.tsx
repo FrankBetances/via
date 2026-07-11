@@ -198,6 +198,26 @@ export default function ResultadosFinalScreen({ navigation }: Props) {
 
         const voiceAnalyses = await VoiceAnalysisRepository.getVoiceAnalysisByEvaluation(evaluationId);
         voiceAnalyses.forEach(v => {
+          // Cierre manual: sin parámetros acústicos, la prueba se registró con
+          // la valoración perceptual GRBAS y la firma del explorador.
+          if (v.f0 == null || v.jitter == null || v.shimmer == null || v.hnr == null) {
+            const g = v.grbas;
+            result.push({
+              id: `voice-${v.id}`,
+              kind: 'rows',
+              status: g && g.g >= 2 ? 'alt' : g && g.g === 1 ? 'warn' : 'ok',
+              title: 'Análisis Acústico de Voz',
+              subtitle: 'Cierre manual · valoración perceptual GRBAS',
+              icon: Mic2,
+              rows: g
+                ? [
+                    { label: 'GRBAS · valoración perceptual', value: `G${g.g} R${g.r} B${g.b} A${g.a} S${g.s}`, status: g.g >= 2 ? 'alt' : g.g === 1 ? 'warn' : 'ok', tag: `total ${g.g + g.r + g.b + g.a + g.s}/15` },
+                  ]
+                : [],
+              interp: v.interpretation || 'Prueba de voz cerrada manualmente (análisis acústico no disponible).',
+            });
+            return;
+          }
           const sF0 = statusF0(v.f0);
           const sJ = statusJitter(v.jitter);
           const sS = statusShimmer(v.shimmer);

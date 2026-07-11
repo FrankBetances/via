@@ -7,7 +7,14 @@ import {
 } from 'react-native-audio-api';
 
 import { setVoiceMicAdapter, VoiceLiveFrame, VoiceMicAdapter } from './useVoiceAnalysis';
-import { analyseFrame, analysePcm, FRAME, SAMPLE_RATE } from './voiceDsp';
+import {
+  analyseFrame,
+  analysePcm,
+  createDecimator3,
+  DECIMATION,
+  FRAME,
+  SAMPLE_RATE,
+} from './voiceDsp';
 
 /* -------------------------------------------------------------------------- */
 /*  voiceMicAdapter — captura, reproducción y análisis REAL del micrófono     */
@@ -39,8 +46,9 @@ import { analyseFrame, analysePcm, FRAME, SAMPLE_RATE } from './voiceDsp';
 /* -------------------------------------------------------------------------- */
 
 // Cadena de captura: el recorder nativo entrega 48 kHz y el adaptador decima ×3
-// hasta la frecuencia efectiva del DSP (`SAMPLE_RATE` = 16 kHz).
-const DECIMATE = 3;
+// (con filtro FIR anti-alias, ver `createDecimator3`) hasta la frecuencia
+// efectiva del DSP (`SAMPLE_RATE` = 16 kHz).
+const DECIMATE = DECIMATION;
 const CAPTURE_SR = SAMPLE_RATE * DECIMATE; // 48000
 
 /* ------------------------------- permisos --------------------------------- */
@@ -104,6 +112,7 @@ export function registerVoiceMicAdapter(): boolean {
 
   let recorder: AudioRecorder | null = null;
   let chunks: Float32Array[] = [];
+  let decimate: ((raw: Float32Array) => Float32Array) | null = null;
   let playbackCtx: AudioContext | null = null;
   let playbackSource: AudioBufferSourceNode | null = null;
 
@@ -136,6 +145,7 @@ export function registerVoiceMicAdapter(): boolean {
       setSessionForRecording();
 
       chunks = [];
+      decimate = createDecimator3();
       recorder = new AudioRecorder({
         sampleRate: CAPTURE_SR,
         bufferLengthInSamples: Math.round(CAPTURE_SR * 0.1), // ~100 ms
@@ -144,11 +154,9 @@ export function registerVoiceMicAdapter(): boolean {
       recorder.onAudioReady(({ buffer }) => {
         try {
           const raw = buffer.getChannelData(0) as Float32Array;
-          // Decimación ×3 → 16 kHz efectivos para el análisis.
-          const n = Math.floor(raw.length / DECIMATE);
-          if (!n) return;
-          const ds = new Float32Array(n);
-          for (let i = 0; i < n; i++) ds[i] = raw[i * DECIMATE];
+          // Decimación ×3 con anti-alias → 16 kHz efectivos para el análisis.
+          const ds = decimate ? decimate(raw) : new Float32Array(0);
+          if (!ds.length) return;
           chunks.push(ds);
 
           if (onLive) {
@@ -174,6 +182,7 @@ export function registerVoiceMicAdapter(): boolean {
         /* noop */
       }
       recorder = null;
+      decimate = null;
       setSessionForPlayback();
 
       // Concatena el PCM decimado; el análisis se hace después, bajo demanda.

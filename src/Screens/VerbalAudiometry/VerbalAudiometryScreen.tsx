@@ -1,8 +1,8 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Pressable } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { Box, Card, Center, HStack, Icon, Input, InputField, ScrollView, VStack } from '@gluestack-ui/themed';
-import { Check, RotateCcw, Save, Volume2 } from 'lucide-react-native';
+import { Check, ChevronLeft, Play, RotateCcw, Save, Volume2, X } from 'lucide-react-native';
 
 import { Button, Content, Header, Text } from '@/Components/Common';
 import RadialBackground from '@/Components/Themed/RadialBackground';
@@ -19,6 +19,7 @@ import {
   AgeBand,
   LEVEL_LABEL,
   MAX_REPEATS,
+  MODALITY_LABEL,
   PRESENTATION_LEVELS,
   VerbalMode,
   interpretVerbal,
@@ -31,17 +32,47 @@ import WordCard, { WordCardState } from './components/WordCard';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'VerbalAudiometry'>;
 
+/* -------------------------------------------------------------------------- */
+/*  Pantalla de la Audiometría Verbal en TRES FASES:                           */
+/*                                                                            */
+/*   1. setup   — el profesional elige la banda de edad (y opciones            */
+/*                avanzadas) y pulsa «Empezar». 30 segundos y fuera.           */
+/*   2. play    — EL PACIENTE SOLO, en plan juego: la palabra SUENA SOLA al    */
+/*                entrar en cada lámina, el niño toca la tarjeta y la          */
+/*                pantalla avanza sola tras el feedback. Sin jerga clínica,    */
+/*                sin botones de «presentar estímulo» ni «siguiente».          */
+/*   3. results — hoja clínica: marcador, pasadas a otro nivel, evaluador y    */
+/*                guardado.                                                    */
+/*                                                                            */
+/*  El modelo anterior (todo en una pantalla, con configuración, marcador y    */
+/*  guardado siempre visibles y presentación/avance manuales) exigía la        */
+/*  intervención del logopeda en cada lámina y era inviable para una prueba    */
+/*  autónoma. El motor clínico (useVerbalAudiometryTest) no cambia.            */
+/* -------------------------------------------------------------------------- */
+
+type Phase = 'setup' | 'play' | 'results';
 
 const MODE_META: { key: VerbalMode; label: string; hint: string }[] = [
   { key: 'discrimination', label: 'Discriminación', hint: '% aciertos a nivel fijo' },
   { key: 'threshold', label: 'Umbral · URV', hint: 'desciende hasta ≈50 %' },
 ];
 
+/** Retardo de la auto-presentación del estímulo al entrar en una lámina. */
+const AUTOPLAY_DELAY_MS = 900;
+/** Tiempo de lectura del feedback antes de auto-avanzar (más si falló, para
+ *  que vea la tarjeta correcta resaltada). */
+const ADVANCE_OK_MS = 1300;
+const ADVANCE_FAIL_MS = 2300;
+
+const BAND_EMOJI: Record<AgeBand, string> = { A: '🧸', B: '🎈', C: '✏️', D: '📖' };
+
 export default function VerbalAudiometryScreen({ navigation }: Props) {
   const activeEvaluation = useClassSelector(Evaluation, (state: RootState) => state.activeEvaluation.evaluation);
   const [createVerbalAudiometry, { isLoading: isSaving }] = useCreateVerbalAudiometryMutation();
   const v = useVerbalAudiometryTest();
 
+  const [phase, setPhase] = useState<Phase>('setup');
+  const [showAdvanced, setShowAdvanced] = useState(false);
   const [notes, setNotes] = useState('');
   const [evaluatorName, setEvaluatorName] = useState(activeEvaluation?.professional?.name ?? '');
   const [evaluatorLicense, setEvaluatorLicense] = useState(activeEvaluation?.professional?.licenseNumber ?? '');
@@ -52,48 +83,58 @@ export default function VerbalAudiometryScreen({ navigation }: Props) {
   const answered = v.chosen !== null;
   const scoredTotal = v.bandDef.items.filter(i => !i.practice).length;
 
-  /** Estado visual de una tarjeta según la fase de la lámina. */
-  const cardStateOf = (word: string): WordCardState => {
-    if (!v.played) return 'disabled'; // atenuadas hasta presentar el estímulo
-    if (!answered) return 'idle';
-    if (word === v.chosen) return v.wasCorrect ? 'correct' : 'wrong';
-    if (!v.wasCorrect && v.item && word === v.item.targetWord) return 'revealTarget';
-    return 'disabled';
+  /* ----------------------- autonomía de la fase de juego -------------------- */
+
+  // La palabra SUENA SOLA al entrar en cada lámina (el niño no tiene que
+  // pulsar nada para oír el estímulo; las tarjetas se habilitan al sonar).
+  useEffect(() => {
+    if (phase !== 'play' || !v.item || v.played || v.completedForLevel) return;
+    const t = setTimeout(() => v.playStimulus(), AUTOPLAY_DELAY_MS);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [phase, v.item, v.played, v.completedForLevel]);
+
+  // Tras responder, la pantalla avanza sola después del feedback.
+  useEffect(() => {
+    if (phase !== 'play' || !answered) return;
+    const t = setTimeout(() => v.next(), v.wasCorrect ? ADVANCE_OK_MS : ADVANCE_FAIL_MS);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [phase, answered, v.wasCorrect]);
+
+  // Lista completada → hoja de resultados (el clínico retoma el control).
+  useEffect(() => {
+    if (phase !== 'play' || !v.completedForLevel) return;
+    const t = setTimeout(() => setPhase('results'), 900);
+    return () => clearTimeout(t);
+  }, [phase, v.completedForLevel]);
+
+  // Al salir de la fase de juego, parar cualquier estímulo en curso.
+  useEffect(() => {
+    if (phase !== 'play') v.stop();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [phase]);
+
+  /* ------------------------------- acciones -------------------------------- */
+
+  const startRun = (level?: number) => {
+    if (level !== undefined && level !== v.level) {
+      v.setLevel(level); // ya reinicia la pasada
+    } else if (v.completedForLevel || v.itemIndex > 0) {
+      v.resetRun(); // repetir al mismo nivel: reinicia el índice de lámina
+    }
+    setPhase('play');
   };
 
-  const assistant = useMemo(() => {
-    if (v.completedForLevel) {
-      return {
-        tag: 'PASADA COMPLETADA',
-        text: `Lista completada a ${v.level} dB. Puede repetir la lista a otro nivel o guardar el resultado.`,
-        bg: '$success50',
-      };
-    }
-    if (v.isPractice) {
-      return {
-        tag: 'FAMILIARIZACIÓN',
-        text: 'Lámina de práctica (no puntúa): enseñe la mecánica al paciente antes de empezar la prueba.',
-        bg: '$primary0',
-      };
-    }
-    if (!v.played) {
-      return {
-        tag: 'PRESENTAR ESTÍMULO',
-        text: `Pulse «Escuchar palabra» para presentar el estímulo a ${v.level} dB (${LEVEL_LABEL[v.level] ?? 'nivel'}). Las tarjetas se habilitan tras la presentación.`,
-        bg: '$warning50',
-      };
-    }
-    if (!answered) {
-      return {
-        tag: 'ESPERANDO RESPUESTA',
-        text: `El paciente debe tocar la tarjeta de la palabra oída. Quedan ${MAX_REPEATS - v.repeats} repeticiones de ayuda.`,
-        bg: '$warning50',
-      };
-    }
-    return v.wasCorrect
-      ? { tag: 'ACIERTO', text: `«${v.item?.targetWord}» reconocida. Pulse «Siguiente» para continuar.`, bg: '$success50' }
-      : { tag: 'FALLO', text: `Eligió «${v.chosen}»; la palabra era «${v.item?.targetWord}» (resaltada). Pulse «Siguiente».`, bg: '$error50' };
-  }, [v.completedForLevel, v.isPractice, v.played, v.level, v.repeats, v.wasCorrect, v.item, v.chosen, answered]);
+  const exitRun = () => {
+    v.stop();
+    setPhase(v.score.presentedCount > 0 ? 'results' : 'setup');
+  };
+
+  const restartAll = () => {
+    v.reset();
+    setPhase('setup');
+  };
 
   const handleSave = async () => {
     if (isSaving) return;
@@ -116,7 +157,7 @@ export default function VerbalAudiometryScreen({ navigation }: Props) {
       item.discriminationPct = v.score.discriminationPct;
       item.reliability = v.reliability;
       item.interpretation = interpretVerbal(v.band, v.score, v.srtDb);
-      item.notes = [notes.trim(), v.audioEngine !== 'assets' ? 'Dictado por síntesis de voz nativa del dispositivo (TTS): nivel relativo, sin calibración absoluta.' : '']
+      item.notes = [notes.trim(), v.audioEngine === 'tts' ? 'Dictado por síntesis de voz nativa del dispositivo (TTS): nivel relativo, sin calibración absoluta.' : '']
         .filter(Boolean)
         .join(' ');
       item.evaluatorName = evaluatorName.trim();
@@ -132,9 +173,416 @@ export default function VerbalAudiometryScreen({ navigation }: Props) {
     }
   };
 
+  /* --------------------------- piezas de render ---------------------------- */
+
+  /** Estado visual de una tarjeta según la fase de la lámina. */
+  const cardStateOf = (word: string): WordCardState => {
+    if (!v.played) return 'disabled'; // atenuadas hasta que suene la palabra
+    if (!answered) return 'idle';
+    if (word === v.chosen) return v.wasCorrect ? 'correct' : 'wrong';
+    if (!v.wasCorrect && v.item && word === v.item.targetWord) return 'revealTarget';
+    return 'disabled';
+  };
+
   const pctStatus = verbalDiscriminationStatus(v.score.discriminationPct);
   const pctColor = pctStatus === 'ok' ? '$success600' : pctStatus === 'warn' ? '$warning600' : '$error600';
   const cardWidth = v.bandDef.optionsPerCard === 4 ? '48.5%' : '31.5%';
+
+  /* ------------------------------ fase: setup ------------------------------ */
+
+  const renderSetup = () => (
+    <VStack flex={1} px="$6" mt="$2" space="md" pb="$10">
+      <VStack>
+        <HStack alignItems="center" space="sm">
+          <Text size="2xl" weight="bold" color="$textLight900">
+            Audiometría verbal
+          </Text>
+          <Box bg="$primary50" px="$2" py="$0.5" borderRadius="$full">
+            <Text size="2xs" weight="bold" color="$primary800" style={{ letterSpacing: 0.4 }}>
+              CAMPO LIBRE · SIN AUDÍFONOS
+            </Text>
+          </Box>
+        </HStack>
+        <Text size="xs" color="$textLight500">
+          {patientName ?? 'Reconocimiento de palabras por selección de tarjetas'}
+        </Text>
+      </VStack>
+
+      <Card bgColor="$white" borderRadius={20} p="$4">
+        <Text size="sm" color="$textLight700" style={{ lineHeight: 20 }}>
+          El paciente hace la prueba <Text size="sm" weight="bold" color="$textLight900">solo, como un juego</Text>:
+          suena una palabra por el altavoz y toca la tarjeta correspondiente. La palabra suena
+          sola en cada lámina y la pantalla avanza sola tras cada respuesta.
+        </Text>
+      </Card>
+
+      {/* selección de banda de edad */}
+      <Card bgColor="$white" borderRadius={20} p="$4">
+        <Text size="md" weight="bold" color="$textLight900" mb="$3">
+          ¿Qué edad tiene el paciente?
+        </Text>
+        <VStack space="sm">
+          {VERBAL_BANDS.map(b => {
+            const on = v.band === b.band;
+            return (
+              <Pressable key={b.band} onPress={() => v.setBand(b.band as AgeBand)}>
+                <HStack
+                  alignItems="center"
+                  space="md"
+                  p="$3.5"
+                  borderRadius={16}
+                  borderWidth={2}
+                  borderColor={on ? '$primary500' : '$borderLight200'}
+                  bg={on ? '$primary0' : '$white'}>
+                  <Center w={48} h={48} borderRadius={14} bg={on ? '$primary50' : '$backgroundLight50'}>
+                    <Text style={{ fontSize: 26, lineHeight: 34 }}>{BAND_EMOJI[b.band as AgeBand]}</Text>
+                  </Center>
+                  <VStack style={{ flex: 1 }}>
+                    <Text size="md" weight="bold" color="$textLight900">
+                      {b.ages}
+                    </Text>
+                    <Text size="xs" color="$textLight500">
+                      {b.label} · {MODALITY_LABEL[b.modality]} · {b.optionsPerCard} tarjetas
+                    </Text>
+                  </VStack>
+                  <Box
+                    w={22}
+                    h={22}
+                    borderRadius="$full"
+                    borderWidth={2}
+                    borderColor={on ? '$primary600' : '$borderLight300'}
+                    alignItems="center"
+                    justifyContent="center">
+                    {on ? <Box w={11} h={11} borderRadius="$full" bg="$primary600" /> : null}
+                  </Box>
+                </HStack>
+              </Pressable>
+            );
+          })}
+        </VStack>
+      </Card>
+
+      {/* opciones avanzadas (modo y nivel), plegadas por defecto */}
+      <Card bgColor="$white" borderRadius={20} p="$4">
+        <Pressable onPress={() => setShowAdvanced(s => !s)}>
+          <HStack alignItems="center" justifyContent="space-between">
+            <Text size="sm" weight="bold" color="$textLight700">
+              Opciones avanzadas
+            </Text>
+            <Text size="xs" color="$textLight400">
+              {showAdvanced ? 'ocultar' : `${MODE_META.find(m => m.key === v.mode)?.label} · ${v.level} dB`}
+            </Text>
+          </HStack>
+        </Pressable>
+        {showAdvanced ? (
+          <VStack mt="$3">
+            <Text size="xs" weight="semiBold" color="$textLight600" mb="$1">
+              Modo
+            </Text>
+            <HStack space="sm" mb="$3">
+              {MODE_META.map(m => {
+                const on = v.mode === m.key;
+                return (
+                  <Pressable key={m.key} style={{ flex: 1 }} onPress={() => v.setMode(m.key)}>
+                    <Center py="$2" borderRadius={10} bg={on ? '$primary500' : '$white'} borderWidth={1.5} borderColor={on ? 'transparent' : '$borderLight200'}>
+                      <Text size="xs" weight="bold" color={on ? '$white' : '$textLight500'}>{m.label}</Text>
+                      <Text size="2xs" color={on ? '$primary100' : '$textLight400'}>{m.hint}</Text>
+                    </Center>
+                  </Pressable>
+                );
+              })}
+            </HStack>
+            <Text size="xs" weight="semiBold" color="$textLight600" mb="$1">
+              Nivel de presentación
+            </Text>
+            <HStack space="sm">
+              {PRESENTATION_LEVELS.map(l => {
+                const on = v.level === l;
+                return (
+                  <Pressable key={l} style={{ flex: 1 }} onPress={() => v.setLevel(l)}>
+                    <Center py="$2" borderRadius={10} bg={on ? '$primary500' : '$white'} borderWidth={1.5} borderColor={on ? 'transparent' : '$borderLight200'}>
+                      <Text size="xs" weight="bold" color={on ? '$white' : '$textLight500'} style={{ fontVariant: ['tabular-nums'] }}>
+                        {l} dB
+                      </Text>
+                      <Text size="2xs" color={on ? '$primary100' : '$textLight400'}>{LEVEL_LABEL[l]}</Text>
+                    </Center>
+                  </Pressable>
+                );
+              })}
+            </HStack>
+          </VStack>
+        ) : null}
+      </Card>
+
+      <Box bg="$warning50" borderRadius={12} p="$2.5">
+        <Text size="2xs" color="$warning800" style={{ lineHeight: 15 }}>
+          ⚠️ Nivel orientativo: la presentación por altavoz no está calibrada clínicamente. La salida
+          robusta es el % de discriminación a voz conversacional. Resultado binaural (mejor oído): no
+          descarta pérdida unilateral.
+          {!v.hasAudio ? ' Motor de audio no disponible: modo demostración (presente el modelo con su voz).' : ''}
+        </Text>
+      </Box>
+
+      <Button action="primary" variant="solid" rounded="$full" onPress={() => startRun()}>
+        <HStack space="sm" alignItems="center">
+          <Icon as={Play} size="sm" color="$white" />
+          <Text size="md" weight="bold" color="$white">
+            Empezar la prueba
+          </Text>
+        </HStack>
+      </Button>
+      {v.score.presentedCount > 0 ? (
+        <Button action="secondary" variant="outline" rounded="$full" onPress={() => setPhase('results')}>
+          <Text size="sm" weight="bold" color="$primary500">
+            Ver resultados
+          </Text>
+        </Button>
+      ) : null}
+    </VStack>
+  );
+
+  /* ------------------------------ fase: play ------------------------------- */
+
+  const renderPlay = () => {
+    const total = v.itemTotal;
+    const feedback = !answered
+      ? null
+      : v.wasCorrect
+        ? { text: '¡Muy bien! 🎉', color: '$success700', bg: '$success50' }
+        : { text: `Era «${v.item?.targetWord}» 💙`, color: '$primary800', bg: '$primary0' };
+
+    return (
+      <VStack flex={1} px="$5" mt="$2" space="md" pb="$8">
+        {/* barra superior mínima: salir (clínico) + progreso */}
+        <HStack alignItems="center" space="sm">
+          <Pressable onPress={exitRun} hitSlop={10}>
+            <Center w={38} h={38} borderRadius="$full" bg="$white" borderWidth={1} borderColor="$borderLight200">
+              <Icon as={X} size="sm" color="$textLight500" />
+            </Center>
+          </Pressable>
+          <HStack style={{ flex: 1 }} justifyContent="center" space="xs">
+            {Array.from({ length: total }).map((_, i) => (
+              <Text key={i} style={{ fontSize: 15, lineHeight: 20 }}>
+                {i < v.itemIndex ? '⭐' : i === v.itemIndex ? '🔵' : '⚪'}
+              </Text>
+            ))}
+          </HStack>
+          <Box w={38} />
+        </HStack>
+
+        {v.isPractice ? (
+          <Center bg="$primary0" borderRadius={14} py="$2">
+            <Text size="sm" weight="bold" color="$primary800">
+              🎈 Vamos a practicar
+            </Text>
+          </Center>
+        ) : null}
+
+        {/* estímulo: suena solo; el botón grande repite (ayuda contada) */}
+        <Card bgColor="$white" borderRadius={24} p="$5">
+          <Center>
+            <Pressable onPress={v.repeatStimulus} disabled={!v.canRepeat}>
+              <Center
+                w={96}
+                h={96}
+                borderRadius="$full"
+                bg={v.playing ? '$warning100' : v.canRepeat ? '$primary500' : '$backgroundLight100'}>
+                <Icon as={Volume2} size="xl" color={v.playing ? '$warning700' : v.canRepeat ? '$white' : '$textLight300'} />
+              </Center>
+            </Pressable>
+            <Text size="md" weight="bold" color="$textLight900" mt="$3">
+              {v.playing ? 'Escucha…' : !v.played ? 'Atento, va a sonar una palabra' : answered ? '' : '¿Cuál has oído? Toca su tarjeta'}
+            </Text>
+            {v.played && !answered ? (
+              <Text size="2xs" color="$textLight400" mt="$1">
+                Toca el altavoz para oírla otra vez ({MAX_REPEATS - v.repeats} restantes)
+              </Text>
+            ) : null}
+          </Center>
+        </Card>
+
+        {/* tarjetas */}
+        <HStack flexWrap="wrap" justifyContent="space-between" style={{ rowGap: 10 }}>
+          {v.options.map(opt => (
+            <Box key={opt.word} style={{ width: cardWidth, marginBottom: 2 }}>
+              <WordCard
+                word={opt.word}
+                imageSource={opt.image ? verbalImageSource(opt.image) : undefined}
+                glyph={VERBAL_GLYPHS[opt.word]}
+                modality={v.modality}
+                state={cardStateOf(opt.word)}
+                size={v.band === 'D' ? 'md' : 'lg'}
+                onPress={() => v.choose(opt.word)}
+              />
+            </Box>
+          ))}
+        </HStack>
+
+        {/* feedback grande y amable; la pantalla avanza sola */}
+        {feedback ? (
+          <Center bg={feedback.bg} borderRadius={16} py="$3">
+            <Text size="lg" weight="bold" color={feedback.color}>
+              {feedback.text}
+            </Text>
+          </Center>
+        ) : null}
+        {v.completedForLevel ? (
+          <Center bg="$success50" borderRadius={16} py="$4">
+            <Text size="lg" weight="bold" color="$success700">
+              🏁 ¡Juego terminado, muy bien!
+            </Text>
+          </Center>
+        ) : null}
+      </VStack>
+    );
+  };
+
+  /* ----------------------------- fase: results ----------------------------- */
+
+  const renderResults = () => (
+    <VStack flex={1} px="$6" mt="$2" space="md" pb="$10">
+      <HStack alignItems="center" space="sm">
+        <Pressable onPress={() => setPhase('setup')} hitSlop={10}>
+          <Center w={38} h={38} borderRadius="$full" bg="$white" borderWidth={1} borderColor="$borderLight200">
+            <Icon as={ChevronLeft} size="sm" color="$textLight500" />
+          </Center>
+        </Pressable>
+        <VStack style={{ flex: 1 }}>
+          <Text size="2xl" weight="bold" color="$textLight900">
+            Resultados
+          </Text>
+          <Text size="xs" color="$textLight500">
+            {patientName ?? 'Audiometría verbal'} · Banda {v.band}
+          </Text>
+        </VStack>
+        <HStack space="xs" alignItems="center" bg="$white" borderRadius="$full" px="$3" py="$1.5" borderWidth={1} borderColor="$borderLight100">
+          <Text size="sm">⭐</Text>
+          <Text size="sm" weight="bold" color="$primary600">
+            {v.score.correctCount}/{scoredTotal}
+          </Text>
+        </HStack>
+      </HStack>
+
+      {/* marcador */}
+      <Card bgColor="$white" borderRadius={20} p="$4">
+        <Text size="sm" weight="bold" color="$textLight900" mb="$2">
+          Marcador de la prueba
+        </Text>
+        <HStack space="sm">
+          <Box flex={1} bg="$backgroundLight50" borderRadius={12} p="$2.5" alignItems="center">
+            <Text size="2xs" color="$textLight400">DISCRIMINACIÓN</Text>
+            <Text size="lg" weight="bold" color={v.score.presentedCount ? pctColor : '$textLight400'}>
+              {v.score.presentedCount ? `${v.score.discriminationPct}%` : '—'}
+            </Text>
+            <Text size="2xs" color="$textLight500">{v.level} dB · {LEVEL_LABEL[v.level] ?? ''}</Text>
+          </Box>
+          <Box flex={1} bg="$backgroundLight50" borderRadius={12} p="$2.5" alignItems="center">
+            <Text size="2xs" color="$textLight400">ACIERTOS</Text>
+            <Text size="lg" weight="bold" color="$textLight700" style={{ fontVariant: ['tabular-nums'] }}>
+              {v.score.correctCount}/{v.score.presentedCount}
+            </Text>
+            <Text size="2xs" color="$textLight500">láminas respondidas</Text>
+          </Box>
+          <Box flex={1} bg="$backgroundLight50" borderRadius={12} p="$2.5" alignItems="center">
+            <Text size="2xs" color="$textLight400">FIABILIDAD</Text>
+            <Text size="lg" weight="bold" color={v.reliability === null ? '$textLight400' : v.reliability >= 80 ? '$success600' : '$warning600'}>
+              {v.reliability !== null ? `${v.reliability}%` : '—'}
+            </Text>
+            <Text size="2xs" color="$textLight500">repeticiones de ayuda</Text>
+          </Box>
+        </HStack>
+
+        {v.score.levelScores.length > 0 ? (
+          <VStack space="xs" mt="$3">
+            {v.score.levelScores.map(ls => {
+              const st = verbalDiscriminationStatus(ls.pct);
+              const color = st === 'ok' ? '$success600' : st === 'warn' ? '$warning600' : '$error600';
+              return (
+                <HStack key={ls.level} alignItems="center" justifyContent="space-between">
+                  <Text size="xs" color="$textLight500">
+                    {ls.level} dB · {LEVEL_LABEL[ls.level] ?? 'nivel'}
+                  </Text>
+                  <Text size="xs" weight="bold" color={color} style={{ fontVariant: ['tabular-nums'] }}>
+                    {ls.pct} % ({ls.correct}/{ls.presented})
+                  </Text>
+                </HStack>
+              );
+            })}
+            {v.srtDb !== null ? (
+              <HStack alignItems="center" justifyContent="space-between">
+                <Text size="xs" color="$textLight500">URV estimado</Text>
+                <Text size="xs" weight="bold" color="$textLight700" style={{ fontVariant: ['tabular-nums'] }}>
+                  ≈ {v.srtDb} dB
+                </Text>
+              </HStack>
+            ) : null}
+          </VStack>
+        ) : null}
+      </Card>
+
+      {/* otra pasada / reiniciar */}
+      <Card bgColor="$white" borderRadius={20} p="$4">
+        <Text size="sm" weight="bold" color="$textLight900" mb="$2">
+          Más pasadas
+        </Text>
+        <Text size="2xs" color="$textLight500" mb="$3">
+          Los resultados por nivel se conservan: puede repetir la lista a otro nivel (p. ej. voz baja)
+          para el modo umbral.
+        </Text>
+        <HStack space="sm" flexWrap="wrap" style={{ gap: 6 }}>
+          {PRESENTATION_LEVELS.map(l => (
+            <Button key={l} action="secondary" variant="outline" rounded="$full" onPress={() => startRun(l)}>
+              <Text size="sm" weight="bold" color="$primary500">
+                ▶ Pasada a {l} dB
+              </Text>
+            </Button>
+          ))}
+          <Button action="secondary" variant="outline" rounded="$full" onPress={restartAll}>
+            <HStack space="xs" alignItems="center">
+              <Icon as={RotateCcw} size="xs" color="$textLight500" />
+              <Text size="sm" weight="bold" color="$textLight500">
+                Nueva prueba
+              </Text>
+            </HStack>
+          </Button>
+        </HStack>
+      </Card>
+
+      {/* evaluador + guardar */}
+      <Card bgColor="$white" borderRadius={20} p="$4">
+        <Text size="sm" weight="bold" color="$textLight700" mb="$2">Evaluador responsable</Text>
+        <HStack space="sm" mb="$3">
+          <Input variant="outline" borderRadius={12} style={{ flex: 2 }}>
+            <InputField placeholder="Nombre" value={evaluatorName} onChangeText={setEvaluatorName} />
+          </Input>
+          <Input variant="outline" borderRadius={12} style={{ flex: 1 }}>
+            <InputField placeholder="Colegiado" value={evaluatorLicense} onChangeText={setEvaluatorLicense} />
+          </Input>
+        </HStack>
+        <Input variant="outline" borderRadius={12} h={64} mb="$3">
+          <InputField multiline placeholder="Observaciones clínicas…" value={notes} onChangeText={setNotes} style={{ textAlignVertical: 'top' }} />
+        </Input>
+        <Button
+          action="primary"
+          variant="solid"
+          rounded="$full"
+          isDisabled={isSaving || !evaluatorName.trim() || !evaluatorLicense.trim() || v.score.presentedCount === 0}
+          isLoading={isSaving}
+          onPress={handleSave}>
+          <HStack space="sm" alignItems="center">
+            <Icon as={Save} size="sm" color="$white" />
+            <Text size="sm" weight="bold" color="$white">Guardar audiometría verbal</Text>
+          </HStack>
+        </Button>
+        <HStack space="xs" alignItems="center" justifyContent="center" mt="$2">
+          <Icon as={Check} size="2xs" color="$textLight400" />
+          <Text size="2xs" color="$textLight400" style={{ textAlign: 'center' }}>
+            Medida orientativa sobre el dispositivo. No sustituye equipo certificado ni constituye diagnóstico.
+          </Text>
+        </HStack>
+      </Card>
+    </VStack>
+  );
 
   return (
     <Content
@@ -149,305 +597,7 @@ export default function VerbalAudiometryScreen({ navigation }: Props) {
       <VStack flex={1}>
         <Header animationType="expand" />
         <ScrollView showsVerticalScrollIndicator={false}>
-          <VStack flex={1} px="$6" mt="$2" space="md" pb="$10">
-            {/* título */}
-            <HStack alignItems="center" justifyContent="space-between">
-              <VStack>
-                <HStack alignItems="center" space="sm">
-                  <Text size="2xl" weight="bold" color="$textLight900">
-                    Audiometría verbal
-                  </Text>
-                  <Box bg="$primary50" px="$2" py="$0.5" borderRadius="$full">
-                    <Text size="2xs" weight="bold" color="$primary800" style={{ letterSpacing: 0.4 }}>
-                      CAMPO LIBRE · SIN AUDÍFONOS
-                    </Text>
-                  </Box>
-                </HStack>
-                <Text size="xs" color="$textLight500">
-                  {patientName ?? 'Reconocimiento de palabras por selección de tarjetas'}
-                </Text>
-              </VStack>
-              <HStack space="xs" alignItems="center" bg="$white" borderRadius="$full" px="$3" py="$1.5" borderWidth={1} borderColor="$borderLight100">
-                <Text size="sm">⭐</Text>
-                <Text size="sm" weight="bold" color="$primary600">
-                  {v.score.correctCount}/{scoredTotal}
-                </Text>
-              </HStack>
-            </HStack>
-
-            {/* configuración de la sesión */}
-            <Card bgColor="$white" borderRadius={20} p="$4">
-              <Text size="sm" weight="bold" color="$textLight900" mb="$2">
-                Configuración de la sesión
-              </Text>
-
-              <Text size="xs" weight="semiBold" color="$textLight600" mb="$1">
-                Banda de edad · lista de estímulos (override manual)
-              </Text>
-              <HStack space="sm" flexWrap="wrap" mb="$3" style={{ gap: 6 }}>
-                {VERBAL_BANDS.map(b => {
-                  const on = v.band === b.band;
-                  return (
-                    <Pressable key={b.band} onPress={() => v.setBand(b.band as AgeBand)}>
-                      <Box px="$3" py="$1.5" borderRadius={10} bg={on ? '$textLight900' : '$white'} borderWidth={1.5} borderColor={on ? 'transparent' : '$borderLight200'}>
-                        <Text size="xs" weight="bold" color={on ? '$white' : '$textLight600'}>
-                          Banda {b.band}
-                        </Text>
-                        <Text size="2xs" color={on ? '$textLight300' : '$textLight400'}>
-                          {b.ages} · {b.label.toLowerCase()}
-                        </Text>
-                      </Box>
-                    </Pressable>
-                  );
-                })}
-              </HStack>
-
-              <Text size="xs" weight="semiBold" color="$textLight600" mb="$1">
-                Modo
-              </Text>
-              <HStack space="sm" mb="$3">
-                {MODE_META.map(m => {
-                  const on = v.mode === m.key;
-                  return (
-                    <Pressable key={m.key} style={{ flex: 1 }} onPress={() => v.setMode(m.key)}>
-                      <Center py="$2" borderRadius={10} bg={on ? '$primary500' : '$white'} borderWidth={1.5} borderColor={on ? 'transparent' : '$borderLight200'}>
-                        <Text size="xs" weight="bold" color={on ? '$white' : '$textLight500'}>{m.label}</Text>
-                        <Text size="2xs" color={on ? '$primary100' : '$textLight400'}>{m.hint}</Text>
-                      </Center>
-                    </Pressable>
-                  );
-                })}
-              </HStack>
-
-              <Text size="xs" weight="semiBold" color="$textLight600" mb="$1">
-                Nivel de presentación
-              </Text>
-              <HStack space="sm" mb="$3">
-                {PRESENTATION_LEVELS.map(l => {
-                  const on = v.level === l;
-                  return (
-                    <Pressable key={l} style={{ flex: 1 }} onPress={() => v.setLevel(l)}>
-                      <Center py="$2" borderRadius={10} bg={on ? '$primary500' : '$white'} borderWidth={1.5} borderColor={on ? 'transparent' : '$borderLight200'}>
-                        <Text size="xs" weight="bold" color={on ? '$white' : '$textLight500'} style={{ fontVariant: ['tabular-nums'] }}>
-                          {l} dB
-                        </Text>
-                        <Text size="2xs" color={on ? '$primary100' : '$textLight400'}>{LEVEL_LABEL[l]}</Text>
-                      </Center>
-                    </Pressable>
-                  );
-                })}
-              </HStack>
-
-              <Box bg="$warning50" borderRadius={12} p="$2.5">
-                <Text size="2xs" color="$warning800" style={{ lineHeight: 15 }}>
-                  ⚠️ Nivel orientativo: la presentación por altavoz no está calibrada clínicamente. La salida robusta es
-                  el % de discriminación a voz conversacional. Resultado binaural (mejor oído): no descarta pérdida
-                  unilateral.
-                  {v.audioEngine !== 'assets' ? ' Dictado por síntesis de voz nativa del dispositivo (TTS): nivel relativo aplicado, sin calibración absoluta.' : ''}
-                </Text>
-              </Box>
-            </Card>
-
-            {/* estímulo */}
-            <Card bgColor="$white" borderRadius={20} p="$4">
-              <HStack space="sm" alignItems="stretch">
-                <Button
-                  action="primary"
-                  variant="solid"
-                  rounded="$xl"
-                  style={{ flex: 1 }}
-                  isDisabled={!v.item || answered}
-                  onPress={v.playStimulus}>
-                  <HStack space="sm" alignItems="center">
-                    <Icon as={Volume2} size="md" color="$white" />
-                    <Text size="md" weight="bold" color="$white">
-                      {v.played ? 'Palabra presentada' : 'Escuchar palabra'}
-                    </Text>
-                  </HStack>
-                </Button>
-                <Pressable onPress={v.repeatStimulus} disabled={!v.canRepeat}>
-                  <Center px="$4" py="$2" borderRadius={14} borderWidth={1.5} borderColor="$borderLight200" bg="$white" style={{ opacity: v.canRepeat ? 1 : 0.45, height: '100%' }}>
-                    <Text size="xs" weight="bold" color="$textLight600">Repetir</Text>
-                    <Text size="sm" weight="bold" color="$textLight900" style={{ fontVariant: ['tabular-nums'] }}>
-                      {v.repeats}/{MAX_REPEATS}
-                    </Text>
-                  </Center>
-                </Pressable>
-              </HStack>
-              <HStack justifyContent="space-between" alignItems="center" mt="$2.5">
-                <Text size="xs" color="$textLight500" style={{ fontVariant: ['tabular-nums'] }}>
-                  Lámina {Math.min(v.itemIndex + 1, v.itemTotal)}/{v.itemTotal}
-                  {v.isPractice ? ' · práctica' : ''}
-                </Text>
-                {v.playing ? (
-                  <Box bg="$warning50" px="$2.5" py="$1" borderRadius="$full">
-                    <Text size="2xs" weight="bold" color="$warning700">SONANDO…</Text>
-                  </Box>
-                ) : null}
-              </HStack>
-            </Card>
-
-            {/* tarjetas de selección */}
-            <Card bgColor="$white" borderRadius={20} p="$4">
-              <Text size="sm" weight="bold" color="$textLight900" mb="$3">
-                {v.modality === 'images' ? '¿Qué has oído? Toca su dibujo' : '¿Qué palabra has oído? Toca su tarjeta'}
-              </Text>
-
-              {v.completedForLevel ? (
-                <VStack space="sm" alignItems="center" py="$4">
-                  <Text size="lg" weight="bold" color="$success700">
-                    ✓ Lista completada a {v.level} dB
-                  </Text>
-                  <Text size="xs" color="$textLight500" style={{ textAlign: 'center' }}>
-                    Puede repetir la lista a otro nivel (los resultados por nivel se conservan) o guardar el resultado.
-                  </Text>
-                  <HStack space="sm" mt="$1">
-                    {PRESENTATION_LEVELS.filter(l => l !== v.level).map(l => (
-                      <Button key={l} action="secondary" variant="outline" rounded="$full" onPress={() => v.setLevel(l)}>
-                        <Text size="sm" weight="bold" color="$primary500">
-                          Pasada a {l} dB
-                        </Text>
-                      </Button>
-                    ))}
-                  </HStack>
-                </VStack>
-              ) : (
-                <>
-                  <HStack flexWrap="wrap" justifyContent="space-between" style={{ rowGap: 10 }}>
-                    {v.options.map(opt => (
-                      <Box key={opt.word} style={{ width: cardWidth, marginBottom: 2 }}>
-                        <WordCard
-                          word={opt.word}
-                          imageSource={opt.image ? verbalImageSource(opt.image) : undefined}
-                          glyph={VERBAL_GLYPHS[opt.word]}
-                          modality={v.modality}
-                          state={cardStateOf(opt.word)}
-                          size={v.band === 'D' ? 'md' : 'lg'}
-                          onPress={() => v.choose(opt.word)}
-                        />
-                      </Box>
-                    ))}
-                  </HStack>
-                  {!v.played ? (
-                    <Text size="2xs" color="$textLight400" mt="$2" style={{ textAlign: 'center' }}>
-                      Pulse «Escuchar palabra» para habilitar las tarjetas
-                    </Text>
-                  ) : null}
-                </>
-              )}
-
-              {/* asistente + siguiente */}
-              <HStack space="sm" alignItems="stretch" mt="$3">
-                <Box flex={1} bg={assistant.bg} borderRadius={14} p="$3" justifyContent="center">
-                  <Text size="2xs" weight="bold" color="$warning700" style={{ letterSpacing: 0.4 }}>{assistant.tag}</Text>
-                  <Text size="xs" weight="semiBold" color="$textLight800" mt="$0.5" style={{ lineHeight: 17 }}>
-                    {assistant.text}
-                  </Text>
-                </Box>
-                {answered && !v.completedForLevel ? (
-                  <Button action="primary" variant="solid" rounded="$xl" onPress={v.next} style={{ width: 120 }}>
-                    <Text size="sm" weight="bold" color="$white">Siguiente →</Text>
-                  </Button>
-                ) : null}
-                <Pressable onPress={v.reset}>
-                  <Center w={44} borderRadius={12} borderWidth={1} borderColor="$borderLight200" bg="$white" style={{ height: '100%' }}>
-                    <Icon as={RotateCcw} size="sm" color="$textLight500" />
-                  </Center>
-                </Pressable>
-              </HStack>
-            </Card>
-
-            {/* marcador */}
-            <Card bgColor="$white" borderRadius={20} p="$4">
-              <Text size="sm" weight="bold" color="$textLight900" mb="$2">
-                Marcador de la prueba
-              </Text>
-              <HStack space="sm">
-                <Box flex={1} bg="$backgroundLight50" borderRadius={12} p="$2.5" alignItems="center">
-                  <Text size="2xs" color="$textLight400">DISCRIMINACIÓN</Text>
-                  <Text size="lg" weight="bold" color={v.score.presentedCount ? pctColor : '$textLight400'}>
-                    {v.score.presentedCount ? `${v.score.discriminationPct}%` : '—'}
-                  </Text>
-                  <Text size="2xs" color="$textLight500">{v.level} dB · {LEVEL_LABEL[v.level] ?? ''}</Text>
-                </Box>
-                <Box flex={1} bg="$backgroundLight50" borderRadius={12} p="$2.5" alignItems="center">
-                  <Text size="2xs" color="$textLight400">ACIERTOS</Text>
-                  <Text size="lg" weight="bold" color="$textLight700" style={{ fontVariant: ['tabular-nums'] }}>
-                    {v.score.correctCount}/{v.score.presentedCount}
-                  </Text>
-                  <Text size="2xs" color="$textLight500">láminas respondidas</Text>
-                </Box>
-                <Box flex={1} bg="$backgroundLight50" borderRadius={12} p="$2.5" alignItems="center">
-                  <Text size="2xs" color="$textLight400">FIABILIDAD</Text>
-                  <Text size="lg" weight="bold" color={v.reliability === null ? '$textLight400' : v.reliability >= 80 ? '$success600' : '$warning600'}>
-                    {v.reliability !== null ? `${v.reliability}%` : '—'}
-                  </Text>
-                  <Text size="2xs" color="$textLight500">repeticiones de ayuda</Text>
-                </Box>
-              </HStack>
-
-              {v.score.levelScores.length > 0 ? (
-                <VStack space="xs" mt="$3">
-                  {v.score.levelScores.map(ls => {
-                    const st = verbalDiscriminationStatus(ls.pct);
-                    const color = st === 'ok' ? '$success600' : st === 'warn' ? '$warning600' : '$error600';
-                    return (
-                      <HStack key={ls.level} alignItems="center" justifyContent="space-between">
-                        <Text size="xs" color="$textLight500">
-                          {ls.level} dB · {LEVEL_LABEL[ls.level] ?? 'nivel'}
-                        </Text>
-                        <Text size="xs" weight="bold" color={color} style={{ fontVariant: ['tabular-nums'] }}>
-                          {ls.pct} % ({ls.correct}/{ls.presented})
-                        </Text>
-                      </HStack>
-                    );
-                  })}
-                  {v.srtDb !== null ? (
-                    <HStack alignItems="center" justifyContent="space-between">
-                      <Text size="xs" color="$textLight500">URV estimado</Text>
-                      <Text size="xs" weight="bold" color="$textLight700" style={{ fontVariant: ['tabular-nums'] }}>
-                        ≈ {v.srtDb} dB
-                      </Text>
-                    </HStack>
-                  ) : null}
-                </VStack>
-              ) : null}
-            </Card>
-
-            {/* evaluador + guardar */}
-            <Card bgColor="$white" borderRadius={20} p="$4">
-              <Text size="sm" weight="bold" color="$textLight700" mb="$2">Evaluador responsable</Text>
-              <HStack space="sm" mb="$3">
-                <Input variant="outline" borderRadius={12} style={{ flex: 2 }}>
-                  <InputField placeholder="Nombre" value={evaluatorName} onChangeText={setEvaluatorName} />
-                </Input>
-                <Input variant="outline" borderRadius={12} style={{ flex: 1 }}>
-                  <InputField placeholder="Colegiado" value={evaluatorLicense} onChangeText={setEvaluatorLicense} />
-                </Input>
-              </HStack>
-              <Input variant="outline" borderRadius={12} h={64} mb="$3">
-                <InputField multiline placeholder="Observaciones clínicas…" value={notes} onChangeText={setNotes} style={{ textAlignVertical: 'top' }} />
-              </Input>
-              <Button
-                action="primary"
-                variant="solid"
-                rounded="$full"
-                isDisabled={isSaving || !evaluatorName.trim() || !evaluatorLicense.trim() || v.score.presentedCount === 0}
-                isLoading={isSaving}
-                onPress={handleSave}>
-                <HStack space="sm" alignItems="center">
-                  <Icon as={Save} size="sm" color="$white" />
-                  <Text size="sm" weight="bold" color="$white">Guardar audiometría verbal</Text>
-                </HStack>
-              </Button>
-              <HStack space="xs" alignItems="center" justifyContent="center" mt="$2">
-                <Icon as={Check} size="2xs" color="$textLight400" />
-                <Text size="2xs" color="$textLight400" style={{ textAlign: 'center' }}>
-                  Medida orientativa sobre el dispositivo. No sustituye equipo certificado ni constituye diagnóstico.
-                </Text>
-              </HStack>
-            </Card>
-          </VStack>
+          {phase === 'setup' ? renderSetup() : phase === 'play' ? renderPlay() : renderResults()}
         </ScrollView>
       </VStack>
     </Content>

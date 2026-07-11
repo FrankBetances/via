@@ -18,7 +18,8 @@ export interface VoiceParams {
   jitter: number;
   shimmer: number;
   hnr: number;
-  formants: VoiceFormants;
+  /** null = F1–F3 no estimables en la toma. */
+  formants: VoiceFormants | null;
 }
 
 export const statusF0 = (f0: number): VoiceParamStatus =>
@@ -88,8 +89,13 @@ export const buildInterpretation = (p: VoiceParams): string => {
   if (statusShimmer(p.shimmer) !== 'normal') flags.push('shimmer elevado (inestabilidad de amplitud)');
   if (statusHnr(p.hnr) !== 'normal') flags.push('HNR reducido (mayor componente de ruido)');
 
+  const formantNote =
+    p.formants === null
+      ? ' Los formantes F1–F3 no pudieron estimarse en esta toma.'
+      : '';
+
   if (flags.length === 0) {
-    return 'Parámetros acústicos dentro de los rangos normativos para voz infantil. Calidad vocal sin signos de perturbación significativa.';
+    return `Parámetros acústicos dentro de los rangos normativos para voz infantil. Calidad vocal sin signos de perturbación significativa.${formantNote}`;
   }
-  return `Se observa: ${flags.join('; ')}. Considere valoración perceptual (GRBAS) y seguimiento de la calidad vocal.`;
+  return `Se observa: ${flags.join('; ')}. Considere valoración perceptual (GRBAS) y seguimiento de la calidad vocal.${formantNote}`;
 };
