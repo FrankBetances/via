@@ -5,7 +5,6 @@ on:
   push:
     branches:
       - main
-      - claude/github-workflows-android-signing-rlrk8f
     paths:
       - "android/**"
       - "src/**"
