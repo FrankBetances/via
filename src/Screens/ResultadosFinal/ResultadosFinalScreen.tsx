@@ -13,6 +13,7 @@ import {
   Mail,
   Mic2,
   MoreHorizontal,
+  Volume2,
   Printer,
   Share2,
   Stethoscope,
@@ -34,10 +35,17 @@ import { VoiceAnalysisRepository } from '@/Repositories/VoiceAnalysisRepository'
 import { DysphagiaTestRepository } from '@/Repositories/DysphagiaTestRepository';
 import { SahsScreeningRepository } from '@/Repositories/SahsScreeningRepository';
 import { ArticulationTestRepository } from '@/Repositories/ArticulationTestRepository';
+import { VerbalAudiometryRepository } from '@/Repositories/VerbalAudiometryRepository';
 import { ScreeningRepository } from '@/Repositories/ScreeningRepository';
 import { EvaluationRepository } from '@/Repositories/EvaluationRepository';
 
 import { FREQS, interpretAudiometry } from '@/Screens/Audiometry/audiometryResult';
+import {
+  BAND_LABEL,
+  LEVEL_LABEL,
+  MODALITY_LABEL,
+  verbalDiscriminationStatus,
+} from '@/Screens/VerbalAudiometry/verbalAudiometryResult';
 import {
   buildInterpretation as buildVoiceInterpretation,
   statusF0,
@@ -151,6 +159,40 @@ export default function ResultadosFinalScreen({ navigation }: Props) {
             oi,
             cl,
             interp: interpretAudiometry(a.thresholds),
+          });
+        });
+
+        const verbals = await VerbalAudiometryRepository.getVerbalAudiometryByEvaluation(evaluationId);
+        verbals.forEach(v => {
+          const status: StatusKind = v.presentedCount
+            ? verbalDiscriminationStatus(v.discriminationPct)
+            : 'warn';
+          const rows: SimpleRow[] = [
+            {
+              label: 'Banda / modalidad',
+              value: BAND_LABEL[v.ageBand] ?? v.ageBand,
+              status: 'ok',
+              tag: MODALITY_LABEL[v.modality] ?? v.modality,
+            },
+            ...(v.levelScores ?? []).map(ls => ({
+              label: `Discriminación · ${ls.level} dB${LEVEL_LABEL[ls.level] ? ` (${LEVEL_LABEL[ls.level]})` : ''}`,
+              value: `${ls.pct} %`,
+              status: verbalDiscriminationStatus(ls.pct),
+              tag: `${ls.correct}/${ls.presented}`,
+            })),
+            ...(v.srtDb != null
+              ? [{ label: 'URV · umbral de recepción verbal', value: `≈ ${v.srtDb} dB`, status: 'ok' as StatusKind, tag: 'estimado' }]
+              : []),
+          ];
+          result.push({
+            id: `verbal-${v.id}`,
+            kind: 'rows',
+            status,
+            title: 'Audiometría Verbal',
+            subtitle: 'Reconocimiento por tarjetas · campo libre · sin audífonos',
+            icon: Volume2,
+            rows,
+            interp: v.interpretation || 'Audiometría verbal completada.',
           });
         });
 

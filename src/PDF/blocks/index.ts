@@ -19,6 +19,7 @@ export { VoiceAnalysisDetail } from './VoiceAnalysisDetail';
 export { DysphagiaDetail } from './DysphagiaDetail';
 export { SahsScreeningDetail } from './SahsScreeningDetail';
 export { ArticulationDetail } from './ArticulationDetail';
+export { VerbalAudiometryDetail } from './VerbalAudiometryDetail';
 
 import { ClinicalAssessmentDetail } from './ClinicalAssessmentDetail';
 import { ScreeningDetail } from './ScreeningDetail';
@@ -27,6 +28,7 @@ import { VoiceAnalysisDetail } from './VoiceAnalysisDetail';
 import { DysphagiaDetail } from './DysphagiaDetail';
 import { SahsScreeningDetail } from './SahsScreeningDetail';
 import { ArticulationDetail } from './ArticulationDetail';
+import { VerbalAudiometryDetail } from './VerbalAudiometryDetail';
 
 /**
  * Registro de bloques de informe por módulo, recorrido por
@@ -40,4 +42,5 @@ export const blocks: Record<string, PdfBlock<any>> = {
   DysphagiaDetail,
   SahsScreeningDetail,
   ArticulationDetail,
+  VerbalAudiometryDetail,
 };

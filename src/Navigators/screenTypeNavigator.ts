@@ -25,6 +25,7 @@ export type RootStackParamList = {
   DysphagiaTest: undefined;
   SahsScreening: undefined;
   Articulation: undefined;
+  VerbalAudiometry: undefined;
 
   // New screen routes appended by later phases (mockup-based hub screens, etc.)
   SeleccionEjercicios: undefined;

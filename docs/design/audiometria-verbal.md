@@ -544,18 +544,18 @@ for (const test of verbals) {
 - [x] `src/Models/VerbalAudiometry/VerbalAudiometryTest.ts` (+ `index.ts`)
 - [x] `src/Screens/VerbalAudiometry/verbalAudiometryResult.ts` (tipos + lógica)
 - [x] `src/Screens/VerbalAudiometry/verbalAudiometryLists.ts` (bandas A–D)
-- [ ] `src/Screens/VerbalAudiometry/verbalAudiometryAudio.ts` (assets + TTS fallback)
-- [ ] `src/Screens/VerbalAudiometry/useVerbalAudiometryTest.ts` (hook de estado)
+- [x] `src/Screens/VerbalAudiometry/verbalAudiometryAudio.ts` (assets + TTS fallback)
+- [x] `src/Screens/VerbalAudiometry/useVerbalAudiometryTest.ts` (hook de estado)
 - [x] `src/Screens/VerbalAudiometry/components/WordCard.tsx`
-- [ ] `src/Screens/VerbalAudiometry/VerbalAudiometryScreen.tsx` (+ `index.ts`)
-- [ ] `src/Services/local/modules/verbalAudiometry/*` (CRUD RTK)
-- [ ] `src/Repositories/VerbalAudiometryRepository.ts`
+- [x] `src/Screens/VerbalAudiometry/VerbalAudiometryScreen.tsx` (+ `index.ts`)
+- [x] `src/Services/local/modules/verbalAudiometry/*` (CRUD RTK)
+- [x] `src/Repositories/VerbalAudiometryRepository.ts`
 - [x] `src/Database/migrations/1718900000400-CreateVerbalAudiometry.ts`
 - [x] `src/Database/config.ts` (registrar entidad)
-- [ ] `src/PDF/blocks/VerbalAudiometryDetail.ts` (+ `blocks/index.ts` + `templates/Report.ts`)
-- [ ] `src/Navigators/screenTypeNavigator.ts` + `Default.tsx` (ruta)
-- [ ] `src/Screens/SeleccionEjercicios/SeleccionEjerciciosScreen.tsx` (tarjeta módulo)
-- [ ] `src/Screens/ResultadosFinal/ResultadosFinalScreen.tsx` (bloque de resultado)
+- [x] `src/PDF/blocks/VerbalAudiometryDetail.ts` (+ `blocks/index.ts` + `templates/Report.ts`)
+- [x] `src/Navigators/screenTypeNavigator.ts` + `Default.tsx` (ruta)
+- [x] `src/Screens/SeleccionEjercicios/SeleccionEjerciciosScreen.tsx` (tarjeta módulo)
+- [x] `src/Screens/ResultadosFinal/ResultadosFinalScreen.tsx` (bloque de resultado)
 - [ ] **Assets:** `assets/audio/verbal/*.m4a`, `assets/img/verbal/*.png`
 - [x] **Tests:** `verbalAudiometryResult.test.ts` + `verbalAudiometryLists.test.ts` (31 tests: puntuación, cortes, banda por edad, invariantes de listas, barajado determinista, inventario de assets)
 - [ ] **Validación clínica** de listas y cortes por el logopeda; localización es-XX
