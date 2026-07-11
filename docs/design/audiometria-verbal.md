@@ -541,17 +541,17 @@ for (const test of verbals) {
 
 ## 12. Checklist de implementación (Iteración 2)
 
-- [ ] `src/Models/VerbalAudiometry/VerbalAudiometryTest.ts` (+ `index.ts`)
+- [x] `src/Models/VerbalAudiometry/VerbalAudiometryTest.ts` (+ `index.ts`)
 - [x] `src/Screens/VerbalAudiometry/verbalAudiometryResult.ts` (tipos + lógica)
 - [x] `src/Screens/VerbalAudiometry/verbalAudiometryLists.ts` (bandas A–D)
 - [ ] `src/Screens/VerbalAudiometry/verbalAudiometryAudio.ts` (assets + TTS fallback)
 - [ ] `src/Screens/VerbalAudiometry/useVerbalAudiometryTest.ts` (hook de estado)
-- [ ] `src/Screens/VerbalAudiometry/components/WordCard.tsx`
+- [x] `src/Screens/VerbalAudiometry/components/WordCard.tsx`
 - [ ] `src/Screens/VerbalAudiometry/VerbalAudiometryScreen.tsx` (+ `index.ts`)
 - [ ] `src/Services/local/modules/verbalAudiometry/*` (CRUD RTK)
 - [ ] `src/Repositories/VerbalAudiometryRepository.ts`
-- [ ] `src/Database/migrations/1718900000400-CreateVerbalAudiometry.ts`
-- [ ] `src/Database/config.ts` (registrar entidad)
+- [x] `src/Database/migrations/1718900000400-CreateVerbalAudiometry.ts`
+- [x] `src/Database/config.ts` (registrar entidad)
 - [ ] `src/PDF/blocks/VerbalAudiometryDetail.ts` (+ `blocks/index.ts` + `templates/Report.ts`)
 - [ ] `src/Navigators/screenTypeNavigator.ts` + `Default.tsx` (ruta)
 - [ ] `src/Screens/SeleccionEjercicios/SeleccionEjerciciosScreen.tsx` (tarjeta módulo)
