@@ -1,6 +1,14 @@
 apply plugin: "com.android.application"
 apply plugin: "org.jetbrains.kotlin.android"
 apply plugin: "com.facebook.react"
+// Firebase (Auth/Firestore): el plugin exige android/app/google-services.json.
+// Se aplica condicionalmente para no romper el build mientras el archivo no
+// esté registrado; sin él, Firebase no se inicializa en runtime.
+if (file('google-services.json').exists()) {
+    apply plugin: "com.google.gms.google-services"
+} else {
+    logger.warn("VIA+: falta android/app/google-services.json — Firebase quedará sin inicializar en este build.")
+}
 
 /**
  * This is the configuration block to customize your React Native Android app.

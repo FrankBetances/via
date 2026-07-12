@@ -27,6 +27,7 @@ import RadialBackground from '@/Components/Themed/RadialBackground';
 import { RootStackParamList } from '@/Navigators';
 import { AppDispatch, RootState } from '@/Store';
 import { logout } from '@/Store/slices/authSlice';
+import { signOutQuietly } from '@/Services/firebase';
 import { Evaluation } from '@/Models/Evaluation/Evaluation';
 import { useClassSelector } from '@/Helpers/ClassTransformer';
 import ModuleCardItem, { ModuleCardData } from './ModuleCardItem';
@@ -198,7 +199,10 @@ export default function SeleccionEjerciciosScreen({ navigation }: Props) {
                     </Text>
                   </HStack>
                 </Pressable>
-                <Pressable style={{ flex: 1 }} onPress={() => dispatch(logout())}>
+                <Pressable style={{ flex: 1 }} onPress={() => {
+                  signOutQuietly();
+                  dispatch(logout());
+                }}>
                   <HStack space="xs" alignItems="center" justifyContent="center" py="$2.5" borderRadius={14} borderWidth={1.5} borderColor="$error200" bg="$error50">
                     <Icon as={LogOut} size="xs" color="$error500" />
                     <Text size="xs" weight="bold" color="$error500">

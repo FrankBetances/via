@@ -1,12 +1,16 @@
 import React, { useCallback, useState } from 'react';
 import {
+  ActivityIndicator,
   FlatList,
+  KeyboardAvoidingView,
   ListRenderItemInfo,
+  Modal,
   Platform,
   Pressable,
   StatusBar,
   StyleSheet,
   Text,
+  TextInput,
   View,
 } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -20,11 +24,15 @@ import { loginSuccess } from '@/Store/slices/authSlice';
 import { Professional, ProfessionalRole } from '@/Models/Professional/Professional';
 import { ProfessionalRepository } from '@/Repositories/ProfessionalRepository';
 import { showErrorToast } from '@/Helpers/showToast';
+import { describeAuthError, signInWithEmail } from '@/Services/firebase';
 
 /* -------------------------------------------------------------------------- */
-/*  SeleccionProfesionalScreen — acceso sin usuario/contraseña: se elige el    */
-/*  perfil profesional del dispositivo y se abre sesión (`loginSuccess`; el    */
-/*  gate de DefaultNavigator cambia de grupo y aterriza en Pacientes).         */
+/*  SeleccionProfesionalScreen — acceso del profesional: se elige el perfil    */
+/*  del dispositivo y, si tiene cuenta (email), se pide la contraseña y se     */
+/*  verifica contra Firebase Authentication antes de abrir sesión              */
+/*  (`loginSuccess`; el gate de DefaultNavigator cambia de grupo y aterriza    */
+/*  en Pacientes). Los perfiles antiguos sin email conservan el acceso         */
+/*  directo de siempre.                                                        */
 /*  Diseño en el lenguaje visual de Bienvenida/Créditos: saludo según la       */
 /*  hora, tarjetas con avatar en anillo de color y rol con emoji, y alta de    */
 /*  nuevo perfil como tarjeta punteada destacada.                              */
@@ -111,6 +119,12 @@ export default function SeleccionProfesionalScreen({ navigation }: Props) {
   const [professionals, setProfessionals] = useState<Professional[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
+  // Perfil pendiente de verificación de contraseña (abre el modal de acceso).
+  const [authTarget, setAuthTarget] = useState<Professional | null>(null);
+  const [password, setPassword] = useState('');
+  const [authError, setAuthError] = useState<string | null>(null);
+  const [isAuthenticating, setIsAuthenticating] = useState(false);
+
   // Recarga al volver del alta de profesional.
   useFocusEffect(
     useCallback(() => {
@@ -131,7 +145,7 @@ export default function SeleccionProfesionalScreen({ navigation }: Props) {
     }, []),
   );
 
-  const handleSelect = useCallback(
+  const openSession = useCallback(
     (professional: Professional) => {
       dispatch(
         loginSuccess({
@@ -149,6 +163,45 @@ export default function SeleccionProfesionalScreen({ navigation }: Props) {
     },
     [dispatch],
   );
+
+  const handleSelect = useCallback(
+    (professional: Professional) => {
+      if (professional.email) {
+        // Cuenta con credenciales: la contraseña se verifica contra Firebase
+        // Authentication en el modal antes de abrir sesión.
+        setPassword('');
+        setAuthError(null);
+        setAuthTarget(professional);
+        return;
+      }
+      // Perfil antiguo sin cuenta: acceso directo como hasta ahora.
+      openSession(professional);
+    },
+    [openSession],
+  );
+
+  const closeAuthModal = useCallback(() => {
+    if (isAuthenticating) return;
+    setAuthTarget(null);
+    setPassword('');
+    setAuthError(null);
+  }, [isAuthenticating]);
+
+  const handleConfirmPassword = useCallback(async () => {
+    if (!authTarget?.email || !password || isAuthenticating) return;
+    setIsAuthenticating(true);
+    setAuthError(null);
+    try {
+      await signInWithEmail(authTarget.email, password);
+      setAuthTarget(null);
+      setPassword('');
+      openSession(authTarget);
+    } catch (e) {
+      setAuthError(describeAuthError(e));
+    } finally {
+      setIsAuthenticating(false);
+    }
+  }, [authTarget, password, isAuthenticating, openSession]);
 
   const renderItem = useCallback(
     ({ item, index }: ListRenderItemInfo<Professional>) => (
@@ -179,7 +232,7 @@ export default function SeleccionProfesionalScreen({ navigation }: Props) {
               {hello.text} {hello.emoji}
             </Text>
             <Text style={styles.title}>¿Quién va a evaluar hoy?</Text>
-            <Text style={styles.subtitle}>Elige tu perfil para empezar · sin usuario ni contraseña</Text>
+            <Text style={styles.subtitle}>Elige tu perfil y accede con tu contraseña</Text>
 
             {/* ----- alta de nuevo profesional ----- */}
             <Pressable onPress={() => navigation.navigate('RegistroProfesional')}>
@@ -221,6 +274,61 @@ export default function SeleccionProfesionalScreen({ navigation }: Props) {
           </View>
         }
       />
+
+      {/* ----- modal de contraseña (verificación con Firebase Auth) ----- */}
+      <Modal visible={!!authTarget} transparent animationType="fade" onRequestClose={closeAuthModal}>
+        <KeyboardAvoidingView style={styles.modalBackdrop} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+          <View style={styles.modalCard}>
+            <View style={styles.modalAvatar}>
+              <Text style={styles.modalAvatarText}>{authTarget ? initials(authTarget.fullName) : ''}</Text>
+            </View>
+            <Text style={styles.modalTitle}>{authTarget?.fullName}</Text>
+            <Text style={styles.modalSubtitle}>{authTarget?.email}</Text>
+
+            <TextInput
+              style={styles.modalInput}
+              placeholder="Contraseña"
+              placeholderTextColor="#B8B2A7"
+              value={password}
+              onChangeText={text => {
+                setPassword(text);
+                if (authError) setAuthError(null);
+              }}
+              secureTextEntry
+              autoCapitalize="none"
+              autoFocus
+              editable={!isAuthenticating}
+              onSubmitEditing={handleConfirmPassword}
+              returnKeyType="go"
+            />
+
+            {authError ? <Text style={styles.modalError}>{authError}</Text> : null}
+
+            <View style={styles.modalButtonsRow}>
+              <Pressable
+                style={({ pressed }) => [styles.modalCancel, pressed && styles.cardPressed]}
+                disabled={isAuthenticating}
+                onPress={closeAuthModal}>
+                <Text style={styles.modalCancelText}>Cancelar</Text>
+              </Pressable>
+              <Pressable
+                style={({ pressed }) => [
+                  styles.modalConfirm,
+                  (!password || isAuthenticating) && styles.modalConfirmDisabled,
+                  pressed && !!password && !isAuthenticating && styles.cardPressed,
+                ]}
+                disabled={!password || isAuthenticating}
+                onPress={handleConfirmPassword}>
+                {isAuthenticating ? (
+                  <ActivityIndicator color="#FFFFFF" />
+                ) : (
+                  <Text style={styles.modalConfirmText}>Acceder →</Text>
+                )}
+              </Pressable>
+            </View>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
     </View>
   );
 }
@@ -446,5 +554,108 @@ const styles = StyleSheet.create({
     lineHeight: 20,
     color: '#8A8274',
     textAlign: 'center',
+  },
+
+  /* ----- modal de contraseña ----- */
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(58,53,47,0.55)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 28,
+  },
+  modalCard: {
+    width: '100%',
+    maxWidth: 380,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 24,
+    padding: 22,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOpacity: 0.25,
+    shadowRadius: 24,
+    shadowOffset: { width: 0, height: 12 },
+    elevation: 12,
+  },
+  modalAvatar: {
+    width: 54,
+    height: 54,
+    borderRadius: 27,
+    backgroundColor: '#FF7F00',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 10,
+  },
+  modalAvatarText: {
+    color: '#FFFFFF',
+    fontSize: 17,
+    fontWeight: '800',
+  },
+  modalTitle: {
+    fontSize: 17,
+    fontWeight: '800',
+    color: '#3A352F',
+    textAlign: 'center',
+  },
+  modalSubtitle: {
+    fontFamily: MONO,
+    fontSize: 11,
+    color: '#A89F93',
+    marginTop: 3,
+    marginBottom: 16,
+  },
+  modalInput: {
+    alignSelf: 'stretch',
+    borderWidth: 1.5,
+    borderColor: '#E9E2D5',
+    borderRadius: 13,
+    paddingHorizontal: 14,
+    paddingVertical: Platform.OS === 'ios' ? 12 : 9,
+    fontSize: 15,
+    color: '#3A352F',
+    backgroundColor: '#FBF9F4',
+  },
+  modalError: {
+    alignSelf: 'stretch',
+    fontSize: 12,
+    lineHeight: 17,
+    color: '#C2410C',
+    marginTop: 8,
+  },
+  modalButtonsRow: {
+    flexDirection: 'row',
+    alignSelf: 'stretch',
+    gap: 10,
+    marginTop: 16,
+  },
+  modalCancel: {
+    flex: 1,
+    borderRadius: 999,
+    borderWidth: 1.5,
+    borderColor: '#E9E2D5',
+    paddingVertical: 13,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  modalCancelText: {
+    color: '#6E6759',
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  modalConfirm: {
+    flex: 1.4,
+    borderRadius: 999,
+    backgroundColor: '#FF7F00',
+    paddingVertical: 13,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  modalConfirmDisabled: {
+    backgroundColor: '#D8CFC0',
+  },
+  modalConfirmText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '800',
   },
 });

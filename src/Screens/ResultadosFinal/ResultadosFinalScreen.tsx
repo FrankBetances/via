@@ -28,6 +28,7 @@ import RadialBackground from '@/Components/Themed/RadialBackground';
 import { RootStackParamList } from '@/Navigators';
 import { AppDispatch, RootState } from '@/Store';
 import { logout } from '@/Store/slices/authSlice';
+import { signOutQuietly } from '@/Services/firebase';
 import { Evaluation } from '@/Models/Evaluation/Evaluation';
 import { useClassSelector } from '@/Helpers/ClassTransformer';
 
@@ -492,7 +493,10 @@ export default function ResultadosFinalScreen({ navigation }: Props) {
                     </Text>
                   </HStack>
                 </Button>
-                <Button action="secondary" variant="outline" rounded="$full" mt="$1" onPress={() => dispatch(logout())}>
+                <Button action="secondary" variant="outline" rounded="$full" mt="$1" onPress={() => {
+                  signOutQuietly();
+                  dispatch(logout());
+                }}>
                   <HStack space="sm" alignItems="center">
                     <Icon as={LogOut} size="sm" color="$error500" />
                     <Text size="sm" weight="bold" color="$error500">
