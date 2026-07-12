@@ -1,8 +1,14 @@
 import { PermissionsAndroid, Platform } from 'react-native';
 import { AudioManager, AudioRecorder } from 'react-native-audio-api';
 
-import { clamp } from '@/Helpers/numeric';
 import { NoiseMicAdapter, setNoiseMicAdapter } from './useNoiseMeter';
+import {
+  meanSquare,
+  meanSquareToSpl,
+  smoothBands,
+  spectrumBands,
+  updateLeqMeanSquare,
+} from './noiseDsp';
 
 /* -------------------------------------------------------------------------- */
 /*  noiseMicAdapter — captura REAL del micrófono para el sonómetro             */
@@ -14,9 +20,11 @@ import { NoiseMicAdapter, setNoiseMicAdapter } from './useNoiseMeter';
 /*  nueva arquitectura de RN 0.80 no entrega audio: el sonómetro quedaba       */
 /*  atrapado en modo demostración con datos simulados.                         */
 /*                                                                             */
-/*  Pipeline: bloques PCM mono de ~100 ms a 48 kHz → RMS → dBFS → dB SPL       */
-/*  aproximados (mapeo relativo 28–92 dB, sin calibración absoluta) + 24       */
-/*  bandas de energía temporal para el espectro de la UI.                      */
+/*  Pipeline: bloques PCM mono de ~100 ms a 48 kHz → energía media → promedio  */
+/*  ENERGÉTICO (Leq, ver `noiseDsp`) → dB SPL orientativo (mapeo relativo      */
+/*  28–92 dB, sin calibración absoluta) + espectro FFT real por bandas log.    */
+/*  El Leq y la FFT sustituyen al RMS de un único bloque y a la envolvente     */
+/*  temporal, que hacían que la lectura y el espectro «saltaran al azar».      */
 /*                                                                             */
 /*  Permisos: Android `RECORD_AUDIO` (lo solicita el adaptador); iOS           */
 /*  `NSMicrophoneUsageDescription` en Info.plist.                              */
@@ -24,7 +32,11 @@ import { NoiseMicAdapter, setNoiseMicAdapter } from './useNoiseMeter';
 
 const CAPTURE_SR = 48000;
 const BUFFER_SAMPLES = Math.round(CAPTURE_SR * 0.1); // ~100 ms por bloque
-const BANDS = 24;
+/** Peso del bloque nuevo en el promedio energético (Leq). ~100 ms/bloque →
+ *  constante de tiempo ≈0.8 s (respuesta «slow» estable de un sonómetro). */
+const LEQ_ALPHA = 0.12;
+/** Suavizado del espectro entre frames (barras estables, sin parpadeo). */
+const SPECTRUM_ALPHA = 0.5;
 
 async function ensureMicPermission(): Promise<boolean> {
   if (Platform.OS === 'android') {
@@ -55,11 +67,20 @@ export function registerNoiseMicAdapter(): boolean {
   let recorder: AudioRecorder | null = null;
   let lastDb: number | null = null;
   let lastLevels: number[] | null = null;
+  // Energía acumulada del Leq y espectro suavizado (persisten entre bloques).
+  let leqMs: number | null = null;
+  let bandsEma: number[] | null = null;
 
   const adapter: NoiseMicAdapter = {
     start: async () => {
       const granted = await ensureMicPermission();
       if (!granted) throw new Error('Permiso de micrófono denegado');
+
+      // Estado limpio en cada arranque (no arrastrar energía de una medición previa).
+      leqMs = null;
+      bandsEma = null;
+      lastDb = null;
+      lastLevels = null;
 
       // Sesión de grabación SOLO mientras dura la medición (en iOS
       // `playAndRecord` puede atenuar la salida; se restaura al parar).
@@ -82,22 +103,16 @@ export function registerNoiseMicAdapter(): boolean {
       recorder.onAudioReady(({ buffer }) => {
         try {
           const pcm = buffer.getChannelData(0) as Float32Array;
-          const n = pcm.length;
-          if (!n) return;
+          if (!pcm.length) return;
 
-          const bands = new Array(BANDS).fill(0);
-          const seg = Math.max(1, Math.floor(n / BANDS));
-          let sum = 0;
-          for (let i = 0; i < n; i++) {
-            const s = pcm[i];
-            sum += s * s;
-            const b = Math.min(BANDS - 1, Math.floor(i / seg));
-            bands[b] += s * s;
-          }
-          const rms = Math.sqrt(sum / n);
-          const dbfs = 20 * Math.log10(rms || 1e-7); // ~ -90..0
-          lastDb = clamp(92 + dbfs, 28, 92); // dB SPL aprox. (relativo, mismo mapeo que el mockup)
-          lastLevels = bands.map(e => Math.max(0.04, Math.min(1, Math.sqrt(e / seg) * 3.4)));
+          // Nivel: promedio ENERGÉTICO entre bloques (Leq) → dB estable, en vez
+          // del RMS de un único bloque de 100 ms (que salta varios dB por frame).
+          leqMs = updateLeqMeanSquare(leqMs, meanSquare(pcm), LEQ_ALPHA);
+          lastDb = meanSquareToSpl(leqMs);
+
+          // Espectro: FFT real por bandas log de frecuencia, suavizado.
+          bandsEma = smoothBands(bandsEma, spectrumBands(pcm, CAPTURE_SR), SPECTRUM_ALPHA);
+          lastLevels = bandsEma;
         } catch {
           /* un bloque corrupto no debe tumbar la medición */
         }
@@ -114,6 +129,8 @@ export function registerNoiseMicAdapter(): boolean {
       recorder = null;
       lastDb = null;
       lastLevels = null;
+      leqMs = null;
+      bandsEma = null;
       try {
         AudioManager.setAudioSessionOptions({
           iosCategory: 'playback',
