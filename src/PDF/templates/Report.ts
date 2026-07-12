@@ -10,6 +10,7 @@ import { DysphagiaTestRepository } from '@/Repositories/DysphagiaTestRepository'
 import { SahsScreeningRepository } from '@/Repositories/SahsScreeningRepository';
 import { ArticulationTestRepository } from '@/Repositories/ArticulationTestRepository';
 import { VerbalAudiometryRepository } from '@/Repositories/VerbalAudiometryRepository';
+import { ExecutiveFunctionsRepository } from '@/Repositories/ExecutiveFunctionsRepository';
 
 /* -------------------------------------------------------------------------- */
 /*  Generador de informe PDF — VIA+.                                        */
@@ -112,6 +113,12 @@ export async function generateReport({ evaluation }: GenerateReportOptions): Pro
   for (const analysis of voiceAnalyses) {
     const page = pdfDoc.addPage(PAGE_SIZE);
     await blocks.VoiceAnalysisDetail({ analysis }, { page, fonts, t });
+  }
+
+  const executiveFunctions = await ExecutiveFunctionsRepository.getExecutiveFunctionsByEvaluation(evaluation.id);
+  for (const test of executiveFunctions) {
+    const page = pdfDoc.addPage(PAGE_SIZE);
+    await blocks.ExecutiveFunctionsDetail({ test }, { page, fonts, t });
   }
 
   const dysphagias = await DysphagiaTestRepository.getDysphagiaByEvaluation(evaluation.id);

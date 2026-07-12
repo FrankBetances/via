@@ -26,6 +26,7 @@ export type RootStackParamList = {
   SahsScreening: undefined;
   Articulation: undefined;
   VerbalAudiometry: undefined;
+  ExecutiveFunctions: undefined;
 
   // New screen routes appended by later phases (mockup-based hub screens, etc.)
   SeleccionEjercicios: undefined;

@@ -6,6 +6,7 @@ import {
   Activity,
   AlertCircle,
   Baby,
+  BrainCircuit,
   ChevronLeft,
   Ear,
   FileText,
@@ -37,6 +38,7 @@ import { SahsScreeningRepository } from '@/Repositories/SahsScreeningRepository'
 import { ArticulationTestRepository } from '@/Repositories/ArticulationTestRepository';
 import { VerbalAudiometryRepository } from '@/Repositories/VerbalAudiometryRepository';
 import { ScreeningRepository } from '@/Repositories/ScreeningRepository';
+import { ExecutiveFunctionsRepository } from '@/Repositories/ExecutiveFunctionsRepository';
 import { EvaluationRepository } from '@/Repositories/EvaluationRepository';
 
 import { FREQS, interpretAudiometry } from '@/Screens/Audiometry/audiometryResult';
@@ -54,6 +56,7 @@ import {
   statusShimmer,
 } from '@/Screens/VoiceAnalysis/voiceAnalysisResult';
 import { imcLabel, suspicionLabel } from '@/Screens/SahsScreening/sahsScreeningResult';
+import { EF_DOMAIN_META, EF_DOMAIN_ORDER, efStatus } from '@/Screens/ExecutiveFunctions/executiveFunctionsGame';
 import { generateReport } from '@/PDF/templates/Report';
 import { showErrorToast, showSuccessToast } from '@/Helpers/showToast';
 
@@ -239,6 +242,38 @@ export default function ResultadosFinalScreen({ navigation }: Props) {
             icon: Mic2,
             params,
             interp: buildVoiceInterpretation({ f0: v.f0, jitter: v.jitter, shimmer: v.shimmer, hnr: v.hnr, formants: v.formants }),
+          });
+        });
+
+        const efTests = await ExecutiveFunctionsRepository.getExecutiveFunctionsByEvaluation(evaluationId);
+        efTests.forEach(ef => {
+          const domainScores: Record<string, number | null> = {
+            attention: ef.attentionScore,
+            inhibition: ef.inhibitionScore,
+            flexibility: ef.flexibilityScore,
+            workingMemory: ef.workingMemoryScore,
+            planning: ef.planningScore,
+          };
+          const params: ParamRow[] = EF_DOMAIN_ORDER.map(domain => {
+            const s = domainScores[domain];
+            return {
+              label: `${EF_DOMAIN_META[domain].title} · ${EF_DOMAIN_META[domain].game}`,
+              value: s !== null ? `${s}/100` : '—',
+              status: s !== null ? efStatus(s) : 'warn',
+              ref: '≥ 80 esperado',
+            };
+          });
+          const overallStatus: StatusKind =
+            ef.overallScore === null ? 'warn' : efStatus(ef.overallScore);
+          result.push({
+            id: `ef-${ef.id}`,
+            kind: 'params',
+            status: overallStatus,
+            title: 'Funciones Ejecutivas',
+            subtitle: `Mini-juegos de tarjetas · banda ${ef.ageBand} · índice global ${ef.overallScore ?? '—'}/100`,
+            icon: BrainCircuit,
+            params,
+            interp: ef.interpretation || 'Exploración lúdica de funciones ejecutivas completada.',
           });
         });
 
