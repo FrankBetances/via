@@ -1,4 +1,5 @@
 import { Image, ImageSourcePropType } from 'react-native';
+import { VERBAL_AUDIO_BASE64 } from './verbalAudioClips';
 
 /* -------------------------------------------------------------------------- */
 /*  Registro de assets de la Audiometría Verbal.                               */
@@ -162,6 +163,16 @@ export const verbalAudioSource = (audioKey: string): string | null => {
     return null;
   }
 };
+
+/**
+ * Recorte de una palabra objetivo INCRUSTADO en base64 (m4a). Vía primaria de
+ * reproducción: se decodifica en memoria (`decodeAudioData`), sin depender de
+ * la ruta del asset (que en desarrollo es una URL de Metro que la vía nativa
+ * por ruta no sabe abrir — motivo por el que el audio no sonaba en Android
+ * Studio). `null` si no hay recorte para esa palabra.
+ */
+export const verbalAudioBase64 = (audioKey: string): string | null =>
+  VERBAL_AUDIO_BASE64[audioKey] ?? null;
 
 /** Ilustración de una opción de tarjeta (bandas con imagen). */
 export const verbalImageSource = (imageKey: string): ImageSourcePropType | undefined =>

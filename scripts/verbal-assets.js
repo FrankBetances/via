@@ -35,6 +35,7 @@ const AUDIO_DIR = path.join(ROOT, 'assets', 'audio', 'verbal');
 const IMG_DIR = path.join(ROOT, 'assets', 'img', 'verbal');
 const MANIFEST = path.join(ROOT, 'assets', 'verbal-manifest.json');
 const REGISTRY = path.join(ROOT, 'src', 'Screens', 'VerbalAudiometry', 'verbalAssets.ts');
+const CLIPS = path.join(ROOT, 'src', 'Screens', 'VerbalAudiometry', 'verbalAudioClips.ts');
 
 /* ------------------- carga de la lógica pura (TS → CJS) ------------------- */
 
@@ -261,6 +262,35 @@ export const registeredVerbalAssets = () => ({
 `;
   fs.writeFileSync(REGISTRY, content);
   console.log(`Registro → ${path.relative(ROOT, REGISTRY)} (${audio.length} audios, ${images.length} imágenes)`);
+
+  // Módulo de recortes INCRUSTADOS en base64 (vía primaria de reproducción, ver
+  // verbalAudioClips.ts). Incrustar evita depender de la ruta del asset, que en
+  // desarrollo es una URL de Metro que la decodificación nativa por ruta no abre.
+  const clipLines = audio
+    .map(e => `  ${e.key}: '${fs.readFileSync(path.join(AUDIO_DIR, `${e.key}.m4a`)).toString('base64')}',`)
+    .join('\n');
+  const clips = `/* eslint-disable */
+/* -------------------------------------------------------------------------- */
+/*  Recortes de audio de la Audiometría Verbal INCRUSTADOS en base64 (m4a).    */
+/*                                                                             */
+/*  GENERADO por \`node scripts/verbal-assets.js registry\` — NO editar a mano.  */
+/*                                                                             */
+/*  ¿Por qué incrustar y no depender de la ruta del asset? Con el motor de     */
+/*  \`react-native-audio-api\`, la vía por ruta (\`decodeAudioDataSource\`) solo    */
+/*  acepta ficheros LOCALES: en desarrollo (Metro dev server) el asset se      */
+/*  sirve como URL \`http://…?platform=…\` y la decodificación por ruta falla,   */
+/*  y el respaldo \`fetch().arrayBuffer()\` de RN es poco fiable con binarios —   */
+/*  por eso la audiometría verbal no sonaba en Android Studio. Decodificar     */
+/*  estos bytes EN MEMORIA (\`decodeAudioData\`) funciona idéntico en desarrollo */
+/*  y en release, sin red ni sistema de ficheros.                              */
+/* -------------------------------------------------------------------------- */
+
+export const VERBAL_AUDIO_BASE64: Record<string, string> = {
+${clipLines}
+};
+`;
+  fs.writeFileSync(CLIPS, clips);
+  console.log(`Recortes base64 → ${path.relative(ROOT, CLIPS)} (${audio.length} clips)`);
 }
 
 /* ----------------------------------- main ---------------------------------- */
