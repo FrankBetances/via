@@ -1,8 +1,8 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Pressable } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { Box, Card, Center, HStack, Icon, Input, InputField, ScrollView, VStack } from '@gluestack-ui/themed';
-import { Check, ChevronLeft, Play, RotateCcw, Save, X } from 'lucide-react-native';
+import { Check, ChevronLeft, Play, RotateCcw, Save, Volume2, X } from 'lucide-react-native';
 
 import { Button, Content, Header, Text } from '@/Components/Common';
 import RadialBackground from '@/Components/Themed/RadialBackground';
@@ -42,6 +42,7 @@ import InhibitionGame from './components/InhibitionGame';
 import FlexibilityGame from './components/FlexibilityGame';
 import MemoryGame from './components/MemoryGame';
 import PlanningGame from './components/PlanningGame';
+import { speakConsigna, stopConsigna } from './efSpeech';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'ExecutiveFunctions'>;
 
@@ -82,6 +83,22 @@ export default function ExecutiveFunctionsScreen({ navigation }: Props) {
   const domain: EfDomain = EF_DOMAIN_ORDER[Math.min(gameIndex, EF_DOMAIN_ORDER.length - 1)];
   const meta = EF_DOMAIN_META[domain];
   const overall = efOverallScore(scores);
+
+  // Dictado de la consigna al entrar en la antesala de cada juego (motor
+  // es-ES de la audiometría verbal; silencioso si no hay voz española). Al
+  // salir de la antesala se corta cualquier dictado en curso.
+  useEffect(() => {
+    if (phase !== 'intro') {
+      stopConsigna();
+      return;
+    }
+    const currentMeta = EF_DOMAIN_META[EF_DOMAIN_ORDER[Math.min(gameIndex, EF_DOMAIN_ORDER.length - 1)]];
+    const t = setTimeout(() => speakConsigna(`${currentMeta.game}. ${currentMeta.instruction}`), 500);
+    return () => {
+      clearTimeout(t);
+      stopConsigna();
+    };
+  }, [phase, gameIndex]);
 
   // Los planes se generan al entrar en cada juego (semilla de sesión estable).
   const plans = useMemo(
@@ -307,6 +324,14 @@ export default function ExecutiveFunctionsScreen({ navigation }: Props) {
           <Text size="md" color="$textLight700" mt="$3" style={{ textAlign: 'center', lineHeight: 22 }}>
             {meta.instruction}
           </Text>
+          <Pressable onPress={() => speakConsigna(`${meta.game}. ${meta.instruction}`)}>
+            <HStack space="xs" alignItems="center" bg="$primary50" borderRadius="$full" px="$4" py="$2" mt="$4">
+              <Icon as={Volume2} size="sm" color="$primary600" />
+              <Text size="sm" weight="bold" color="$primary600">
+                Oír la consigna otra vez
+              </Text>
+            </HStack>
+          </Pressable>
         </Center>
       </Card>
 

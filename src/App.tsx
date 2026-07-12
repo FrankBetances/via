@@ -13,7 +13,7 @@ import { initDatabase } from '@/Database/config';
 import DefaultNavigator from '@/Navigators/Default';
 import SplashScreen from '@/Screens/Splash/SplashScreen';
 import { installAudiometryToneAdapter } from '@/Screens/Audiometry';
-import { installVerbalAudioAdapter, verbalAudioSource } from '@/Screens/VerbalAudiometry';
+import { installVerbalAudioAdapter, verbalAudioBase64, verbalAudioSource } from '@/Screens/VerbalAudiometry';
 import '@/Navigators/screenTypeNavigator';
 
 /* -------------------------------------------------------------------------- */
@@ -39,7 +39,21 @@ function AppShell() {
   // campo: sin datos es-ES instalados, Android leía las palabras con voz
   // inglesa. Las locuciones de locutor profesional sustituirán los recortes
   // provisionales conservando las claves.
-  useEffect(() => installVerbalAudioAdapter({ engine: 'assets', assetSource: verbalAudioSource }), []);
+  //
+  // Vía PRIMARIA de reproducción: los recortes INCRUSTADOS en base64
+  // (`verbalAudioBase64`), decodificados en memoria — la vía por ruta del
+  // asset (`verbalAudioSource`) no sonaba en desarrollo (Android Studio),
+  // donde Metro sirve el asset como URL http:// que la decodificación nativa
+  // por ruta no sabe abrir. La ruta queda como respaldo.
+  useEffect(
+    () =>
+      installVerbalAudioAdapter({
+        engine: 'assets',
+        assetBase64: verbalAudioBase64,
+        assetSource: verbalAudioSource,
+      }),
+    [],
+  );
 
   useEffect(() => {
     let mounted = true;

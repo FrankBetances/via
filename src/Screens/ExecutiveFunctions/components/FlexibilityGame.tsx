@@ -11,6 +11,7 @@ import {
   FlexibilityResult,
   flexibilityAnswerIndex,
 } from '../executiveFunctionsGame';
+import { speakConsigna } from '../efSpeech';
 
 /* -------------------------------------------------------------------------- */
 /*  «El juego de las normas» — flexibilidad cognitiva (DCCS).                  */
@@ -55,17 +56,24 @@ export default function FlexibilityGame({
 
   const trial = plan.trials[trialIndex] ?? null;
 
-  // Aviso grande cuando cambia la norma (el niño debe notarlo sin leer).
+  // Aviso grande + DICTADO cuando cambia la norma: el niño debe enterarse del
+  // cambio aunque no sepa leer (el aviso visual solo no basta en bandas A/B).
   useEffect(() => {
     if (!trial) {
       onFinish(counts.current);
       return;
     }
+    const ruleText = trial.rule === 'color' ? 'por color' : 'por forma';
     if (trial.ruleChanged) {
       setShowRuleChange(true);
+      speakConsigna(`¡Atención! La norma ha cambiado: ahora se juega ${ruleText}.`);
       const t = setTimeout(() => setShowRuleChange(false), RULE_CHANGE_MS);
       timers.current.push(t);
       return () => clearTimeout(t);
+    }
+    if (trialIndex === 0) {
+      // Anuncio de la norma inicial (la consigna de la antesala es genérica).
+      speakConsigna(`Se juega ${ruleText}.`);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [trialIndex]);

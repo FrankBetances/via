@@ -1,4 +1,4 @@
-import { registeredVerbalAssets } from '../verbalAssets';
+import { registeredVerbalAssets, verbalAudioBase64 } from '../verbalAssets';
 import { VERBAL_BANDS, collectAssetInventory } from '../verbalAudiometryLists';
 import { VERBAL_GLYPHS } from '../verbalAudiometryGlyphs';
 
@@ -13,6 +13,7 @@ import { VERBAL_GLYPHS } from '../verbalAudiometryGlyphs';
  * que Jest sí provee se declaran localmente para poder verificar el disco. */
 declare function require(name: string): any;
 declare const __dirname: string;
+declare const Buffer: { from(data: string, encoding: string): { slice(a: number, b: number): { toString(enc: string): string } } };
 const fs = require('fs');
 const path = require('path');
 
@@ -42,6 +43,16 @@ describe('registro de assets · completitud contra el inventario', () => {
   it('todos los archivos de imagen existen en assets/img/verbal', () => {
     for (const key of inventory.images) {
       expect(fs.existsSync(path.join(IMG_DIR, `${key}.png`))).toBe(true);
+    }
+  });
+
+  it('cada palabra objetivo tiene su recorte INCRUSTADO en base64 (vía primaria)', () => {
+    for (const key of inventory.audio) {
+      const b64 = verbalAudioBase64(key);
+      expect(b64).toBeTruthy();
+      // Cabecera de un contenedor MP4/M4A: el box `ftyp` aparece al principio
+      // (los 4 bytes de tamaño + 'ftyp' → 'ftyp' cae sobre el 2.º grupo base64).
+      expect(Buffer.from(b64 as string, 'base64').slice(4, 8).toString('latin1')).toBe('ftyp');
     }
   });
 

@@ -1,3 +1,4 @@
+import { Buffer } from 'buffer';
 import {
   AudioBuffer,
   AudioBufferSourceNode,
@@ -48,6 +49,14 @@ export type VerbalAudioEngine = 'assets' | 'tts';
 export interface VerbalAudioAdapter {
   /** Reproduce la palabra objetivo al nivel indicado (dB, orientativo). */
   playWord: (audioKey: string, word: string, levelDb: number) => void;
+  /**
+   * Dicta un TEXTO arbitrario (consignas de otros módulos, p. ej. los
+   * mini-juegos de funciones ejecutivas) con el TTS es-ES VERIFICADO, a
+   * volumen pleno. Silencioso si el dispositivo no tiene voz española: es
+   * una ayuda de accesibilidad, no un estímulo clínico calibrado. Opcional
+   * para no romper adaptadores de prueba ya registrados.
+   */
+  speakText?: (text: string) => void;
   stop: () => void;
   /**
    * Motor activo. 'tts' = sintetizador nativo del sistema (nivel RELATIVO
@@ -94,6 +103,14 @@ export interface VerbalAudioAdapterOptions {
    * `engine: 'assets'`; `null` = sin recorte para esa palabra → TTS.
    */
   assetSource?: (audioKey: string) => string | null;
+  /**
+   * Recorte de la palabra INCRUSTADO en base64 (m4a). Vía PRIMARIA de
+   * reproducción con `engine: 'assets'`: se decodifica en memoria, sin
+   * depender de la ruta del asset (en desarrollo el asset es una URL de Metro
+   * que la vía nativa por ruta no abre — por eso no sonaba en Android Studio).
+   * Si falta, se cae a `assetSource` (ruta) y luego a TTS. `null` = sin recorte.
+   */
+  assetBase64?: (audioKey: string) => string | null;
   /** dB → ganancia (recortes y volumen TTS). Por defecto `speechLevelToGain`. */
   levelToGain?: (levelDb: number) => number;
 }
@@ -109,6 +126,7 @@ export interface VerbalAudioAdapterOptions {
 export function installVerbalAudioAdapter(opts: VerbalAudioAdapterOptions = {}): () => void {
   const levelToGain = opts.levelToGain ?? speechLevelToGain;
   const assetSource = opts.assetSource ?? null;
+  const assetBase64 = opts.assetBase64 ?? null;
   // Motor por defecto: recortes es-ES empaquetados. El TTS del sistema como
   // motor principal resultó inviable en campo: sin datos de voz es-ES
   // instalados, Android dictaba las palabras castellanas con voz inglesa.
@@ -232,13 +250,24 @@ export function installVerbalAudioAdapter(opts: VerbalAudioAdapterOptions = {}):
   };
 
   /**
-   * Decodifica un recorte probando dos vías: ruta local directa
-   * (`decodeAudioDataSource`) y, si falla, descarga + `decodeAudioData`
-   * (cubre las URIs http:// que entrega el bundler de desarrollo, donde la
-   * vía de ruta local no existe y el motor caía siempre a TTS).
+   * Decodifica un recorte, en orden de fiabilidad:
+   *   1. base64 incrustado → `decodeAudioData` EN MEMORIA (funciona idéntico
+   *      en desarrollo y release, sin red ni sistema de ficheros);
+   *   2. ruta local directa (`decodeAudioDataSource`), para recortes que
+   *      lleguen como fichero (p. ej. locuciones de locutor externas);
+   *   3. descarga + `decodeAudioData` (último recurso; el fetch de RN es poco
+   *      fiable con binarios, por eso ya no es la vía principal).
    */
-  const decodeClip = async (path: string): Promise<AudioBuffer> => {
+  const decodeClip = async (audioKey: string): Promise<AudioBuffer> => {
     if (!ctx) throw new Error('sin AudioContext');
+    const b64 = assetBase64?.(audioKey) ?? null;
+    if (b64) {
+      const bytes = Buffer.from(b64, 'base64');
+      const ab = bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength);
+      return await ctx.decodeAudioData(ab as ArrayBuffer);
+    }
+    const path = assetSource?.(audioKey) ?? null;
+    if (!path) throw new Error('sin recorte para la palabra');
     try {
       return await ctx.decodeAudioDataSource(path);
     } catch (e) {
@@ -249,12 +278,29 @@ export function installVerbalAudioAdapter(opts: VerbalAudioAdapterOptions = {}):
     }
   };
 
+  /** Dictado de consignas (frases completas) con el TTS es-ES verificado. */
+  const speakText = (text: string) => {
+    if (!ttsEngine || !ttsSpanishReady) return;
+    try {
+      ttsEngine.stop?.();
+      ttsEngine.speak?.(text, {
+        androidParams: {
+          KEY_PARAM_VOLUME: 1,
+          KEY_PARAM_PAN: 0,
+          KEY_PARAM_STREAM: 'STREAM_MUSIC',
+        },
+      });
+    } catch {
+      /* noop */
+    }
+  };
+
   const playWord = (audioKey: string, word: string, levelDb: number) => {
     stop();
     // Motor 'assets' (por defecto): recortes es-ES empaquetados; TTS solo como
     // degradación por palabra (recorte ausente o ilegible).
-    const path = engine === 'assets' ? assetSource?.(audioKey) ?? null : null;
-    if (!path || !ctx) {
+    const hasClip = engine === 'assets' && (!!assetBase64?.(audioKey) || !!assetSource?.(audioKey));
+    if (!hasClip || !ctx) {
       speakWord(word, levelDb);
       return;
     }
@@ -263,7 +309,7 @@ export function installVerbalAudioAdapter(opts: VerbalAudioAdapterOptions = {}):
       playBuffer(cached, levelDb);
       return;
     }
-    decodeClip(path)
+    decodeClip(audioKey)
       .then(buffer => {
         bufferCache.set(audioKey, buffer);
         playBuffer(buffer, levelDb);
@@ -273,10 +319,11 @@ export function installVerbalAudioAdapter(opts: VerbalAudioAdapterOptions = {}):
 
   setVerbalAudioAdapter({
     playWord,
+    speakText,
     stop,
     // Motor declarado. Con 'assets' la degradación por palabra (recorte
     // ausente/ilegible) se sigue haciendo en runtime.
-    engine: engine === 'assets' && assetSource ? 'assets' : 'tts',
+    engine: engine === 'assets' && (assetBase64 || assetSource) ? 'assets' : 'tts',
   });
 
   return () => {
