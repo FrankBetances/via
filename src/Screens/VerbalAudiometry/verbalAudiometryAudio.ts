@@ -48,6 +48,14 @@ export type VerbalAudioEngine = 'assets' | 'tts';
 export interface VerbalAudioAdapter {
   /** Reproduce la palabra objetivo al nivel indicado (dB, orientativo). */
   playWord: (audioKey: string, word: string, levelDb: number) => void;
+  /**
+   * Dicta un TEXTO arbitrario (consignas de otros módulos, p. ej. los
+   * mini-juegos de funciones ejecutivas) con el TTS es-ES VERIFICADO, a
+   * volumen pleno. Silencioso si el dispositivo no tiene voz española: es
+   * una ayuda de accesibilidad, no un estímulo clínico calibrado. Opcional
+   * para no romper adaptadores de prueba ya registrados.
+   */
+  speakText?: (text: string) => void;
   stop: () => void;
   /**
    * Motor activo. 'tts' = sintetizador nativo del sistema (nivel RELATIVO
@@ -249,6 +257,23 @@ export function installVerbalAudioAdapter(opts: VerbalAudioAdapterOptions = {}):
     }
   };
 
+  /** Dictado de consignas (frases completas) con el TTS es-ES verificado. */
+  const speakText = (text: string) => {
+    if (!ttsEngine || !ttsSpanishReady) return;
+    try {
+      ttsEngine.stop?.();
+      ttsEngine.speak?.(text, {
+        androidParams: {
+          KEY_PARAM_VOLUME: 1,
+          KEY_PARAM_PAN: 0,
+          KEY_PARAM_STREAM: 'STREAM_MUSIC',
+        },
+      });
+    } catch {
+      /* noop */
+    }
+  };
+
   const playWord = (audioKey: string, word: string, levelDb: number) => {
     stop();
     // Motor 'assets' (por defecto): recortes es-ES empaquetados; TTS solo como
@@ -273,6 +298,7 @@ export function installVerbalAudioAdapter(opts: VerbalAudioAdapterOptions = {}):
 
   setVerbalAudioAdapter({
     playWord,
+    speakText,
     stop,
     // Motor declarado. Con 'assets' la degradación por palabra (recorte
     // ausente/ilegible) se sigue haciendo en runtime.
