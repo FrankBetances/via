@@ -154,6 +154,10 @@ const repl = {
     modcard('#EA580C', '#FFEDD5', '🗣️', 'LENGUAJE', 'Articulación · T.A.R.', 'Repetición · registro SODA.', '8–12 min', '3–7 a', 'x'),
   '__MODCARD_mchat_🧩_CONDUCTA_Cuestionario Autismo_x__':
     modcard('#DB2777', '#FCE7F3', '🧩', 'CONDUCTA', 'Cuestionario Autismo', 'Cribado M-CHAT-R de TEA.', '5–10 min', '16–30 m', 'x'),
+  '__MODCARD_verbal_🔊_AUDICIÓN_Audiometría Verbal_x__':
+    modcard('#2563EB', '#DBEAFE', '🔊', 'AUDICIÓN', 'Audiometría Verbal', 'Palabras por tarjetas · campo libre.', '5–8 min', '2 a–adulto', 'x'),
+  '__MODCARD_ef_🧠_COGNICIÓN_Funciones Ejecutivas_x__':
+    modcard('#059669', '#D1FAE5', '🧠', 'COGNICIÓN', 'Funciones Ejecutivas', '5 mini-juegos de tarjetas.', '8–12 min', '3–12 a', 'x'),
   '__CHIP_📋_#EA580C_#FFEDD5_Evaluación Clínica (CAP)_Anamnesis + firma__': chip('📋', '#EA580C', '#FFEDD5', 'Evaluación Clínica (CAP)', 'Anamnesis + firma'),
   '__CHIP_🧩_#DB2777_#FCE7F3_Autismo M-CHAT-R_Cribado de TEA__': chip('🧩', '#DB2777', '#FCE7F3', 'Autismo M-CHAT-R', 'Cribado de TEA'),
   '__CHIP_🎙️_#0D9488_#CCFBF1_Sonómetro Ambiental_Gate de sala__': chip('🎙️', '#0D9488', '#CCFBF1', 'Sonómetro Ambiental', 'Gate de sala'),
@@ -163,6 +167,8 @@ const repl = {
   '__CHIP_💧_#DC2626_#FEE2E2_Disfagia MECV-V_Pulsioximetría BLE__': chip('💧', '#DC2626', '#FEE2E2', 'Disfagia MECV-V', 'Pulsioximetría BLE'),
   '__CHIP_😴_#4F46E5_#E0E7FF_Cribado SAHS_PSQ de Chervin__': chip('😴', '#4F46E5', '#E0E7FF', 'Cribado SAHS', 'PSQ de Chervin'),
   '__CHIP_🗣️_#EA580C_#FFEDD5_Articulación T.A.R._Registro SODA__': chip('🗣️', '#EA580C', '#FFEDD5', 'Articulación T.A.R.', 'Registro SODA'),
+  '__CHIP_🔊_#2563EB_#DBEAFE_Audiometría Verbal_Palabras por tarjetas__': chip('🔊', '#2563EB', '#DBEAFE', 'Audiometría Verbal', 'Palabras por tarjetas'),
+  '__CHIP_🧠_#059669_#D1FAE5_Funciones Ejecutivas_5 mini-juegos__': chip('🧠', '#059669', '#D1FAE5', 'Funciones Ejecutivas', '5 mini-juegos'),
 };
 for (const [k, v] of Object.entries(repl)) {
   html = html.split(k).join(v);
