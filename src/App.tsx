@@ -32,23 +32,22 @@ function AppShell() {
   // emisión de sonido). Devuelve la función de limpieza del AudioContext.
   useEffect(() => installAudiometryToneAdapter(), []);
 
-  // Motor de palabras de la audiometría verbal (campo libre): recortes es-ES
-  // empaquetados (castellano garantizado, no depende de las voces TTS del
-  // dispositivo) con degradación a TTS por palabra SOLO si hay voz española
-  // verificada. El dictado por TTS como motor principal resultó inviable en
-  // campo: sin datos es-ES instalados, Android leía las palabras con voz
-  // inglesa. Las locuciones de locutor profesional sustituirán los recortes
-  // provisionales conservando las claves.
+  // Motor de palabras de la audiometría verbal (campo libre).
   //
-  // Vía PRIMARIA de reproducción: los recortes INCRUSTADOS en base64
-  // (`verbalAudioBase64`), decodificados en memoria — la vía por ruta del
-  // asset (`verbalAudioSource`) no sonaba en desarrollo (Android Studio),
-  // donde Metro sirve el asset como URL http:// que la decodificación nativa
-  // por ruta no sabe abrir. La ruta queda como respaldo.
+  // Vía PRIMARIA: el TTS NEURAL del dispositivo (`preferTts`, por defecto) con
+  // la MEJOR voz española instalada (la es-ES neural de Google/Apple suena
+  // natural, muy por encima de los recortes provisionales de espeak-ng). Solo
+  // se usa si hay una voz española VERIFICADA — sin verificar, Android dictaba
+  // en inglés (bug de campo ya corregido).
+  //
+  // RESPALDO garantizado: los recortes es-ES INCRUSTADOS en base64
+  // (`verbalAudioBase64`), decodificados en memoria (funcionan offline y sin
+  // depender de la ruta del asset, que no sonaba en desarrollo). La ruta del
+  // asset (`verbalAudioSource`) queda como último recurso.
   useEffect(
     () =>
       installVerbalAudioAdapter({
-        engine: 'assets',
+        preferTts: true,
         assetBase64: verbalAudioBase64,
         assetSource: verbalAudioSource,
       }),

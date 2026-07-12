@@ -107,7 +107,10 @@ export function useNoiseMeter({
   }, []);
 
   const sampleSpectrum = useCallback(
-    (frac: number): number[] => {
+    (): number[] => {
+      // Espectro REAL del adaptador (FFT por bandas). Sin señal, barras planas
+      // al suelo: NUNCA se sintetizan valores aleatorios (antes `Math.random()`
+      // hacía bailar las barras «al azar» y se percibía como medición falsa).
       if (srcRef.current === 'mic' && micAdapter?.spectrum) {
         const s = micAdapter.spectrum();
         if (Array.isArray(s) && s.length) {
@@ -117,11 +120,7 @@ export function useNoiseMeter({
           });
         }
       }
-      const now = Date.now() / 200;
-      return new Array(bars).fill(0).map((_, i) => {
-        const v = frac * (0.55 + 0.45 * Math.abs(Math.sin(i * 0.5 + now))) + Math.random() * 0.08;
-        return Math.max(0.04, Math.min(1, v));
-      });
+      return new Array(bars).fill(0.04);
     },
     [bars],
   );
@@ -129,12 +128,13 @@ export function useNoiseMeter({
   const tick = useCallback(() => {
     const raw = sampleDb();
     if (raw != null) {
+      // El adaptador ya entrega un nivel promediado energéticamente (Leq); esta
+      // EMA ligera solo suaviza el refresco de la UI.
       smooth.current = smooth.current == null ? raw : smooth.current * 0.78 + raw * 0.22;
       const sdb = smooth.current;
-      const frac = Math.max(0, Math.min(1, (sdb - 28) / 64));
 
       setDb(sdb);
-      setLevels(sampleSpectrum(frac));
+      setLevels(sampleSpectrum());
 
       if (testActive.current) {
         testSamples.current.push(sdb);

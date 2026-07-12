@@ -8,6 +8,8 @@ import {
   StereoPannerNode,
 } from 'react-native-audio-api';
 
+import { pickBestSpanishVoice } from './verbalTtsVoice';
+
 /* -------------------------------------------------------------------------- */
 /*  Adaptador de audio de la Audiometría Verbal (campo libre, sin audífonos).  */
 /*                                                                             */
@@ -113,6 +115,14 @@ export interface VerbalAudioAdapterOptions {
   assetBase64?: (audioKey: string) => string | null;
   /** dB → ganancia (recortes y volumen TTS). Por defecto `speechLevelToGain`. */
   levelToGain?: (levelDb: number) => number;
+  /**
+   * Preferir el TTS NEURAL del dispositivo (la voz más humana) como vía
+   * primaria cuando hay una voz española verificada, usando los recortes solo
+   * como respaldo. Por defecto `true`: la voz nativa del sistema (p. ej. la
+   * es-ES neural de Google/Apple) suena mucho más natural que los recortes
+   * provisionales de espeak-ng. Con `false` se priorizan los recortes.
+   */
+  preferTts?: boolean;
 }
 
 /**
@@ -127,9 +137,13 @@ export function installVerbalAudioAdapter(opts: VerbalAudioAdapterOptions = {}):
   const levelToGain = opts.levelToGain ?? speechLevelToGain;
   const assetSource = opts.assetSource ?? null;
   const assetBase64 = opts.assetBase64 ?? null;
-  // Motor por defecto: recortes es-ES empaquetados. El TTS del sistema como
-  // motor principal resultó inviable en campo: sin datos de voz es-ES
-  // instalados, Android dictaba las palabras castellanas con voz inglesa.
+  // Vía primaria: el TTS NEURAL del dispositivo (voz humana) SIEMPRE que haya
+  // una voz española verificada; los recortes empaquetados quedan de respaldo
+  // garantizado (offline / dispositivo sin voz española). Antes el TTS-primario
+  // era inviable porque sin verificar la voz, Android dictaba en inglés; con la
+  // selección/validación de voz (`pickBestSpanishVoice`) ya es seguro y suena
+  // mucho más natural que los recortes provisionales de espeak-ng.
+  const preferTts = opts.preferTts ?? true;
   const engine: VerbalAudioEngine = opts.engine ?? 'assets';
 
   // Sesión de audio por altavoz (misma configuración que audiometryToneAdapter).
@@ -154,36 +168,42 @@ export function installVerbalAudioAdapter(opts: VerbalAudioAdapterOptions = {}):
 
   const tts = optionalTts();
   const ttsEngine = tts?.default ?? tts;
-  // Configuración es-ES VERIFICADA del sintetizador. `setDefaultLanguage` en
-  // Android rechaza si el dispositivo no tiene datos de voz es-ES; en ese caso
-  // se busca cualquier voz `es-*` instalada y se fija con `setDefaultVoice`.
-  // Sin esta verificación el motor quedaba con la voz por defecto del sistema
-  // (a menudo en-US) y las palabras castellanas sonaban «en inglés» — el bug
-  // reportado en campo. Si no hay ninguna voz española, el dictado TTS se
-  // desactiva por completo (mejor sin ayuda que con un estímulo inválido:
-  // esta prueba mide discriminación de fonemas del castellano).
+  // Selección de la MEJOR voz española del dispositivo (la más humana): se
+  // enumeran las voces instaladas y se elige la neural es-ES de mayor calidad
+  // (ver `pickBestSpanishVoice`), fijándola con `setDefaultVoice`. Solo si el
+  // dispositivo no expone la lista se recurre a `setDefaultLanguage('es-ES')`.
+  //
+  // La VERIFICACIÓN de que existe voz española es imprescindible: sin ella el
+  // motor quedaba con la voz por defecto del sistema (a menudo en-US) y las
+  // palabras castellanas sonaban «en inglés» (bug de campo). Si no hay ninguna
+  // voz española, el TTS se desactiva y se usan los recortes empaquetados.
   let ttsSpanishReady = false;
   const configureTts = async () => {
     if (!ttsEngine) return;
     try {
       await ttsEngine.getInitStatus?.();
-      // Ritmo pausado: presentación clínica de palabra aislada.
-      try { await ttsEngine.setDefaultRate?.(0.4); } catch { /* opcional */ }
+      // Ritmo natural de palabra aislada: ni acelerado ni arrastrado (las voces
+      // neurales suenan artificiales muy lentas; 0.48 mantiene naturalidad).
+      try { await ttsEngine.setDefaultRate?.(0.48); } catch { /* opcional */ }
+      try { await ttsEngine.setDefaultPitch?.(1.0); } catch { /* opcional */ }
+
+      const voices = (await ttsEngine.voices?.()) ?? [];
+      const best = pickBestSpanishVoice(voices);
+      if (best?.id) {
+        try {
+          await ttsEngine.setDefaultVoice?.(best.id);
+          ttsSpanishReady = true;
+          return;
+        } catch {
+          /* la voz elegida no se pudo fijar: probamos por idioma */
+        }
+      }
+      // Sin lista de voces (o sin poder fijarla): fijar el idioma castellano.
       try {
         await ttsEngine.setDefaultLanguage?.('es-ES');
         ttsSpanishReady = true;
-        return;
       } catch {
-        /* sin datos es-ES: probar con las voces instaladas */
-      }
-      const voices: Array<{ id?: string; language?: string; notInstalled?: boolean }> =
-        (await ttsEngine.voices?.()) ?? [];
-      const spanish = voices.find(
-        vo => !vo.notInstalled && typeof vo.language === 'string' && vo.language.toLowerCase().startsWith('es'),
-      );
-      if (spanish?.id) {
-        await ttsEngine.setDefaultVoice?.(spanish.id);
-        ttsSpanishReady = true;
+        /* sin datos es-ES en el dispositivo: TTS desactivado → recortes */
       }
     } catch {
       /* motor TTS no inicializable: queda desactivado */
@@ -297,11 +317,20 @@ export function installVerbalAudioAdapter(opts: VerbalAudioAdapterOptions = {}):
 
   const playWord = (audioKey: string, word: string, levelDb: number) => {
     stop();
-    // Motor 'assets' (por defecto): recortes es-ES empaquetados; TTS solo como
-    // degradación por palabra (recorte ausente o ilegible).
-    const hasClip = engine === 'assets' && (!!assetBase64?.(audioKey) || !!assetSource?.(audioKey));
-    if (!hasClip || !ctx) {
+    const hasClip =
+      engine === 'assets' && (!!assetBase64?.(audioKey) || !!assetSource?.(audioKey));
+
+    // Vía PRIMARIA: TTS neural del dispositivo (voz humana) cuando hay voz
+    // española verificada. Si además hay recorte, éste queda de respaldo por
+    // si el TTS fallara (pero la voz nativa es el objetivo de calidad).
+    if (preferTts && ttsSpanishReady) {
       speakWord(word, levelDb);
+      return;
+    }
+
+    // Sin TTS español utilizable: recortes empaquetados (castellano garantizado).
+    if (!hasClip || !ctx) {
+      speakWord(word, levelDb); // último recurso (silencioso si no hay voz es)
       return;
     }
     const cached = bufferCache.get(audioKey);
@@ -321,9 +350,11 @@ export function installVerbalAudioAdapter(opts: VerbalAudioAdapterOptions = {}):
     playWord,
     speakText,
     stop,
-    // Motor declarado. Con 'assets' la degradación por palabra (recorte
-    // ausente/ilegible) se sigue haciendo en runtime.
-    engine: engine === 'assets' && (assetBase64 || assetSource) ? 'assets' : 'tts',
+    // Motor declarado: 'tts' cuando se prefiere la voz nativa (el objetivo de
+    // calidad); 'assets' si se priorizan los recortes. La degradación real por
+    // palabra (voz no disponible → recorte, o recorte ilegible → voz) ocurre en
+    // runtime en `playWord`.
+    engine: preferTts ? 'tts' : engine === 'assets' && (assetBase64 || assetSource) ? 'assets' : 'tts',
   });
 
   return () => {
