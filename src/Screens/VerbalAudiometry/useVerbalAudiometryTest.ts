@@ -143,8 +143,15 @@ export function useVerbalAudiometryTest(initialBand: AgeBand = 'A') {
   const next = useCallback(() => {
     if (!answered) return;
     stop();
-    if (isPractice) setPracticeDone(true);
-    setItemIndex(i => i + 1);
+    if (isPractice) {
+      // Fin de la familiarización: `presentation` se recalcula SIN la lámina
+      // de práctica y la primera puntuable pasa a ocupar el índice 0. Avanzar
+      // a 1 aquí la saltaba (se presentaban 7 de 8 láminas).
+      setPracticeDone(true);
+      setItemIndex(0);
+    } else {
+      setItemIndex(i => i + 1);
+    }
     setPlayed(false);
     setRepeats(0);
     setChosen(null);
