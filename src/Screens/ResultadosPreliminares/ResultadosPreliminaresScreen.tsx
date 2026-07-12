@@ -16,9 +16,11 @@ import { DysphagiaTestRepository } from '@/Repositories/DysphagiaTestRepository'
 import { SahsScreeningRepository } from '@/Repositories/SahsScreeningRepository';
 import { ArticulationTestRepository } from '@/Repositories/ArticulationTestRepository';
 import { ScreeningRepository } from '@/Repositories/ScreeningRepository';
+import { ExecutiveFunctionsRepository } from '@/Repositories/ExecutiveFunctionsRepository';
 
 import { interpretAudiometry, pta, severityOf } from '@/Screens/Audiometry/audiometryResult';
 import { buildInterpretation as buildVoiceInterpretation } from '@/Screens/VoiceAnalysis/voiceAnalysisResult';
+import { efStatus } from '@/Screens/ExecutiveFunctions/executiveFunctionsGame';
 
 /* -------------------------------------------------------------------------- */
 /*  ResultadosPreliminaresScreen — vista rápida de resultados de la sesión    */
@@ -113,6 +115,19 @@ export default function ResultadosPreliminaresScreen({ navigation }: Props) {
             status: altered ? 'alt' : 'ok',
             headline: interp,
             metric: `F0 ${Math.round(v.f0)} Hz · Jitter ${v.jitter.toFixed(1)}% · Shimmer ${v.shimmer.toFixed(1)}%`,
+          });
+        });
+
+        const efTests = await ExecutiveFunctionsRepository.getExecutiveFunctionsByEvaluation(evaluationId);
+        efTests.forEach(ef => {
+          const overall = ef.overallScore;
+          const st: StatusKind = overall === null ? 'warn' : efStatus(overall);
+          result.push({
+            key: `ef-${ef.id}`,
+            title: 'Funciones Ejecutivas',
+            status: st,
+            headline: ef.interpretation || 'Exploración lúdica de funciones ejecutivas completada.',
+            metric: `Índice global ${overall !== null ? `${overall}/100` : '—'} · banda ${ef.ageBand}`,
           });
         });
 

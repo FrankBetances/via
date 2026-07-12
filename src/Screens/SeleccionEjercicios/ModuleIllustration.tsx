@@ -186,6 +186,9 @@ const SCENES: Record<string, React.ComponentType<{ color: string }>> = {
   DysphagiaTest: PulseScene,
   Mchat: PuzzleScene,
   SahsScreening: SleepScene,
+  // Funciones ejecutivas: tarjetas de juego (misma escena que la audiometría
+  // verbal — ambos módulos se juegan con tarjetas).
+  ExecutiveFunctions: WordCardsScene,
 };
 
 export default function ModuleIllustration({ moduleId, color }: Props) {

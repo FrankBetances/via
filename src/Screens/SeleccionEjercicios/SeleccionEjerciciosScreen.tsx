@@ -5,6 +5,7 @@ import { useDispatch } from 'react-redux';
 import { Box, Center, HStack, Icon, VStack } from '@gluestack-ui/themed';
 import {
   ArrowRight,
+  BrainCircuit,
   Check,
   CheckCircle2,
   ClipboardList,
@@ -48,6 +49,7 @@ const MODULES: ModuleCard[] = [
   { id: 'VerbalAudiometry', title: 'Audiometría Verbal', description: 'Reconocimiento de palabras por tarjetas · campo libre, sin audífonos.', duration: '5–8 min', ages: '2 a – adulto', icon: Ear, tag: 'AUDICIÓN', color: '#2563EB', soft: '#DBEAFE' },
   { id: 'Articulation', title: 'Articulación · T.A.R.', description: 'Test de Articulación a la Repetición (SODA).', duration: '8–12 min', ages: '3–7 a', icon: Speech, tag: 'LENGUAJE', color: '#EA580C', soft: '#FFEDD5' },
   { id: 'DysphagiaTest', title: 'Exploración de Disfagia', description: 'Cribado con pulsioximetría integrada · sin CAP ni sonómetro.', duration: '10–15 min', ages: 'Pulsioximetría', icon: Droplets, tag: 'DEGLUCIÓN', color: '#DC2626', soft: '#FEE2E2' },
+  { id: 'ExecutiveFunctions', title: 'Funciones Ejecutivas', description: 'Cinco mini-juegos de tarjetas: atención, inhibición, flexibilidad, memoria y planificación.', duration: '8–12 min', ages: '3–12 a', icon: BrainCircuit, tag: 'COGNICIÓN', color: '#059669', soft: '#D1FAE5' },
   { id: 'Mchat', title: 'Cuestionario Autismo', description: 'Cribado M-CHAT-R/F de trastorno del espectro autista.', duration: '5–10 min', ages: '16–30 m', icon: Puzzle, tag: 'CONDUCTA', color: '#DB2777', soft: '#FCE7F3' },
   { id: 'SahsScreening', title: 'Cribado SAHS Infantil', description: 'PSQ de Chervin + exploración física.', duration: '5–8 min', ages: '2–12 a', icon: MoonStar, tag: 'SUEÑO', color: '#4F46E5', soft: '#E0E7FF' },
 ];

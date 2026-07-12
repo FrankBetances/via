@@ -1,0 +1,521 @@
+import React, { useMemo, useState } from 'react';
+import { Pressable } from 'react-native';
+import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { Box, Card, Center, HStack, Icon, Input, InputField, ScrollView, VStack } from '@gluestack-ui/themed';
+import { Check, ChevronLeft, Play, RotateCcw, Save, X } from 'lucide-react-native';
+
+import { Button, Content, Header, Text } from '@/Components/Common';
+import RadialBackground from '@/Components/Themed/RadialBackground';
+import { RootStackParamList } from '@/Navigators';
+import { RootState } from '@/Store';
+import { Evaluation } from '@/Models/Evaluation/Evaluation';
+import { ExecutiveFunctionsTest } from '@/Models/ExecutiveFunctions/ExecutiveFunctionsTest';
+import { useClassSelector } from '@/Helpers/ClassTransformer';
+import { useCreateExecutiveFunctionsMutation } from '@/Services/local/modules/executiveFunctions';
+import { showErrorToast, showSuccessToast } from '@/Helpers/showToast';
+
+import {
+  buildAttentionPlan,
+  buildFlexibilityPlan,
+  buildInhibitionPlan,
+  buildMemoryPlan,
+  buildPlanningPlan,
+  EF_BANDS,
+  EF_DOMAIN_META,
+  EF_DOMAIN_ORDER,
+  EfAgeBand,
+  EfDomain,
+  EfDomainScores,
+  EfRawResults,
+  efOverallScore,
+  efStatus,
+  EMPTY_EF_SCORES,
+  interpretExecutiveFunctions,
+  scoreAttention,
+  scoreFlexibility,
+  scoreInhibition,
+  scoreMemory,
+  scorePlanning,
+} from './executiveFunctionsGame';
+import AttentionGame from './components/AttentionGame';
+import InhibitionGame from './components/InhibitionGame';
+import FlexibilityGame from './components/FlexibilityGame';
+import MemoryGame from './components/MemoryGame';
+import PlanningGame from './components/PlanningGame';
+
+type Props = NativeStackScreenProps<RootStackParamList, 'ExecutiveFunctions'>;
+
+/* -------------------------------------------------------------------------- */
+/*  ExecutiveFunctionsScreen — batería lúdica de funciones ejecutivas.         */
+/*                                                                            */
+/*  Mismas fases que la audiometría verbal rediseñada:                         */
+/*   1. setup   — selección de banda de edad (gradúa la dificultad de los 5    */
+/*               mini-juegos) y arranque.                                      */
+/*   2. intro   — antesala amable de CADA mini-juego (mascota + consigna en    */
+/*               una línea); el niño (o el clínico en banda A) pulsa «¡A       */
+/*               jugar!». Sirve de descanso entre juegos para que no se        */
+/*               cansen.                                                       */
+/*   3. play    — el mini-juego en sí, autónomo (avanza solo).                 */
+/*   4. results — perfil por dominios para el clínico + evaluador + guardar.   */
+/* -------------------------------------------------------------------------- */
+
+type Phase = 'setup' | 'intro' | 'play' | 'results';
+
+export default function ExecutiveFunctionsScreen({ navigation }: Props) {
+  const activeEvaluation = useClassSelector(Evaluation, (state: RootState) => state.activeEvaluation.evaluation);
+  const [createExecutiveFunctions, { isLoading: isSaving }] = useCreateExecutiveFunctionsMutation();
+
+  const [phase, setPhase] = useState<Phase>('setup');
+  const [band, setBand] = useState<EfAgeBand>('A');
+  const [gameIndex, setGameIndex] = useState(0);
+  const [seed, setSeed] = useState<number>(() => Math.floor(Math.random() * 0xffffffff));
+  const [scores, setScores] = useState<EfDomainScores>(EMPTY_EF_SCORES);
+  const [raw, setRaw] = useState<EfRawResults>({});
+
+  const [notes, setNotes] = useState('');
+  const [evaluatorName, setEvaluatorName] = useState(activeEvaluation?.professional?.name ?? '');
+  const [evaluatorLicense, setEvaluatorLicense] = useState(activeEvaluation?.professional?.licenseNumber ?? '');
+
+  const patient = activeEvaluation?.patient;
+  const patientName = patient ? `${patient.name} ${patient.lastName}`.trim() : null;
+
+  const domain: EfDomain = EF_DOMAIN_ORDER[Math.min(gameIndex, EF_DOMAIN_ORDER.length - 1)];
+  const meta = EF_DOMAIN_META[domain];
+  const overall = efOverallScore(scores);
+
+  // Los planes se generan al entrar en cada juego (semilla de sesión estable).
+  const plans = useMemo(
+    () => ({
+      attention: buildAttentionPlan(band, seed),
+      inhibition: buildInhibitionPlan(band, seed),
+      flexibility: buildFlexibilityPlan(band, seed),
+      workingMemory: buildMemoryPlan(band),
+      planning: buildPlanningPlan(band, seed),
+    }),
+    [band, seed],
+  );
+
+  /* ------------------------------- acciones -------------------------------- */
+
+  const startBattery = () => {
+    // Semilla nueva en cada pasada: repetir los juegos no debe presentar las
+    // mismas láminas (el niño las recordaría).
+    setSeed(Math.floor(Math.random() * 0xffffffff));
+    setScores(EMPTY_EF_SCORES);
+    setRaw({});
+    setGameIndex(0);
+    setPhase('intro');
+  };
+
+  const restartAll = () => {
+    setSeed(Math.floor(Math.random() * 0xffffffff));
+    setScores(EMPTY_EF_SCORES);
+    setRaw({});
+    setGameIndex(0);
+    setPhase('setup');
+  };
+
+  const finishGame = (gameDomain: EfDomain, score: number, detail: EfRawResults[keyof EfRawResults]) => {
+    setScores(prev => ({ ...prev, [gameDomain]: score }));
+    setRaw(prev => ({ ...prev, [gameDomain]: detail }) as EfRawResults);
+    if (gameIndex + 1 >= EF_DOMAIN_ORDER.length) {
+      setPhase('results');
+    } else {
+      setGameIndex(i => i + 1);
+      setPhase('intro');
+    }
+  };
+
+  /** Salida anticipada del clínico: conserva los juegos ya completados. */
+  const exitBattery = () => {
+    setPhase(overall !== null ? 'results' : 'setup');
+  };
+
+  const handleSave = async () => {
+    if (isSaving) return;
+    if (!evaluatorName.trim() || !evaluatorLicense.trim() || overall === null) return;
+    if (!activeEvaluation) {
+      showErrorToast('No se puede guardar', 'No hay una evaluación activa asociada al paciente.');
+      return;
+    }
+    try {
+      const item = new ExecutiveFunctionsTest();
+      item.ageBand = band;
+      item.results = raw;
+      item.attentionScore = scores.attention;
+      item.inhibitionScore = scores.inhibition;
+      item.flexibilityScore = scores.flexibility;
+      item.workingMemoryScore = scores.workingMemory;
+      item.planningScore = scores.planning;
+      item.overallScore = overall;
+      item.interpretation = interpretExecutiveFunctions(band, scores);
+      item.notes = notes.trim();
+      item.evaluatorName = evaluatorName.trim();
+      item.evaluatorLicense = evaluatorLicense.trim();
+      item.completedAt = new Date();
+      item.evaluation = { id: activeEvaluation.id } as Evaluation;
+
+      await createExecutiveFunctions(item);
+      showSuccessToast('Exploración guardada', `Índice global ${overall}/100 (banda ${band}).`);
+      navigation.goBack();
+    } catch {
+      showErrorToast('Error al guardar', 'No se pudo registrar la exploración. Inténtelo de nuevo.');
+    }
+  };
+
+  /* ------------------------------ fase: setup ------------------------------ */
+
+  const renderSetup = () => (
+    <VStack flex={1} px="$6" mt="$2" space="md" pb="$10">
+      <VStack>
+        <HStack alignItems="center" space="sm">
+          <Text size="2xl" weight="bold" color="$textLight900">
+            Funciones ejecutivas
+          </Text>
+          <Box bg="$primary50" px="$2" py="$0.5" borderRadius="$full">
+            <Text size="2xs" weight="bold" color="$primary800" style={{ letterSpacing: 0.4 }}>
+              JUEGO DE TARJETAS
+            </Text>
+          </Box>
+        </HStack>
+        <Text size="xs" color="$textLight500">
+          {patientName ?? 'Atención · inhibición · flexibilidad · memoria de trabajo · planificación'}
+        </Text>
+      </VStack>
+
+      <Card bgColor="$white" borderRadius={20} p="$4">
+        <Text size="sm" color="$textLight700" style={{ lineHeight: 20 }}>
+          Cinco mini-juegos cortos, <Text size="sm" weight="bold" color="$textLight900">uno por dominio ejecutivo</Text>.
+          El niño juega solo (o con apoyo mínimo en los más pequeños): cada juego explica su
+          consigna con una pantalla amable y avanza automáticamente. Duración total ≈ 8–12 min.
+        </Text>
+        <HStack flexWrap="wrap" mt="$3" style={{ gap: 6 }}>
+          {EF_DOMAIN_ORDER.map(d => (
+            <Box key={d} bg="$backgroundLight50" borderRadius="$full" px="$2.5" py="$1">
+              <Text size="2xs" weight="bold" color="$textLight600">
+                {EF_DOMAIN_META[d].emoji} {EF_DOMAIN_META[d].title}
+              </Text>
+            </Box>
+          ))}
+        </HStack>
+      </Card>
+
+      {/* selección de banda de edad → variante de dificultad */}
+      <Card bgColor="$white" borderRadius={20} p="$4">
+        <Text size="md" weight="bold" color="$textLight900" mb="$1">
+          ¿Qué edad tiene el paciente?
+        </Text>
+        <Text size="2xs" color="$textLight500" mb="$3">
+          La edad gradúa la dificultad: nº de tarjetas, velocidad, longitud de secuencias y cambio
+          de normas.
+        </Text>
+        <VStack space="sm">
+          {EF_BANDS.map(b => {
+            const on = band === b.band;
+            return (
+              <Pressable key={b.band} onPress={() => setBand(b.band)}>
+                <HStack
+                  alignItems="center"
+                  space="md"
+                  p="$3.5"
+                  borderRadius={16}
+                  borderWidth={2}
+                  borderColor={on ? '$primary500' : '$borderLight200'}
+                  bg={on ? '$primary0' : '$white'}>
+                  <Center w={48} h={48} borderRadius={14} bg={on ? '$primary50' : '$backgroundLight50'}>
+                    <Text style={{ fontSize: 26, lineHeight: 34 }}>{b.emoji}</Text>
+                  </Center>
+                  <VStack style={{ flex: 1 }}>
+                    <Text size="md" weight="bold" color="$textLight900">
+                      {b.ages}
+                    </Text>
+                    <Text size="xs" color="$textLight500">
+                      {b.label}
+                    </Text>
+                  </VStack>
+                  <Box
+                    w={22}
+                    h={22}
+                    borderRadius="$full"
+                    borderWidth={2}
+                    borderColor={on ? '$primary600' : '$borderLight300'}
+                    alignItems="center"
+                    justifyContent="center">
+                    {on ? <Box w={11} h={11} borderRadius="$full" bg="$primary600" /> : null}
+                  </Box>
+                </HStack>
+              </Pressable>
+            );
+          })}
+        </VStack>
+      </Card>
+
+      <Box bg="$warning50" borderRadius={12} p="$2.5">
+        <Text size="2xs" color="$warning800" style={{ lineHeight: 15 }}>
+          ⚠️ Cribado orientativo mediante juego: los cortes por dominio son provisionales y no
+          constituyen diagnóstico (no sustituye instrumentos estandarizados).
+        </Text>
+      </Box>
+
+      <Button action="primary" variant="solid" rounded="$full" onPress={startBattery}>
+        <HStack space="sm" alignItems="center">
+          <Icon as={Play} size="sm" color="$white" />
+          <Text size="md" weight="bold" color="$white">
+            Empezar los juegos
+          </Text>
+        </HStack>
+      </Button>
+      {overall !== null ? (
+        <Button action="secondary" variant="outline" rounded="$full" onPress={() => setPhase('results')}>
+          <Text size="sm" weight="bold" color="$primary500">
+            Ver resultados
+          </Text>
+        </Button>
+      ) : null}
+    </VStack>
+  );
+
+  /* --------------------------- fase: intro de juego ------------------------ */
+
+  const renderIntro = () => (
+    <VStack flex={1} px="$6" mt="$2" space="md" pb="$10">
+      <HStack alignItems="center" space="sm">
+        <Pressable onPress={exitBattery} hitSlop={10}>
+          <Center w={38} h={38} borderRadius="$full" bg="$white" borderWidth={1} borderColor="$borderLight200">
+            <Icon as={X} size="sm" color="$textLight500" />
+          </Center>
+        </Pressable>
+        <HStack style={{ flex: 1 }} justifyContent="center" space="xs">
+          {EF_DOMAIN_ORDER.map((d, i) => (
+            <Text key={d} style={{ fontSize: 15, lineHeight: 20 }}>
+              {i < gameIndex ? '⭐' : i === gameIndex ? '🔵' : '⚪'}
+            </Text>
+          ))}
+        </HStack>
+        <Box w={38} />
+      </HStack>
+
+      <Card bgColor="$white" borderRadius={24} p="$6">
+        <Center>
+          <Text style={{ fontSize: 64, lineHeight: 76 }}>{meta.emoji}</Text>
+          <Text size="2xs" weight="bold" color="$textLight400" mt="$2" style={{ letterSpacing: 1 }}>
+            JUEGO {gameIndex + 1} DE {EF_DOMAIN_ORDER.length}
+          </Text>
+          <Text size="2xl" weight="bold" color="$textLight900" mt="$1">
+            {meta.game}
+          </Text>
+          <Text size="md" color="$textLight700" mt="$3" style={{ textAlign: 'center', lineHeight: 22 }}>
+            {meta.instruction}
+          </Text>
+        </Center>
+      </Card>
+
+      <Button action="primary" variant="solid" rounded="$full" onPress={() => setPhase('play')}>
+        <Text size="lg" weight="bold" color="$white">
+          ¡A jugar! 🎮
+        </Text>
+      </Button>
+      <Text size="2xs" color="$textLight400" style={{ textAlign: 'center' }}>
+        Dominio evaluado: {meta.title}
+      </Text>
+    </VStack>
+  );
+
+  /* ------------------------------ fase: play ------------------------------- */
+
+  const renderPlay = () => (
+    <VStack flex={1} px="$5" mt="$2" space="md" pb="$8">
+      <HStack alignItems="center" space="sm">
+        <Pressable onPress={exitBattery} hitSlop={10}>
+          <Center w={38} h={38} borderRadius="$full" bg="$white" borderWidth={1} borderColor="$borderLight200">
+            <Icon as={X} size="sm" color="$textLight500" />
+          </Center>
+        </Pressable>
+        <HStack style={{ flex: 1 }} justifyContent="center" space="xs">
+          {EF_DOMAIN_ORDER.map((d, i) => (
+            <Text key={d} style={{ fontSize: 15, lineHeight: 20 }}>
+              {i < gameIndex ? '⭐' : i === gameIndex ? '🔵' : '⚪'}
+            </Text>
+          ))}
+        </HStack>
+        <Box w={38} />
+      </HStack>
+
+      <Card bgColor="$white" borderRadius={24} p="$4">
+        {domain === 'attention' ? (
+          <AttentionGame
+            plan={plans.attention}
+            onFinish={r => finishGame('attention', scoreAttention(r), r)}
+          />
+        ) : domain === 'inhibition' ? (
+          <InhibitionGame
+            plan={plans.inhibition}
+            onFinish={r => finishGame('inhibition', scoreInhibition(r), r)}
+          />
+        ) : domain === 'flexibility' ? (
+          <FlexibilityGame
+            plan={plans.flexibility}
+            onFinish={r => finishGame('flexibility', scoreFlexibility(r), r)}
+          />
+        ) : domain === 'workingMemory' ? (
+          <MemoryGame
+            plan={plans.workingMemory}
+            seed={seed}
+            onFinish={r => finishGame('workingMemory', scoreMemory(r), r)}
+          />
+        ) : (
+          <PlanningGame
+            plan={plans.planning}
+            onFinish={r => finishGame('planning', scorePlanning(r), r)}
+          />
+        )}
+      </Card>
+    </VStack>
+  );
+
+  /* ----------------------------- fase: results ----------------------------- */
+
+  const renderResults = () => (
+    <VStack flex={1} px="$6" mt="$2" space="md" pb="$10">
+      <HStack alignItems="center" space="sm">
+        <Pressable onPress={() => setPhase('setup')} hitSlop={10}>
+          <Center w={38} h={38} borderRadius="$full" bg="$white" borderWidth={1} borderColor="$borderLight200">
+            <Icon as={ChevronLeft} size="sm" color="$textLight500" />
+          </Center>
+        </Pressable>
+        <VStack style={{ flex: 1 }}>
+          <Text size="2xl" weight="bold" color="$textLight900">
+            Perfil ejecutivo
+          </Text>
+          <Text size="xs" color="$textLight500">
+            {patientName ?? 'Funciones ejecutivas'} · Banda {band}
+          </Text>
+        </VStack>
+        {overall !== null ? (
+          <Center bg="$white" borderRadius="$full" px="$3" py="$1.5" borderWidth={1} borderColor="$borderLight100">
+            <Text size="sm" weight="bold" color={overall >= 80 ? '$success600' : overall >= 60 ? '$warning600' : '$error600'}>
+              {overall}/100
+            </Text>
+          </Center>
+        ) : null}
+      </HStack>
+
+      <Card bgColor="$white" borderRadius={20} p="$4">
+        <Text size="sm" weight="bold" color="$textLight900" mb="$3">
+          Puntuación por dominio (0–100, orientativa)
+        </Text>
+        <VStack space="md">
+          {EF_DOMAIN_ORDER.map(d => {
+            const s = scores[d];
+            const m = EF_DOMAIN_META[d];
+            const st = s === null ? null : efStatus(s);
+            const barColor = st === 'ok' ? '#2A7948' : st === 'warn' ? '#FF7F00' : st === 'alt' ? '#DC2626' : '#D8CFC0';
+            return (
+              <VStack key={d}>
+                <HStack justifyContent="space-between" alignItems="center" mb="$1">
+                  <Text size="xs" weight="bold" color="$textLight800">
+                    {m.emoji} {m.title}
+                  </Text>
+                  <Text size="xs" weight="bold" color={st === 'ok' ? '$success600' : st === 'warn' ? '$warning600' : st === 'alt' ? '$error600' : '$textLight400'}>
+                    {s !== null ? `${s}/100` : 'no jugado'}
+                  </Text>
+                </HStack>
+                <Box h={8} borderRadius="$full" bg="$backgroundLight100" style={{ overflow: 'hidden' }}>
+                  <Box style={{ height: '100%', width: `${s ?? 0}%`, backgroundColor: barColor, borderRadius: 999 }} />
+                </Box>
+              </VStack>
+            );
+          })}
+        </VStack>
+      </Card>
+
+      <Card bgColor="$white" borderRadius={20} p="$4">
+        <Text size="sm" weight="bold" color="$textLight700" mb="$2" style={{ letterSpacing: 0.3 }}>
+          INTERPRETACIÓN ORIENTATIVA
+        </Text>
+        <Text size="sm" color="$textLight700" style={{ lineHeight: 21 }}>
+          {interpretExecutiveFunctions(band, scores)}
+        </Text>
+      </Card>
+
+      <Card bgColor="$white" borderRadius={20} p="$4">
+        <Text size="sm" weight="bold" color="$textLight900" mb="$2">
+          Repetir
+        </Text>
+        <HStack space="sm" flexWrap="wrap" style={{ gap: 6 }}>
+          <Button action="secondary" variant="outline" rounded="$full" onPress={startBattery}>
+            <Text size="sm" weight="bold" color="$primary500">
+              ▶ Repetir los juegos
+            </Text>
+          </Button>
+          <Button action="secondary" variant="outline" rounded="$full" onPress={restartAll}>
+            <HStack space="xs" alignItems="center">
+              <Icon as={RotateCcw} size="xs" color="$textLight500" />
+              <Text size="sm" weight="bold" color="$textLight500">
+                Cambiar edad
+              </Text>
+            </HStack>
+          </Button>
+        </HStack>
+      </Card>
+
+      <Card bgColor="$white" borderRadius={20} p="$4">
+        <Text size="sm" weight="bold" color="$textLight700" mb="$2">Evaluador responsable</Text>
+        <HStack space="sm" mb="$3">
+          <Input variant="outline" borderRadius={12} style={{ flex: 2 }}>
+            <InputField placeholder="Nombre" value={evaluatorName} onChangeText={setEvaluatorName} />
+          </Input>
+          <Input variant="outline" borderRadius={12} style={{ flex: 1 }}>
+            <InputField placeholder="Colegiado" value={evaluatorLicense} onChangeText={setEvaluatorLicense} />
+          </Input>
+        </HStack>
+        <Input variant="outline" borderRadius={12} h={64} mb="$3">
+          <InputField multiline placeholder="Observaciones clínicas…" value={notes} onChangeText={setNotes} style={{ textAlignVertical: 'top' }} />
+        </Input>
+        <Button
+          action="primary"
+          variant="solid"
+          rounded="$full"
+          isDisabled={isSaving || !evaluatorName.trim() || !evaluatorLicense.trim() || overall === null}
+          isLoading={isSaving}
+          onPress={handleSave}>
+          <HStack space="sm" alignItems="center">
+            <Icon as={Save} size="sm" color="$white" />
+            <Text size="sm" weight="bold" color="$white">Guardar exploración</Text>
+          </HStack>
+        </Button>
+        <HStack space="xs" alignItems="center" justifyContent="center" mt="$2">
+          <Icon as={Check} size="2xs" color="$textLight400" />
+          <Text size="2xs" color="$textLight400" style={{ textAlign: 'center' }}>
+            Cribado orientativo por juego. No sustituye instrumentos estandarizados ni constituye diagnóstico.
+          </Text>
+        </HStack>
+      </Card>
+    </VStack>
+  );
+
+  return (
+    <Content
+      padding={false}
+      insetTop={false}
+      radialBackgrounds={
+        <>
+          <RadialBackground topMultiplier={0.12} leftMultiplier={-0.2} widthMultiplier={2} heightMultiplier={2} center={(w, _h) => [w, w]} radiusMultiplier={1} />
+          <RadialBackground topMultiplier={-0.95} leftMultiplier={-0.8} widthMultiplier={2} heightMultiplier={2} center={(w, _h) => [w, w]} radiusMultiplier={1} />
+        </>
+      }>
+      <VStack flex={1}>
+        <Header animationType="expand" />
+        <ScrollView showsVerticalScrollIndicator={false}>
+          {phase === 'setup'
+            ? renderSetup()
+            : phase === 'intro'
+              ? renderIntro()
+              : phase === 'play'
+                ? renderPlay()
+                : renderResults()}
+        </ScrollView>
+      </VStack>
+    </Content>
+  );
+}
