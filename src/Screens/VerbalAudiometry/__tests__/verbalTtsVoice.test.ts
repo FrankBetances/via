@@ -41,6 +41,24 @@ describe('pickBestSpanishVoice', () => {
     expect(pickBestSpanishVoice(voices)?.id).toBe('alta');
   });
 
+  it('prefiere la voz INSTALADA aunque la de red declare más calidad (caso Google real)', () => {
+    // Google TTS: la variante «network» declara quality 500 y la «local» 400.
+    // La local debe ganar SIEMPRE: la de red deja la prueba muda sin wifi.
+    const voices = [
+      V({ id: 'es-es-x-eed-network', language: 'es-ES', quality: 500, networkConnectionRequired: true }),
+      V({ id: 'es-es-x-eed-local', language: 'es-ES', quality: 400, networkConnectionRequired: false }),
+    ];
+    expect(pickBestSpanishVoice(voices)?.id).toBe('es-es-x-eed-local');
+  });
+
+  it('una es-ES clásica instalada gana a la neural es-ES de red', () => {
+    const voices = [
+      V({ id: 'es-es-x-eea-network', language: 'es-ES', quality: 500, networkConnectionRequired: true }),
+      V({ id: 'es-ES-language', name: 'Español', language: 'es-ES', quality: 300, networkConnectionRequired: false }),
+    ];
+    expect(pickBestSpanishVoice(voices)?.id).toBe('es-ES-language');
+  });
+
   it('en igualdad, desempata por disponibilidad sin red', () => {
     const voices = [
       V({ id: 'red', language: 'es-ES', quality: 400, networkConnectionRequired: true }),

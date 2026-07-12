@@ -33,7 +33,10 @@ import { pickBestSpanishVoice } from './verbalTtsVoice';
 /*      ganancia `speechLevelToGain` que el motor de recortes y                */
 /*      KEY_PARAM_PAN = 0 mantiene la presentación binaural centrada. Sigue    */
 /*      sin calibración ABSOLUTA (la sonoridad base depende de la voz          */
-/*      instalada): etiquetar como orientativo en UI/PDF.                      */
+/*      instalada): etiquetar como orientativo en UI/PDF. Si un dictado FALLA  */
+/*      en runtime (rechazo de `speak()` o evento `tts-error` — p. ej. voz de  */
+/*      red sin conectividad), la palabra degrada a su recorte y, tras varios  */
+/*      fallos seguidos, toda la sesión pasa a recortes (estímulo constante).  */
 /*                                                                             */
 /*  Sin ninguno de los dos motores, la pantalla sigue operativa en modo        */
 /*  demostración (el clínico presenta el modelo con su voz), igual que la      */
@@ -168,6 +171,16 @@ export function installVerbalAudioAdapter(opts: VerbalAudioAdapterOptions = {}):
 
   const tts = optionalTts();
   const ttsEngine = tts?.default ?? tts;
+
+  // Palabra dictándose por TTS y su recorte de respaldo: si la síntesis falla
+  // (voz de red sin conectividad, motor saturado…), `tts-error`/el rechazo de
+  // `speak()` degradan ESA palabra al recorte empaquetado en vez de dejarla en
+  // silencio. Tras TTS_FAILURE_LIMIT fallos consecutivos se dejan de intentar
+  // dictados y el resto de la sesión usa recortes: mejor un estímulo constante
+  // (misma locución toda la lista) que una voz que va y viene con el wifi.
+  let currentTts: { audioKey: string; levelDb: number } | null = null;
+  let ttsConsecutiveFailures = 0;
+  const TTS_FAILURE_LIMIT = 2;
   // Selección de la MEJOR voz española del dispositivo (la más humana): se
   // enumeran las voces instaladas y se elige la neural es-ES de mayor calidad
   // (ver `pickBestSpanishVoice`), fijándola con `setDefaultVoice`. Solo si el
@@ -212,6 +225,10 @@ export function installVerbalAudioAdapter(opts: VerbalAudioAdapterOptions = {}):
   void configureTts();
 
   const stop = () => {
+    // Detención deliberada: anula el respaldo pendiente para que el
+    // `tts-cancel`/`tts-error` que pueda emitir el motor al abortar el dictado
+    // no dispare el recorte de una palabra que ya no debe sonar.
+    currentTts = null;
     try { source?.stop(); } catch {}
     try { source?.disconnect(); } catch {}
     try { gain?.disconnect(); } catch {}
@@ -220,25 +237,33 @@ export function installVerbalAudioAdapter(opts: VerbalAudioAdapterOptions = {}):
     try { ttsEngine?.stop?.(); } catch {}
   };
 
-  const speakWord = (word: string, levelDb: number) => {
+  /**
+   * Dicta la palabra con el TTS es-ES verificado. Devuelve la promesa de
+   * `speak()` para que el llamador pueda DEGRADAR al recorte si la síntesis
+   * falla (p. ej. voz de red sin conectividad): rechaza si no hay voz española
+   * o si el motor rechaza el dictado. Nunca dicta castellano con voz inglesa.
+   */
+  const speakWord = (word: string, levelDb: number): Promise<unknown> => {
     // Sin motor o sin voz española verificada: modo demostración (el clínico
-    // presenta el modelo con su voz). Nunca dictar castellano con voz inglesa.
-    if (!ttsEngine || !ttsSpanishReady) return;
+    // presenta el modelo con su voz).
+    if (!ttsEngine || !ttsSpanishReady) return Promise.reject(new Error('sin voz española'));
     try {
       ttsEngine.stop?.();
       // Sintetizador nativo (Android: TextToSpeech). El nivel relativo se
       // aplica con KEY_PARAM_VOLUME (misma ganancia que los recortes) y la
       // presentación binaural centrada con KEY_PARAM_PAN = 0, por el stream
       // de música (mismo canal de salida que el resto de estímulos).
-      ttsEngine.speak?.(word, {
-        androidParams: {
-          KEY_PARAM_VOLUME: levelToGain(levelDb),
-          KEY_PARAM_PAN: 0,
-          KEY_PARAM_STREAM: 'STREAM_MUSIC',
-        },
-      });
-    } catch {
-      /* noop */
+      return Promise.resolve(
+        ttsEngine.speak?.(word, {
+          androidParams: {
+            KEY_PARAM_VOLUME: levelToGain(levelDb),
+            KEY_PARAM_PAN: 0,
+            KEY_PARAM_STREAM: 'STREAM_MUSIC',
+          },
+        }),
+      );
+    } catch (e) {
+      return Promise.reject(e);
     }
   };
 
@@ -301,36 +326,31 @@ export function installVerbalAudioAdapter(opts: VerbalAudioAdapterOptions = {}):
   /** Dictado de consignas (frases completas) con el TTS es-ES verificado. */
   const speakText = (text: string) => {
     if (!ttsEngine || !ttsSpanishReady) return;
+    currentTts = null; // la consigna sustituye cualquier palabra pendiente
     try {
       ttsEngine.stop?.();
-      ttsEngine.speak?.(text, {
-        androidParams: {
-          KEY_PARAM_VOLUME: 1,
-          KEY_PARAM_PAN: 0,
-          KEY_PARAM_STREAM: 'STREAM_MUSIC',
-        },
-      });
+      Promise.resolve(
+        ttsEngine.speak?.(text, {
+          androidParams: {
+            KEY_PARAM_VOLUME: 1,
+            KEY_PARAM_PAN: 0,
+            KEY_PARAM_STREAM: 'STREAM_MUSIC',
+          },
+        }),
+      ).catch(() => { /* ayuda de accesibilidad: sin respaldo */ });
     } catch {
       /* noop */
     }
   };
 
-  const playWord = (audioKey: string, word: string, levelDb: number) => {
-    stop();
-    const hasClip =
-      engine === 'assets' && (!!assetBase64?.(audioKey) || !!assetSource?.(audioKey));
-
-    // Vía PRIMARIA: TTS neural del dispositivo (voz humana) cuando hay voz
-    // española verificada. Si además hay recorte, éste queda de respaldo por
-    // si el TTS fallara (pero la voz nativa es el objetivo de calidad).
-    if (preferTts && ttsSpanishReady) {
-      speakWord(word, levelDb);
-      return;
-    }
-
-    // Sin TTS español utilizable: recortes empaquetados (castellano garantizado).
-    if (!hasClip || !ctx) {
-      speakWord(word, levelDb); // último recurso (silencioso si no hay voz es)
+  /**
+   * Reproduce el recorte empaquetado de la palabra. `onFail` se invoca si el
+   * recorte falta o no decodifica (en la vía recortes-primario permite degradar
+   * a TTS; en el respaldo por fallo de TTS no queda más vía y se omite).
+   */
+  const playClip = (audioKey: string, levelDb: number, onFail?: () => void) => {
+    if (!ctx) {
+      onFail?.();
       return;
     }
     const cached = bufferCache.get(audioKey);
@@ -343,8 +363,63 @@ export function installVerbalAudioAdapter(opts: VerbalAudioAdapterOptions = {}):
         bufferCache.set(audioKey, buffer);
         playBuffer(buffer, levelDb);
       })
-      .catch(() => speakWord(word, levelDb)); // recorte ilegible → degradar a TTS
+      .catch(() => onFail?.());
   };
+
+  const playWord = (audioKey: string, word: string, levelDb: number) => {
+    stop();
+    const hasClip =
+      engine === 'assets' && (!!assetBase64?.(audioKey) || !!assetSource?.(audioKey));
+
+    // Vía PRIMARIA: TTS neural del dispositivo (voz humana) cuando hay voz
+    // española verificada. El recorte queda de respaldo REAL: si `speak()`
+    // rechaza o el motor emite `tts-error` (síntesis de red sin conexión, motor
+    // saturado…), esa palabra suena por el recorte y, tras varios fallos
+    // seguidos, la sesión entera pasa a recortes — antes el fallo se tragaba en
+    // silencio y la prueba se quedaba muda a mitad de la lista.
+    if (preferTts && ttsSpanishReady && ttsConsecutiveFailures < TTS_FAILURE_LIMIT) {
+      currentTts = { audioKey, levelDb };
+      speakWord(word, levelDb).catch(() => {
+        ttsConsecutiveFailures += 1;
+        currentTts = null;
+        if (hasClip) playClip(audioKey, levelDb);
+      });
+      return;
+    }
+
+    // Sin TTS español utilizable: recortes empaquetados (castellano garantizado).
+    if (!hasClip || !ctx) {
+      // Último recurso (silencioso si tampoco hay voz española).
+      speakWord(word, levelDb).catch(() => { /* sin vía de emisión */ });
+      return;
+    }
+    // Recorte ilegible → degradar a TTS por palabra (comportamiento histórico).
+    playClip(audioKey, levelDb, () => {
+      speakWord(word, levelDb).catch(() => { /* sin vía de emisión */ });
+    });
+  };
+
+  // Fallos ASÍNCRONOS de síntesis: en Android `speak()` resuelve al encolar y
+  // el error real (p. ej. la voz de red sin conectividad) llega después por el
+  // evento `tts-error`. Se degrada la palabra en curso a su recorte y se
+  // contabiliza el fallo; `tts-finish` confirma que el motor está sano y
+  // resetea el contador. `tts-cancel` (detención deliberada) no se escucha.
+  const onTtsFinish = () => {
+    ttsConsecutiveFailures = 0;
+    currentTts = null;
+  };
+  const onTtsError = () => {
+    ttsConsecutiveFailures += 1;
+    const failed = currentTts;
+    currentTts = null;
+    if (failed) playClip(failed.audioKey, failed.levelDb);
+  };
+  try {
+    ttsEngine?.addEventListener?.('tts-finish', onTtsFinish);
+    ttsEngine?.addEventListener?.('tts-error', onTtsError);
+  } catch {
+    /* motor sin eventos: la degradación por promesa rechazada sigue operativa */
+  }
 
   setVerbalAudioAdapter({
     playWord,
@@ -360,6 +435,10 @@ export function installVerbalAudioAdapter(opts: VerbalAudioAdapterOptions = {}):
   return () => {
     stop();
     setVerbalAudioAdapter(null);
+    try {
+      ttsEngine?.removeEventListener?.('tts-finish', onTtsFinish);
+      ttsEngine?.removeEventListener?.('tts-error', onTtsError);
+    } catch {}
     bufferCache.clear();
     try { ctx?.close(); } catch {}
     ctx = null;
