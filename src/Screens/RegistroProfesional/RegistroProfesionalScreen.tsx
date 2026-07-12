@@ -22,14 +22,17 @@ import { Professional, ProfessionalRole } from '@/Models/Professional/Profession
 import { ProfessionalRepository } from '@/Repositories/ProfessionalRepository';
 import { showErrorToast, showSuccessToast } from '@/Helpers/showToast';
 import { writeWithVerify } from '@/Helpers/dbWrite';
+import { describeAuthError, registerWithEmail, saveProfessionalProfile } from '@/Services/firebase';
 
 /* -------------------------------------------------------------------------- */
-/*  RegistroProfesionalScreen — alta del profesional responsable. Solo nombre  */
-/*  y rol son obligatorios; colegiado/servicio/centro opcionales. Al           */
-/*  confirmar abre sesión (`loginSuccess`): el gate de DefaultNavigator        */
-/*  cambia al grupo de sesión y aterriza en Pacientes (esta ruta solo existe   */
-/*  en el flujo de acceso). La persistencia corre en segundo plano con         */
-/*  verificación por lectura (ver Helpers/dbWrite).                            */
+/*  RegistroProfesionalScreen — alta del profesional responsable. Nombre,      */
+/*  rol, email y contraseña son obligatorios: la cuenta se crea en Firebase    */
+/*  Authentication (email/contraseña) y el perfil se sincroniza a Firestore   */
+/*  (professionals/{uid}). Al confirmar abre sesión (`loginSuccess`): el gate  */
+/*  de DefaultNavigator cambia al grupo de sesión y aterriza en Pacientes.     */
+/*  La persistencia local (SQLite) y la sincronización a Firestore corren en   */
+/*  segundo plano; el alta remota en Firebase Auth sí es bloqueante porque     */
+/*  valida las credenciales.                                                   */
 /*                                                                             */
 /*  Diseño: lenguaje visual de Bienvenida/Créditos (crema + naranja + mono),   */
 /*  con VISTA PREVIA EN VIVO del perfil según se escribe y roles como chips    */
@@ -62,6 +65,8 @@ export default function RegistroProfesionalScreen({ navigation: _navigation }: P
 
   const [nombre, setNombre] = useState('');
   const [rolLabel, setRolLabel] = useState<string | null>(null);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [colegiado, setColegiado] = useState('');
   const [servicio, setServicio] = useState('');
   const [centro, setCentro] = useState('');
@@ -71,41 +76,69 @@ export default function RegistroProfesionalScreen({ navigation: _navigation }: P
 
   const nameOk = nombre.trim().length > 0;
   const roleOk = !!rolLabel;
-  const ready = nameOk && roleOk;
-  const requiredCount = useMemo(() => [nameOk, roleOk].filter(Boolean).length, [nameOk, roleOk]);
+  const emailOk = /^\S+@\S+\.\S+$/.test(email.trim());
+  const passwordOk = password.length >= 6;
+  const ready = nameOk && roleOk && emailOk && passwordOk;
+  const requiredCount = useMemo(
+    () => [nameOk, roleOk, emailOk, passwordOk].filter(Boolean).length,
+    [nameOk, roleOk, emailOk, passwordOk],
+  );
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!ready || isSaving) return;
     setIsSaving(true);
 
     const trimmedName = nombre.trim();
     const trimmedLicense = colegiado.trim();
+    const trimmedEmail = email.trim().toLowerCase();
     const role = selectedRole?.value ?? 'medico';
 
-    // La sesión se abre INMEDIATAMENTE (optimista): si la escritura local se
-    // demorase, el usuario no queda bloqueado. El id real se reconcilia en
-    // segundo plano. El gate del navigator aterriza en Pacientes.
+    // El alta en Firebase Auth es bloqueante: valida email/contraseña y
+    // devuelve el uid que ancla el perfil remoto. Sin cuenta no hay sesión.
+    let uid: string;
+    try {
+      const user = await registerWithEmail(trimmedEmail, password);
+      uid = user.uid;
+    } catch (e) {
+      console.error('VIA+: error creando cuenta Firebase', e);
+      showErrorToast('No se pudo crear la cuenta', describeAuthError(e));
+      setIsSaving(false);
+      return;
+    }
+
+    // Con la cuenta creada, la sesión se abre INMEDIATAMENTE (optimista):
+    // si la escritura local se demorase, el usuario no queda bloqueado. El id
+    // real se reconcilia en segundo plano y el gate aterriza en Pacientes.
     dispatch(
       loginSuccess({
         id: 0,
         fullName: trimmedName,
         licenseNumber: trimmedLicense,
         role,
-        email: null,
+        email: trimmedEmail,
         centerId: null,
         createdAt: new Date().toISOString(),
       }),
     );
     showSuccessToast('Registro completado', `Bienvenido/a, ${trimmedName}.`);
 
-    // Persistencia + reconciliación del id en segundo plano.
+    // Sincronización del perfil a Firestore (professionals/{uid}) en segundo
+    // plano: solo datos del evaluador, nunca datos de pacientes.
+    saveProfessionalProfile(uid, {
+      fullName: trimmedName,
+      role,
+      licenseNumber: trimmedLicense,
+      email: trimmedEmail,
+    }).catch(e => console.error('VIA+: error sincronizando perfil a Firestore', e));
+
+    // Persistencia local + reconciliación del id en segundo plano.
     (async () => {
       try {
-        // Si ya hay un perfil con ese nº de colegiado, se reutiliza en lugar
-        // de duplicarlo (el registro es "una sola vez por dispositivo").
-        const existing = trimmedLicense
-          ? await ProfessionalRepository.getProfessionalByLicense(trimmedLicense)
-          : null;
+        // Si ya hay un perfil con ese email o nº de colegiado, se reutiliza en
+        // lugar de duplicarlo (el registro es "una sola vez por dispositivo").
+        const existing =
+          (await ProfessionalRepository.getProfessionalByEmail(trimmedEmail)) ??
+          (trimmedLicense ? await ProfessionalRepository.getProfessionalByLicense(trimmedLicense) : null);
 
         let saved: Professional;
         if (existing) {
@@ -115,15 +148,14 @@ export default function RegistroProfesionalScreen({ navigation: _navigation }: P
           professional.fullName = trimmedName;
           professional.role = role;
           professional.licenseNumber = trimmedLicense;
-          professional.email = null;
+          // Las credenciales viven en Firebase Auth; localmente solo se guarda
+          // el email para localizar el perfil en la pantalla de acceso.
+          professional.email = trimmedEmail;
           professional.passwordHash = '';
           professional.centerId = null;
           saved = await writeWithVerify(
             () => ProfessionalRepository.createProfessional(professional),
-            () =>
-              trimmedLicense
-                ? ProfessionalRepository.getProfessionalByLicense(trimmedLicense)
-                : ProfessionalRepository.getLatestByFullName(trimmedName),
+            () => ProfessionalRepository.getProfessionalByEmail(trimmedEmail),
           );
         }
 
@@ -133,7 +165,7 @@ export default function RegistroProfesionalScreen({ navigation: _navigation }: P
             fullName: saved.fullName,
             licenseNumber: saved.licenseNumber,
             role: saved.role,
-            email: saved.email ?? null,
+            email: saved.email ?? trimmedEmail,
             centerId: saved.centerId,
             createdAt: saved.createdAt?.toISOString?.() ?? new Date().toISOString(),
           }),
@@ -229,6 +261,33 @@ export default function RegistroProfesionalScreen({ navigation: _navigation }: P
               })}
             </View>
 
+            <Text style={[styles.fieldLabel, { marginTop: 16 }]}>
+              Email <Text style={styles.fieldRequired}>*</Text>
+            </Text>
+            <TextInput
+              style={styles.input}
+              placeholder="nombre@centro.es"
+              placeholderTextColor="#B8B2A7"
+              value={email}
+              onChangeText={setEmail}
+              autoCapitalize="none"
+              autoComplete="email"
+              keyboardType="email-address"
+            />
+
+            <Text style={[styles.fieldLabel, { marginTop: 16 }]}>
+              Contraseña <Text style={styles.fieldRequired}>*</Text>
+            </Text>
+            <TextInput
+              style={styles.input}
+              placeholder="Mínimo 6 caracteres"
+              placeholderTextColor="#B8B2A7"
+              value={password}
+              onChangeText={setPassword}
+              autoCapitalize="none"
+              secureTextEntry
+            />
+
             <View style={styles.row}>
               <View style={{ flex: 1 }}>
                 <Text style={styles.fieldLabel}>Nº colegiado · opcional</Text>
@@ -264,7 +323,8 @@ export default function RegistroProfesionalScreen({ navigation: _navigation }: P
             <View style={styles.hint}>
               <Text style={styles.hintEmoji}>💡</Text>
               <Text style={styles.hintText}>
-                Este registro se realiza una sola vez. Después bastará con tocar tu perfil en la pantalla de acceso.
+                Este registro se realiza una sola vez y crea tu cuenta segura. Después bastará con tocar tu perfil e
+                introducir tu contraseña en la pantalla de acceso.
               </Text>
             </View>
           </View>
@@ -275,7 +335,9 @@ export default function RegistroProfesionalScreen({ navigation: _navigation }: P
           <View style={styles.progressRow}>
             <View style={[styles.progressSeg, nameOk && styles.progressSegDone]} />
             <View style={[styles.progressSeg, roleOk && styles.progressSegDone]} />
-            <Text style={styles.progressText}>{requiredCount}/2 obligatorios</Text>
+            <View style={[styles.progressSeg, emailOk && styles.progressSegDone]} />
+            <View style={[styles.progressSeg, passwordOk && styles.progressSegDone]} />
+            <Text style={styles.progressText}>{requiredCount}/4 obligatorios</Text>
           </View>
           <Pressable
             disabled={!ready || isSaving}

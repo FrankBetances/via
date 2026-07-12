@@ -11,6 +11,7 @@ import { RootStackParamList } from '@/Navigators';
 import { AppDispatch, RootState } from '@/Store';
 import { setActiveEvaluation } from '@/Store/slices/activeEvaluationSlice';
 import { logout } from '@/Store/slices/authSlice';
+import { signOutQuietly } from '@/Services/firebase';
 import { Patient } from '@/Models/Patient/Patient';
 import { Evaluation } from '@/Models/Evaluation/Evaluation';
 import { Professional } from '@/Models/Professional/Professional';
@@ -263,7 +264,10 @@ export default function PacientesScreen({ navigation }: Props) {
                       </Text>
                     </Center>
                     <Pressable
-                      onPress={() => dispatch(logout())}
+                      onPress={() => {
+                        signOutQuietly();
+                        dispatch(logout());
+                      }}
                       accessibilityRole="button"
                       accessibilityLabel="Cerrar sesión">
                       <Center w={36} h={36} borderRadius="$full" borderWidth={1.5} borderColor="$error200" bg="$error50">

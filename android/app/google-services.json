@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "665213943480",
+    "project_id": "valoracion-interactiva",
+    "storage_bucket": "valoracion-interactiva.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:665213943480:android:3a3e2a4bc9be5c0be0fe4d",
+        "android_client_info": {
+          "package_name": "com.viaplus.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDI_dHMAQj3N9ggvT0DeZpAsnoWr1qVGFE"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
