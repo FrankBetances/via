@@ -86,6 +86,9 @@ struct Patient: Identifiable {
     var nhc: String
     var ageLabel: String
     var status: PatientStatus
+    /// Fecha de nacimiento AAAA-MM-DD (para régimen de firma del consentimiento).
+    var dob: String? = nil
+    var sex: String? = nil
 }
 
 // MARK: - Módulo clínico (hub de ejercicios)
@@ -113,10 +116,10 @@ enum SampleData {
     ]
 
     static let patients: [Patient] = [
-        Patient(fullName: "Mateo R. G.", nhc: "NHC-004512", ageLabel: "4 a · 3 m", status: .inProgress),
-        Patient(fullName: "Sofía L. M.", nhc: "NHC-004498", ageLabel: "2 a · 11 m", status: .pending),
-        Patient(fullName: "Hugo P. S.", nhc: "NHC-004480", ageLabel: "6 a · 1 m", status: .done),
-        Patient(fullName: "Valentina C.", nhc: "NHC-004471", ageLabel: "3 a · 7 m", status: .pending),
+        Patient(fullName: "Mateo R. G.", nhc: "NHC-004512", ageLabel: "4 a", status: .inProgress, dob: "2021-03-10", sex: "M"),
+        Patient(fullName: "Sofía L. M.", nhc: "NHC-004498", ageLabel: "23 m", status: .pending, dob: "2023-08-02", sex: "F"),
+        Patient(fullName: "Hugo P. S.", nhc: "NHC-004480", ageLabel: "6 a", status: .done, dob: "2019-06-21", sex: "M"),
+        Patient(fullName: "Valentina C.", nhc: "NHC-004471", ageLabel: "3 a", status: .pending, dob: "2022-01-15", sex: "F"),
     ]
 
     /// Catálogo portado 1:1 desde SeleccionEjerciciosScreen (RN).

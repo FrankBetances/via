@@ -10,6 +10,9 @@
 
 import SwiftUI
 
+/// Destino tras firmar el consentimiento (réplica del `next` del RN).
+enum ConsentNext: Hashable { case cap, dysphagia }
+
 /// Rutas de la fase visual. Se irán añadiendo los módulos clínicos reales.
 enum Route: Hashable {
     case credits
@@ -17,6 +20,7 @@ enum Route: Hashable {
     case professionalRegistration
     case patients
     case patientRegistration
+    case consent(ConsentNext)
     case moduleHub
 }
 
@@ -37,6 +41,8 @@ final class AppRouter: ObservableObject {
     @Published var professionals: [Professional] = SampleData.professionals
     /// Pacientes registrados (los más recientes primero).
     @Published var patients: [Patient] = SampleData.patients
+    /// Paciente en curso (contexto del consentimiento y las pruebas).
+    @Published var activePatient: Patient?
 
     // MARK: - Navegación
 

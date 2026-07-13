@@ -185,11 +185,11 @@ struct PatientRegistrationView: View {
                 .font(.system(size: 11))
                 .foregroundStyle(VIA.muted)
 
-            PrimaryButton(title: "Continuar al consentimiento") { submit() }
+            PrimaryButton(title: "Continuar al consentimiento") { submit(.cap) }
                 .disabled(!ready)
                 .opacity(ready ? 1 : 0.5)
 
-            Button { submit() } label: {
+            Button { submit(.dysphagia) } label: {
                 HStack(spacing: 6) {
                     Text("💧")
                     Text("Ir directo a exploración de disfagia")
@@ -216,17 +216,20 @@ struct PatientRegistrationView: View {
         .padding(.bottom, 26)
     }
 
-    private func submit() {
+    private func submit(_ next: ConsentNext) {
         guard ready else { return }
         let full = "\(firstName.trimmingCharacters(in: .whitespaces)) \(lastName.trimmingCharacters(in: .whitespaces))"
             .trimmingCharacters(in: .whitespaces)
         let patient = Patient(fullName: full,
                               nhc: nhc.trimmingCharacters(in: .whitespaces),
                               ageLabel: ageLabel,
-                              status: .inProgress)
+                              status: .inProgress,
+                              dob: dob.trimmingCharacters(in: .whitespaces),
+                              sex: sex)
         router.registerPatient(patient)
-        // Consentimiento/CAP aún no portados: continúa al hub de módulos.
-        router.path = [.moduleHub]
+        router.activePatient = patient
+        // Consentimiento informado: paso bloqueante antes de las pruebas.
+        router.push(.consent(next))
     }
 }
 
@@ -247,6 +250,18 @@ enum PatientDOB {
         let back = cal.dateComponents([.year, .month, .day], from: date)
         guard back.year == parts[0], back.month == parts[1], back.day == parts[2] else { return false }
         return date <= Date()
+    }
+
+    /// Años cumplidos a partir de AAAA-MM-DD; `nil` si no es interpretable.
+    static func ageYears(_ input: String?) -> Int? {
+        guard let input, isValid(input) else { return nil }
+        let parts = input.trimmingCharacters(in: .whitespaces).split(separator: "-").compactMap { Int($0) }
+        guard parts.count == 3 else { return nil }
+        var comps = DateComponents()
+        comps.year = parts[0]; comps.month = parts[1]; comps.day = parts[2]
+        let cal = Calendar(identifier: .gregorian)
+        guard let dob = cal.date(from: comps) else { return nil }
+        return cal.dateComponents([.year], from: dob, to: Date()).year
     }
 
     /// "N m" (meses) para menores de 2 años, "N a" (años) en adelante.

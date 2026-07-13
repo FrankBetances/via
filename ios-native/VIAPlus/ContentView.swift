@@ -43,6 +43,7 @@ struct ContentView: View {
         case .professionalRegistration: ProfessionalRegistrationView()
         case .patients: PatientsView()
         case .patientRegistration: PatientRegistrationView()
+        case .consent(let next): ConsentView(next: next)
         case .moduleHub: ModuleHubView()
         }
     }

@@ -21,7 +21,8 @@ ios-native/
     │   ├── ViaIcon.swift          # Isotipo nativo (tesela + onda + "+")
     │   ├── PrimaryButton.swift    # CTA de marca reutilizable
     │   ├── FormField.swift        # Campo etiquetado + estilo de input
-    │   └── FlexibleWrap.swift     # Layout flex-wrap (chips de rol)
+    │   ├── FlexibleWrap.swift     # Layout flex-wrap (chips de rol)
+    │   └── SignaturePad.swift     # Pad de firma (Canvas + gestos)
     ├── Models/
     │   └── DomainModels.swift     # Professional, Patient, ClinicalModule
     ├── Navigation/
@@ -34,6 +35,7 @@ ios-native/
     │   ├── ProfessionalRegistrationView.swift # ← Alta de profesional
     │   ├── PatientsView.swift               # ← Pacientes
     │   ├── PatientRegistrationView.swift    # ← Alta de paciente
+    │   ├── ConsentView.swift                # ← Consentimiento informado
     │   └── ModuleHubView.swift              # ← Selección de ejercicios (hub)
     ├── Info.plist
     └── Assets.xcassets/           # AppIcon + AccentColor
@@ -57,7 +59,18 @@ y **alta de paciente** (nombre/apellidos, fecha de nacimiento validada
 Ambos son **funcionales dentro de la sesión**: `AppRouter` actúa como store en
 memoria (`professionals`/`patients`), así que registrar un profesional abre
 sesión y registrar un paciente lo añade a la lista. La persistencia real
-(SQLite/Firebase) y el consentimiento informado se conectan más adelante.
+(SQLite/Firebase) se conecta más adelante.
+
+### Consentimiento informado (bloqueante)
+
+Paso obligatorio entre el alta de paciente y las pruebas. Texto legal versión
+1.0 (4 párrafos), **régimen de firma según la edad** del paciente (menor →
+tutor; adulto → paciente o familiar/representante con motivo de incapacidad),
+relación con el paciente, dos declaraciones a marcar y **firma manuscrita** en
+un `SignaturePad` nativo (`Canvas` + `DragGesture`). El destino tras firmar
+(`cap` / `dysphagia`) se propaga con `Route.consent(ConsentNext)`. La
+persistencia (tabla `informed_consent`) y las pantallas CAP/Sala se portan
+después; hoy, tras firmar se aterriza en el hub de módulos.
 
 ## Dependencias (Swift Package Manager)
 
