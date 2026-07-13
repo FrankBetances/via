@@ -71,13 +71,13 @@ La aplicación opera sobre **tablets iOS/Android** en entornos clínicos bajo su
 
 ## Características Principales
 
-- 🎮 **Baterías gamificadas** — 9 módulos de evaluación adaptados al paciente pediátrico
-- 🔇 **Offline-first** — Operación completa sin conexión en entornos clínicos aislados
+- 🎮 **Baterías gamificadas** — 11 módulos de evaluación adaptados al paciente pediátrico
+- 🔇 **Offline-first** — Operación completa sin conexión; los datos clínicos del paciente residen solo en el dispositivo
 - 🔐 **Seguridad robusta** — AES-256 en reposo · TLS 1.3 en tránsito · Seudonimización
 - 📋 **Consentimiento informado digital** — Gestión legal obligatoria para tutores legales
 - 🏥 **Pre-screening clínico** — Certificado de Aptitud para la Prueba (CAP) integrado
 - 📄 **Informes PDF** — Generación automática de informes clínicos estructurados
-- 🔄 **Interoperabilidad HL7-FHIR** — Sincronización con HCE hospitalarias
+- 🔑 **Identidad del profesional** — Firebase Authentication (email/contraseña) + sincronización del perfil en Firestore
 - 🎙️ **Captura de audio estéreo** — Canales L/R independientes con calibración acústica
 - 👁️ **UX dual** — Modo Profesional analítico y Modo Niño lúdico en un único dispositivo
 
@@ -118,10 +118,10 @@ Ruta de conformidad: Organismo Notificado (ON) requerido para marcado CE
 VIA+ App
 │
 ├── /core
-│   ├── auth/              # Autenticación profesional + control de sesión
+│   ├── auth/              # Firebase Authentication (email/contraseña) + authSlice (Redux)
 │   ├── consent/           # Módulo de Consentimiento Informado (BLOQUEANTE)
 │   ├── prescreening/      # Pre-screening clínico + Certificado de Aptitud (CAP)
-│   ├── sync/              # Motor de sincronización FHIR (offline-first)
+│   ├── sync/              # Firestore: perfil del profesional (professionals/{uid})
 │   └── security/          # Cifrado, seudonimización, gestión de claves
 │
 ├── /patient
@@ -136,10 +136,12 @@ VIA+ App
 │   │   ├── room-noise-check/       # Sonómetro Ambiental (gate de sala, sin persistencia)
 │   │   ├── audiometry/             # Audiometría Infantil (tonal liminar, Hughson-Westlake)
 │   │   ├── audiometry-conditioned/ # Audiometría Condicionada — El Tren del Sonido (CRA)
+│   │   ├── verbal-audiometry/      # Audiometría Verbal (logoaudiometría en campo libre)
 │   │   ├── voice-analysis/         # Análisis Acústico de Voz (F0, jitter, shimmer, HNR)
 │   │   ├── dysphagia-test/         # Test de Disfagia MECV-V (pulsioximetría BLE)
 │   │   ├── sahs-screening/         # Cribado SAHS Infantil (PSQ de Chervin)
-│   │   └── articulation-tar/       # Articulación · T.A.R. (repetición + SODA)
+│   │   ├── articulation-tar/       # Articulación · T.A.R. (repetición + SODA)
+│   │   └── executive-functions/    # Exploración lúdica de Funciones Ejecutivas (5 mini-juegos)
 │   └── audio/             # AudioEngineProvider + PermissionsProvider (captura, síntesis, calibración)
 │
 ├── /results
@@ -186,12 +188,12 @@ El siguiente flujo es **obligatorio** y no puede omitirse. Cada fase es un prere
       │  → CAP NO APTO: bloqueo + sugerencia de metodologías alternativas
       ▼
 [4] BATERÍA DE EVALUACIÓN GAMIFICADA
-      │  9 módulos adaptados al perfil del paciente (clínicos + gamificados)
+      │  11 módulos adaptados al perfil del paciente (clínicos + gamificados)
       │  Modo Niño: interfaz lúdica sin elementos clínicos visibles
       ▼
 [5] GENERACIÓN DE RESULTADOS
       │  Informe PDF estructurado para el profesional
-      │  Sincronización diferida con HCE (HL7 FHIR R4)
+      │  Datos clínicos persistidos localmente (SQLite cifrado)
       ▼
 [6] ARCHIVO Y SEGUIMIENTO
          Historial de evaluaciones del paciente
@@ -231,6 +233,11 @@ clinical_sessions:
   patient_ref TEXT   -- Referencia al id_hash, nunca al NHC directo
 ```
 
+> **Alcance de la nube (Firestore):** solo se sincroniza el **perfil del profesional
+> autenticado** (`professionals/{uid}`). Los datos clínicos del paciente (evaluaciones,
+> capturas de audio, informes) **permanecen locales al dispositivo y nunca llegan a
+> Firestore** — así lo imponen las reglas de seguridad de Firestore (`firestore.rules`).
+
 ### Controles de Seguridad
 
 | Control | Estándar | Implementación |
@@ -262,10 +269,11 @@ clinical_sessions:
 | **Firma digital** | `react-native-signature-canvas` | Consentimiento informado en Evaluación Clínica |
 | **Vídeo / foto clínica** | `react-native-vision-camera` · `react-native-image-picker` | Disfagia y Evaluación Clínica |
 | **Generación PDF** | `pdf-lib` | Informes clínicos estructurados por módulo |
-| **Sincronización HCE** | HL7 FHIR R4 REST API | Interoperabilidad con sistemas hospitalarios |
+| **Identidad y backend** | Firebase (`@react-native-firebase` app/auth/firestore) | Autenticación email/contraseña + perfil del profesional en Firestore (`professionals/{uid}`) |
 | **Cifrado en tránsito** | TLS 1.3 | Obligatorio por GDPR para datos sanitarios |
 | **Cifrado en reposo** | AES-256-GCM | Obligatorio por LOPDGDD |
-| **Autenticación** | JWT + refresh tokens (corta caducidad) | Gestión segura de sesiones de profesionales |
+| **Autenticación** | Firebase Authentication + `authSlice` (Redux, en memoria) | Verificación de credenciales y `uid` que ancla el perfil del profesional |
+| **Sincronización HCE** | HL7 FHIR R4 REST API | Interoperabilidad con sistemas hospitalarios *(roadmap)* |
 | **i18n / Errores** | i18next (es) · Sentry React Native | Localización y monitorización de errores en producción |
 
 ---
@@ -279,9 +287,10 @@ clinical_sessions:
 ```
 Node.js >= 18.x
 npm >= 9.x  o  yarn >= 1.22.x
-React Native CLI >= 0.73  o  Flutter >= 3.x
+React Native 0.80.x (CLI @react-native-community/cli)
 Xcode >= 15 (para iOS)
 Android Studio >= 2023.x (para Android)
+Proyecto Firebase con Authentication (email/contraseña) y Firestore habilitados
 ```
 
 ### Instalación de dependencias
@@ -297,6 +306,22 @@ npm install
 yarn install
 ```
 
+### Configuración de Firebase
+
+La identidad del profesional se apoya en Firebase. Añade los archivos de configuración
+que descargas de tu proyecto de Firebase (`.firebaserc` apunta al proyecto por defecto):
+
+```bash
+# Android
+android/app/google-services.json
+
+# iOS
+ios/GoogleService-Info.plist
+```
+
+> 🔐 **NUNCA versiones los archivos de configuración de Firebase ni ningún `.env` con datos
+> reales.** Están incluidos en `.gitignore`.
+
 ### Variables de entorno
 
 Crear un archivo `.env` a partir de la plantilla `.env.example`:
@@ -308,15 +333,9 @@ cp .env.example .env
 ```env
 # Configuración del entorno
 APP_ENV=development              # development | staging | production
-API_BASE_URL=https://api.earlify.com/v1
 
 # Seguridad
 DEVICE_KEY_SALT=                 # Rellenar con valor provisto por Earlify Health
-JWT_SECRET=                      # No compartir ni versionar
-
-# FHIR
-FHIR_SERVER_URL=                 # URL del servidor FHIR del hospital
-FHIR_CLIENT_ID=                  # Credencial provista por el hospital
 
 # Análisis de audio
 AUDIO_SAMPLE_RATE=44100
@@ -324,22 +343,23 @@ AUDIO_CHANNELS=2                 # Estéreo (L/R)
 AUDIO_BIT_DEPTH=16
 ```
 
-> 🔐 **NUNCA versiones el archivo `.env` con datos reales.** Está incluido en `.gitignore`.
-
 ### Ejecución en desarrollo
 
 ```bash
+# Servidor Metro
+npm start
+
 # iOS
-npx react-native run-ios --device "iPad Pro (12.9-inch)"
+npm run ios
 
 # Android
-npx react-native run-android
+npm run android
 ```
 
-### Tests
+### Verificación (tests · lint · tipos)
 
 ```bash
-# Tests unitarios
+# Tests unitarios (Jest)
 npm run test
 
 # Tests de integración clínica
@@ -347,6 +367,12 @@ npm run test:clinical
 
 # Cobertura (objetivo: ≥ 80% en módulos core)
 npm run test:coverage
+
+# Linter (ESLint)
+npm run lint
+
+# Comprobación de tipos (TypeScript, sin emitir)
+npm run tsc
 ```
 
 ---
@@ -416,6 +442,20 @@ npm run test:coverage
 - **Objetivo:** El niño repite el modelo hablado; clasificación Correcto/Sustitución/Omisión/Distorsión/Adición por ítem, con % de acierto y fonemas a intervenir
 - **Nativo:** modelo hablado (`react-native-tts`) + grabación (`react-native-audio-recorder-player`) + reconocimiento de voz es-ES (`@react-native-voice/voice`) que auto-evalúa la repetición; degrada a SODA manual sin hardware/permiso
 - **Datos:** entidad `ArticulationTest` · informe PDF `ArticulationDetail`
+
+### 10 — Audiometría Verbal 🔊🗣️ (`VerbalAudiometry`)
+
+- **Dominio:** Logoaudiometría en campo libre (altavoz del dispositivo, sin audífonos)
+- **Objetivo:** Reconocimiento de conjunto cerrado por selección de tarjetas (`WordCard`), con listas de estímulos por franja de edad (A–D); modos discriminación y umbral (URV/SRT estimado)
+- **Nativo:** voz humana neural del dispositivo (`react-native-tts`) presentada por el altavoz binaural; degrada con placeholders si falta imagen
+- **Datos:** entidad `VerbalAudiometryTest` (tabla `verbal_audiometry_test`) · informe PDF
+
+### 11 — Funciones Ejecutivas 🟢🗣️ (`ExecutiveFunctions`)
+
+- **Dominio:** Exploración lúdica del neurodesarrollo (cribado orientativo, cortes provisionales)
+- **Objetivo:** Batería de 5 mini-juegos de tarjetas (atención, inhibición, flexibilidad, memoria de trabajo y planificación) con dificultad graduada por banda de edad A–D; puntuaciones 0–100 por dominio
+- **Nativo:** dictado por voz de las consignas de los mini-juegos (`react-native-tts`); no requiere hardware adicional para jugar
+- **Datos:** entidad `ExecutiveFunctionsTest` (tabla `executive_functions_test`) · informe PDF
 
 ---
 
@@ -498,31 +538,32 @@ Earlify Health
 |---|---|
 | Módulo de Consentimiento Informado | 🟡 En diseño |
 | Pre-screening clínico (CAP) | 🟡 En diseño |
-| Autenticación profesional | 🟢 Documentado |
+| Autenticación profesional (Firebase Auth) | 🟢 Integrado |
+| Sincronización del perfil (Firestore) | 🟢 Integrado |
 | Identificación de paciente | 🟢 Documentado |
 | Generación de informes PDF | 🟢 Documentado |
-| Sincronización HL7-FHIR | 🔴 Pendiente |
+| Sincronización clínica HL7-FHIR | 🔴 Pendiente (roadmap) |
 | Certificación MDR Clase IIa | 🔴 En proceso |
 
-### Batería de evaluación — 9 módulos
+### Batería de evaluación — 11 módulos
 
 | # | Módulo | Pantalla + `integration/` | Servicio local | Hardware nativo |
 |---|---|---|---|---|
-| 1 | Evaluación Clínica Previa | 🟢 Construido | 🟡 Crear (`clinicalAssessments`) | 🟢 ninguno |
-| 2 | Autismo M-CHAT-R | 🟢 Construido | 🟡 Crear (`screenings`) | 🟢 ninguno |
+| 1 | Evaluación Clínica Previa | 🟢 Construido | 🟢 OK | 🟢 ninguno |
+| 2 | Autismo M-CHAT-R | 🟢 Construido | 🟢 OK (`screenings`) | 🟢 ninguno |
 | 3 | Sonómetro Ambiental | 🟢 Construido | — (sin persistencia) | 🟢 micrófono real integrado |
 | 4 | Audiometría Infantil | 🟢 Construido | 🟢 OK (`audiometry`) | 🟢 síntesis de tono (`audio-api`) |
 | 5 | Audiometría Condicionada | 🟢 Construido | 🟢 Reutiliza `audiometry` | 🟢 síntesis de tono + reanimated |
-| 6 | Análisis Acústico de Voz | 🟢 Construido | 🟡 Crear (`voiceAnalysis`) | 🟢 mic + DSP (LPC nativo/fallback JS) |
-| 7 | Test de Disfagia MECV-V | 🟢 Construido | 🟡 Crear (`dysphagiaTest`) | 🟢 BLE pulsioxímetro (`ble-plx`) |
+| 6 | Análisis Acústico de Voz | 🟢 Construido | 🟢 OK (`voiceAnalysis`) | 🟢 mic + DSP (LPC nativo/fallback JS) |
+| 7 | Test de Disfagia MECV-V | 🟢 Construido | 🟢 OK (`dysphagiaTest`) | 🟢 BLE pulsioxímetro (`ble-plx`) |
 | 8 | Cribado SAHS Infantil | 🟢 Construido | 🟢 OK (`sahsScreenings`) | 🟢 ninguno |
-| 9 | Articulación · T.A.R. | 🟢 Construido | 🟢 Provista (`articulationTests`) | 🟢 mic + voz + TTS (degrada a SODA manual) |
+| 9 | Articulación · T.A.R. | 🟢 Construido | 🟢 OK (`articulationTests`) | 🟢 mic + voz + TTS (degrada a SODA manual) |
+| 10 | Audiometría Verbal | 🟢 Construido | 🟢 OK (`verbalAudiometry`) | 🟢 TTS neural (campo libre) |
+| 11 | Funciones Ejecutivas | 🟢 Construido | 🟢 OK (`executiveFunctions`) | 🟢 TTS (dictado de consignas) |
 
-> Los 9 paquetes `VIA+ <Módulo> (React Native)` están construidos (pantalla + `integration/`).
-> Pendiente de compilación: crear las carpetas de servicio marcadas 🟡, renombrar la migración
-> de Disfagia (`…200` → `…250` por colisión con `CreateVoiceAnalysis`), registrar las 9 rutas
-> en `RootStackParamList` y verificar `tsc --noEmit` sin errores. Detalle completo en el
-> Contrato de Compilación v3.
+> Los 11 módulos están construidos (pantalla + `integration/`) con su servicio local y
+> migración TypeORM propia. Las 11 rutas están registradas en `RootStackParamList` y la
+> batería completa persiste en SQLite cifrado del dispositivo.
 
 ---
 
@@ -539,7 +580,9 @@ Consulta el archivo [LICENSE](./LICENSE) para los términos completos.
 ## Contacto
 
 | Área | Contacto |
-fbetances@futureforkids.eu
+|---|---|
+| General / Licencias | fbetances@futureforkids.eu |
+| Incidentes de seguridad | safety@earlify.com |
 
 ---
 
