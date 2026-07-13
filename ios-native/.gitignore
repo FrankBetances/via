@@ -1,0 +1,74 @@
+# ==========================================================================
+# VIA+ iOS nativo (SwiftUI) — .gitignore ESTRICTO para el ecosistema Apple
+# Objetivo: nunca versionar estado local de Xcode ni artefactos de build.
+# ==========================================================================
+
+# --- Estado local por-usuario de Xcode (INNEGOCIABLE) ---
+*.xcuserstate
+*.xcuserdatad/
+**/xcuserdata/
+**/*.xcuserdatad/
+*.xcuserdata
+.xcuserstate
+
+# --- DerivedData / índices / caché de build ---
+DerivedData/
+**/DerivedData/
+build/
+Build/
+*.build/
+.build/
+
+# --- Workspace / esquemas locales (mantener solo los compartidos) ---
+*.xcworkspace/xcuserdata/
+**/xcshareddata/WorkspaceSettings.xcsettings
+xcuserdata/
+
+# --- Metadatos y basura del proyecto Xcode ---
+*.pbxuser
+!default.pbxuser
+*.mode1v3
+!default.mode1v3
+*.mode2v3
+!default.mode2v3
+*.perspectivev3
+!default.perspectivev3
+*.moved-aside
+*.xccheckout
+*.xcscmblueprint
+
+# --- Swift Package Manager (dependencias resueltas localmente) ---
+.swiftpm/
+**/.swiftpm/xcode/package.xcworkspace/xcuserdata/
+Packages/
+Package.resolved
+*.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/
+
+# --- Secretos de Firebase — el config real NUNCA se versiona ---
+GoogleService-Info.plist
+**/GoogleService-Info.plist
+
+# --- CocoaPods (por si se añade en el futuro) ---
+Pods/
+Podfile.lock
+
+# --- Fastlane / distribución ---
+fastlane/report.xml
+fastlane/Preview.html
+fastlane/screenshots/**/*.png
+fastlane/test_output
+*.mobileprovision
+*.p12
+*.cer
+
+# --- Sistema operativo ---
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon
+._*
+
+# --- Editores ---
+.idea/
+.vscode/
+*.swp
