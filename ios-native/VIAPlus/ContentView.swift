@@ -1,30 +1,48 @@
 //
 //  ContentView.swift
-//  VIA+ — Valoración Interactiva de Audición y Lenguaje
+//  VIA+ — Raíz de la app.
 //
-//  Pantalla raíz placeholder. Punto de partida para iterar la
-//  usabilidad visual sobre dispositivos físicos.
+//  Host del enrutado: muestra el splash al arrancar y luego el flujo según
+//  la sesión. Antes de iniciar sesión: Bienvenida → Créditos → Selección de
+//  profesional. Con sesión abierta: Pacientes → Hub de módulos. Replica el
+//  patrón "auth flow" del RootStack de React Navigation.
 //
 
 import SwiftUI
 
 struct ContentView: View {
+    @StateObject private var router = AppRouter()
+    @State private var booted = false
+
     var body: some View {
-        VStack(spacing: 16) {
-            Image(systemName: "waveform.badge.mic")
-                .font(.system(size: 64, weight: .regular))
-                .foregroundStyle(.tint)
-
-            Text("VIA+")
-                .font(.largeTitle.bold())
-
-            Text("Valoración Interactiva de Audición y Lenguaje")
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-                .multilineTextAlignment(.center)
-                .padding(.horizontal, 32)
+        Group {
+            if !booted {
+                SplashView { booted = true }
+            } else if router.isLogged {
+                NavigationStack(path: $router.path) {
+                    PatientsView()
+                        .navigationDestination(for: Route.self, destination: destination)
+                }
+            } else {
+                NavigationStack(path: $router.path) {
+                    WelcomeView()
+                        .navigationDestination(for: Route.self, destination: destination)
+                }
+            }
         }
-        .padding()
+        .environmentObject(router)
+        .animation(.easeInOut, value: router.isLogged)
+        .animation(.easeInOut, value: booted)
+    }
+
+    @ViewBuilder
+    private func destination(for route: Route) -> some View {
+        switch route {
+        case .credits: CreditsView()
+        case .professionalSelection: ProfessionalSelectionView()
+        case .patients: PatientsView()
+        case .moduleHub: ModuleHubView()
+        }
     }
 }
 

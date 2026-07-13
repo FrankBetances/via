@@ -14,10 +14,35 @@ ios-native/
 │   └── xcshareddata/xcschemes/    # Esquema compartido "VIAPlus"
 └── VIAPlus/
     ├── VIAPlusApp.swift           # @main + arranque de Firebase
-    ├── ContentView.swift          # Pantalla raíz placeholder
+    ├── ContentView.swift          # Host del router (splash + auth flow)
+    ├── Theme/
+    │   └── VIAColors.swift        # Paleta y gradiente de marca
+    ├── Components/
+    │   ├── ViaIcon.swift          # Isotipo nativo (tesela + onda + "+")
+    │   └── PrimaryButton.swift    # CTA de marca reutilizable
+    ├── Models/
+    │   └── DomainModels.swift     # Professional, Patient, ClinicalModule
+    ├── Navigation/
+    │   └── AppRouter.swift        # NavigationStack + patrón auth flow
+    ├── Screens/
+    │   ├── SplashView.swift               # ← Splash (RN)
+    │   ├── WelcomeView.swift              # ← Bienvenida
+    │   ├── CreditsView.swift              # ← Créditos (Quisqueya Habla)
+    │   ├── ProfessionalSelectionView.swift# ← Selección de profesional
+    │   ├── PatientsView.swift             # ← Pacientes
+    │   └── ModuleHubView.swift            # ← Selección de ejercicios (hub)
     ├── Info.plist
     └── Assets.xcassets/           # AppIcon + AccentColor
 ```
+
+## Pantallas portadas (flujo core)
+
+Se portó la **columna vertebral de navegación** del app RN, priorizando
+iteración visual sobre dispositivo. Flujo: `Splash → Bienvenida → Créditos →
+Selección de profesional →` (login) `→ Pacientes → Hub de módulos`. Los 8
+módulos clínicos del hub (voz, audición ×3, articulación, disfagia, funciones
+ejecutivas, M-CHAT, SAHS) se muestran como catálogo seleccionable; su lógica
+dependiente de hardware se conectará en fases posteriores.
 
 ## Dependencias (Swift Package Manager)
 
