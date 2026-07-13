@@ -13,7 +13,7 @@ struct PatientsView: View {
     @EnvironmentObject private var router: AppRouter
 
     @State private var query = ""
-    private let patients = SampleData.patients
+    private var patients: [Patient] { router.patients }
 
     private var filtered: [Patient] {
         guard !query.isEmpty else { return patients }
@@ -104,7 +104,7 @@ struct PatientsView: View {
     }
 
     private var newPatientCard: some View {
-        Button { router.push(.moduleHub) } label: {
+        Button { router.push(.patientRegistration) } label: {
             HStack(spacing: 14) {
                 Image(systemName: "person.badge.plus.fill")
                     .font(.system(size: 20, weight: .semibold))

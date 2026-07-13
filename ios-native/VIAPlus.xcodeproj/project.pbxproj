@@ -20,6 +20,10 @@
 		2B3C4D5E0000000000000218 /* ProfessionalSelectionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2B3C4D5E0000000000000118 /* ProfessionalSelectionView.swift */; };
 		2B3C4D5E0000000000000219 /* PatientsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2B3C4D5E0000000000000119 /* PatientsView.swift */; };
 		2B3C4D5E000000000000021A /* ModuleHubView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2B3C4D5E000000000000011A /* ModuleHubView.swift */; };
+		2B3C4D5E000000000000021B /* FormField.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2B3C4D5E000000000000011B /* FormField.swift */; };
+		2B3C4D5E000000000000021C /* FlexibleWrap.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2B3C4D5E000000000000011C /* FlexibleWrap.swift */; };
+		2B3C4D5E000000000000021D /* ProfessionalRegistrationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2B3C4D5E000000000000011D /* ProfessionalRegistrationView.swift */; };
+		2B3C4D5E000000000000021E /* PatientRegistrationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2B3C4D5E000000000000011E /* PatientRegistrationView.swift */; };
 		1A2B3C4D0000000000000042 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 1A2B3C4D0000000000000032 /* Assets.xcassets */; };
 		1A2B3C4D0000000000000053 /* FirebaseCore in Frameworks */ = {isa = PBXBuildFile; productRef = 1A2B3C4D0000000000000051 /* FirebaseCore */; };
 		1A2B3C4D0000000000000054 /* FirebaseAnalytics in Frameworks */ = {isa = PBXBuildFile; productRef = 1A2B3C4D0000000000000052 /* FirebaseAnalytics */; };
@@ -40,6 +44,10 @@
 		2B3C4D5E0000000000000118 /* ProfessionalSelectionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfessionalSelectionView.swift; sourceTree = "<group>"; };
 		2B3C4D5E0000000000000119 /* PatientsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PatientsView.swift; sourceTree = "<group>"; };
 		2B3C4D5E000000000000011A /* ModuleHubView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModuleHubView.swift; sourceTree = "<group>"; };
+		2B3C4D5E000000000000011B /* FormField.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FormField.swift; sourceTree = "<group>"; };
+		2B3C4D5E000000000000011C /* FlexibleWrap.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FlexibleWrap.swift; sourceTree = "<group>"; };
+		2B3C4D5E000000000000011D /* ProfessionalRegistrationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfessionalRegistrationView.swift; sourceTree = "<group>"; };
+		2B3C4D5E000000000000011E /* PatientRegistrationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PatientRegistrationView.swift; sourceTree = "<group>"; };
 		1A2B3C4D0000000000000032 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		1A2B3C4D0000000000000033 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -102,6 +110,8 @@
 			children = (
 				2B3C4D5E0000000000000111 /* ViaIcon.swift */,
 				2B3C4D5E0000000000000112 /* PrimaryButton.swift */,
+				2B3C4D5E000000000000011B /* FormField.swift */,
+				2B3C4D5E000000000000011C /* FlexibleWrap.swift */,
 			);
 			path = Components;
 			sourceTree = "<group>";
@@ -129,7 +139,9 @@
 				2B3C4D5E0000000000000116 /* WelcomeView.swift */,
 				2B3C4D5E0000000000000117 /* CreditsView.swift */,
 				2B3C4D5E0000000000000118 /* ProfessionalSelectionView.swift */,
+				2B3C4D5E000000000000011D /* ProfessionalRegistrationView.swift */,
 				2B3C4D5E0000000000000119 /* PatientsView.swift */,
+				2B3C4D5E000000000000011E /* PatientRegistrationView.swift */,
 				2B3C4D5E000000000000011A /* ModuleHubView.swift */,
 			);
 			path = Screens;
@@ -224,6 +236,10 @@
 				2B3C4D5E0000000000000218 /* ProfessionalSelectionView.swift in Sources */,
 				2B3C4D5E0000000000000219 /* PatientsView.swift in Sources */,
 				2B3C4D5E000000000000021A /* ModuleHubView.swift in Sources */,
+				2B3C4D5E000000000000021B /* FormField.swift in Sources */,
+				2B3C4D5E000000000000021C /* FlexibleWrap.swift in Sources */,
+				2B3C4D5E000000000000021D /* ProfessionalRegistrationView.swift in Sources */,
+				2B3C4D5E000000000000021E /* PatientRegistrationView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

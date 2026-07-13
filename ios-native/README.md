@@ -19,18 +19,22 @@ ios-native/
     │   └── VIAColors.swift        # Paleta y gradiente de marca
     ├── Components/
     │   ├── ViaIcon.swift          # Isotipo nativo (tesela + onda + "+")
-    │   └── PrimaryButton.swift    # CTA de marca reutilizable
+    │   ├── PrimaryButton.swift    # CTA de marca reutilizable
+    │   ├── FormField.swift        # Campo etiquetado + estilo de input
+    │   └── FlexibleWrap.swift     # Layout flex-wrap (chips de rol)
     ├── Models/
     │   └── DomainModels.swift     # Professional, Patient, ClinicalModule
     ├── Navigation/
     │   └── AppRouter.swift        # NavigationStack + patrón auth flow
     ├── Screens/
-    │   ├── SplashView.swift               # ← Splash (RN)
-    │   ├── WelcomeView.swift              # ← Bienvenida
-    │   ├── CreditsView.swift              # ← Créditos (Quisqueya Habla)
-    │   ├── ProfessionalSelectionView.swift# ← Selección de profesional
-    │   ├── PatientsView.swift             # ← Pacientes
-    │   └── ModuleHubView.swift            # ← Selección de ejercicios (hub)
+    │   ├── SplashView.swift                 # ← Splash (RN)
+    │   ├── WelcomeView.swift                # ← Bienvenida
+    │   ├── CreditsView.swift                # ← Créditos (Quisqueya Habla)
+    │   ├── ProfessionalSelectionView.swift  # ← Selección de profesional
+    │   ├── ProfessionalRegistrationView.swift # ← Alta de profesional
+    │   ├── PatientsView.swift               # ← Pacientes
+    │   ├── PatientRegistrationView.swift    # ← Alta de paciente
+    │   └── ModuleHubView.swift              # ← Selección de ejercicios (hub)
     ├── Info.plist
     └── Assets.xcassets/           # AppIcon + AccentColor
 ```
@@ -43,6 +47,17 @@ Selección de profesional →` (login) `→ Pacientes → Hub de módulos`. Los 
 módulos clínicos del hub (voz, audición ×3, articulación, disfagia, funciones
 ejecutivas, M-CHAT, SAHS) se muestran como catálogo seleccionable; su lógica
 dependiente de hardware se conectará en fases posteriores.
+
+### Formularios de alta (funcionales)
+
+**Alta de profesional** (nombre, rol con chips, email, contraseña ≥6 +
+colegiado/servicio/centro opcionales) con **vista previa en vivo** del perfil,
+y **alta de paciente** (nombre/apellidos, fecha de nacimiento validada
+`AAAA-MM-DD` con edad calculada, sexo, NHC, lengua) con stepper de 5 pasos.
+Ambos son **funcionales dentro de la sesión**: `AppRouter` actúa como store en
+memoria (`professionals`/`patients`), así que registrar un profesional abre
+sesión y registrar un paciente lo añade a la lista. La persistencia real
+(SQLite/Firebase) y el consentimiento informado se conectan más adelante.
 
 ## Dependencias (Swift Package Manager)
 

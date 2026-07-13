@@ -40,7 +40,9 @@ struct ContentView: View {
         switch route {
         case .credits: CreditsView()
         case .professionalSelection: ProfessionalSelectionView()
+        case .professionalRegistration: ProfessionalRegistrationView()
         case .patients: PatientsView()
+        case .patientRegistration: PatientRegistrationView()
         case .moduleHub: ModuleHubView()
         }
     }

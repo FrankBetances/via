@@ -13,7 +13,7 @@ import SwiftUI
 struct ProfessionalSelectionView: View {
     @EnvironmentObject private var router: AppRouter
 
-    private let professionals = SampleData.professionals
+    private var professionals: [Professional] { router.professionals }
     @State private var authTarget: Professional?
     @State private var password = ""
     @State private var authError = false
@@ -39,8 +39,7 @@ struct ProfessionalSelectionView: View {
 
                     // Registrar nuevo
                     Button {
-                        // El alta real se conecta más tarde; de momento entra directo.
-                        router.login(as: professionals.first ?? SampleData.professionals[0])
+                        router.push(.professionalRegistration)
                     } label: {
                         HStack(spacing: 14) {
                             Text("+")
