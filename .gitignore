@@ -92,6 +92,11 @@ coverage/
 .env.*
 !.env.example
 
+# --- Firebase — la configuración con API keys nunca debe versionarse ---
+android/app/google-services.json
+**/GoogleService-Info.plist
+!android/app/google-services.json.example
+
 # --- Sentry — el token de auth nunca debe subirse ---
 .sentryclirc
 .env.sentry-build-plugin

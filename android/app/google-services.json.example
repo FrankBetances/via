@@ -1,13 +1,13 @@
 {
   "project_info": {
-    "project_number": "665213943480",
-    "project_id": "valoracion-interactiva",
-    "storage_bucket": "valoracion-interactiva.firebasestorage.app"
+    "project_number": "TU_PROJECT_NUMBER",
+    "project_id": "TU_PROJECT_ID",
+    "storage_bucket": "TU_PROJECT_ID.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:665213943480:android:3a3e2a4bc9be5c0be0fe4d",
+        "mobilesdk_app_id": "1:TU_PROJECT_NUMBER:android:TU_APP_ID",
         "android_client_info": {
           "package_name": "com.viaplus.app"
         }
@@ -15,7 +15,7 @@
       "oauth_client": [],
       "api_key": [
         {
-          "current_key": "AIzaSyDI_dHMAQj3N9ggvT0DeZpAsnoWr1qVGFE"
+          "current_key": "TU_API_KEY"
         }
       ],
       "services": {
