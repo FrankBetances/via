@@ -319,6 +319,9 @@ android/app/google-services.json
 ios/GoogleService-Info.plist
 ```
 
+Puedes usar `android/app/google-services.json.example` como plantilla de la estructura
+esperada, sustituyendo los placeholders por los valores de tu proyecto.
+
 > 🔐 **NUNCA versiones los archivos de configuración de Firebase ni ningún `.env` con datos
 > reales.** Están incluidos en `.gitignore`.
 
