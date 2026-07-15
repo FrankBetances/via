@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Pressable } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import {
@@ -35,6 +35,7 @@ import { Evaluation } from '@/Models/Evaluation/Evaluation';
 import { ArticulationTest } from '@/Models/ArticulationTest/ArticulationTest';
 import { useClassSelector } from '@/Helpers/ClassTransformer';
 import { useCreateArticulationMutation } from '@/Services/local/modules/articulationTests';
+import { useTelemetryTracker } from '@/Telemetry';
 import { showErrorToast, showSuccessToast } from '@/Helpers/showToast';
 import { useArticulationAudio } from './articulationAudio';
 import {
@@ -141,6 +142,9 @@ export default function ArticulationTestScreen({ navigation }: Props) {
   const activeEvaluation = useClassSelector(Evaluation, (state: RootState) => state.activeEvaluation.evaluation);
   const [createArticulation, { isLoading: isSaving }] = useCreateArticulationMutation();
   const audio = useArticulationAudio();
+  // Telemetría silenciosa (useRef, sin re-render). Módulo de referencia del
+  // patrón de instrumentación por-reactivo; los otros 8 lo replican igual.
+  const tracker = useTelemetryTracker();
 
   const items = useMemo<ArticulationItem[]>(() => buildArticulationItems(), []);
 
@@ -162,6 +166,12 @@ export default function ArticulationTestScreen({ navigation }: Props) {
 
   const score = useMemo(() => computeArticulationScore(items, results), [items, results]);
 
+  // Telemetría: cada reactivo que se activa durante la prueba abre su ventana
+  // de tiempo. `tracker` es estable (useRef) → no reintroduce el efecto.
+  useEffect(() => {
+    if (view === 'test') tracker.enterReactivo(cur.id);
+  }, [view, cur.id, tracker]);
+
   /* ----------------------------- handlers ------------------------------- */
 
   const toggleSetup = (i: number) => setSetup(prev => prev.map((v, k) => (k === i ? !v : v)));
@@ -182,6 +192,9 @@ export default function ArticulationTestScreen({ navigation }: Props) {
   };
 
   const recordCode = (code: SodaCode) => {
+    // Telemetría: 1ª clasificación fija el tiempo de respuesta; reclasificar
+    // el mismo reactivo cuenta como rectificación (duda del clínico).
+    tracker.classifyReactivo(cur.id);
     setResults(prev => ({ ...prev, [cur.id]: code }));
     audio.reset();
     // avance automático al clasificar como correcto (igual que el mockup)

@@ -30,6 +30,7 @@ import { logout } from '@/Store/slices/authSlice';
 import { signOutQuietly } from '@/Services/firebase';
 import { Evaluation } from '@/Models/Evaluation/Evaluation';
 import { useClassSelector } from '@/Helpers/ClassTransformer';
+import { useTelemetryTracker } from '@/Telemetry';
 import ModuleCardItem, { ModuleCardData } from './ModuleCardItem';
 
 /* -------------------------------------------------------------------------- */
@@ -61,6 +62,9 @@ export default function SeleccionEjerciciosScreen({ navigation }: Props) {
   const patient = activeEvaluation?.patient;
   const patientName = patient ? `${patient.name} ${patient.lastName}`.trim() : null;
 
+  // Tracker de telemetría SILENCIOSO (useRef, cero useState → cero re-render).
+  const tracker = useTelemetryTracker();
+
   // Array (no Set): conserva el ORDEN de selección, que define el orden de la
   // batería y se muestra en el check de cada tarjeta.
   const [selected, setSelected] = useState<string[]>([]);
@@ -74,6 +78,10 @@ export default function SeleccionEjerciciosScreen({ navigation }: Props) {
 
   const handleStart = () => {
     if (selCount === 0) return;
+    // ID de batería Zero-PHI: bitmask compacto (base36) de los módulos elegidos.
+    // Identifica la COMPOSICIÓN de la batería sin exponer nada del paciente.
+    const mask = MODULES.reduce((m, mod, i) => (selected.includes(mod.id) ? m | (1 << i) : m), 0);
+    tracker.startSession(mask.toString(36));
     navigation.navigate(selected[0] as any);
   };
 

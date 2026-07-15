@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Pressable } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { Box, Card, HStack, Icon, ScrollView, VStack } from '@gluestack-ui/themed';
+import { Box, Card, Center, HStack, Icon, ScrollView, VStack } from '@gluestack-ui/themed';
 import {
   Activity,
   AlertCircle,
@@ -14,6 +14,7 @@ import {
   Mail,
   Mic2,
   MoreHorizontal,
+  QrCode,
   Volume2,
   Printer,
   Share2,
@@ -21,6 +22,7 @@ import {
   UserPlus,
   Waves,
 } from 'lucide-react-native';
+import QRCode from 'react-native-qrcode-svg';
 import { useDispatch } from 'react-redux';
 
 import { Button, Content, Header, Text } from '@/Components/Common';
@@ -31,6 +33,7 @@ import { logout } from '@/Store/slices/authSlice';
 import { signOutQuietly } from '@/Services/firebase';
 import { Evaluation } from '@/Models/Evaluation/Evaluation';
 import { useClassSelector } from '@/Helpers/ClassTransformer';
+import { useTelemetryTracker, compressTelemetry } from '@/Telemetry';
 
 import { AudiometryRepository } from '@/Repositories/AudiometryRepository';
 import { VoiceAnalysisRepository } from '@/Repositories/VoiceAnalysisRepository';
@@ -69,6 +72,29 @@ import { showErrorToast, showSuccessToast } from '@/Helpers/showToast';
 /* -------------------------------------------------------------------------- */
 
 type Props = NativeStackScreenProps<RootStackParamList, 'ResultadosFinal'>;
+
+/* -------------------------------------------------------------------------- */
+/*  Nivel de corrección de errores del QR de telemetría.                       */
+/*                                                                            */
+/*  Se muestra en pantallas potencialmente ARAÑADAS y se escanea con cámaras   */
+/*  de BAJA RESOLUCIÓN → dos exigencias en tensión:                           */
+/*    · arañazos  → piden ECL alto (más redundancia de recuperación).         */
+/*    · cámara pobre → pide versión baja (menos módulos = módulos más grandes  */
+/*      y más fáciles de resolver).                                           */
+/*                                                                            */
+/*  Densidad real medida sobre una batería de ~40 reactivos (payload          */
+/*  LZString ≈ 351 B en byte-mode):                                           */
+/*    M(15%) → v15 · 77×77   ·   Q(25%) → v17 · 85×85   ·   H(30%) → v20 · 97×97 */
+/*                                                                            */
+/*  'Q' es el óptimo: 25% de recuperación tolera bien el daño superficial de   */
+/*  una pantalla mientras mantiene el retículo en ~85×85, resoluble por        */
+/*  cámaras modestas a corta distancia. 'H' subiría a 97×97 (castiga a la      */
+/*  cámara pobre) por solo +5% de redundancia; 'M' aligera el retículo pero    */
+/*  deja poca defensa frente a arañazos. Si una batería muy larga engordara   */
+/*  el payload, el siguiente paso es podar `f` (conservar solo reactivos con   */
+/*  fricción: rectificaciones>0 o tiempo alto) antes que bajar el ECL.        */
+/* -------------------------------------------------------------------------- */
+const QR_ECL = 'Q' as const;
 
 type StatusKind = 'ok' | 'warn' | 'alt';
 type Kind = 'audio' | 'params' | 'rows';
@@ -127,6 +153,26 @@ export default function ResultadosFinalScreen({ navigation }: Props) {
   const [isLoading, setIsLoading] = useState(true);
   const [shareOpen, setShareOpen] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
+
+  // --- Telemetría de usabilidad Zero-PHI ---
+  // `likert` es UI legítima (debe re-renderizar para revelar el QR); NO es
+  // telemetría-en-vivo → no viola la regla "cero useState para telemetría".
+  const telemetry = useTelemetryTracker();
+  const [likert, setLikert] = useState<number>(0);
+
+  // Congela la duración total al llegar al cierre de la batería.
+  useEffect(() => {
+    telemetry.endSession();
+  }, [telemetry]);
+
+  // Bloqueo intencional: el QR NO existe hasta que el clínico marca el Likert
+  // (evita la caída de tasa de respuesta por fatiga al terminar).
+  const qrPayload = useMemo(() => {
+    if (likert <= 0) return null;
+    telemetry.setLikert(likert);
+    const snap = telemetry.getSnapshot();
+    return snap ? compressTelemetry(snap) : null;
+  }, [likert, telemetry]);
 
   useEffect(() => {
     if (!evaluationId) {
@@ -505,7 +551,64 @@ export default function ResultadosFinalScreen({ navigation }: Props) {
                   </HStack>
                 </Button>
 
-                <Card bgColor="$white" borderRadius={14} p="$3" mt="auto">
+                {/* ----- telemetría de usabilidad Zero-PHI (Likert → QR) ----- */}
+                <Card bgColor="$white" borderRadius={14} p="$3.5" mt="$1">
+                  <HStack space="xs" alignItems="center" mb="$2">
+                    <Icon as={QrCode} size="xs" color="$primary600" />
+                    <Text size="xs" weight="bold" color="$textLight800">
+                      Valoración de uso
+                    </Text>
+                  </HStack>
+                  <Text size="2xs" color="$textLight500" mb="$2.5" style={{ lineHeight: 15 }}>
+                    ¿Qué tan fácil resultó realizar la evaluación?
+                  </Text>
+
+                  <HStack justifyContent="space-between" mb="$1">
+                    {[1, 2, 3, 4, 5].map(n => {
+                      const on = likert === n;
+                      return (
+                        <Pressable key={n} onPress={() => setLikert(n)}>
+                          <Center
+                            w={34}
+                            h={34}
+                            borderRadius="$full"
+                            borderWidth={1.5}
+                            bg={on ? '$primary500' : '$white'}
+                            borderColor={on ? '$primary500' : '$borderLight200'}>
+                            <Text size="sm" weight="bold" color={on ? '$white' : '$textLight500'} style={{ fontVariant: ['tabular-nums'] }}>
+                              {n}
+                            </Text>
+                          </Center>
+                        </Pressable>
+                      );
+                    })}
+                  </HStack>
+                  <HStack justifyContent="space-between" mb="$3">
+                    <Text size="2xs" color="$textLight400">
+                      Muy difícil
+                    </Text>
+                    <Text size="2xs" color="$textLight400">
+                      Muy fácil
+                    </Text>
+                  </HStack>
+
+                  {qrPayload ? (
+                    <VStack alignItems="center" space="xs">
+                      <Box p="$2.5" bg="$white" borderRadius={12} borderWidth={1} borderColor="$borderLight100">
+                        <QRCode value={qrPayload} size={168} ecl={QR_ECL} quietZone={6} />
+                      </Box>
+                      <Text size="2xs" color="$textLight400" style={{ textAlign: 'center', lineHeight: 14 }}>
+                        Telemetría anónima · sin datos del paciente
+                      </Text>
+                    </VStack>
+                  ) : (
+                    <Text size="2xs" color="$textLight400" style={{ textAlign: 'center', lineHeight: 14 }}>
+                      Marca tu valoración para revelar el código QR.
+                    </Text>
+                  )}
+                </Card>
+
+                <Card bgColor="$white" borderRadius={14} p="$3" mt="$3">
                   <Text size="2xs" color="$textLight400" style={{ lineHeight: 15 }}>
                     Medidas orientativas sobre el dispositivo. No sustituyen equipo certificado ni constituyen diagnóstico.
                   </Text>
