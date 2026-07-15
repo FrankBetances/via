@@ -38,6 +38,7 @@ import { RootState } from '@/Store';
 import { Evaluation } from '@/Models/Evaluation/Evaluation';
 import { SahsScreening } from '@/Models/SahsScreening/SahsScreening';
 import { useClassSelector } from '@/Helpers/ClassTransformer';
+import { useTelemetryTracker } from '@/Telemetry';
 import { useCreateSahsScreeningMutation } from '@/Services/local/modules/sahsScreenings';
 import { showErrorToast, showSuccessToast } from '@/Helpers/showToast';
 import {
@@ -140,6 +141,7 @@ type Props = NativeStackScreenProps<RootStackParamList, 'SahsScreening'>;
 export default function SahsScreeningScreen({ navigation }: Props) {
   const activeEvaluation = useClassSelector(Evaluation, (state: RootState) => state.activeEvaluation.evaluation);
   const [createSahsScreening, { isLoading: isSaving }] = useCreateSahsScreeningMutation();
+  const tracker = useTelemetryTracker(); // telemetría silenciosa (useRef, sin re-render)
 
   const [view, setView] = useState<View>('setup');
   const [qIndex, setQIndex] = useState<number>(0); // pregunta PSQ visible (0..21)
@@ -185,6 +187,8 @@ export default function SahsScreeningScreen({ navigation }: Props) {
   };
 
   const answer = (id: number, val: boolean) => {
+    // Telemetría: cada respuesta PSQ de Chervin; rerresponder = rectificación.
+    tracker.classifyReactivo(`sah-${id}`);
     const next = { ...psq, [id]: val };
     setPsq(next);
     // Auto-avance con la respuesta ya visible (la selección rebota primero).
@@ -201,6 +205,11 @@ export default function SahsScreeningScreen({ navigation }: Props) {
       }
     }, AUTO_ADVANCE_MS);
   };
+
+  // Telemetría: abre la ventana de tiempo del ítem PSQ visible.
+  useEffect(() => {
+    if (view === 'psq') tracker.enterReactivo(`sah-${qIndex + 1}`);
+  }, [view, qIndex, tracker]);
 
   const handleNext = () => {
     if (view === 'psq') {

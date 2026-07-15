@@ -122,4 +122,20 @@ describe('telemetryStore (ciclo de vida)', () => {
   it('getSnapshot devuelve null sin sesión', () => {
     expect(getSnapshot()).toBeNull();
   });
+
+  it('las claves con prefijo de módulo NO colisionan en la sesión compartida', () => {
+    // Toda la batería comparte una sola sesión: sin prefijo, el ítem 1 de
+    // Autismo ("aut-1") y el ítem 1 de SAHS ("sah-1") se fundirían en uno.
+    startSession('e7');
+    enterReactivo('aut-1');
+    classifyReactivo('aut-1');
+    enterReactivo('sah-1');
+    classifyReactivo('sah-1');
+    classifyReactivo('sah-1'); // rectificación solo en el de SAHS
+
+    const snap = getSnapshot()!;
+    expect(snap.f).toHaveLength(2); // dos reactivos distintos, no uno
+    expect(snap.f[0]).toEqual([1, expect.any(Number), 0]); // aut-1: 0 rectif.
+    expect(snap.f[1]).toEqual([2, expect.any(Number), 1]); // sah-1: 1 rectif.
+  });
 });

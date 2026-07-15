@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Pressable } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import {
@@ -31,6 +31,7 @@ import { RootState } from '@/Store';
 import { Evaluation } from '@/Models/Evaluation/Evaluation';
 import { DysphagiaTest, BolusRecord, DysphagiaVerdict } from '@/Models/DysphagiaTest/DysphagiaTest';
 import { useClassSelector } from '@/Helpers/ClassTransformer';
+import { useTelemetryTracker } from '@/Telemetry';
 import { useCreateDysphagiaMutation } from '@/Services/local/modules/dysphagiaTest';
 import { showErrorToast, showSuccessToast } from '@/Helpers/showToast';
 import { usePulseOximeter, PulseOximeterState } from './pulseOximeter';
@@ -253,6 +254,7 @@ export default function DysphagiaTestScreen() {
   const activeEvaluation = useClassSelector(Evaluation, (state: RootState) => state.activeEvaluation.evaluation);
   const [createDysphagia, { isLoading: isSaving }] = useCreateDysphagiaMutation();
   const ox = usePulseOximeter(true);
+  const tracker = useTelemetryTracker(); // telemetría silenciosa (useRef, sin re-render)
   const [spo2Source, setSpo2Source] = useState<'manual' | 'demo' | 'ble'>('manual');
 
   const [view, setView] = useState<'setup' | 'bolo' | 'report'>('setup');
@@ -270,6 +272,12 @@ export default function DysphagiaTestScreen() {
   const activeBolo = BOLUS_LIST[currentIdx];
   const activeState = boloStates[activeBolo.id];
   const setupReady = setup.every(Boolean);
+
+  // Telemetría: cada bolo del MECV-V (viscosidad × volumen) es un reactivo;
+  // abre su ventana de tiempo al presentarse durante la serie.
+  useEffect(() => {
+    if (view === 'bolo') tracker.enterReactivo(`dis-${activeBolo.id}`);
+  }, [view, activeBolo.id, tracker]);
 
   /* ----------------------------- handlers ------------------------------- */
 
@@ -322,6 +330,8 @@ export default function DysphagiaTestScreen() {
   };
 
   const handleNext = () => {
+    // Telemetría: cierra el reactivo del bolo al finalizarlo y avanzar.
+    tracker.classifyReactivo(`dis-${activeBolo.id}`);
     const isUnsafe = deriveBolo(activeState, basalSpO2).hasSafety;
     const nextId = isUnsafe ? activeBolo.nextUnsafe : activeBolo.nextSafe;
 

@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Pressable } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { Box, Card, Center, HStack, Icon, Input, InputField, ScrollView, VStack } from '@gluestack-ui/themed';
@@ -11,6 +11,7 @@ import { RootState } from '@/Store';
 import { Evaluation } from '@/Models/Evaluation/Evaluation';
 import { AudiometryTest } from '@/Models/Audiometry/AudiometryTest';
 import { useClassSelector } from '@/Helpers/ClassTransformer';
+import { useTelemetryTracker } from '@/Telemetry';
 import { useCreateAudiometryMutation } from '@/Services/local/modules/audiometry';
 import { showErrorToast, showSuccessToast } from '@/Helpers/showToast';
 import { useAudiometryTest, ToneTarget } from './useAudiometryTest';
@@ -32,6 +33,7 @@ export default function AudiometryScreen({ navigation }: Props) {
   const activeEvaluation = useClassSelector(Evaluation, (state: RootState) => state.activeEvaluation.evaluation);
   const [createAudiometry, { isLoading: isSaving }] = useCreateAudiometryMutation();
   const a = useAudiometryTest();
+  const tracker = useTelemetryTracker(); // telemetría silenciosa (useRef, sin re-render)
 
   const [celebrate, setCelebrate] = useState<string | null>(null);
   const [notes, setNotes] = useState('');
@@ -73,6 +75,20 @@ export default function AudiometryScreen({ navigation }: Props) {
       bg: '$warning50',
     };
   }, [a.isControl, a.currentThreshold, a.ear, a.freq, a.heardAtMin, a.heardTally, a.db]);
+
+  // Telemetría: cada umbral (oído + frecuencia tonal) es un reactivo. Los
+  // «Sí/No» son el bracketing de Hughson-Westlake (protocolo), NO fricción;
+  // por eso medimos por umbral: abrimos la ventana al cambiar de oído/frecuencia
+  // y la cerramos cuando el umbral queda confirmado. Reconfirmar = rectificación.
+  useEffect(() => {
+    if (typeof a.freq === 'number') tracker.enterReactivo(`aud-${a.ear}-${a.freq}`);
+  }, [a.ear, a.freq, tracker]);
+
+  useEffect(() => {
+    if (a.currentThreshold !== null && typeof a.freq === 'number') {
+      tracker.classifyReactivo(`aud-${a.ear}-${a.freq}`);
+    }
+  }, [a.currentThreshold, a.ear, a.freq, tracker]);
 
   const handleSave = async () => {
     if (isSaving) return;

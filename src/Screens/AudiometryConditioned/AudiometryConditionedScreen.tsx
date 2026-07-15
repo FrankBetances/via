@@ -11,6 +11,7 @@ import { RootState } from '@/Store';
 import { Evaluation } from '@/Models/Evaluation/Evaluation';
 import { AudiometryTest } from '@/Models/Audiometry/AudiometryTest';
 import { useClassSelector } from '@/Helpers/ClassTransformer';
+import { useTelemetryTracker } from '@/Telemetry';
 import { useCreateAudiometryMutation } from '@/Services/local/modules/audiometry';
 import { showErrorToast, showSuccessToast } from '@/Helpers/showToast';
 import {
@@ -66,6 +67,7 @@ export default function AudiometryConditionedScreen({ navigation }: Props) {
   const activeEvaluation = useClassSelector(Evaluation, (state: RootState) => state.activeEvaluation.evaluation);
   const [createAudiometry, { isLoading: isSaving }] = useCreateAudiometryMutation();
   const a = useAudiometryTest({ soundfield: true });
+  const tracker = useTelemetryTracker(); // telemetría silenciosa (useRef, sin re-render)
 
   const [phase, setPhase] = useState<Phase>('intro');
   const [paused, setPaused] = useState(false);
@@ -169,6 +171,19 @@ export default function AudiometryConditionedScreen({ navigation }: Props) {
     clearTimers();
     setPhase('done');
   }, [a, clearTimers]);
+
+  // Telemetría: cada frecuencia de la pasada en campo libre (CL) es un
+  // reactivo. Abrimos la ventana al presentarla y la cerramos al confirmar su
+  // umbral. Solo durante la fase de test autónomo.
+  useEffect(() => {
+    if (phase === 'test' && typeof a.freq === 'number') tracker.enterReactivo(`auc-${a.freq}`);
+  }, [phase, a.freq, tracker]);
+
+  useEffect(() => {
+    if (phase === 'test' && a.currentThreshold !== null && typeof a.freq === 'number') {
+      tracker.classifyReactivo(`auc-${a.freq}`);
+    }
+  }, [phase, a.currentThreshold, a.freq, tracker]);
 
   /* --------------------- secuenciador: juego de práctica ------------------- */
 
