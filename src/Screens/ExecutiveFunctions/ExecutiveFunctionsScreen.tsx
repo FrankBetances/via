@@ -11,6 +11,7 @@ import { RootState } from '@/Store';
 import { Evaluation } from '@/Models/Evaluation/Evaluation';
 import { ExecutiveFunctionsTest } from '@/Models/ExecutiveFunctions/ExecutiveFunctionsTest';
 import { useClassSelector } from '@/Helpers/ClassTransformer';
+import { useTelemetryTracker } from '@/Telemetry';
 import { useCreateExecutiveFunctionsMutation } from '@/Services/local/modules/executiveFunctions';
 import { showErrorToast, showSuccessToast } from '@/Helpers/showToast';
 
@@ -65,6 +66,7 @@ type Phase = 'setup' | 'intro' | 'play' | 'results';
 export default function ExecutiveFunctionsScreen({ navigation }: Props) {
   const activeEvaluation = useClassSelector(Evaluation, (state: RootState) => state.activeEvaluation.evaluation);
   const [createExecutiveFunctions, { isLoading: isSaving }] = useCreateExecutiveFunctionsMutation();
+  const tracker = useTelemetryTracker(); // telemetría silenciosa (useRef, sin re-render)
 
   const [phase, setPhase] = useState<Phase>('setup');
   const [band, setBand] = useState<EfAgeBand>('A');
@@ -132,7 +134,15 @@ export default function ExecutiveFunctionsScreen({ navigation }: Props) {
     setPhase('setup');
   };
 
+  // Telemetría: cada mini-juego es un reactivo; abre su ventana al empezar a
+  // jugarse. `domain` deriva de `gameIndex` (5 dominios ordenados).
+  useEffect(() => {
+    if (phase === 'play') tracker.enterReactivo(`ef-${domain}`);
+  }, [phase, domain, tracker]);
+
   const finishGame = (gameDomain: EfDomain, score: number, detail: EfRawResults[keyof EfRawResults]) => {
+    // Telemetría: fija el tiempo de resolución del juego al completarlo.
+    tracker.classifyReactivo(`ef-${gameDomain}`);
     setScores(prev => ({ ...prev, [gameDomain]: score }));
     setRaw(prev => ({ ...prev, [gameDomain]: detail }) as EfRawResults);
     if (gameIndex + 1 >= EF_DOMAIN_ORDER.length) {

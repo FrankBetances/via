@@ -14,6 +14,7 @@ import { useClassSelector } from '@/Helpers/ClassTransformer';
 import { useCreateVerbalAudiometryMutation } from '@/Services/local/modules/verbalAudiometry';
 import { showErrorToast, showSuccessToast } from '@/Helpers/showToast';
 
+import { useTelemetryTracker } from '@/Telemetry';
 import { useVerbalAudiometryTest } from './useVerbalAudiometryTest';
 import {
   AgeBand,
@@ -70,6 +71,7 @@ export default function VerbalAudiometryScreen({ navigation }: Props) {
   const activeEvaluation = useClassSelector(Evaluation, (state: RootState) => state.activeEvaluation.evaluation);
   const [createVerbalAudiometry, { isLoading: isSaving }] = useCreateVerbalAudiometryMutation();
   const v = useVerbalAudiometryTest();
+  const tracker = useTelemetryTracker(); // telemetría silenciosa (useRef, sin re-render)
 
   const [phase, setPhase] = useState<Phase>('setup');
   const [showAdvanced, setShowAdvanced] = useState(false);
@@ -114,6 +116,13 @@ export default function VerbalAudiometryScreen({ navigation }: Props) {
     if (phase !== 'play') v.stop();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [phase]);
+
+  // Telemetría: cada lámina (nivel dB + índice) es un reactivo; abre su
+  // ventana de tiempo al mostrarse.
+  useEffect(() => {
+    if (phase === 'play' && v.item) tracker.enterReactivo(`ver-${v.level}-${v.itemIndex}`);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [phase, v.level, v.itemIndex, v.item]);
 
   /* ------------------------------- acciones -------------------------------- */
 
@@ -412,7 +421,12 @@ export default function VerbalAudiometryScreen({ navigation }: Props) {
                 modality={v.modality}
                 state={cardStateOf(opt.word)}
                 size={v.band === 'D' ? 'md' : 'lg'}
-                onPress={() => v.choose(opt.word)}
+                onPress={() => {
+                  // Telemetría: 1ª elección fija el tiempo; el motor ignora
+                  // toques posteriores, así que no contamos rectificaciones.
+                  if (v.chosen === null) tracker.classifyReactivo(`ver-${v.level}-${v.itemIndex}`);
+                  v.choose(opt.word);
+                }}
               />
             </Box>
           ))}

@@ -36,6 +36,7 @@ Portada · Índice · Introducción · Flujo clínico · Acceso · Pacientes ·
 Consentimiento y CAP · Sonómetro y selección de pruebas · Audiometrías ·
 Voz y articulación (T.A.R.) · Disfagia, M-CHAT y SAHS ·
 Módulos nuevos (Audiometría Verbal y Funciones Ejecutivas) ·
-Resultados e informe PDF · Casos de uso · Buenas prácticas, privacidad y soporte.
+Resultados, valoración de uso (Likert → QR de telemetría Zero-PHI) e informe PDF ·
+Casos de uso · Buenas prácticas, privacidad y soporte.
 
 La batería cubre **11 módulos** de evaluación.

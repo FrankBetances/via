@@ -304,7 +304,7 @@ table.info td b{color:var(--ink-2);}
       <li><span class="tc-n">8</span><span class="tc-t">Módulos de voz y lenguaje · Voz y T.A.R.</span><span class="tc-d"></span><span class="tc-p">10</span></li>
       <li><span class="tc-n">9</span><span class="tc-t">Módulos clínicos · Disfagia, M-CHAT y SAHS</span><span class="tc-d"></span><span class="tc-p">11</span></li>
       <li><span class="tc-n">10</span><span class="tc-t">Módulos nuevos · Audiometría Verbal y Funciones Ejecutivas</span><span class="tc-d"></span><span class="tc-p">12</span></li>
-      <li><span class="tc-n">11</span><span class="tc-t">Resultados detallados y compartir informe PDF</span><span class="tc-d"></span><span class="tc-p">13</span></li>
+      <li><span class="tc-n">11</span><span class="tc-t">Resultados detallados, valoración de uso (QR) e informe PDF</span><span class="tc-d"></span><span class="tc-p">13</span></li>
       <li><span class="tc-n">12</span><span class="tc-t">Casos de uso de principio a fin</span><span class="tc-d"></span><span class="tc-p">14</span></li>
       <li><span class="tc-n">13</span><span class="tc-t">Buenas prácticas, privacidad y soporte</span><span class="tc-d"></span><span class="tc-p">15</span></li>
     </ol>
@@ -1099,7 +1099,7 @@ table.info td b{color:var(--ink-2);}
     <div>
       <div class="kicker">Sección 11</div>
       <h1 class="h">Resultados detallados e informe PDF</h1>
-      <p class="lead">Al terminar la batería, VIA+ reúne los resultados por prueba con su interpretación orientativa y permite generar y compartir un informe PDF estructurado.</p>
+      <p class="lead">Al terminar la batería, VIA+ reúne los resultados por prueba con su interpretación orientativa y permite generar y compartir un informe PDF estructurado. En el cierre, el profesional marca una breve <b>valoración de uso (Likert)</b> que revela un <b>código QR anónimo</b> con la telemetría de usabilidad.</p>
     </div>
     <!-- Resultados detallados (landscape) -->
     <div class="shot">
@@ -1160,27 +1160,34 @@ table.info td b{color:var(--ink-2);}
       <div class="shot">
         <div class="device" style="width:200px;"><div class="screen" style="height:250px;">
           <div class="statusbar"><span>10:41</span><div class="sb-r"><span>95%</span></div></div>
-          <div class="scr-body" style="padding:8px 12px; display:flex; flex-direction:column; justify-content:flex-end;">
-            <div style="background:#fff; border-radius:16px 16px 0 0; padding:12px; box-shadow:0 -6px 16px rgba(0,0,0,.06);">
-              <div style="width:40px;height:4px;border-radius:9px;background:#E4DDD0; margin:0 auto 10px;"></div>
-              <div style="display:flex; align-items:center; gap:8px; margin-bottom:10px;"><div style="width:34px;height:34px;border-radius:9px;background:var(--err-bg); display:flex;align-items:center;justify-content:center;font-size:15px;">📄</div><div><div style="font-weight:800; font-size:10px; color:var(--ink-2);">Compartir informe PDF</div><div style="font-size:7px; color:var(--muted-2);">VIA_PT-0231_detallado.pdf</div></div></div>
-              <div style="display:flex; gap:7px;">
-                <div style="flex:1; text-align:center; background:#F7F4EE; border:1px solid var(--line-soft); border-radius:11px; padding:8px 4px;"><div style="font-size:16px;">🟢</div><div style="font-size:7px; font-weight:700; color:var(--muted);">WhatsApp</div></div>
-                <div style="flex:1; text-align:center; background:#F7F4EE; border:1px solid var(--line-soft); border-radius:11px; padding:8px 4px;"><div style="font-size:16px;">✉️</div><div style="font-size:7px; font-weight:700; color:var(--muted);">Correo</div></div>
-                <div style="flex:1; text-align:center; background:#F7F4EE; border:1px solid var(--line-soft); border-radius:11px; padding:8px 4px;"><div style="font-size:16px;">🖨️</div><div style="font-size:7px; font-weight:700; color:var(--muted);">Imprimir</div></div>
+          <div class="scr-body" style="padding:10px 12px; display:flex; flex-direction:column; justify-content:center;">
+            <div class="i-card" style="padding:11px;">
+              <div style="display:flex; align-items:center; gap:6px; margin-bottom:6px;"><span style="font-size:12px;">📊</span><div style="font-weight:800; font-size:9px; color:var(--ink-2);">Valoración de uso</div></div>
+              <div style="font-size:7px; color:var(--muted-2); margin-bottom:7px;">¿Qué tan fácil fue la evaluación?</div>
+              <div style="display:flex; justify-content:space-between; margin-bottom:3px;">
+                <div style="width:20px;height:20px;border-radius:9px;border:1.5px solid var(--line-soft); display:flex;align-items:center;justify-content:center; font-size:8px; font-weight:800; color:var(--muted-2);">1</div>
+                <div style="width:20px;height:20px;border-radius:9px;border:1.5px solid var(--line-soft); display:flex;align-items:center;justify-content:center; font-size:8px; font-weight:800; color:var(--muted-2);">2</div>
+                <div style="width:20px;height:20px;border-radius:9px;border:1.5px solid var(--line-soft); display:flex;align-items:center;justify-content:center; font-size:8px; font-weight:800; color:var(--muted-2);">3</div>
+                <div style="width:20px;height:20px;border-radius:9px;border:1.5px solid var(--accent); background:var(--accent); display:flex;align-items:center;justify-content:center; font-size:8px; font-weight:800; color:#fff;">4</div>
+                <div style="width:20px;height:20px;border-radius:9px;border:1.5px solid var(--line-soft); display:flex;align-items:center;justify-content:center; font-size:8px; font-weight:800; color:var(--muted-2);">5</div>
+              </div>
+              <div style="display:flex; justify-content:space-between; font-size:6px; color:var(--muted-2); margin-bottom:9px;"><span>Muy difícil</span><span>Muy fácil</span></div>
+              <div style="display:flex; flex-direction:column; align-items:center; gap:5px;">
+                <div style="width:74px; height:74px; border:1px solid var(--line-soft); border-radius:8px; padding:5px; background:#fff;"><div style="width:100%; height:100%; background:repeating-conic-gradient(#141414 0% 25%, #fff 0% 50%) 0 0/9px 9px; border-radius:2px;"></div></div>
+                <div style="font-size:6.5px; color:var(--muted-2);">Telemetría anónima · sin PHI</div>
               </div>
             </div>
           </div>
         </div></div>
         <div class="shot-caption">
-          <div class="sc-title"><span class="sc-num">B</span>Compartir PDF</div>
-          <div class="sc-text">Hoja inferior para enviar el informe por WhatsApp, correo, impresión u otras apps.</div>
+          <div class="sc-title"><span class="sc-num">B</span>Valoración de uso → QR</div>
+          <div class="sc-text">El profesional marca la escala Likert (1–5) de facilidad de uso; al hacerlo se revela un <b>código QR anónimo</b> con la telemetría de usabilidad (sin datos del paciente).</div>
         </div>
       </div>
       <div style="align-self:center;">
         <div class="usecase" style="margin-top:0;">
           <div class="uc-h">⬦ Caso de uso — Cierre e informe</div>
-          <div class="uc-b">Terminada la batería de Mateo, la profesional revisa los resultados, comprueba la audiometría normal y el HNR marcado como «revisar» en voz, pulsa <b>Compartir PDF</b> y envía el informe <b>VIA_PT-0231_detallado.pdf</b> al correo del centro. El documento queda además archivado para el seguimiento.</div>
+          <div class="uc-b">Terminada la batería de Mateo, la profesional revisa los resultados, comprueba la audiometría normal y el HNR marcado como «revisar» en voz, marca la <b>valoración de uso</b> (Likert 4/5) y escanea el <b>QR anónimo</b> con la tablet de calidad; después pulsa <b>Compartir PDF</b> y envía el informe <b>VIA_PT-0231_detallado.pdf</b> al correo del centro. El documento queda además archivado para el seguimiento.</div>
         </div>
         <ul class="featurelist" style="margin-top:8px;">
           <li><span class="fi-ic">🟢</span><span><b>Normal.</b> Dentro de límites de referencia.</span></li>
@@ -1208,21 +1215,21 @@ table.info td b{color:var(--ink-2);}
         <div style="font-size:10px; color:var(--muted); line-height:1.6; margin-top:5px;">
           Acceso con perfil de audiólogo → alta del paciente (NHC PT-0231) → firma del consentimiento por el tutor → CAP «apto» → sonómetro de sala 31 dB (apta) → selección de <b>Audiometría Infantil</b> → exploración tonal por juego (250–4000 Hz, ambos oídos) → resultados normales con leve elevación a 4 kHz → informe PDF compartido con el pediatra. <b>Duración aproximada: 12 min.</b>
         </div>
-        <div class="seqrow"><span class="seqchip">Acceso</span><span class="ar">→</span><span class="seqchip">Paciente</span><span class="ar">→</span><span class="seqchip">Consent.</span><span class="ar">→</span><span class="seqchip">CAP</span><span class="ar">→</span><span class="seqchip">Sala</span><span class="ar">→</span><span class="seqchip on">Audiometría</span><span class="ar">→</span><span class="seqchip">Resultados</span><span class="ar">→</span><span class="seqchip">PDF</span></div>
+        <div class="seqrow"><span class="seqchip">Acceso</span><span class="ar">→</span><span class="seqchip">Paciente</span><span class="ar">→</span><span class="seqchip">Consent.</span><span class="ar">→</span><span class="seqchip">CAP</span><span class="ar">→</span><span class="seqchip">Sala</span><span class="ar">→</span><span class="seqchip on">Audiometría</span><span class="ar">→</span><span class="seqchip">Resultados</span><span class="ar">→</span><span class="seqchip">Valoración</span><span class="ar">→</span><span class="seqchip">PDF</span></div>
       </div>
       <div class="i-card" style="border-left:4px solid var(--m-art); padding:12px 14px;">
         <div style="font-weight:800; font-size:12px; color:var(--ink-2); display:flex; align-items:center; gap:8px;"><span style="font-size:16px;">🗣️</span> Caso 2 · Valoración de lenguaje y voz</div>
         <div style="font-size:10px; color:var(--muted); line-height:1.6; margin-top:5px;">
           Sesión de logopedia: tras consentimiento y CAP se compone una batería con <b>Análisis de Voz</b> (1) y <b>Articulación T.A.R.</b> (2). En voz se obtiene F0 268 Hz normal y HNR 18 dB «revisar»; en T.A.R. el niño repite 24 ítems con 86 % de acierto y una sustitución en /r/. El informe agrupa ambos resultados con su registro SODA. <b>Duración aproximada: 15 min.</b>
         </div>
-        <div class="seqrow"><span class="seqchip">Acceso</span><span class="ar">→</span><span class="seqchip">Paciente</span><span class="ar">→</span><span class="seqchip">Consent.</span><span class="ar">→</span><span class="seqchip">CAP</span><span class="ar">→</span><span class="seqchip">Sala</span><span class="ar">→</span><span class="seqchip on">Voz</span><span class="ar">→</span><span class="seqchip on">T.A.R.</span><span class="ar">→</span><span class="seqchip">Resultados</span><span class="ar">→</span><span class="seqchip">PDF</span></div>
+        <div class="seqrow"><span class="seqchip">Acceso</span><span class="ar">→</span><span class="seqchip">Paciente</span><span class="ar">→</span><span class="seqchip">Consent.</span><span class="ar">→</span><span class="seqchip">CAP</span><span class="ar">→</span><span class="seqchip">Sala</span><span class="ar">→</span><span class="seqchip on">Voz</span><span class="ar">→</span><span class="seqchip on">T.A.R.</span><span class="ar">→</span><span class="seqchip">Resultados</span><span class="ar">→</span><span class="seqchip">Valoración</span><span class="ar">→</span><span class="seqchip">PDF</span></div>
       </div>
       <div class="i-card" style="border-left:4px solid var(--m-dys); padding:12px 14px;">
         <div style="font-weight:800; font-size:12px; color:var(--ink-2); display:flex; align-items:center; gap:8px;"><span style="font-size:16px;">💧</span> Caso 3 · Exploración de disfagia (vía rápida)</div>
         <div style="font-size:10px; color:var(--muted); line-height:1.6; margin-top:5px;">
           Alta del paciente y firma del consentimiento → <b>acceso directo</b> a la exploración de disfagia (sin CAP ni sonómetro) → emparejamiento del pulsioxímetro por Bluetooth → 9 bolos MECV-V con vigilancia de SpO₂ → alteración de eficacia en néctar 10 ml, seguridad conservada → recomendación de textura y volumen → informe compartido. <b>Duración aproximada: 14 min.</b>
         </div>
-        <div class="seqrow"><span class="seqchip">Paciente</span><span class="ar">→</span><span class="seqchip">Consent.</span><span class="ar">→</span><span class="seqchip on">Disfagia</span><span class="ar">→</span><span class="seqchip">Resultados</span><span class="ar">→</span><span class="seqchip">PDF</span><span style="font-size:8px; color:var(--muted-2); margin-left:6px;">(sin CAP ni sonómetro)</span></div>
+        <div class="seqrow"><span class="seqchip">Paciente</span><span class="ar">→</span><span class="seqchip">Consent.</span><span class="ar">→</span><span class="seqchip on">Disfagia</span><span class="ar">→</span><span class="seqchip">Resultados</span><span class="ar">→</span><span class="seqchip">Valoración</span><span class="ar">→</span><span class="seqchip">PDF</span><span style="font-size:8px; color:var(--muted-2); margin-left:6px;">(sin CAP ni sonómetro)</span></div>
       </div>
     </div>
     <h2 class="h" style="font-size:12px; margin:16px 0 9px;">Mapa de la sesión completa</h2>
@@ -1234,6 +1241,7 @@ table.info td b{color:var(--ink-2);}
       <div class="node"><div class="ic">🔇</div><div class="lb">Sala</div></div><span class="ar">›</span>
       <div class="node"><div class="ic">🎮</div><div class="lb">Pruebas</div></div><span class="ar">›</span>
       <div class="node"><div class="ic">📊</div><div class="lb">Resultados</div></div><span class="ar">›</span>
+      <div class="node"><div class="ic">🔳</div><div class="lb">Valoración</div></div><span class="ar">›</span>
       <div class="node"><div class="ic">📄</div><div class="lb">Informe PDF</div></div>
     </div>
     <div class="note ok" style="margin-top:12px;"><b>Consejo.</b> El orden en que se tocan las tarjetas en el hub define el orden de ejecución de la batería. Puedes reordenar las pruebas antes de pulsar «Iniciar batería».</div>
@@ -1266,6 +1274,7 @@ table.info td b{color:var(--ink-2);}
             <li><span class="fi-ic">🪪</span><span><b>Seudonimización</b>: el NHC se almacena como HMAC, separado del dato clínico.</span></li>
             <li><span class="fi-ic">✍️</span><span>El <b>consentimiento</b> es requisito legal; puede revocarse.</span></li>
             <li><span class="fi-ic">🗑️</span><span><b>Borrado seguro</b> verificable al revocar el consentimiento.</span></li>
+            <li><span class="fi-ic">🔳</span><span><b>Telemetría Zero-PHI</b>: el QR de usabilidad no contiene datos del paciente (sesión anónima, en memoria).</span></li>
           </ul>
         </div>
       </div>

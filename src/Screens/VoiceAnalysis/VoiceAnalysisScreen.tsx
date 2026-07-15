@@ -33,6 +33,7 @@ import { RootState } from '@/Store';
 import { Evaluation } from '@/Models/Evaluation/Evaluation';
 import { GrbasScores, VoiceAnalysis } from '@/Models/VoiceAnalysis/VoiceAnalysis';
 import { useClassSelector } from '@/Helpers/ClassTransformer';
+import { useTelemetryTracker } from '@/Telemetry';
 import { useCreateVoiceAnalysisMutation } from '@/Services/local/modules/voiceAnalysis';
 import { showErrorToast, showSuccessToast } from '@/Helpers/showToast';
 import { useVoiceAnalysis, VoiceTake } from './useVoiceAnalysis';
@@ -106,11 +107,26 @@ export default function VoiceAnalysisScreen({ navigation }: Props) {
   const activeEvaluation = useClassSelector(Evaluation, (state: RootState) => state.activeEvaluation.evaluation);
   const [createVoiceAnalysis, { isLoading: isSaving }] = useCreateVoiceAnalysisMutation();
   const voice = useVoiceAnalysis();
+  const tracker = useTelemetryTracker(); // telemetría silenciosa (useRef, sin re-render)
 
   // Registra el motor de captura real (react-native-audio-api).
   useEffect(() => {
     registerVoiceMicAdapter();
   }, []);
+
+  // Telemetría: reactivo de captura (la vocal sostenida /a/). Reanalizar o
+  // grabar tomas extra cuenta como rectificación.
+  useEffect(() => {
+    tracker.enterReactivo('voz-rec');
+  }, [tracker]);
+
+  // Telemetría: las 5 dimensiones GRBAS son reactivos perceptuales; abren su
+  // ventana en cuanto hay tomas que valorar.
+  useEffect(() => {
+    if (voice.takes.length > 0) {
+      GRBAS_DIMENSIONS.forEach(dim => tracker.enterReactivo(`voz-${dim.key}`));
+    }
+  }, [voice.takes.length, tracker]);
 
   const [notes, setNotes] = useState('');
   const [grbas, setGrbas] = useState<GrbasDraft>(EMPTY_GRBAS);
@@ -138,8 +154,12 @@ export default function VoiceAnalysisScreen({ navigation }: Props) {
   /** Para el cierre manual la firma es obligatoria (es la constancia). */
   const signatureMissing = !r && signaturePaths.length === 0;
 
-  const setGrbasScore = (key: keyof GrbasScores, value: number) =>
+  const setGrbasScore = (key: keyof GrbasScores, value: number) => {
+    // Telemetría: 1ª puntuación fija el tiempo; re-puntuar = rectificación
+    // (incertidumbre perceptual del explorador).
+    tracker.classifyReactivo(`voz-${key}`);
     setGrbas(prev => ({ ...prev, [key]: prev[key] === value ? null : value }));
+  };
 
   const ParamCard = ({
     label,
@@ -430,7 +450,10 @@ export default function VoiceAnalysisScreen({ navigation }: Props) {
                   variant="solid"
                   rounded="$xl"
                   isDisabled={!selectedTake || voice.isRecording || voice.isAnalyzing}
-                  onPress={() => voice.analyzeTake()}>
+                  onPress={() => {
+                    tracker.classifyReactivo('voz-rec');
+                    voice.analyzeTake();
+                  }}>
                   <HStack space="sm" alignItems="center">
                     {voice.isAnalyzing ? <Spinner size="small" color="$white" /> : <Icon as={Activity} size="sm" color="$white" />}
                     <Text size="sm" weight="bold" color="$white">

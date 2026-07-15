@@ -38,6 +38,7 @@ import { RootState } from '@/Store';
 import { Evaluation } from '@/Models/Evaluation/Evaluation';
 import { Screening } from '@/Models/Screening/Screening';
 import { useClassSelector } from '@/Helpers/ClassTransformer';
+import { useTelemetryTracker } from '@/Telemetry';
 import { useCreateScreeningMutation } from '@/Services/local/modules/screenings';
 import { showErrorToast, showSuccessToast } from '@/Helpers/showToast';
 import { isRiskAns } from './autismScreeningResult';
@@ -134,6 +135,7 @@ export default function AutismScreeningScreen({ navigation }: Props) {
   // Evaluación activa (paciente + profesional) desde Redux, como en ResultScreen.
   const activeEvaluation = useClassSelector(Evaluation, (state: RootState) => state.activeEvaluation.evaluation);
   const [createScreening, { isLoading: isSaving }] = useCreateScreeningMutation();
+  const tracker = useTelemetryTracker(); // telemetría silenciosa (useRef, sin re-render)
 
   const [view, setView] = useState<'setup' | 'quiz' | 'report'>('setup');
   const [qIndex, setQIndex] = useState<number>(0); // pregunta visible (0..19)
@@ -178,6 +180,8 @@ export default function AutismScreeningScreen({ navigation }: Props) {
   };
 
   const answer = (id: number, val: boolean) => {
+    // Telemetría: cada respuesta a un ítem M-CHAT; rerresponder = rectificación.
+    tracker.classifyReactivo(`aut-${id}`);
     const next = { ...answers, [id]: val };
     setAnswers(next);
     // Auto-avance con la respuesta ya visible (la selección rebota primero).
@@ -194,6 +198,11 @@ export default function AutismScreeningScreen({ navigation }: Props) {
       }
     }, AUTO_ADVANCE_MS);
   };
+
+  // Telemetría: abre la ventana de tiempo del ítem visible durante el quiz.
+  useEffect(() => {
+    if (view === 'quiz') tracker.enterReactivo(`aut-${qIndex + 1}`);
+  }, [view, qIndex, tracker]);
 
   const handleNext = () => {
     if (qIndex >= 19) {

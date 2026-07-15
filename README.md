@@ -34,6 +34,7 @@
 - [Arquitectura del Sistema](#arquitectura-del-sistema)
 - [Flujo Clínico](#flujo-clínico)
 - [Privacidad y Datos](#privacidad-y-datos)
+- [Telemetría de Usabilidad (Zero-PHI)](#telemetría-de-usabilidad-zero-phi)
 - [Stack Tecnológico](#stack-tecnológico)
 - [Instalación y Configuración](#instalación-y-configuración)
 - [Módulos de la Aplicación](#módulos-de-la-aplicación)
@@ -80,6 +81,7 @@ La aplicación opera sobre **tablets iOS/Android** en entornos clínicos bajo su
 - 🔑 **Identidad del profesional** — Firebase Authentication (email/contraseña) + sincronización del perfil en Firestore
 - 🎙️ **Captura de audio estéreo** — Canales L/R independientes con calibración acústica
 - 👁️ **UX dual** — Modo Profesional analítico y Modo Niño lúdico en un único dispositivo
+- 📊 **Telemetría de usabilidad Zero-PHI** — Fricción de uso + percepción del clínico (Likert), exportadas en un QR anónimo (IEC 62366-1), sin tocar la base de datos clínica
 
 ---
 
@@ -102,7 +104,7 @@ Ruta de conformidad: Organismo Notificado (ON) requerido para marcado CE
 |---|---|---|
 | **MDR 2017/745** | Clasificación y marcado CE | 🔴 En proceso |
 | **IEC 62304:2006+AMD1:2015** | Ciclo de vida del software médico · **Clase B** | 🟡 En implementación |
-| **IEC 62366-1:2015** | Ingeniería de usabilidad para dispositivos médicos | 🟡 En implementación |
+| **IEC 62366-1:2015** | Ingeniería de usabilidad para dispositivos médicos · [telemetría Zero-PHI](#telemetría-de-usabilidad-zero-phi) | 🟡 En implementación |
 | **ISO 14971:2019** | Gestión de riesgos en el ciclo de vida | 🟡 En implementación |
 | **ISO 13485:2016** | Sistema de Gestión de Calidad | 🔴 Pendiente |
 | **GDPR / LOPDGDD** | Protección de datos sanitarios | 🟡 En implementación |
@@ -146,8 +148,13 @@ VIA+ App
 │
 ├── /results
 │   ├── viewer/            # Visualización de resultados por test
-│   ├── report/            # Generación de informe PDF
+│   ├── report/            # Generación de informe PDF + QR de telemetría (Likert → QR)
 │   └── archive/           # Archivo de evaluaciones pasadas
+│
+├── /telemetry            # Telemetría de usabilidad Zero-PHI (singleton + hook useRef)
+│   ├── telemetryStore     # Estado efímero fuera del árbol React (sobrevive a la navegación)
+│   ├── useTelemetryTracker# Hook silencioso: solo useRef, cero useState → cero re-render
+│   └── buildTelemetryPayload  # JSON estricto {s,b,l,d,f} + compresión LZString
 │
 └── /professional
     ├── profile/           # Perfil del profesional sanitario
@@ -194,6 +201,7 @@ El siguiente flujo es **obligatorio** y no puede omitirse. Cada fase es un prere
 [5] GENERACIÓN DE RESULTADOS
       │  Informe PDF estructurado para el profesional
       │  Datos clínicos persistidos localmente (SQLite cifrado)
+      │  Telemetría de usabilidad: Likert del clínico → QR anónimo (Zero-PHI)
       ▼
 [6] ARCHIVO Y SEGUIMIENTO
          Historial de evaluaciones del paciente
@@ -251,6 +259,81 @@ clinical_sessions:
 
 ---
 
+## Telemetría de Usabilidad (Zero-PHI)
+
+VIA+ registra la **fricción de uso** de la batería y la **percepción del profesional** para
+alimentar la ingeniería de usabilidad (**IEC 62366-1**) con datos de campo, **sin comprometer
+la privacidad del paciente**. Al cerrar la batería, el payload se exporta en un **código QR
+anónimo** que el clínico o el evaluador de usabilidad captura con otro dispositivo.
+
+### Garantía Zero-PHI
+
+| Propiedad | Implementación |
+|---|---|
+| **Sin datos del paciente** | El payload no contiene NHC, nombre, ni el `id` clínico. Nada reidentifica al paciente |
+| **`sessionId` no reversible** | 8 caracteres aleatorios (base36), **no** derivado del NHC ni del `id` |
+| **Efímero, en memoria** | Vive en un singleton de módulo; **nunca** toca Firestore, SQLite ni `redux-persist` |
+| **Aislado de lo clínico** | La captura de telemetría es independiente de las entidades y repositorios clínicos |
+
+### Arquitectura
+
+- **Store singleton (`src/Telemetry/telemetryStore.ts`)** — El estado vive **fuera del árbol
+  React**, porque las 9 pruebas son rutas hermanas del *native-stack* (sin contenedor que las
+  envuelva); un `useRef`/`useState` de pantalla se perdería al desmontarse. El singleton
+  sobrevive a toda la navegación hasta la pantalla de cierre. `startSession()` reinicia el
+  estado (sin sesión zombie entre pacientes).
+- **Hook silencioso (`useTelemetryTracker`)** — Solo `useRef`, **cero `useState`** → **cero
+  re-render** provocado por la telemetría (rendimiento innegociable en dispositivos de gama
+  baja). Inyectado en el hub de la batería (`SeleccionEjercicios`) y en las 9 pantallas de
+  módulo.
+- **Claves de reactivo con *namespace* por módulo** (`art-`, `aut-`, `sah-`, `aud-`, `auc-`,
+  `ver-`, `ef-`, `voz-`, `dis-`) — Toda la batería comparte una única sesión; el prefijo evita
+  que el ítem 1 de un cuestionario colisione con el ítem 1 de otro.
+
+### Formato del payload y compresión
+
+JSON estricto con **claves de un solo carácter** y **arrays anónimos** para minimizar bytes:
+
+```jsonc
+{
+  "s": "AB12CD34",   // sessionId Zero-PHI (8 chars)
+  "b": "e7",         // ID de batería: bitmask base36 de los módulos elegidos
+  "l": 4,            // Likert 1–5 (percepción de facilidad de uso)
+  "d": 842000,       // duración total de la batería (ms)
+  "f": [[1, 3200, 0], [2, 1500, 1]]  // [id_ordinal, tiempo_ms, rectificaciones] por reactivo
+}
+```
+
+- **Compresión:** `LZString.compressToEncodedURIComponent` (ASCII URL-safe, 1 byte/char en el
+  QR). A escala de batería reduce **~32 %** frente al JSON crudo y **~49 %** frente a Base64
+  (Base64 no comprime: infla +33 %).
+- **QR:** `react-native-qrcode-svg` con **`ecl='Q'` (25 % de recuperación)** — óptimo medido
+  entre tolerancia a arañazos de pantalla y densidad de módulos legible por cámaras de baja
+  resolución.
+- **Bloqueo del Likert:** el QR **no se revela** hasta que el clínico marca la escala Likert
+  (1 = «Muy difícil» → 5 = «Muy fácil»), para mitigar la caída de tasa de respuesta por fatiga
+  al terminar la evaluación.
+
+### Cobertura de instrumentación (9/9 módulos)
+
+Cada módulo emite eventos con su granularidad natural (tiempo = respuesta; 2.ª+ clasificación
+= rectificación):
+
+| Módulo | Reactivo | Cierre |
+|---|---|---|
+| Autismo M-CHAT-R · SAHS | ítem del cuestionario | respuesta Sí/No |
+| Audiometría · Condicionada | umbral (oído+frecuencia / campo libre) | umbral confirmado |
+| Audiometría Verbal | lámina (nivel dB + índice) | selección de tarjeta |
+| Funciones Ejecutivas | mini-juego (5 dominios) | fin del juego |
+| Análisis de Voz | toma de captura + 5 dimensiones GRBAS | análisis / puntuación GRBAS |
+| Disfagia MECV-V | bolo (viscosidad × volumen) | avance de bolo |
+| Articulación · T.A.R. | ítem (fonema) | clasificación SODA |
+
+> Los «Sí/No» de las audiometrías son el *bracketing* de Hughson-Westlake (protocolo), **no**
+> fricción; por eso esos módulos miden por umbral confirmado, no por pulsación.
+
+---
+
 ## Stack Tecnológico
 
 | Capa | Tecnología | Justificación |
@@ -269,6 +352,7 @@ clinical_sessions:
 | **Firma digital** | `react-native-signature-canvas` | Consentimiento informado en Evaluación Clínica |
 | **Vídeo / foto clínica** | `react-native-vision-camera` · `react-native-image-picker` | Disfagia y Evaluación Clínica |
 | **Generación PDF** | `pdf-lib` | Informes clínicos estructurados por módulo |
+| **Telemetría de usabilidad** | `lz-string` · `react-native-qrcode-svg` (sobre `react-native-svg`) | Compresión extrema del payload Zero-PHI + código QR de cierre de batería |
 | **Identidad y backend** | Firebase (`@react-native-firebase` app/auth/firestore) | Autenticación email/contraseña + perfil del profesional en Firestore (`professionals/{uid}`) |
 | **Cifrado en tránsito** | TLS 1.3 | Obligatorio por GDPR para datos sanitarios |
 | **Cifrado en reposo** | AES-256-GCM | Obligatorio por LOPDGDD |
