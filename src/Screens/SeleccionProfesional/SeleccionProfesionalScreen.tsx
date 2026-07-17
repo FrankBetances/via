@@ -24,7 +24,7 @@ import { loginSuccess } from '@/Store/slices/authSlice';
 import { Professional, ProfessionalRole } from '@/Models/Professional/Professional';
 import { ProfessionalRepository } from '@/Repositories/ProfessionalRepository';
 import { showErrorToast } from '@/Helpers/showToast';
-import { describeAuthError, signInWithEmail } from '@/Services/firebase';
+import { describeAuthError, isFirebaseAvailable, signInWithEmail } from '@/Services/firebase';
 
 /* -------------------------------------------------------------------------- */
 /*  SeleccionProfesionalScreen — acceso del profesional: se elige el perfil    */
@@ -166,12 +166,20 @@ export default function SeleccionProfesionalScreen({ navigation }: Props) {
 
   const handleSelect = useCallback(
     (professional: Professional) => {
-      if (professional.email) {
+      if (professional.email && isFirebaseAvailable()) {
         // Cuenta con credenciales: la contraseña se verifica contra Firebase
         // Authentication en el modal antes de abrir sesión.
         setPassword('');
         setAuthError(null);
         setAuthTarget(professional);
+        return;
+      }
+      if (professional.email) {
+        // Build sin google-services.json: no hay backend contra el que
+        // verificar la contraseña, así que el perfil conserva el acceso
+        // directo (como los perfiles antiguos) en lugar de quedar bloqueado.
+        showErrorToast('Firebase no configurado', 'Acceso directo: este build no puede verificar la contraseña.');
+        openSession(professional);
         return;
       }
       // Perfil antiguo sin cuenta: acceso directo como hasta ahora.
