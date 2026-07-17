@@ -1,6 +1,7 @@
 export {
   describeAuthError,
   getCurrentUser,
+  isFirebaseAvailable,
   registerWithEmail,
   signInWithEmail,
   signOutQuietly,

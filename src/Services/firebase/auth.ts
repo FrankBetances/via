@@ -1,3 +1,4 @@
+import { getApps } from '@react-native-firebase/app';
 import {
   createUserWithEmailAndPassword,
   getAuth,
@@ -16,15 +17,54 @@ import {
 
 export type FirebaseUser = User;
 
+/**
+ * true si el build inicializó la app nativa de Firebase (es decir, si se
+ * compiló con android/app/google-services.json o GoogleService-Info.plist).
+ * Sin ese fichero `getAuth()` lanza y las pantallas deben degradar a modo
+ * solo local en lugar de bloquearse.
+ */
+export function isFirebaseAvailable(): boolean {
+  try {
+    return getApps().length > 0;
+  } catch {
+    return false;
+  }
+}
+
+// Las llamadas a Firebase Auth son bloqueantes para la UI (el botón muestra
+// spinner): un tope de tiempo garantiza que una red colgada nunca deje la
+// pantalla girando indefinidamente.
+const AUTH_TIMEOUT_MS = 20000;
+
+function withTimeout<T>(promise: Promise<T>): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const timer = setTimeout(() => {
+      const error = new Error('Tiempo de espera agotado hablando con Firebase.');
+      (error as Error & { code: string }).code = 'via/auth-timeout';
+      reject(error);
+    }, AUTH_TIMEOUT_MS);
+    promise.then(
+      value => {
+        clearTimeout(timer);
+        resolve(value);
+      },
+      error => {
+        clearTimeout(timer);
+        reject(error);
+      },
+    );
+  });
+}
+
 /** Da de alta al profesional en Firebase Auth y devuelve su usuario. */
 export async function registerWithEmail(email: string, password: string): Promise<FirebaseUser> {
-  const credential = await createUserWithEmailAndPassword(getAuth(), email.trim(), password);
+  const credential = await withTimeout(createUserWithEmailAndPassword(getAuth(), email.trim(), password));
   return credential.user;
 }
 
 /** Inicia sesión con email/contraseña y devuelve el usuario autenticado. */
 export async function signInWithEmail(email: string, password: string): Promise<FirebaseUser> {
-  const credential = await signInWithEmailAndPassword(getAuth(), email.trim(), password);
+  const credential = await withTimeout(signInWithEmailAndPassword(getAuth(), email.trim(), password));
   return credential.user;
 }
 
@@ -68,7 +108,10 @@ export function describeAuthError(error: unknown): string {
     case 'auth/too-many-requests':
       return 'Demasiados intentos fallidos. Espera unos minutos y vuelve a intentarlo.';
     case 'auth/network-request-failed':
+    case 'via/auth-timeout':
       return 'Sin conexión con el servidor. Comprueba tu acceso a internet.';
+    case 'auth/operation-not-allowed':
+      return 'El acceso con email/contraseña no está habilitado en el proyecto de Firebase (consola → Authentication → Sign-in method).';
     case 'auth/user-disabled':
       return 'Esta cuenta está deshabilitada. Contacta con el administrador.';
     default:

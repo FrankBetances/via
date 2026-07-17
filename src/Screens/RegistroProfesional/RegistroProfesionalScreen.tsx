@@ -22,7 +22,7 @@ import { Professional, ProfessionalRole } from '@/Models/Professional/Profession
 import { ProfessionalRepository } from '@/Repositories/ProfessionalRepository';
 import { showErrorToast, showSuccessToast } from '@/Helpers/showToast';
 import { writeWithVerify } from '@/Helpers/dbWrite';
-import { describeAuthError, registerWithEmail, saveProfessionalProfile } from '@/Services/firebase';
+import { describeAuthError, isFirebaseAvailable, registerWithEmail, saveProfessionalProfile } from '@/Services/firebase';
 
 /* -------------------------------------------------------------------------- */
 /*  RegistroProfesionalScreen — alta del profesional responsable. Nombre,      */
@@ -94,16 +94,26 @@ export default function RegistroProfesionalScreen({ navigation: _navigation }: P
     const role = selectedRole?.value ?? 'medico';
 
     // El alta en Firebase Auth es bloqueante: valida email/contraseña y
-    // devuelve el uid que ancla el perfil remoto. Sin cuenta no hay sesión.
-    let uid: string;
-    try {
-      const user = await registerWithEmail(trimmedEmail, password);
-      uid = user.uid;
-    } catch (e) {
-      console.error('VIA+: error creando cuenta Firebase', e);
-      showErrorToast('No se pudo crear la cuenta', describeAuthError(e));
-      setIsSaving(false);
-      return;
+    // devuelve el uid que ancla el perfil remoto. Pero si el build no incluye
+    // google-services.json (Firebase sin inicializar), degradamos a alta solo
+    // local en lugar de dejar la pantalla bloqueada.
+    let uid: string | null = null;
+    if (isFirebaseAvailable()) {
+      try {
+        const user = await registerWithEmail(trimmedEmail, password);
+        uid = user.uid;
+      } catch (e) {
+        console.error('VIA+: error creando cuenta Firebase', e);
+        showErrorToast('No se pudo crear la cuenta', describeAuthError(e));
+        setIsSaving(false);
+        return;
+      }
+    } else {
+      console.warn('VIA+: Firebase no configurado (falta google-services.json); alta solo local.');
+      showErrorToast(
+        'Firebase no configurado',
+        'Este build no incluye google-services.json: el perfil se guardará solo en este dispositivo, sin cuenta en la nube.',
+      );
     }
 
     // Con la cuenta creada, la sesión se abre INMEDIATAMENTE (optimista):
@@ -124,12 +134,14 @@ export default function RegistroProfesionalScreen({ navigation: _navigation }: P
 
     // Sincronización del perfil a Firestore (professionals/{uid}) en segundo
     // plano: solo datos del evaluador, nunca datos de pacientes.
-    saveProfessionalProfile(uid, {
-      fullName: trimmedName,
-      role,
-      licenseNumber: trimmedLicense,
-      email: trimmedEmail,
-    }).catch(e => console.error('VIA+: error sincronizando perfil a Firestore', e));
+    if (uid) {
+      saveProfessionalProfile(uid, {
+        fullName: trimmedName,
+        role,
+        licenseNumber: trimmedLicense,
+        email: trimmedEmail,
+      }).catch(e => console.error('VIA+: error sincronizando perfil a Firestore', e));
+    }
 
     // Persistencia local + reconciliación del id en segundo plano.
     (async () => {
