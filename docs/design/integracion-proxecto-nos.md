@@ -10,6 +10,9 @@
 > **Principio rector:** los modelos del Nós se usan como **herramientas de
 > desarrollo** (generación de contenido en build-time); la app no incorpora
 > ninguna dependencia de IA en runtime y sigue siendo offline-first.
+> **Documento hermano:** `integracion-quisqueya-habla.md` (variante es-DO ·
+> Quisqueya Habla); el módulo M1 de este plan es infraestructura compartida y
+> debe diseñarse para `es | gl | es-DO` desde el inicio.
 
 ---
 
