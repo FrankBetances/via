@@ -36,7 +36,15 @@ python3 tools/nos/tts.py --lang gl --batch lote.json --out-dir /tmp/gl/
 # 4. Pipeline de assets de la audiometría verbal (WAV → loudnorm → m4a)
 node scripts/verbal-assets.js audio --lang es-DO      # voz neural (Piper es_MX)
 VERBAL_TTS=neural node scripts/verbal-assets.js audio # es con Piper en vez de espeak-ng
+VERBAL_TTS=espeak node scripts/verbal-assets.js audio --lang es-DO  # degradación (ver abajo)
 ```
+
+**Degradación sin acceso a los pesos:** si el entorno de build no puede
+descargar de Hugging Face (política de red), `VERBAL_TTS=espeak` locuta la
+variante con la voz clásica espeak-ng correspondiente (`es-419`, español
+LatAm, para es-DO). Es un escalón por debajo del motor neural: mantiene el
+contrato de claves y sonoridad, y se sustituye archivo a archivo regenerando
+con la voz neural (misma orden, sin `VERBAL_TTS`) en cuanto haya red.
 
 La normalización de sonoridad (ffmpeg `loudnorm I=-20:TP=-3:LRA=7`, m4a mono
 44.1 kHz) la aplica `scripts/verbal-assets.js` de forma idéntica para todas

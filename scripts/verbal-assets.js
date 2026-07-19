@@ -218,10 +218,15 @@ function resolveFfmpeg() {
   throw new Error('ffmpeg no disponible (FFMPEG_BIN o en PATH)');
 }
 
-/** WAVs provisionales con espeak-ng (voz clásica es, ritmo de palabra aislada). */
-function synthEspeak(entries, tmp) {
+/** Voz espeak-ng por idioma (degradación clásica): es-419 = español LatAm. */
+const ESPEAK_VOICES = { es: 'es', 'es-DO': 'es-419' };
+
+/** WAVs provisionales con espeak-ng (voz clásica, ritmo de palabra aislada). */
+function synthEspeak(entries, tmp, lang) {
+  const voice = ESPEAK_VOICES[lang];
+  if (!voice) throw new Error(`Sin voz espeak-ng registrada para ${lang} (use el motor neural)`);
   for (const { key, word } of entries) {
-    execFileSync('espeak-ng', ['-v', 'es', '-s', '130', '-g', '6', '-w', path.join(tmp, `${key}.wav`), word]);
+    execFileSync('espeak-ng', ['-v', voice, '-s', '130', '-g', '6', '-w', path.join(tmp, `${key}.wav`), word]);
   }
 }
 
@@ -244,11 +249,14 @@ function cmdAudio({ bands }, lang) {
   const entries = audioEntries(bands);
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'verbal-wav-'));
 
-  // Locución PROVISIONAL: es usa espeak-ng salvo VERBAL_TTS=neural; el resto
-  // de idiomas/variantes se locutan siempre con su voz neural (voices.json).
-  const neural = lang !== 'es' || process.env.VERBAL_TTS === 'neural';
+  // Locución PROVISIONAL: es usa espeak-ng salvo VERBAL_TTS=neural; las
+  // variantes usan su voz neural (voices.json) salvo VERBAL_TTS=espeak —
+  // degradación explícita (voz clásica es-419 LatAm) para entornos sin
+  // acceso a los pesos; regenere con la voz neural en cuanto sea posible.
+  const forced = process.env.VERBAL_TTS;
+  const neural = forced ? forced === 'neural' : lang !== 'es';
   if (neural) synthNeural(entries, tmp, lang);
-  else synthEspeak(entries, tmp);
+  else synthEspeak(entries, tmp, lang);
 
   for (const { key } of entries) {
     const wav = path.join(tmp, `${key}.wav`);
