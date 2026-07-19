@@ -3,26 +3,37 @@
 /**
  * Pipeline de assets de la Audiometría Verbal (herramienta de desarrollo).
  *
- *   node scripts/verbal-assets.js manifest   → estado del banco + assets/verbal-manifest.json
- *   node scripts/verbal-assets.js images     → ilustraciones PROVISIONALES (Chromium headless)
- *   node scripts/verbal-assets.js audio      → locuciones PROVISIONALES (espeak-ng + ffmpeg)
- *   node scripts/verbal-assets.js registry   → regenera src/Screens/VerbalAudiometry/verbalAssets.ts
+ *   node scripts/verbal-assets.js manifest [--lang es|es-DO]  → estado del banco + manifiesto
+ *   node scripts/verbal-assets.js images   [--lang …]         → ilustraciones PROVISIONALES (Chromium headless)
+ *   node scripts/verbal-assets.js audio    [--lang …]         → locuciones PROVISIONALES (espeak-ng o motor neural)
+ *   node scripts/verbal-assets.js registry                    → regenera src/Screens/VerbalAudiometry/verbalAssets.ts
  *
- * El inventario sale SIEMPRE de `collectAssetInventory()` (fuente única:
- * verbalAudiometryLists.ts, compilado al vuelo con el tsc del proyecto), de
- * modo que listas y assets no pueden divergir sin que el manifiesto lo cante
- * (y el test `verbalAssets.test.ts` lo rompa en CI).
+ * El inventario sale SIEMPRE de `collectLangAssetInventory(lang)` (fuente
+ * única: verbalAudiometryBanks.ts, compilado al vuelo con el tsc del
+ * proyecto), de modo que listas y assets no pueden divergir sin que el
+ * manifiesto lo cante (y el test `verbalAssets.test.ts` lo rompa en CI).
  *
- * PROVISIONALES: las locuciones son síntesis espeak-ng (es) normalizadas en
- * sonoridad (ffmpeg loudnorm) y las ilustraciones son pictogramas emoji /
- * tiles de inicial. Sirven para desarrollo y pilotos técnicos; la producción
- * clínica (locutor profesional + ilustrador, ver
- * docs/design/validacion-clinica-verbal.md) los sustituye archivo a archivo
- * sin tocar código (misma clave).
+ * IDIOMAS (infra M1/Q1): `es` conserva su disposición histórica
+ * (assets/{audio,img}/verbal + verbal-manifest.json); las variantes usan
+ * assets/{audio,img}/verbal/<lang>/ y verbal-manifest.<lang>.json. Una
+ * variante HEREDA las ilustraciones de su base (sin duplicar archivos, el
+ * manifiesto las marca `inherited`), pero el AUDIO es siempre propio: cada
+ * idioma se locuta con su voz (Q4.1).
+ *
+ * VOZ: `es` usa espeak-ng por defecto (histórico) o el motor de voz neural
+ * (tools/nos/tts.py, Piper/Celtia) con VERBAL_TTS=neural; las demás lenguas
+ * usan siempre el motor neural. El post-proceso ffmpeg (loudnorm, m4a) es
+ * idéntico para todas las voces: mismo objetivo LUFS entre idiomas.
+ *
+ * PROVISIONALES: locuciones sintéticas e ilustraciones pictograma/tile.
+ * Sirven para desarrollo y pilotos técnicos; la producción clínica (locutor
+ * profesional + ilustrador, ver docs/design/validacion-clinica-verbal.md)
+ * los sustituye archivo a archivo sin tocar código (misma clave).
  *
  * Requisitos (solo para generar, no para compilar la app):
  *   images → playwright + Chromium (PW_CHROMIUM, por defecto /opt/pw-browsers/chromium)
- *   audio  → espeak-ng en PATH + ffmpeg (FFMPEG_BIN o en PATH)
+ *   audio  → ffmpeg (FFMPEG_BIN o en PATH) + espeak-ng (es) o
+ *            tools/nos (venv + modelos, ver tools/nos/README.md) para voz neural
  */
 
 const { execFileSync } = require('child_process');
@@ -31,34 +42,46 @@ const os = require('os');
 const path = require('path');
 
 const ROOT = path.resolve(__dirname, '..');
-const AUDIO_DIR = path.join(ROOT, 'assets', 'audio', 'verbal');
-const IMG_DIR = path.join(ROOT, 'assets', 'img', 'verbal');
-const MANIFEST = path.join(ROOT, 'assets', 'verbal-manifest.json');
+const AUDIO_ROOT = path.join(ROOT, 'assets', 'audio', 'verbal');
+const IMG_ROOT = path.join(ROOT, 'assets', 'img', 'verbal');
 const REGISTRY = path.join(ROOT, 'src', 'Screens', 'VerbalAudiometry', 'verbalAssets.ts');
 const CLIPS = path.join(ROOT, 'src', 'Screens', 'VerbalAudiometry', 'verbalAudioClips.ts');
+const NOS_TTS = path.join(ROOT, 'tools', 'nos', 'tts.py');
+
+/** Rutas por idioma: `es` conserva la disposición histórica (sin subcarpeta). */
+function langPaths(lang) {
+  const sub = lang === 'es' ? [] : [lang];
+  return {
+    audioDir: path.join(AUDIO_ROOT, ...sub),
+    imgDir: path.join(IMG_ROOT, ...sub),
+    manifest: path.join(ROOT, 'assets', lang === 'es' ? 'verbal-manifest.json' : `verbal-manifest.${lang}.json`),
+  };
+}
 
 /* ------------------- carga de la lógica pura (TS → CJS) ------------------- */
 
-function loadVerbalModules() {
+function loadVerbalModules(lang) {
   const out = fs.mkdtempSync(path.join(os.tmpdir(), 'verbal-cjs-'));
   const tsc = path.join(ROOT, 'node_modules', '.bin', 'tsc');
   const srcDir = path.join(ROOT, 'src', 'Screens', 'VerbalAudiometry');
   execFileSync(tsc, [
-    path.join(srcDir, 'verbalAudiometryLists.ts'),
+    path.join(srcDir, 'verbalAudiometryBanks.ts'),
     path.join(srcDir, 'verbalAudiometryResult.ts'),
     path.join(srcDir, 'verbalAudiometryGlyphs.ts'),
     '--outDir', out, '--module', 'commonjs', '--target', 'es2019', '--skipLibCheck',
   ]);
+  const banks = require(path.join(out, 'verbalAudiometryBanks.js'));
   return {
-    lists: require(path.join(out, 'verbalAudiometryLists.js')),
+    bands: banks.getVerbalBands(lang),
+    inventory: banks.collectLangAssetInventory(lang),
     glyphs: require(path.join(out, 'verbalAudiometryGlyphs.js')).VERBAL_GLYPHS,
   };
 }
 
 /** [{ key, word }] únicos por clave, para las opciones ilustradas del banco. */
-function imageEntries(lists) {
+function imageEntries(bands) {
   const byKey = new Map();
-  for (const band of lists.VERBAL_BANDS) {
+  for (const band of bands) {
     for (const item of band.items) {
       for (const opt of item.options) {
         if (opt.image && !byKey.has(opt.image)) byKey.set(opt.image, opt.word);
@@ -69,9 +92,9 @@ function imageEntries(lists) {
 }
 
 /** [{ key, word }] únicos por clave, para las palabras objetivo (audio). */
-function audioEntries(lists) {
+function audioEntries(bands) {
   const byKey = new Map();
-  for (const band of lists.VERBAL_BANDS) {
+  for (const band of bands) {
     for (const item of band.items) {
       if (!byKey.has(item.audio)) byKey.set(item.audio, item.targetWord);
     }
@@ -81,31 +104,44 @@ function audioEntries(lists) {
 
 /* -------------------------------- manifest -------------------------------- */
 
-function cmdManifest({ lists }) {
-  const audio = audioEntries(lists).map(e => ({
+function cmdManifest({ bands, inventory }, lang) {
+  const { audioDir, imgDir, manifest } = langPaths(lang);
+  const inherited = new Set(inventory.inheritedImages);
+  const basePaths = langPaths('es');
+
+  const audio = audioEntries(bands).map(e => ({
     ...e,
-    file: `assets/audio/verbal/${e.key}.m4a`,
-    exists: fs.existsSync(path.join(AUDIO_DIR, `${e.key}.m4a`)),
+    file: path.relative(ROOT, path.join(audioDir, `${e.key}.m4a`)),
+    exists: fs.existsSync(path.join(audioDir, `${e.key}.m4a`)),
   }));
-  const images = imageEntries(lists).map(e => ({
-    ...e,
-    file: `assets/img/verbal/${e.key}.png`,
-    exists: fs.existsSync(path.join(IMG_DIR, `${e.key}.png`)),
-  }));
+  const images = imageEntries(bands).map(e => {
+    // Herencia (Q1.4): la ilustración de la variante puede sustituirse
+    // archivo a archivo; si no existe la propia, vale la del idioma base.
+    const own = path.join(imgDir, `${e.key}.png`);
+    const useInherited = lang !== 'es' && inherited.has(e.key) && !fs.existsSync(own);
+    const file = useInherited ? path.join(basePaths.imgDir, `${e.key}.png`) : own;
+    return {
+      ...e,
+      file: path.relative(ROOT, file),
+      ...(lang !== 'es' ? { inherited: useInherited } : {}),
+      exists: fs.existsSync(file),
+    };
+  });
   const missingA = audio.filter(e => !e.exists);
   const missingI = images.filter(e => !e.exists);
 
-  fs.mkdirSync(path.dirname(MANIFEST), { recursive: true });
+  fs.mkdirSync(path.dirname(manifest), { recursive: true });
   fs.writeFileSync(
-    MANIFEST,
+    manifest,
     JSON.stringify(
       {
         generatedAt: new Date().toISOString(),
+        ...(lang !== 'es' ? { lang, baseLang: 'es' } : {}),
         provisional: true,
         note:
           'Orden de producción de assets de la audiometría verbal. Locuciones e ilustraciones ' +
-          'actuales son PROVISIONALES (espeak-ng / pictogramas); la producción clínica final ' +
-          'sustituye cada archivo conservando su clave.',
+          'actuales son PROVISIONALES (síntesis espeak-ng/neural y pictogramas); la producción ' +
+          'clínica final sustituye cada archivo conservando su clave.',
         audio,
         images,
       },
@@ -118,21 +154,29 @@ function cmdManifest({ lists }) {
   console.log(`Imágenes: ${images.length - missingI.length}/${images.length} presentes`);
   if (missingA.length) console.log('Audio ausente:', missingA.map(e => e.key).join(' '));
   if (missingI.length) console.log('Imágenes ausentes:', missingI.map(e => e.key).join(' '));
-  console.log(`Manifiesto → ${path.relative(ROOT, MANIFEST)}`);
+  console.log(`Manifiesto → ${path.relative(ROOT, manifest)}`);
 }
 
 /* --------------------------------- images --------------------------------- */
 
-async function cmdImages({ lists, glyphs }) {
+async function cmdImages({ bands, inventory, glyphs }, lang) {
   let chromium;
   for (const mod of ['playwright', 'playwright-core', '/opt/node22/lib/node_modules/playwright']) {
     try { chromium = require(mod).chromium; break; } catch { /* siguiente */ }
   }
   if (!chromium) throw new Error('playwright no disponible (npm i -g playwright o instalar en el proyecto)');
   const executablePath = process.env.PW_CHROMIUM || '/opt/pw-browsers/chromium';
+  const { imgDir } = langPaths(lang);
 
-  fs.mkdirSync(IMG_DIR, { recursive: true });
-  const entries = imageEntries(lists);
+  fs.mkdirSync(imgDir, { recursive: true });
+  // Una variante solo genera sus imágenes PROPIAS; las heredables del idioma
+  // base no se duplican (el manifiesto las marca `inherited`).
+  const inherited = new Set(lang === 'es' ? [] : inventory.inheritedImages);
+  const entries = imageEntries(bands).filter(e => !inherited.has(e.key));
+  if (!entries.length) {
+    console.log(`Sin imágenes propias que generar para ${lang} (todas heredadas del idioma base).`);
+    return;
+  }
   const browser = await chromium.launch(fs.existsSync(executablePath) ? { executablePath } : {});
   const page = await browser.newPage({ viewport: { width: 512, height: 512 }, deviceScaleFactor: 1 });
 
@@ -157,11 +201,11 @@ async function cmdImages({ lists, glyphs }) {
       .w { font-size:44px; font-weight:700; color:#6B635A;
            font-family:"Segoe UI",system-ui,sans-serif }
     </style>${body}`);
-    await page.screenshot({ path: path.join(IMG_DIR, `${key}.png`), omitBackground: true });
+    await page.screenshot({ path: path.join(imgDir, `${key}.png`), omitBackground: true });
     process.stdout.write('.');
   }
   await browser.close();
-  console.log(`\n${entries.length} ilustraciones provisionales → ${path.relative(ROOT, IMG_DIR)}`);
+  console.log(`\n${entries.length} ilustraciones provisionales → ${path.relative(ROOT, imgDir)}`);
 }
 
 /* ---------------------------------- audio --------------------------------- */
@@ -174,37 +218,71 @@ function resolveFfmpeg() {
   throw new Error('ffmpeg no disponible (FFMPEG_BIN o en PATH)');
 }
 
-function cmdAudio({ lists }) {
+/** WAVs provisionales con espeak-ng (voz clásica es, ritmo de palabra aislada). */
+function synthEspeak(entries, tmp) {
+  for (const { key, word } of entries) {
+    execFileSync('espeak-ng', ['-v', 'es', '-s', '130', '-g', '6', '-w', path.join(tmp, `${key}.wav`), word]);
+  }
+}
+
+/** WAVs con el motor de voz neural (tools/nos/tts.py: Piper es/es-DO, Celtia gl). */
+function synthNeural(entries, tmp, lang) {
+  const python = process.env.NOS_PYTHON
+    || (fs.existsSync(path.join(ROOT, 'tools', 'nos', '.venv', 'bin', 'python'))
+      ? path.join(ROOT, 'tools', 'nos', '.venv', 'bin', 'python')
+      : 'python3');
+  const batch = path.join(tmp, '_batch.json');
+  fs.writeFileSync(batch, JSON.stringify(Object.fromEntries(entries.map(e => [e.key, e.word]))));
+  // Un solo proceso para todo el lote: el modelo se carga una vez.
+  execFileSync(python, [NOS_TTS, '--lang', lang, '--batch', batch, '--out-dir', tmp], { stdio: 'inherit' });
+}
+
+function cmdAudio({ bands }, lang) {
   const ffmpeg = resolveFfmpeg();
-  fs.mkdirSync(AUDIO_DIR, { recursive: true });
-  const entries = audioEntries(lists);
+  const { audioDir } = langPaths(lang);
+  fs.mkdirSync(audioDir, { recursive: true });
+  const entries = audioEntries(bands);
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'verbal-wav-'));
 
-  for (const { key, word } of entries) {
+  // Locución PROVISIONAL: es usa espeak-ng salvo VERBAL_TTS=neural; el resto
+  // de idiomas/variantes se locutan siempre con su voz neural (voices.json).
+  const neural = lang !== 'es' || process.env.VERBAL_TTS === 'neural';
+  if (neural) synthNeural(entries, tmp, lang);
+  else synthEspeak(entries, tmp);
+
+  for (const { key } of entries) {
     const wav = path.join(tmp, `${key}.wav`);
-    // Locución PROVISIONAL: espeak-ng es, ritmo pausado de palabra aislada.
-    execFileSync('espeak-ng', ['-v', 'es', '-s', '130', '-g', '6', '-w', wav, word]);
+    if (!fs.existsSync(wav)) throw new Error(`Síntesis incompleta: falta ${key}.wav`);
     // m4a AAC mono 44.1k con sonoridad normalizada (loudnorm): la escala de
-    // nivel del adaptador presupone recortes a un RMS de referencia común.
+    // nivel del adaptador presupone recortes a un RMS de referencia común y
+    // el objetivo LUFS es el MISMO para todas las voces e idiomas.
     execFileSync(ffmpeg, [
       '-y', '-loglevel', 'error', '-i', wav,
       '-af', 'loudnorm=I=-20:TP=-3:LRA=7,silenceremove=start_periods=1:start_threshold=-45dB',
       '-ar', '44100', '-ac', '1', '-c:a', 'aac', '-b:a', '96k',
-      path.join(AUDIO_DIR, `${key}.m4a`),
+      path.join(audioDir, `${key}.m4a`),
     ]);
     process.stdout.write('.');
   }
-  console.log(`\n${entries.length} locuciones provisionales → ${path.relative(ROOT, AUDIO_DIR)}`);
+  console.log(`\n${entries.length} locuciones provisionales (${neural ? 'voz neural' : 'espeak-ng'}) → ${path.relative(ROOT, audioDir)}`);
 }
 
 /* -------------------------------- registry -------------------------------- */
 
-function cmdRegistry({ lists }) {
-  const audio = audioEntries(lists);
-  const images = imageEntries(lists);
+function cmdRegistry({ bands }, lang) {
+  if (lang !== 'es') {
+    throw new Error(
+      `El registro de la app es monolingüe (es) hasta que la variante tenga contenido firmado ` +
+      `(Q3/M3): genere manifest/audio/images con --lang ${lang}, pero el registry llegará con el ` +
+      `selector de idioma de sesión (T1.6).`,
+    );
+  }
+  const { audioDir, imgDir } = langPaths(lang);
+  const audio = audioEntries(bands);
+  const images = imageEntries(bands);
   const missing = [
-    ...audio.filter(e => !fs.existsSync(path.join(AUDIO_DIR, `${e.key}.m4a`))).map(e => `audio/${e.key}`),
-    ...images.filter(e => !fs.existsSync(path.join(IMG_DIR, `${e.key}.png`))).map(e => `img/${e.key}`),
+    ...audio.filter(e => !fs.existsSync(path.join(audioDir, `${e.key}.m4a`))).map(e => `audio/${e.key}`),
+    ...images.filter(e => !fs.existsSync(path.join(imgDir, `${e.key}.png`))).map(e => `img/${e.key}`),
   ];
   if (missing.length) {
     throw new Error(`Assets ausentes (genere primero audio/images): ${missing.join(' ')}`);
@@ -218,6 +296,7 @@ function cmdRegistry({ lists }) {
     .join('\n');
 
   const content = `import { Image, ImageSourcePropType } from 'react-native';
+import { VERBAL_AUDIO_BASE64 } from './verbalAudioClips';
 
 /* -------------------------------------------------------------------------- */
 /*  Registro de assets de la Audiometría Verbal.                               */
@@ -250,6 +329,16 @@ export const verbalAudioSource = (audioKey: string): string | null => {
   }
 };
 
+/**
+ * Recorte de una palabra objetivo INCRUSTADO en base64 (m4a). Vía primaria de
+ * reproducción: se decodifica en memoria (\`decodeAudioData\`), sin depender de
+ * la ruta del asset (que en desarrollo es una URL de Metro que la vía nativa
+ * por ruta no sabe abrir — motivo por el que el audio no sonaba en Android
+ * Studio). \`null\` si no hay recorte para esa palabra.
+ */
+export const verbalAudioBase64 = (audioKey: string): string | null =>
+  VERBAL_AUDIO_BASE64[audioKey] ?? null;
+
 /** Ilustración de una opción de tarjeta (bandas con imagen). */
 export const verbalImageSource = (imageKey: string): ImageSourcePropType | undefined =>
   IMAGES[imageKey];
@@ -267,7 +356,7 @@ export const registeredVerbalAssets = () => ({
   // verbalAudioClips.ts). Incrustar evita depender de la ruta del asset, que en
   // desarrollo es una URL de Metro que la decodificación nativa por ruta no abre.
   const clipLines = audio
-    .map(e => `  ${e.key}: '${fs.readFileSync(path.join(AUDIO_DIR, `${e.key}.m4a`)).toString('base64')}',`)
+    .map(e => `  ${e.key}: '${fs.readFileSync(path.join(audioDir, `${e.key}.m4a`)).toString('base64')}',`)
     .join('\n');
   const clips = `/* eslint-disable */
 /* -------------------------------------------------------------------------- */
@@ -296,12 +385,18 @@ ${clipLines}
 /* ----------------------------------- main ---------------------------------- */
 
 async function main() {
-  const cmd = process.argv[2] || 'manifest';
-  const mods = loadVerbalModules();
-  if (cmd === 'manifest') return cmdManifest(mods);
-  if (cmd === 'images') return cmdImages(mods);
-  if (cmd === 'audio') return cmdAudio(mods);
-  if (cmd === 'registry') return cmdRegistry(mods);
+  const args = process.argv.slice(2);
+  const langIdx = args.indexOf('--lang');
+  const lang = langIdx >= 0 ? args[langIdx + 1] : 'es';
+  if (langIdx >= 0) args.splice(langIdx, 2);
+  if (!lang) throw new Error('--lang requiere un valor (es | es-DO)');
+  const cmd = args[0] || 'manifest';
+
+  const mods = loadVerbalModules(lang); // valida el idioma contra el registro de bancos
+  if (cmd === 'manifest') return cmdManifest(mods, lang);
+  if (cmd === 'images') return cmdImages(mods, lang);
+  if (cmd === 'audio') return cmdAudio(mods, lang);
+  if (cmd === 'registry') return cmdRegistry(mods, lang);
   throw new Error(`Comando desconocido: ${cmd} (manifest|images|audio|registry)`);
 }
 

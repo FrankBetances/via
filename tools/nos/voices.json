@@ -1,0 +1,48 @@
+{
+  "note": "Registro declarativo del motor de voz neural (ILENIA / Proxecto Nós + Piper). Una voz por idioma/variante de la batería VIA+. Los modelos se ejecutan SOLO en build-time (tools/nos/tts.py + scripts/verbal-assets.js); la app no incorpora IA en runtime y sigue siendo offline-first. Las voces marcadas provisional=true sirven para desarrollo y pilotos técnicos; la voz de producción clínica se decide en los ADR de los planes (T4/Q4.3).",
+  "modelsDir": "tools/nos/models",
+  "postprocess": {
+    "note": "El post-proceso (loudnorm, recorte de silencios, m4a 44.1k mono) NO es del motor: lo aplica scripts/verbal-assets.js con ffmpeg, idéntico para todas las voces, para garantizar sonoridad homogénea entre idiomas (mismo objetivo LUFS).",
+    "loudnorm": "I=-20:TP=-3:LRA=7"
+  },
+  "voices": {
+    "es": {
+      "engine": "piper",
+      "model": "es_ES-davefx-medium",
+      "files": {
+        "onnx": "piper/es_ES-davefx-medium.onnx",
+        "config": "piper/es_ES-davefx-medium.onnx.json"
+      },
+      "source": "https://huggingface.co/rhasspy/piper-voices/tree/main/es/es_ES/davefx/medium",
+      "license": "ver ficha del modelo en Hugging Face (auditoría T0.2 pendiente de firma)",
+      "provisional": true,
+      "params": { "lengthScale": 1.1, "noiseScale": 0.333, "noiseW": 0.333 },
+      "notes": "Sustituye a espeak-ng como locución provisional castellana cuando se genera con VERBAL_TTS=neural. La producción clínica final sigue siendo locutor profesional (validacion-clinica-verbal.md)."
+    },
+    "es-DO": {
+      "engine": "piper",
+      "model": "es_MX-claude-high",
+      "files": {
+        "onnx": "piper/es_MX-claude-high.onnx",
+        "config": "piper/es_MX-claude-high.onnx.json"
+      },
+      "source": "https://huggingface.co/rhasspy/piper-voices/tree/main/es/es_MX/claude/high",
+      "license": "ver ficha del modelo en Hugging Face (auditoría T0.2 pendiente de firma)",
+      "provisional": true,
+      "params": { "lengthScale": 1.1, "noiseScale": 0.333, "noiseW": 0.333 },
+      "notes": "Quisqueya Habla · Q4.1: no existe voz abierta es-DO, se usa una voz Piper neutra LatAm (es_MX) como provisional. La voz definitiva (locutor dominicano o VITS es-DO propio) se decide en el ADR Q4.3 tras el piloto de Santo Domingo."
+    },
+    "gl": {
+      "engine": "coqui-vits",
+      "model": "proxectonos/Nos_TTS-celtia-vits-graphemes",
+      "files": {
+        "dir": "celtia"
+      },
+      "source": "https://huggingface.co/proxectonos/Nos_TTS-celtia-vits-graphemes",
+      "license": "ver ficha del modelo en Hugging Face (auditoría T0.2 pendiente de firma)",
+      "provisional": true,
+      "params": { "lengthScale": 1.0 },
+      "notes": "Proxecto Nós · T4.1: voz Celtia (VITS sobre grafemas, Coqui TTS). Locuciones provisionales gl para pilotos técnicos; la producción clínica final sustituye archivo a archivo (misma clave)."
+    }
+  }
+}
