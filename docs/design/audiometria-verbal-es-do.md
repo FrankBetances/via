@@ -66,3 +66,17 @@ libre («tos», «dos», «seso»…) y familiaridad léxica es-DO de los estím
 100 % heredadas del banco es (97/97, pictogramas provisionales). Las láminas
 que Q3.3 sustituya con palabras nuevas generarán claves e imágenes propias en
 `assets/img/verbal/es-DO/`.
+
+## 6 · Localización léxica (Q2)
+
+- **Glosario es → es-DO aprobado para producción** por el revisor dominicano
+  (2026-07-19, comunicado por el responsable del proyecto): las 5 entradas de
+  `tools/nos/glosario-es-do.csv` pasan a `estado = aprobado` (guagua, chichí,
+  china, lechosa, funda). Adjuntar al expediente la firma del revisor.
+- Aplicado con `tools/nos/localize-catalog.py`: el catálogo actual de la
+  audiometría verbal **no contiene ninguna de esas palabras**, así que el
+  delta `locales/es-DO/` permanece vacío y todo resuelve por el fallback
+  es-DO → es. El glosario actúa como salvaguarda: cualquier texto futuro que
+  las use quedará localizado al regenerar el delta.
+- Las consignas/textos nuevos que se añadan al catálogo deben pasar por el
+  mismo ciclo (localize-catalog + revisión Q2.3) antes de release.
