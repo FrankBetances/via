@@ -90,6 +90,16 @@ export const MODALITY_LABEL: Record<CardModality, string> = {
   words: 'solo palabras',
 };
 
+/**
+ * Etiquetas del idioma/variante de la sesión (claves = bancos registrados en
+ * `verbalAudiometryBanks.ts`; aquí como strings planos para no importar el
+ * banco desde la lógica pura de resultado).
+ */
+export const VERBAL_LANG_LABEL: Record<string, string> = {
+  es: 'Español (España)',
+  'es-DO': 'Español (Rep. Dominicana) · Quisqueya Habla',
+};
+
 /* ------------------------------- helpers --------------------------------- */
 
 /**
@@ -202,6 +212,7 @@ export const interpretVerbal = (
   band: AgeBand,
   score: VerbalScore,
   srtDb: number | null,
+  lang: string = 'es',
 ): string => {
   const parts: string[] = [];
 
@@ -225,6 +236,12 @@ export const interpretVerbal = (
       );
     }
     if (srtDb !== null) parts.push(`URV estimado ≈ ${srtDb} dB`);
+  }
+
+  // Variante lingüística: el banco/voz usados condicionan la comparabilidad
+  // entre informes, así que se deja constancia explícita cuando no es `es`.
+  if (lang !== 'es') {
+    parts.push(`variante lingüística: ${VERBAL_LANG_LABEL[lang] ?? lang}`);
   }
 
   let text = parts.join(' · ') + '.';

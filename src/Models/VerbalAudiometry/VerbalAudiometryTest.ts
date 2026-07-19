@@ -21,6 +21,7 @@ export interface VerbalAudiometryTestDTO {
   instrument: string; // 'Audiometría verbal (campo libre)'
   transducer: string; // siempre 'soundfield' (altavoz, sin audífonos)
   ageBand: AgeBand; // A | B | C | D (lista de estímulos usada)
+  language: string; // idioma/variante del banco y la voz ('es' | 'es-DO')
   modality: CardModality; // images | mixed | words
   mode: VerbalMode; // discrimination | threshold
   results: VerbalResults; // { `${itemId}@${level}`: VerbalItemResult }
@@ -69,6 +70,11 @@ export class VerbalAudiometryTest {
 
   @Column({ type: 'varchar', default: 'A' })
   ageBand: AgeBand;
+
+  // Idioma/variante de la sesión ('es' | 'es-DO'): banco de estímulos y voz
+  // usados. Imprescindible para interpretar/comparar resultados (Q1.3/T1.6).
+  @Column({ type: 'varchar', default: 'es' })
+  language: string;
 
   @Column({ type: 'varchar', default: 'images' })
   modality: CardModality;

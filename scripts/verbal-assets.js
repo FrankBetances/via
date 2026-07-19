@@ -66,6 +66,7 @@ function loadVerbalModules(lang) {
   const srcDir = path.join(ROOT, 'src', 'Screens', 'VerbalAudiometry');
   execFileSync(tsc, [
     path.join(srcDir, 'verbalAudiometryBanks.ts'),
+    path.join(srcDir, 'verbalAudiometryAudit.es-DO.ts'),
     path.join(srcDir, 'verbalAudiometryResult.ts'),
     path.join(srcDir, 'verbalAudiometryGlyphs.ts'),
     '--outDir', out, '--module', 'commonjs', '--target', 'es2019', '--skipLibCheck',
@@ -75,6 +76,7 @@ function loadVerbalModules(lang) {
     bands: banks.getVerbalBands(lang),
     inventory: banks.collectLangAssetInventory(lang),
     glyphs: require(path.join(out, 'verbalAudiometryGlyphs.js')).VERBAL_GLYPHS,
+    audit: require(path.join(out, 'verbalAudiometryAudit.es-DO.js')),
   };
 }
 
@@ -130,6 +132,17 @@ function cmdManifest({ bands, inventory }, lang) {
   const missingA = audio.filter(e => !e.exists);
   const missingI = images.filter(e => !e.exists);
 
+  // Aprobación clínica del AUDIO de una variante (Q4.4/Q6.3): si existe
+  // assets/verbal-approval.<lang>.json se incrusta en el manifiesto y el
+  // paquete de audio deja de ser provisional. El flag `provisional` global se
+  // mantiene mientras CUALQUIER contenido (p. ej. ilustraciones heredadas
+  // provisionales) siga sin producción clínica.
+  const approvalPath = path.join(ROOT, 'assets', `verbal-approval.${lang}.json`);
+  const approval =
+    lang !== 'es' && fs.existsSync(approvalPath)
+      ? JSON.parse(fs.readFileSync(approvalPath, 'utf8'))
+      : null;
+
   fs.mkdirSync(path.dirname(manifest), { recursive: true });
   fs.writeFileSync(
     manifest,
@@ -138,6 +151,7 @@ function cmdManifest({ bands, inventory }, lang) {
         generatedAt: new Date().toISOString(),
         ...(lang !== 'es' ? { lang, baseLang: 'es' } : {}),
         provisional: true,
+        ...(approval ? { audioProvisional: false, audioApproval: approval } : {}),
         note:
           'Orden de producción de assets de la audiometría verbal. Locuciones e ilustraciones ' +
           'actuales son PROVISIONALES (síntesis espeak-ng/neural y pictogramas); la producción ' +
@@ -277,14 +291,54 @@ function cmdAudio({ bands }, lang) {
 
 /* -------------------------------- registry -------------------------------- */
 
-function cmdRegistry({ bands }, lang) {
-  if (lang !== 'es') {
+/**
+ * Registro de una VARIANTE: solo el módulo de recortes base64
+ * (`verbalAudioClips.<lang>.ts`) — las imágenes se heredan de `es` (el
+ * accesor `verbalAssetsByLang.ts` resuelve la herencia) y la vía primaria de
+ * reproducción es el base64 en memoria, así que la variante no necesita un
+ * registro de `require()` propio mientras no tenga imágenes propias.
+ */
+function cmdRegistryVariant({ bands, inventory }, lang) {
+  const { audioDir } = langPaths(lang);
+  const own = inventory.images.filter(k => !inventory.inheritedImages.includes(k));
+  if (own.length) {
     throw new Error(
-      `El registro de la app es monolingüe (es) hasta que la variante tenga contenido firmado ` +
-      `(Q3/M3): genere manifest/audio/images con --lang ${lang}, pero el registry llegará con el ` +
-      `selector de idioma de sesión (T1.6).`,
+      `La variante ${lang} tiene imágenes PROPIAS sin registro en la app (${own.join(' ')}): ` +
+      'extienda cmdRegistryVariant con un registro de require() antes de usarlas.',
     );
   }
+  const audio = audioEntries(bands);
+  const missing = audio.filter(e => !fs.existsSync(path.join(audioDir, `${e.key}.m4a`)));
+  if (missing.length) {
+    throw new Error(`Audio ${lang} ausente (genere primero audio --lang ${lang}): ${missing.map(e => e.key).join(' ')}`);
+  }
+
+  const constName = `VERBAL_AUDIO_BASE64_${lang.toUpperCase().replace(/-/g, '_')}`;
+  const clipsPath = path.join(ROOT, 'src', 'Screens', 'VerbalAudiometry', `verbalAudioClips.${lang}.ts`);
+  const clipLines = audio
+    .map(e => `  ${e.key}: '${fs.readFileSync(path.join(audioDir, `${e.key}.m4a`)).toString('base64')}',`)
+    .join('\n');
+  const content = `/* eslint-disable */
+/* -------------------------------------------------------------------------- */
+/*  Recortes de audio de la Audiometría Verbal · variante ${lang} (base64).       */
+/*                                                                             */
+/*  GENERADO por \`node scripts/verbal-assets.js registry --lang ${lang}\` — NO    */
+/*  editar a mano. Misma vía primaria en memoria que verbalAudioClips.ts;      */
+/*  cada archivo se sustituye conservando su clave (p. ej. al regenerar con    */
+/*  la voz neural o con locutor).                                              */
+/* -------------------------------------------------------------------------- */
+
+export const ${constName}: Record<string, string> = {
+${clipLines}
+};
+`;
+  fs.writeFileSync(clipsPath, content);
+  console.log(`Recortes base64 ${lang} → ${path.relative(ROOT, clipsPath)} (${audio.length} clips)`);
+}
+
+function cmdRegistry(mods, lang) {
+  if (lang !== 'es') return cmdRegistryVariant(mods, lang);
+  const { bands } = mods;
   const { audioDir, imgDir } = langPaths(lang);
   const audio = audioEntries(bands);
   const images = imageEntries(bands);
@@ -390,6 +444,32 @@ ${clipLines}
   console.log(`Recortes base64 → ${path.relative(ROOT, CLIPS)} (${audio.length} clips)`);
 }
 
+/* ---------------------------------- audit ---------------------------------- */
+
+/**
+ * Auditoría fonética Q3.1 (Quisqueya Habla): informe de láminas cuyo contraste
+ * colapsa bajo la fonología es-DO. Es un INFORME para las sesiones Q3.3 con el
+ * logopeda, no una puerta de CI (el invariante de máquina vive en los tests).
+ */
+function cmdAudit({ bands, audit }, lang) {
+  if (lang !== 'es-DO') {
+    throw new Error(`audit solo está definida para es-DO (Q3.1); recibido: ${lang}`);
+  }
+  const findings = audit.auditEsDoBank(bands);
+  if (!findings.length) {
+    console.log('Sin láminas en riesgo: ningún contraste colapsa bajo la fonología es-DO.');
+    return;
+  }
+  console.log(`Láminas en riesgo (${findings.length}) — sustituir en las sesiones Q3.3:\n`);
+  for (const f of findings) {
+    console.log(
+      `  banda ${f.band} · ítem ${f.itemId} · «${f.targetWord}» ≈ ${f.collidesWith
+        .map(wd => `«${wd}»`)
+        .join(', ')} · rasgo: ${f.features.join(', ')}`,
+    );
+  }
+}
+
 /* ----------------------------------- main ---------------------------------- */
 
 async function main() {
@@ -405,7 +485,8 @@ async function main() {
   if (cmd === 'images') return cmdImages(mods, lang);
   if (cmd === 'audio') return cmdAudio(mods, lang);
   if (cmd === 'registry') return cmdRegistry(mods, lang);
-  throw new Error(`Comando desconocido: ${cmd} (manifest|images|audio|registry)`);
+  if (cmd === 'audit') return cmdAudit(mods, lang);
+  throw new Error(`Comando desconocido: ${cmd} (manifest|images|audio|registry|audit)`);
 }
 
 main().catch(err => {

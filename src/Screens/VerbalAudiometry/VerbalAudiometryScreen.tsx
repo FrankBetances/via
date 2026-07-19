@@ -22,13 +22,15 @@ import {
   MAX_REPEATS,
   MODALITY_LABEL,
   PRESENTATION_LEVELS,
+  VERBAL_LANG_LABEL,
   VerbalMode,
   interpretVerbal,
   verbalDiscriminationStatus,
 } from './verbalAudiometryResult';
 import { VERBAL_BANDS } from './verbalAudiometryLists';
+import { VERBAL_BANK_LANGS } from './verbalAudiometryBanks';
 import { VERBAL_GLYPHS } from './verbalAudiometryGlyphs';
-import { verbalImageSource } from './verbalAssets';
+import { verbalImageSourceForLang } from './verbalAssetsByLang';
 import WordCard, { WordCardState } from './components/WordCard';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'VerbalAudiometry'>;
@@ -156,6 +158,7 @@ export default function VerbalAudiometryScreen({ navigation }: Props) {
       const item = new VerbalAudiometryTest();
       item.transducer = 'soundfield';
       item.ageBand = v.band;
+      item.language = v.lang;
       item.modality = v.modality;
       item.mode = v.mode;
       item.results = v.results;
@@ -165,7 +168,7 @@ export default function VerbalAudiometryScreen({ navigation }: Props) {
       item.correctCount = v.score.correctCount;
       item.discriminationPct = v.score.discriminationPct;
       item.reliability = v.reliability;
-      item.interpretation = interpretVerbal(v.band, v.score, v.srtDb);
+      item.interpretation = interpretVerbal(v.band, v.score, v.srtDb, v.lang);
       item.notes = [notes.trim(), v.audioEngine === 'tts' ? 'Dictado por síntesis de voz nativa del dispositivo (TTS): nivel relativo, sin calibración absoluta.' : '']
         .filter(Boolean)
         .join(' ');
@@ -269,6 +272,38 @@ export default function VerbalAudiometryScreen({ navigation }: Props) {
             );
           })}
         </VStack>
+      </Card>
+
+      {/* idioma/variante de la sesión (banco de estímulos + voz) */}
+      <Card bgColor="$white" borderRadius={20} p="$4">
+        <Text size="md" weight="bold" color="$textLight900" mb="$3">
+          Variante del español
+        </Text>
+        <HStack space="sm">
+          {VERBAL_BANK_LANGS.map(l => {
+            const on = v.lang === l;
+            return (
+              <Pressable key={l} style={{ flex: 1 }} onPress={() => v.setLang(l)}>
+                <Center
+                  py="$2.5"
+                  px="$2"
+                  borderRadius={12}
+                  bg={on ? '$primary500' : '$white'}
+                  borderWidth={1.5}
+                  borderColor={on ? 'transparent' : '$borderLight200'}>
+                  <Text size="xs" weight="bold" color={on ? '$white' : '$textLight600'} style={{ textAlign: 'center' }}>
+                    {VERBAL_LANG_LABEL[l] ?? l}
+                  </Text>
+                </Center>
+              </Pressable>
+            );
+          })}
+        </HStack>
+        {v.lang !== 'es' ? (
+          <Text size="2xs" color="$textLight400" mt="$2">
+            Banco de estímulos y locuciones de la variante; queda registrado en el informe.
+          </Text>
+        ) : null}
       </Card>
 
       {/* opciones avanzadas (modo y nivel), plegadas por defecto */}
@@ -416,7 +451,7 @@ export default function VerbalAudiometryScreen({ navigation }: Props) {
             <Box key={opt.word} style={{ width: cardWidth, marginBottom: 2 }}>
               <WordCard
                 word={opt.word}
-                imageSource={opt.image ? verbalImageSource(opt.image) : undefined}
+                imageSource={opt.image ? verbalImageSourceForLang(opt.image, v.lang) : undefined}
                 glyph={VERBAL_GLYPHS[opt.word]}
                 modality={v.modality}
                 state={cardStateOf(opt.word)}

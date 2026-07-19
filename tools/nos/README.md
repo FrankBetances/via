@@ -50,6 +50,23 @@ La normalización de sonoridad (ffmpeg `loudnorm I=-20:TP=-3:LRA=7`, m4a mono
 44.1 kHz) la aplica `scripts/verbal-assets.js` de forma idéntica para todas
 las voces: mismo objetivo LUFS entre `es`, `es-DO` y `gl` (T4.4/Q4.4).
 
+## Herramientas de contenido (Quisqueya Habla)
+
+```bash
+# Q3.1 · auditoría fonética del banco heredado (informe para el logopeda)
+node scripts/verbal-assets.js audit --lang es-DO
+
+# Q2.1/Q2.2 · localización léxica del catálogo i18n (delta es-DO)
+python3 tools/nos/localize-catalog.py --dry-run   # informe
+python3 tools/nos/localize-catalog.py             # escribe locales/es-DO/
+```
+
+El glosario (`glosario-es-do.csv`) solo aplica filas con `estado = aprobado`:
+ninguna localización llega al catálogo sin la firma del revisor dominicano
+(Q2.3). La aprobación clínica del audio de una variante se registra en
+`assets/verbal-approval.<lang>.json` y el manifiesto la incrusta
+(`audioProvisional: false`).
+
 ## Reproducibilidad
 
 Parámetros de síntesis fijados en `voices.json`; para VITS/Coqui la semilla se

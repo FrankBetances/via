@@ -22,6 +22,7 @@ export class CreateVerbalAudiometry1718900000400 implements MigrationInterface {
           { name: 'instrument', type: 'varchar', default: "'Audiometría verbal (campo libre)'" },
           { name: 'transducer', type: 'varchar', default: "'soundfield'" },
           { name: 'ageBand', type: 'varchar', default: "'A'" },
+          { name: 'language', type: 'varchar', default: "'es'" },
           { name: 'modality', type: 'varchar', default: "'images'" },
           { name: 'mode', type: 'varchar', default: "'discrimination'" },
           { name: 'results', type: 'text' }, // simple-json
