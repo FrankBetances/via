@@ -52,8 +52,14 @@ import { pickBestSpanishVoice } from './verbalTtsVoice';
 export type VerbalAudioEngine = 'assets' | 'tts';
 
 export interface VerbalAudioAdapter {
-  /** Reproduce la palabra objetivo al nivel indicado (dB, orientativo). */
-  playWord: (audioKey: string, word: string, levelDb: number) => void;
+  /**
+   * Reproduce la palabra objetivo al nivel indicado (dB, orientativo).
+   * `lang` es el idioma/variante de la sesión (`es` por defecto): las
+   * VARIANTES (es-DO) usan SIEMPRE sus recortes empaquetados como vía
+   * primaria — son el estímulo validado por el logopeda de la variante — y
+   * nunca el TTS del dispositivo como primario (impondría otro acento).
+   */
+  playWord: (audioKey: string, word: string, levelDb: number, lang?: string) => void;
   /**
    * Dicta un TEXTO arbitrario (consignas de otros módulos, p. ej. los
    * mini-juegos de funciones ejecutivas) con el TTS es-ES VERIFICADO, a
@@ -105,9 +111,11 @@ export interface VerbalAudioAdapterOptions {
   /**
    * Resuelve la clave de audio de una palabra (`assetKeyForWord`) a una ruta
    * local reproducible (file:// o ruta de bundle). Solo interviene con
-   * `engine: 'assets'`; `null` = sin recorte para esa palabra → TTS.
+   * `engine: 'assets'`; `null` = sin recorte para esa palabra → TTS. El
+   * segundo argumento es el idioma/variante de la sesión (accesores
+   * `verbalAssetsByLang.ts`); los accesores monolingües siguen siendo válidos.
    */
-  assetSource?: (audioKey: string) => string | null;
+  assetSource?: (audioKey: string, lang?: string) => string | null;
   /**
    * Recorte de la palabra INCRUSTADO en base64 (m4a). Vía PRIMARIA de
    * reproducción con `engine: 'assets'`: se decodifica en memoria, sin
@@ -115,7 +123,7 @@ export interface VerbalAudioAdapterOptions {
    * que la vía nativa por ruta no abre — por eso no sonaba en Android Studio).
    * Si falta, se cae a `assetSource` (ruta) y luego a TTS. `null` = sin recorte.
    */
-  assetBase64?: (audioKey: string) => string | null;
+  assetBase64?: (audioKey: string, lang?: string) => string | null;
   /** dB → ganancia (recortes y volumen TTS). Por defecto `speechLevelToGain`. */
   levelToGain?: (levelDb: number) => number;
   /**
@@ -178,7 +186,7 @@ export function installVerbalAudioAdapter(opts: VerbalAudioAdapterOptions = {}):
   // silencio. Tras TTS_FAILURE_LIMIT fallos consecutivos se dejan de intentar
   // dictados y el resto de la sesión usa recortes: mejor un estímulo constante
   // (misma locución toda la lista) que una voz que va y viene con el wifi.
-  let currentTts: { audioKey: string; levelDb: number } | null = null;
+  let currentTts: { audioKey: string; levelDb: number; lang?: string } | null = null;
   let ttsConsecutiveFailures = 0;
   const TTS_FAILURE_LIMIT = 2;
   // Selección de la MEJOR voz española del dispositivo (la más humana): se
@@ -303,15 +311,15 @@ export function installVerbalAudioAdapter(opts: VerbalAudioAdapterOptions = {}):
    *   3. descarga + `decodeAudioData` (último recurso; el fetch de RN es poco
    *      fiable con binarios, por eso ya no es la vía principal).
    */
-  const decodeClip = async (audioKey: string): Promise<AudioBuffer> => {
+  const decodeClip = async (audioKey: string, lang?: string): Promise<AudioBuffer> => {
     if (!ctx) throw new Error('sin AudioContext');
-    const b64 = assetBase64?.(audioKey) ?? null;
+    const b64 = assetBase64?.(audioKey, lang) ?? null;
     if (b64) {
       const bytes = Buffer.from(b64, 'base64');
       const ab = bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength);
       return await ctx.decodeAudioData(ab as ArrayBuffer);
     }
-    const path = assetSource?.(audioKey) ?? null;
+    const path = assetSource?.(audioKey, lang) ?? null;
     if (!path) throw new Error('sin recorte para la palabra');
     try {
       return await ctx.decodeAudioDataSource(path);
@@ -348,53 +356,59 @@ export function installVerbalAudioAdapter(opts: VerbalAudioAdapterOptions = {}):
    * recorte falta o no decodifica (en la vía recortes-primario permite degradar
    * a TTS; en el respaldo por fallo de TTS no queda más vía y se omite).
    */
-  const playClip = (audioKey: string, levelDb: number, onFail?: () => void) => {
+  const playClip = (audioKey: string, levelDb: number, lang?: string, onFail?: () => void) => {
     if (!ctx) {
       onFail?.();
       return;
     }
-    const cached = bufferCache.get(audioKey);
+    const cacheKey = `${lang ?? 'es'}:${audioKey}`;
+    const cached = bufferCache.get(cacheKey);
     if (cached) {
       playBuffer(cached, levelDb);
       return;
     }
-    decodeClip(audioKey)
+    decodeClip(audioKey, lang)
       .then(buffer => {
-        bufferCache.set(audioKey, buffer);
+        bufferCache.set(cacheKey, buffer);
         playBuffer(buffer, levelDb);
       })
       .catch(() => onFail?.());
   };
 
-  const playWord = (audioKey: string, word: string, levelDb: number) => {
+  const playWord = (audioKey: string, word: string, levelDb: number, lang?: string) => {
     stop();
     const hasClip =
-      engine === 'assets' && (!!assetBase64?.(audioKey) || !!assetSource?.(audioKey));
+      engine === 'assets' && (!!assetBase64?.(audioKey, lang) || !!assetSource?.(audioKey, lang));
+    // VARIANTES (es-DO…): los recortes empaquetados son el estímulo validado
+    // por el logopeda de la variante y SIEMPRE la vía primaria — el TTS del
+    // dispositivo impondría otro acento y solo queda como último recurso.
+    const isVariant = !!lang && lang !== 'es';
 
-    // Vía PRIMARIA: TTS neural del dispositivo (voz humana) cuando hay voz
-    // española verificada. El recorte queda de respaldo REAL: si `speak()`
-    // rechaza o el motor emite `tts-error` (síntesis de red sin conexión, motor
-    // saturado…), esa palabra suena por el recorte y, tras varios fallos
-    // seguidos, la sesión entera pasa a recortes — antes el fallo se tragaba en
-    // silencio y la prueba se quedaba muda a mitad de la lista.
-    if (preferTts && ttsSpanishReady && ttsConsecutiveFailures < TTS_FAILURE_LIMIT) {
-      currentTts = { audioKey, levelDb };
+    // Vía PRIMARIA (solo es): TTS neural del dispositivo (voz humana) cuando
+    // hay voz española verificada. El recorte queda de respaldo REAL: si
+    // `speak()` rechaza o el motor emite `tts-error` (síntesis de red sin
+    // conexión, motor saturado…), esa palabra suena por el recorte y, tras
+    // varios fallos seguidos, la sesión entera pasa a recortes — antes el
+    // fallo se tragaba en silencio y la prueba se quedaba muda a mitad de la
+    // lista.
+    if (!isVariant && preferTts && ttsSpanishReady && ttsConsecutiveFailures < TTS_FAILURE_LIMIT) {
+      currentTts = { audioKey, levelDb, lang };
       speakWord(word, levelDb).catch(() => {
         ttsConsecutiveFailures += 1;
         currentTts = null;
-        if (hasClip) playClip(audioKey, levelDb);
+        if (hasClip) playClip(audioKey, levelDb, lang);
       });
       return;
     }
 
-    // Sin TTS español utilizable: recortes empaquetados (castellano garantizado).
+    // Sin TTS español utilizable (o variante): recortes empaquetados.
     if (!hasClip || !ctx) {
       // Último recurso (silencioso si tampoco hay voz española).
       speakWord(word, levelDb).catch(() => { /* sin vía de emisión */ });
       return;
     }
     // Recorte ilegible → degradar a TTS por palabra (comportamiento histórico).
-    playClip(audioKey, levelDb, () => {
+    playClip(audioKey, levelDb, lang, () => {
       speakWord(word, levelDb).catch(() => { /* sin vía de emisión */ });
     });
   };
@@ -412,7 +426,7 @@ export function installVerbalAudioAdapter(opts: VerbalAudioAdapterOptions = {}):
     ttsConsecutiveFailures += 1;
     const failed = currentTts;
     currentTts = null;
-    if (failed) playClip(failed.audioKey, failed.levelDb);
+    if (failed) playClip(failed.audioKey, failed.levelDb, failed.lang);
   };
   try {
     ttsEngine?.addEventListener?.('tts-finish', onTtsFinish);

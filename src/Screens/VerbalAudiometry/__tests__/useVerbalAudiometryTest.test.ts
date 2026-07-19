@@ -86,4 +86,22 @@ describe('useVerbalAudiometryTest — flujo de láminas', () => {
     expect(result.current.itemTotal).toBe(scoredCount);
     unmount();
   });
+
+  it('idioma de sesión (T1.6): arranca en es, setLang cambia el banco y borra la pasada', () => {
+    const { result, unmount } = renderTestHook();
+    expect(result.current.lang).toBe('es');
+
+    answerCurrent(result); // familiarización
+    answerCurrent(result); // primera puntuable
+    expect(result.current.score.presentedCount).toBe(1);
+
+    act(() => result.current.setLang('es-DO'));
+    expect(result.current.lang).toBe('es-DO');
+    // Cambiar de variante invalida la pasada (otro banco/voz), igual que setBand.
+    expect(result.current.score.presentedCount).toBe(0);
+    expect(result.current.isPractice).toBe(true);
+    // El banco es-DO hereda del es: misma banda y nº de láminas (hoy sin overrides).
+    expect(result.current.itemTotal).toBe(scoredItemsOfBand('A').length + 1);
+    unmount();
+  });
 });

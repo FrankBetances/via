@@ -3,6 +3,7 @@ import { initReactI18next } from 'react-i18next';
 
 import esVerbalAudiometry from './locales/es/verbalAudiometry.json';
 import enVerbalAudiometry from './locales/en/verbalAudiometry.json';
+import esDoVerbalAudiometry from './locales/es-DO/verbalAudiometry.json';
 
 /* -------------------------------------------------------------------------- */
 /*  i18next — VIA+ (preparado, NO cableado todavía).                           */
@@ -26,9 +27,21 @@ import enVerbalAudiometry from './locales/en/verbalAudiometry.json';
 export const I18N_RESOURCES = {
   es: { verbalAudiometry: esVerbalAudiometry },
   en: { verbalAudiometry: enVerbalAudiometry },
+  'es-DO': { verbalAudiometry: esDoVerbalAudiometry },
 } as const;
 
 export const DEFAULT_LANGUAGE = 'es';
+
+/**
+ * Variantes regionales y su idioma base (Q1.1 · Quisqueya Habla): el catálogo
+ * de una variante es un DELTA — solo contiene las claves localizadas y el
+ * resto resuelve en cascada `es-DO → es` (i18next lo soporta nativamente).
+ * El test de catálogo exige que toda clave de la variante exista en su base
+ * (subconjunto estricto, sin claves huérfanas).
+ */
+export const LANGUAGE_VARIANTS: Record<string, keyof typeof I18N_RESOURCES> = {
+  'es-DO': 'es',
+};
 
 /**
  * Inicializa i18next (idempotente). No se llama en el arranque todavía:

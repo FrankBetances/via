@@ -14,12 +14,10 @@ import {
 import {
   VerbalCardOption,
   VerbalItem,
-  bandDef,
-  practiceItemOfBand,
-  scoredItemsOfBand,
   shuffleItems,
   shuffleOptions,
 } from './verbalAudiometryLists';
+import { VerbalLang, getVerbalBands } from './verbalAudiometryBanks';
 import { getVerbalAudioAdapter } from './verbalAudiometryAudio';
 
 /* -------------------------------------------------------------------------- */
@@ -38,8 +36,11 @@ import { getVerbalAudioAdapter } from './verbalAudiometryAudio';
 /** Duración estimada del recorte hablado (corte del estado `playing`). */
 const WORD_MS = 1800;
 
-export function useVerbalAudiometryTest(initialBand: AgeBand = 'A') {
+export function useVerbalAudiometryTest(initialBand: AgeBand = 'A', initialLang: VerbalLang = 'es') {
   const [band, setBandState] = useState<AgeBand>(initialBand);
+  // Idioma/variante de la sesión (T1.6/Q1.3): decide el banco de estímulos y
+  // la voz de los recortes; queda registrado con la evaluación y en el PDF.
+  const [lang, setLangState] = useState<VerbalLang>(initialLang);
   const [mode, setMode] = useState<VerbalMode>('discrimination');
   const [level, setLevelState] = useState<number>(DEFAULT_LEVEL);
   // Semilla de sesión: reproducible dentro de la sesión, distinta entre sesiones.
@@ -57,15 +58,22 @@ export function useVerbalAudiometryTest(initialBand: AgeBand = 'A') {
 
   /* ------------------------------ lámina actual --------------------------- */
 
+  // Definición de la banda en el banco del idioma de la sesión.
+  const def = useMemo(() => {
+    const d = getVerbalBands(lang).find(b => b.band === band);
+    if (!d) throw new Error(`Banda desconocida: ${band}`);
+    return d;
+  }, [lang, band]);
+
   // Orden de presentación: familiarización (solo la primera pasada) + puntuables
   // barajadas con la semilla de sesión mezclada con el nivel (orden distinto en
   // cada pasada de nivel, para evitar aprendizaje posicional).
   const presentation = useMemo<VerbalItem[]>(() => {
-    const scored = shuffleItems(scoredItemsOfBand(band), seed + level);
+    const scored = shuffleItems(def.items.filter(it => !it.practice), seed + level);
     if (practiceDone) return scored;
-    const practice = practiceItemOfBand(band);
+    const practice = def.items.find(it => !!it.practice) ?? null;
     return practice ? [practice, ...scored] : scored;
-  }, [band, seed, level, practiceDone]);
+  }, [def, seed, level, practiceDone]);
 
   const item: VerbalItem | null = presentation[itemIndex] ?? null;
   const isPractice = !!item?.practice;
@@ -96,9 +104,9 @@ export function useVerbalAudiometryTest(initialBand: AgeBand = 'A') {
     if (!item) return;
     if (stopTimer.current) clearTimeout(stopTimer.current);
     setPlaying(true);
-    getVerbalAudioAdapter()?.playWord(item.audio, item.targetWord, level);
+    getVerbalAudioAdapter()?.playWord(item.audio, item.targetWord, level, lang);
     stopTimer.current = setTimeout(() => setPlaying(false), WORD_MS);
-  }, [item, level]);
+  }, [item, level, lang]);
 
   /** Primera presentación del estímulo de la lámina (habilita las tarjetas). */
   const playStimulus = useCallback(() => {
@@ -180,6 +188,21 @@ export function useVerbalAudiometryTest(initialBand: AgeBand = 'A') {
   );
 
   /**
+   * Cambia el idioma/variante de la sesión (selector del setup): cambia el
+   * banco de estímulos y la voz, así que borra la pasada igual que `setBand`.
+   */
+  const setLang = useCallback(
+    (l: VerbalLang) => {
+      if (l === lang) return;
+      setLangState(l);
+      setResults({});
+      setPracticeDone(false);
+      resetRun();
+    },
+    [lang, resetRun],
+  );
+
+  /**
    * Cambia el nivel de presentación. Los resultados de otros niveles se
    * conservan (clave ítem@nivel): permite la segunda pasada a voz baja o los
    * bloques descendentes del modo umbral.
@@ -213,12 +236,13 @@ export function useVerbalAudiometryTest(initialBand: AgeBand = 'A') {
   );
 
   const adapter = getVerbalAudioAdapter();
-  const def = bandDef(band);
 
   return {
     // configuración
     band,
     setBand,
+    lang,
+    setLang,
     bandDef: def,
     modality: def.modality,
     mode,

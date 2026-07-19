@@ -10,5 +10,11 @@ export { default as WordCard } from './components/WordCard';
 export type { WordCardProps, WordCardState } from './components/WordCard';
 export * from './verbalAudiometryResult';
 export * from './verbalAudiometryLists';
+export * from './verbalAudiometryBanks';
 export { verbalAudioSource, verbalAudioBase64, verbalImageSource, registeredVerbalAssets } from './verbalAssets';
+export {
+  verbalAudioBase64ForLang,
+  verbalAudioSourceForLang,
+  verbalImageSourceForLang,
+} from './verbalAssetsByLang';
 export { VERBAL_GLYPHS } from './verbalAudiometryGlyphs';

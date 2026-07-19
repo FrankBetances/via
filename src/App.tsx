@@ -13,7 +13,7 @@ import { initDatabase } from '@/Database/config';
 import DefaultNavigator from '@/Navigators/Default';
 import SplashScreen from '@/Screens/Splash/SplashScreen';
 import { installAudiometryToneAdapter } from '@/Screens/Audiometry';
-import { installVerbalAudioAdapter, verbalAudioBase64, verbalAudioSource } from '@/Screens/VerbalAudiometry';
+import { installVerbalAudioAdapter, verbalAudioBase64ForLang, verbalAudioSourceForLang } from '@/Screens/VerbalAudiometry';
 import '@/Navigators/screenTypeNavigator';
 
 /* -------------------------------------------------------------------------- */
@@ -48,8 +48,11 @@ function AppShell() {
     () =>
       installVerbalAudioAdapter({
         preferTts: true,
-        assetBase64: verbalAudioBase64,
-        assetSource: verbalAudioSource,
+        // Accesores POR IDIOMA (Quisqueya Habla): la sesión es-DO reproduce sus
+        // recortes propios como vía primaria (el TTS del dispositivo impondría
+        // otro acento); es mantiene el comportamiento histórico.
+        assetBase64: verbalAudioBase64ForLang,
+        assetSource: verbalAudioSourceForLang,
       }),
     [],
   );

@@ -1,0 +1,13 @@
+# Entorno del motor de voz neural (tools/nos) — SOLO herramientas de build.
+# La app React Native no depende de nada de este archivo.
+#
+#   python3 -m venv tools/nos/.venv
+#   tools/nos/.venv/bin/pip install -r tools/nos/requirements.txt
+#
+# piper-tts   → voces Piper/VITS-ONNX (es provisional, es-DO Quisqueya Habla)
+# coqui-tts   → fork mantenido (idiap) de Coqui TTS: voz Celtia (gl, Proxecto Nós)
+# huggingface_hub → descarga versionada de pesos (fetch-models.sh)
+
+piper-tts==1.2.0
+coqui-tts>=0.24,<0.26
+huggingface_hub>=0.23,<1.0

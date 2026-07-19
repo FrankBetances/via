@@ -1,5 +1,5 @@
 import { VerbalAudiometryTest } from '@/Models/VerbalAudiometry/VerbalAudiometryTest';
-import { BAND_LABEL, LEVEL_LABEL, MODALITY_LABEL } from '@/Screens/VerbalAudiometry/verbalAudiometryResult';
+import { BAND_LABEL, LEVEL_LABEL, MODALITY_LABEL, VERBAL_LANG_LABEL } from '@/Screens/VerbalAudiometry/verbalAudiometryResult';
 import { BlockOptions } from './types';
 import { PDF_FONT_SIZES, PDF_MARGINS, PDF_COLORS } from '@/PDF/utils';
 import { Logo } from './Logo';
@@ -30,10 +30,16 @@ export async function VerbalAudiometryDetail(
     color: PDF_COLORS.trueGray500,
   });
   y -= 26;
+  // La variante lingüística (banco/voz es-DO) se hace constar en el subtítulo:
+  // condiciona la comparabilidad del resultado entre informes.
+  const langSuffix =
+    test.language && test.language !== 'es'
+      ? ` · ${VERBAL_LANG_LABEL[test.language] ?? test.language}`
+      : '';
   page.drawText(
     `Reconocimiento por tarjetas · campo libre (binaural, sin audífonos) · ${BAND_LABEL[test.ageBand] ?? test.ageBand} · ${
       MODALITY_LABEL[test.modality] ?? test.modality
-    }`,
+    }${langSuffix}`,
     { x: PDF_MARGINS.left, y, size: PDF_FONT_SIZES.md, font: fonts.regular, color: PDF_COLORS.trueGray500 },
   );
   y -= 34;
