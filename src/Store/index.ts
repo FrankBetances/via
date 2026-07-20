@@ -14,6 +14,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import themeReducer from '@/Store/slices/themeSlice';
 import authReducer from '@/Store/slices/authSlice';
 import activeEvaluationReducer from '@/Store/slices/activeEvaluationSlice';
+import localeReducer from '@/Store/slices/localeSlice';
 
 /* -------------------------------------------------------------------------- */
 /*  Store de Redux Toolkit — VIA+.                                           */
@@ -25,12 +26,14 @@ const rootReducer = combineReducers({
   theme: themeReducer,
   auth: authReducer,
   activeEvaluation: activeEvaluationReducer,
+  locale: localeReducer,
 });
 
 const persistConfig = {
   key: 'via-plus-root',
   storage: AsyncStorage,
-  whitelist: ['theme'],
+  // `locale` persiste la variante de sesión elegida (T1.6), como `theme`.
+  whitelist: ['theme', 'locale'],
 };
 
 const persistedReducer = persistReducer(persistConfig, rootReducer);
