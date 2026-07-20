@@ -1,0 +1,42 @@
+# Dependabot — MODO SOLO SEGURIDAD.
+#
+# `open-pull-requests-limit: 0` desactiva por completo las actualizaciones de
+# versión "de mantenimiento": Dependabot NO abrirá PRs para subir dependencias
+# al día porque sí.
+#
+# Lo único que seguirá abriendo son las ACTUALIZACIONES DE SEGURIDAD: cuando una
+# dependencia tenga una vulnerabilidad conocida (CVE), Dependabot propondrá el
+# parche mínimo que la corrige. Eso es lo que queremos conservar.
+#
+# Requisito: en Settings → Code security del repositorio deben estar activados
+#   - Dependabot alerts
+#   - Dependabot security updates
+# (sin ellos, este modo no abre ningún PR).
+#
+# No se ponen reglas `ignore`: un parche de seguridad debe poder aplicarse
+# aunque implique un salto de versión mayor; el PR queda para tu revisión.
+version: 2
+updates:
+  # --- Dependencias JavaScript / npm ---
+  - package-ecosystem: npm
+    directory: "/"
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 0
+    labels:
+      - dependencies
+      - security
+    commit-message:
+      prefix: "chore(deps)"
+
+  # --- GitHub Actions usadas en los workflows ---
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 0
+    labels:
+      - ci
+      - security
+    commit-message:
+      prefix: "chore(ci)"

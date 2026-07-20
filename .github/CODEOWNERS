@@ -1,0 +1,38 @@
+# CODEOWNERS — VIA+
+#
+# Define quién debe revisar y aprobar los cambios de cada parte del repositorio.
+# GitHub solicita automáticamente la revisión de estos propietarios en cada Pull
+# Request que toque los ficheros indicados.
+#
+# IMPORTANTE: para que esto BLOQUEE de verdad la fusión sin aprobación hay que
+# activar en Settings → Branches → Branch protection rule de `main`:
+#   - "Require a pull request before merging"
+#   - "Require review from Code Owners"
+#   - "Do not allow bypassing the above settings"
+# (Ver docs/SECURITY-GOBERNANZA.md para la lista completa.)
+#
+# La última regla que casa con un fichero es la que gana; por eso las rutas
+# sensibles van al final.
+
+# --- Propietario por defecto de TODO el repositorio ---
+*                               @FrankBetances
+
+# --- Configuración de seguridad y datos clínicos (revisión obligatoria) ---
+/firestore.rules                @FrankBetances
+/firestore.indexes.json         @FrankBetances
+/firebase.json                  @FrankBetances
+/.firebaserc                    @FrankBetances
+
+# --- Capa de persistencia local (PHI en el dispositivo) ---
+/src/Database/                  @FrankBetances
+/src/Services/firebase/         @FrankBetances
+/src/Services/local/            @FrankBetances
+/src/Models/                    @FrankBetances
+
+# --- Telemetría (debe permanecer Zero-PHI) ---
+/src/Telemetry/                 @FrankBetances
+
+# --- Automatización, secretos de CI y gobernanza del propio repo ---
+/.github/                       @FrankBetances
+/android/app/build.gradle       @FrankBetances
+/scripts/                       @FrankBetances
