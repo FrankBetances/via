@@ -1,0 +1,41 @@
+name: CodeQL (análisis de seguridad)
+
+# Escaneo estático de seguridad del código JavaScript/TypeScript.
+# Los resultados aparecen en la pestaña Security → Code scanning alerts.
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+  schedule:
+    # Reanálisis semanal para detectar CVEs nuevas en código ya fusionado.
+    - cron: "0 6 * * 1"
+
+jobs:
+  analyze:
+    name: Analizar
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
+      security-events: write
+    strategy:
+      fail-fast: false
+      matrix:
+        language:
+          - javascript-typescript
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Inicializar CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: ${{ matrix.language }}
+          queries: security-and-quality
+
+      - name: Analizar
+        uses: github/codeql-action/analyze@v3
+        with:
+          category: "/language:${{ matrix.language }}"

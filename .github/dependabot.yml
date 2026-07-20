@@ -1,0 +1,36 @@
+# Dependabot — actualizaciones automáticas de dependencias y alertas de seguridad.
+# Mantiene al día npm y las GitHub Actions, y abre PRs cuando hay parches de
+# seguridad. Estos PRs pasan por CODEOWNERS igual que cualquier otro cambio.
+version: 2
+updates:
+  # --- Dependencias JavaScript / npm ---
+  - package-ecosystem: npm
+    directory: "/"
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    labels:
+      - dependencies
+      - security
+    commit-message:
+      prefix: "chore(deps)"
+    # Las actualizaciones mayores de React Native y su ecosistema suelen romper
+    # el build nativo: se agrupan y revisan a mano, no automáticamente.
+    ignore:
+      - dependency-name: "react-native"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "react"
+        update-types: ["version-update:semver-major"]
+
+  # --- GitHub Actions usadas en los workflows ---
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: weekly
+      day: monday
+    labels:
+      - dependencies
+      - ci
+    commit-message:
+      prefix: "chore(ci)"
