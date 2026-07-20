@@ -1,13 +1,15 @@
 import React, { useEffect, useState } from 'react';
 import { Pressable } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { useDispatch, useSelector } from 'react-redux';
 import { Box, Card, Center, HStack, Icon, Input, InputField, ScrollView, VStack } from '@gluestack-ui/themed';
 import { Check, ChevronLeft, Play, RotateCcw, Save, Volume2, X } from 'lucide-react-native';
 
 import { Button, Content, Header, Text } from '@/Components/Common';
 import RadialBackground from '@/Components/Themed/RadialBackground';
 import { RootStackParamList } from '@/Navigators';
-import { RootState } from '@/Store';
+import { AppDispatch, RootState } from '@/Store';
+import { setSessionLanguage } from '@/Store/slices/localeSlice';
 import { Evaluation } from '@/Models/Evaluation/Evaluation';
 import { VerbalAudiometryTest } from '@/Models/VerbalAudiometry/VerbalAudiometryTest';
 import { useClassSelector } from '@/Helpers/ClassTransformer';
@@ -28,7 +30,7 @@ import {
   verbalDiscriminationStatus,
 } from './verbalAudiometryResult';
 import { VERBAL_BANDS } from './verbalAudiometryLists';
-import { VERBAL_BANK_LANGS } from './verbalAudiometryBanks';
+import { VERBAL_BANK_LANGS, VerbalLang } from './verbalAudiometryBanks';
 import { VERBAL_GLYPHS } from './verbalAudiometryGlyphs';
 import { verbalImageSourceForLang } from './verbalAssetsByLang';
 import WordCard, { WordCardState } from './components/WordCard';
@@ -72,7 +74,16 @@ const BAND_EMOJI: Record<AgeBand, string> = { A: '🧸', B: '🎈', C: '✏️',
 export default function VerbalAudiometryScreen({ navigation }: Props) {
   const activeEvaluation = useClassSelector(Evaluation, (state: RootState) => state.activeEvaluation.evaluation);
   const [createVerbalAudiometry, { isLoading: isSaving }] = useCreateVerbalAudiometryMutation();
-  const v = useVerbalAudiometryTest();
+  const dispatch = useDispatch<AppDispatch>();
+
+  // Idioma/variante inicial = el elegido en el hub de sesión (T1.6), validado
+  // contra los bancos registrados. El selector de esta pantalla actúa como
+  // override y actualiza el idioma de sesión para el resto de la evaluación.
+  const sessionLanguageRaw = useSelector((state: RootState) => state.locale.language);
+  const sessionLang: VerbalLang = (VERBAL_BANK_LANGS as readonly string[]).includes(sessionLanguageRaw)
+    ? (sessionLanguageRaw as VerbalLang)
+    : 'es';
+  const v = useVerbalAudiometryTest('A', sessionLang);
   const tracker = useTelemetryTracker(); // telemetría silenciosa (useRef, sin re-render)
 
   const [phase, setPhase] = useState<Phase>('setup');
@@ -283,7 +294,13 @@ export default function VerbalAudiometryScreen({ navigation }: Props) {
           {VERBAL_BANK_LANGS.map(l => {
             const on = v.lang === l;
             return (
-              <Pressable key={l} style={{ flex: 1 }} onPress={() => v.setLang(l)}>
+              <Pressable
+                key={l}
+                style={{ flex: 1 }}
+                onPress={() => {
+                  v.setLang(l);
+                  dispatch(setSessionLanguage(l)); // el override rige el resto de la sesión
+                }}>
                 <Center
                   py="$2.5"
                   px="$2"

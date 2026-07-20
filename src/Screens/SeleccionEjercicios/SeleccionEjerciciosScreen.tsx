@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Pressable, ScrollView } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { useDispatch } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import { Box, Center, HStack, Icon, VStack } from '@gluestack-ui/themed';
 import {
   ArrowRight,
@@ -12,6 +12,7 @@ import {
   Droplets,
   Ear,
   Headphones,
+  Languages,
   LogOut,
   Mic,
   MoonStar,
@@ -27,10 +28,12 @@ import RadialBackground from '@/Components/Themed/RadialBackground';
 import { RootStackParamList } from '@/Navigators';
 import { AppDispatch, RootState } from '@/Store';
 import { logout } from '@/Store/slices/authSlice';
+import { setSessionLanguage } from '@/Store/slices/localeSlice';
 import { signOutQuietly } from '@/Services/firebase';
 import { Evaluation } from '@/Models/Evaluation/Evaluation';
 import { useClassSelector } from '@/Helpers/ClassTransformer';
 import { useTelemetryTracker } from '@/Telemetry';
+import { VERBAL_BANK_LANGS, VERBAL_LANG_LABEL } from '@/Screens/VerbalAudiometry';
 import ModuleCardItem, { ModuleCardData } from './ModuleCardItem';
 
 /* -------------------------------------------------------------------------- */
@@ -61,6 +64,10 @@ export default function SeleccionEjerciciosScreen({ navigation }: Props) {
   const activeEvaluation = useClassSelector(Evaluation, (state: RootState) => state.activeEvaluation.evaluation);
   const patient = activeEvaluation?.patient;
   const patientName = patient ? `${patient.name} ${patient.lastName}`.trim() : null;
+
+  // Idioma/variante de la sesión (persistido): decide el banco de estímulos y
+  // la voz de los módulos localizados (hoy la audiometría verbal).
+  const sessionLanguage = useSelector((state: RootState) => state.locale.language);
 
   // Tracker de telemetría SILENCIOSO (useRef, cero useState → cero re-render).
   const tracker = useTelemetryTracker();
@@ -163,6 +170,43 @@ export default function SeleccionEjerciciosScreen({ navigation }: Props) {
                 </HStack>
               </Pressable>
             </HStack>
+
+            {/* ----- idioma / variante de la sesión ----- */}
+            <VStack space="sm" bg="$white" p="$3.5" borderRadius={16} borderWidth={1} borderColor="$borderLight200">
+              <HStack alignItems="center" space="xs">
+                <Icon as={Languages} size="xs" color="$primary600" />
+                <Text size="xs" weight="bold" color="$textLight800">
+                  Idioma de la sesión
+                </Text>
+              </HStack>
+              <HStack space="sm">
+                {VERBAL_BANK_LANGS.map(l => {
+                  const on = sessionLanguage === l;
+                  return (
+                    <Pressable key={l} style={{ flex: 1 }} onPress={() => dispatch(setSessionLanguage(l))}>
+                      <Center
+                        py="$2.5"
+                        px="$2"
+                        borderRadius={12}
+                        bg={on ? '$primary500' : '$white'}
+                        borderWidth={1.5}
+                        borderColor={on ? 'transparent' : '$borderLight200'}>
+                        <Text
+                          size="2xs"
+                          weight="bold"
+                          color={on ? '$white' : '$textLight600'}
+                          style={{ textAlign: 'center' }}>
+                          {VERBAL_LANG_LABEL[l] ?? l}
+                        </Text>
+                      </Center>
+                    </Pressable>
+                  );
+                })}
+              </HStack>
+              <Text size="2xs" color="$textLight400">
+                Determina el banco de estímulos y las locuciones de la audiometría verbal.
+              </Text>
+            </VStack>
 
             {/* ----- module grid ----- */}
             <HStack flexWrap="wrap" style={{ gap: 10 }}>

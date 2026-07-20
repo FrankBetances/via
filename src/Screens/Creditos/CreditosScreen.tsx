@@ -55,6 +55,16 @@ const SATELLITES = [
 ];
 const ORBIT_DURATION = 26000;
 
+/* Idiomas/variantes de la batería y motor de voz neural abierto que los hace
+   posibles (ver docs/design/integracion-*.md y tools/nos/). */
+const LANGUAGE_CREDITS = [
+  { flag: '🇩🇴', name: 'Quisqueya Habla', role: 'Variante en español dominicano (es-DO): banco y locuciones propios' },
+  { flag: '🇪🇸', name: 'Español (España)', role: 'Idioma base de la batería de evaluación' },
+  { flag: '🌐', name: 'Proxecto Nós · ILENIA', role: 'Voz neural Celtia (gallego) — TTS abierto (VITS/Coqui)' },
+  { flag: '🎙️', name: 'Piper · rhasspy/piper-voices', role: 'Voces neuronales VITS para español y variantes' },
+  { flag: '🔊', name: 'eSpeak NG', role: 'Síntesis de respaldo offline (español latinoamericano)' },
+];
+
 /* ----------------------- banda de partículas del autor ---------------------- */
 /*  Cada partícula recorre la banda de izquierda a derecha en bucle. En la     */
 /*  mitad izquierda deambula caótica (trayectoria aleatoria + temblor, tonos   */
@@ -349,6 +359,27 @@ export default function CreditosScreen({ navigation }: Props) {
             <Text style={styles.partnerName}>ACOPROS</Text>
             <Text style={styles.partnerRole}>Apoyo y alianza institucional</Text>
           </View>
+        </View>
+
+        {/* ----- voces y lenguajes ----- */}
+        <View style={styles.sectionRow}>
+          <View style={styles.sectionLine} />
+          <Text style={styles.sectionLabel}>VOCES Y LENGUAJES</Text>
+          <View style={styles.sectionLine} />
+        </View>
+
+        <View style={styles.langCard}>
+          {LANGUAGE_CREDITS.map((c, i) => (
+            <View key={c.name} style={[styles.langRow, i > 0 && styles.langRowDivider]}>
+              <View style={styles.langFlag}>
+                <Text style={styles.langFlagText}>{c.flag}</Text>
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.langName}>{c.name}</Text>
+                <Text style={styles.langRole}>{c.role}</Text>
+              </View>
+            </View>
+          ))}
         </View>
 
         {/* ----- sello normativo + lugar ----- */}
@@ -647,6 +678,47 @@ const styles = StyleSheet.create({
   },
   partnerRole: {
     fontSize: 10.5,
+    color: '#8A8274',
+    marginTop: 2,
+  },
+
+  langCard: {
+    alignSelf: 'stretch',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: '#EFE8DB',
+    paddingHorizontal: 14,
+  },
+  langRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingVertical: 12,
+  },
+  langRowDivider: {
+    borderTopWidth: 1,
+    borderTopColor: '#F1ECE2',
+  },
+  langFlag: {
+    width: 34,
+    height: 34,
+    borderRadius: 12,
+    backgroundColor: '#F7F3EA',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  langFlagText: {
+    fontSize: 17,
+  },
+  langName: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#3A352F',
+  },
+  langRole: {
+    fontSize: 10.5,
+    lineHeight: 15,
     color: '#8A8274',
     marginTop: 2,
   },
