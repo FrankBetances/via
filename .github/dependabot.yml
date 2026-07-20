@@ -1,36 +1,52 @@
-# Dependabot — actualizaciones automáticas de dependencias y alertas de seguridad.
-# Mantiene al día npm y las GitHub Actions, y abre PRs cuando hay parches de
-# seguridad. Estos PRs pasan por CODEOWNERS igual que cualquier otro cambio.
+# Dependabot — configuración conservadora para NO inundar el repo de PRs.
+#
+# Estrategia "sin caos":
+#   - Frecuencia MENSUAL (no semanal).
+#   - Todas las actualizaciones se AGRUPAN en un único PR por ecosistema
+#     (groups), en lugar de un PR por dependencia.
+#   - Se ignoran los saltos de versión MAYOR (los que rompen el build): esos
+#     se hacen a mano y de forma controlada.
+#   - Límite bajo de PRs abiertos a la vez.
+#
+# Las alertas de seguridad (Dependabot security updates) siguen funcionando
+# aparte de este fichero y NO están limitadas por estas reglas: un parche de
+# una vulnerabilidad se abre igualmente aunque el resto sea mensual.
 version: 2
 updates:
   # --- Dependencias JavaScript / npm ---
   - package-ecosystem: npm
     directory: "/"
     schedule:
-      interval: weekly
-      day: monday
-    open-pull-requests-limit: 5
+      interval: monthly
+    open-pull-requests-limit: 2
     labels:
       - dependencies
-      - security
     commit-message:
       prefix: "chore(deps)"
-    # Las actualizaciones mayores de React Native y su ecosistema suelen romper
-    # el build nativo: se agrupan y revisan a mano, no automáticamente.
+    # Nunca proponer majors automáticamente: rompen el build nativo de RN.
     ignore:
-      - dependency-name: "react-native"
+      - dependency-name: "*"
         update-types: ["version-update:semver-major"]
-      - dependency-name: "react"
-        update-types: ["version-update:semver-major"]
+    # Un solo PR mensual con todo lo menor/parche junto.
+    groups:
+      npm-minor-patch:
+        applies-to: version-updates
+        update-types:
+          - minor
+          - patch
 
   # --- GitHub Actions usadas en los workflows ---
   - package-ecosystem: github-actions
     directory: "/"
     schedule:
-      interval: weekly
-      day: monday
+      interval: monthly
+    open-pull-requests-limit: 1
     labels:
-      - dependencies
       - ci
     commit-message:
       prefix: "chore(ci)"
+    groups:
+      github-actions:
+        applies-to: version-updates
+        patterns:
+          - "*"
