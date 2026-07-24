@@ -28,12 +28,11 @@ import RadialBackground from '@/Components/Themed/RadialBackground';
 import { RootStackParamList } from '@/Navigators';
 import { AppDispatch, RootState } from '@/Store';
 import { logout } from '@/Store/slices/authSlice';
-import { setSessionLanguage } from '@/Store/slices/localeSlice';
+import { SESSION_LANGS, SESSION_LANG_LABEL, setSessionLanguage } from '@/Store/slices/localeSlice';
 import { signOutQuietly } from '@/Services/firebase';
 import { Evaluation } from '@/Models/Evaluation/Evaluation';
 import { useClassSelector } from '@/Helpers/ClassTransformer';
 import { useTelemetryTracker } from '@/Telemetry';
-import { VERBAL_BANK_LANGS, VERBAL_LANG_LABEL } from '@/Screens/VerbalAudiometry';
 import ModuleCardItem, { ModuleCardData } from './ModuleCardItem';
 
 /* -------------------------------------------------------------------------- */
@@ -180,7 +179,7 @@ export default function SeleccionEjerciciosScreen({ navigation }: Props) {
                 </Text>
               </HStack>
               <HStack space="sm">
-                {VERBAL_BANK_LANGS.map(l => {
+                {SESSION_LANGS.map(l => {
                   const on = sessionLanguage === l;
                   return (
                     <Pressable key={l} style={{ flex: 1 }} onPress={() => dispatch(setSessionLanguage(l))}>
@@ -196,7 +195,7 @@ export default function SeleccionEjerciciosScreen({ navigation }: Props) {
                           weight="bold"
                           color={on ? '$white' : '$textLight600'}
                           style={{ textAlign: 'center' }}>
-                          {VERBAL_LANG_LABEL[l] ?? l}
+                          {SESSION_LANG_LABEL[l] ?? l}
                         </Text>
                       </Center>
                     </Pressable>
@@ -204,7 +203,8 @@ export default function SeleccionEjerciciosScreen({ navigation }: Props) {
                 })}
               </HStack>
               <Text size="2xs" color="$textLight400">
-                Determina el banco de estímulos y las locuciones de la audiometría verbal.
+                Determina las consignas habladas y el banco de estímulos. El gallego usa
+                el banco español provisional hasta validar el propio.
               </Text>
             </VStack>
 

@@ -13,6 +13,11 @@ import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 /*  módulo de pantalla.                                                        */
 /* -------------------------------------------------------------------------- */
 
+// Registro de idiomas de sesión (módulo puro, testeable sin redux); se
+// reexporta aquí para que los consumidores mantengan un único punto de import.
+export { SESSION_LANGS, SESSION_LANG_LABEL } from './sessionLangs';
+export type { SessionLang } from './sessionLangs';
+
 export interface LocaleState {
   language: string;
 }

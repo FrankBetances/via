@@ -520,12 +520,14 @@ for (const test of verbals) {
    `<RootStack.Screen name="VerbalAudiometry" component={VerbalAudiometryScreen} />`.
 3. **`Screens/SeleccionEjercicios/SeleccionEjerciciosScreen.tsx`** — nueva
    `ModuleCard` en `MODULES`:
+
    ```ts
    { id: 'VerbalAudiometry', title: 'Audiometría Verbal',
      description: 'Reconocimiento verbal por tarjetas · campo libre, sin audífonos.',
      duration: '5–8 min', ages: '2 a – adulto', emoji: '🗣️', deco: '🔊',
      tag: 'AUDICIÓN', color: '#2563EB', soft: '#DBEAFE' },
    ```
+
 4. **`Database/config.ts`** — importar y registrar `VerbalAudiometryTest` en
    `entities`.
 5. **`Services/local/modules/verbalAudiometry/`** — crear `index.ts` +

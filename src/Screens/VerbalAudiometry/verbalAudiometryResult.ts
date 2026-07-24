@@ -97,6 +97,7 @@ export const MODALITY_LABEL: Record<CardModality, string> = {
  */
 export const VERBAL_LANG_LABEL: Record<string, string> = {
   es: 'Español (España)',
+  gl: 'Galego',
   'es-DO': 'Español (Rep. Dominicana) · Quisqueya Habla',
 };
 

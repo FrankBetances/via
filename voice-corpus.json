@@ -1,0 +1,50 @@
+{
+  "schema": "via-plus/voice-corpus@1",
+  "entries": 5,
+  "byLang": {
+    "es": 5
+  },
+  "byStyle": {
+    "tutor": 5
+  },
+  "bySource": {
+    "executiveFunctions": 5
+  },
+  "corpus": [
+    {
+      "id": "tutor_21853718_99",
+      "lang": "es",
+      "style": "tutor",
+      "text": "No despiertes al lobo. Toca cada animal que aparezca… ¡pero NUNCA toques al lobo, que está dormido!",
+      "source": "executiveFunctions"
+    },
+    {
+      "id": "tutor_387fbf0e_78",
+      "lang": "es",
+      "style": "tutor",
+      "text": "Busca y encuentra. Toca TODOS los gatitos que veas, ¡lo más rápido que puedas!",
+      "source": "executiveFunctions"
+    },
+    {
+      "id": "tutor_95399f2d_99",
+      "lang": "es",
+      "style": "tutor",
+      "text": "Ordena la historia. Estas tarjetas están desordenadas: tócalas en el orden correcto de la historia.",
+      "source": "executiveFunctions"
+    },
+    {
+      "id": "tutor_a8c07bce_104",
+      "lang": "es",
+      "style": "tutor",
+      "text": "El juego de las normas. Mira la tarjeta y tócala donde toque según la norma. ¡Atención, la norma cambia!",
+      "source": "executiveFunctions"
+    },
+    {
+      "id": "tutor_d21e608b_101",
+      "lang": "es",
+      "style": "tutor",
+      "text": "El loro repetidor. Mira qué tarjetas se encienden y repite la secuencia tocándolas en el mismo orden.",
+      "source": "executiveFunctions"
+    }
+  ]
+}
