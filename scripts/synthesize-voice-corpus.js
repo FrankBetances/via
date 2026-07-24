@@ -142,10 +142,9 @@ function main() {
   }
   const { corpus } = JSON.parse(fs.readFileSync(CORPUS, 'utf8'));
   const langs = args.lang ? [args.lang] : [...new Set(corpus.map(e => e.lang))].sort();
-  if (args.lang && !corpus.some(e => e.lang === args.lang)) {
-    console.error(`✗ El corpus no tiene entradas para '${args.lang}' (localice antes las consignas).`);
-    process.exit(1);
-  }
+  // Un idioma pedido sin entradas (p. ej. gl/es-DO aún sin consignas revisadas)
+  // NO es un error: no hay nada que sintetizar y se omite. `synthesizeLang` ya
+  // lo informa; esto solo evita abortar una corrida `all` por los vacíos.
 
   let total = 0;
   for (const lang of langs) total += synthesizeLang(corpus, lang, args.force);
