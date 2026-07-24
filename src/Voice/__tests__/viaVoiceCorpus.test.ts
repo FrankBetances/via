@@ -60,10 +60,13 @@ describe('toVoiceLang', () => {
 });
 
 describe('resolveVoiceAsset', () => {
-  it('sin assets empaquetados devuelve null (→ el runtime cae a la voz del sistema)', () => {
-    expect(Object.keys(VOICE_ASSETS)).toHaveLength(0);
-    expect(resolveVoiceAsset('tutor', 'Hola', 'es')).toBeNull();
-    expect(resolveVoiceAsset('tutor', 'Hola', 'gl')).toBeNull();
+  it('un texto sin asset devuelve null (→ el runtime cae a la voz del sistema)', () => {
+    // `VOICE_ASSETS` puede estar vacío (sin síntesis) o poblado por el pipeline;
+    // en cualquier caso, un texto que no está en el mapa no resuelve asset.
+    const absent = '__texto sin asset sintetizado__';
+    expect(VOICE_ASSETS[voiceCorpusId('tutor', absent, 'es')]).toBeUndefined();
+    expect(resolveVoiceAsset('tutor', absent, 'es')).toBeNull();
+    expect(resolveVoiceAsset('tutor', absent, 'gl')).toBeNull();
   });
 
   it('resuelve el asset de la lengua y, si falta, cae al asset base `es`', () => {
