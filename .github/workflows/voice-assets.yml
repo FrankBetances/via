@@ -1,0 +1,134 @@
+name: Generate Voice Assets
+
+# Sintetiza los assets del CORPUS GENERAL de voz (consignas) con las voces
+# neuronales abiertas (Piper es/es-DO · Celtia gl del Proxecto Nós) y los
+# commitea a la rama de trabajo. Los modelos de IA corren SOLO aquí
+# (build-time); la app nunca incorpora IA en runtime (offline-first, P1).
+#
+# `main` está protegida: los assets se integran por PR, nunca con push directo.
+# Ver docs/design/arquitectura-corpus-voz.md.
+
+on:
+  workflow_dispatch:
+    inputs:
+      lang:
+        description: "Idioma a sintetizar"
+        type: choice
+        options: ["all", "es", "gl", "es-DO"]
+        default: "all"
+      engine:
+        description: "Motor de voz (neural = calidad; espeak = degradación sin pesos, no cubre gl)"
+        type: choice
+        options: ["neural", "espeak"]
+        default: "neural"
+  push:
+    branches:
+      - "claude/**"
+    paths:
+      - "voice-corpus.json"
+      - "src/Voice/viaVoiceConsignas.ts"
+      - "src/Voice/viaVoiceCorpus.ts"
+      - "scripts/export-voice-corpus.js"
+      - "scripts/synthesize-voice-corpus.js"
+      - "scripts/build-voice-asset-map.js"
+      - "tools/nos/**"
+      - ".github/workflows/voice-assets.yml"
+
+# Un solo run por rama; los encadenados esperan (evita carreras al commitear).
+concurrency:
+  group: voice-assets-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  synthesize:
+    runs-on: ubuntu-latest
+    # Anti-bucle: ignora los commits del propio bot (marcados [voice-assets]).
+    if: ${{ github.event_name == 'workflow_dispatch' || !contains(github.event.head_commit.message, '[voice-assets]') }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref_name }}
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install JS dependencies
+        run: npm ci --legacy-peer-deps
+
+      - name: Install audio tooling (ffmpeg + espeak-ng)
+        run: sudo apt-get update && sudo apt-get install -y ffmpeg espeak-ng
+
+      - name: Resolve target languages
+        id: langs
+        run: |
+          ENGINE="${{ github.event.inputs.engine || 'neural' }}"
+          LANG_IN="${{ github.event.inputs.lang || 'all' }}"
+          if [ "$LANG_IN" = "all" ]; then
+            LANGS="es gl es-DO"
+          else
+            LANGS="$LANG_IN"
+          fi
+          # espeak no cubre gl: se descarta con aviso (requiere motor neural).
+          if [ "$ENGINE" = "espeak" ]; then
+            LANGS="$(echo "$LANGS" | tr ' ' '\n' | grep -v '^gl$' | tr '\n' ' ')"
+            echo "::warning::Motor espeak: 'gl' omitido (sin voz espeak-ng; requiere Celtia neural)."
+          fi
+          echo "engine=$ENGINE" >> "$GITHUB_OUTPUT"
+          echo "langs=$LANGS" >> "$GITHUB_OUTPUT"
+
+      - name: Install neural engine + fetch models
+        if: ${{ steps.langs.outputs.engine == 'neural' }}
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: |
+          if [ -z "$HF_TOKEN" ]; then
+            echo "::error::HF_TOKEN no configurado. La voz neural (Celtia gl es 'gated') requiere el secret HF_TOKEN. Añádelo en Settings → Secrets, o usa engine=espeak (es/es-DO)."
+            exit 1
+          fi
+          python -m pip install --upgrade pip
+          pip install -r tools/nos/requirements.txt
+          HUGGING_FACE_HUB_TOKEN="$HF_TOKEN" tools/nos/fetch-models.sh
+
+      - name: Export corpus
+        run: node scripts/export-voice-corpus.js
+
+      - name: Synthesize assets (incremental)
+        env:
+          VOICE_TTS: ${{ steps.langs.outputs.engine == 'espeak' && 'espeak' || '' }}
+        run: |
+          for L in ${{ steps.langs.outputs.langs }}; do
+            echo "── síntesis $L ──"
+            node scripts/synthesize-voice-corpus.js --lang "$L"
+          done
+
+      - name: Rebuild asset map
+        run: node scripts/build-voice-asset-map.js
+
+      - name: Commit assets to the working branch
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add assets/voice src/Voice/viaVoiceAssets.ts voice-corpus.json
+          if git diff --cached --quiet; then
+            echo "Sin cambios de assets (incremental: todo ya sintetizado)."
+            exit 0
+          fi
+          git commit -m "chore(voice): assets del corpus general [voice-assets]"
+          # Push robusto ante concurrencia: rebase sobre la rama y reintenta.
+          for i in 1 2 3 4 5; do
+            git pull --rebase origin "${{ github.ref_name }}" && \
+              git push origin "HEAD:${{ github.ref_name }}" && exit 0
+            echo "push falló (intento $i), reintentando…"; sleep $((i * 3))
+          done
+          echo "::error::No se pudieron subir los assets tras varios reintentos."; exit 1

@@ -37,7 +37,20 @@ python3 tools/nos/tts.py --lang gl --batch lote.json --out-dir /tmp/gl/
 node scripts/verbal-assets.js audio --lang es-DO      # voz neural (Piper es_MX)
 VERBAL_TTS=neural node scripts/verbal-assets.js audio # es con Piper en vez de espeak-ng
 VERBAL_TTS=espeak node scripts/verbal-assets.js audio --lang es-DO  # degradación (ver abajo)
+
+# 5. Pipeline del CORPUS GENERAL de voz (consignas app-wide · src/Voice/)
+node scripts/export-voice-corpus.js                       # corpus puro → voice-corpus.json
+node scripts/synthesize-voice-corpus.js --lang gl         # síntesis incremental (Celtia)
+VOICE_TTS=espeak node scripts/synthesize-voice-corpus.js --lang es-DO  # degradación (es/es-DO)
+node scripts/build-voice-asset-map.js                     # assets/voice → src/Voice/viaVoiceAssets.ts
 ```
+
+El corpus general se sintetiza igual que la audiometría verbal (mismo
+`tts.py` + mismo post-proceso ffmpeg, mismo objetivo LUFS), pero indexa por id
+de contenido (`voiceCorpusId`) en `assets/voice/<id>.m4a` en vez de por palabra.
+En CI lo automatiza `.github/workflows/voice-assets.yml` (requiere `HF_TOKEN`
+para la voz Celtia, «gated» en Hugging Face). Ver
+`docs/design/arquitectura-corpus-voz.md`.
 
 **Degradación sin acceso a los pesos:** si el entorno de build no puede
 descargar de Hugging Face (política de red), `VERBAL_TTS=espeak` locuta la

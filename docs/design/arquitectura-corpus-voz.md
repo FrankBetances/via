@@ -45,12 +45,12 @@ el logopeda); esta capa es para consignas/instrucciones y futuros módulos.
 id = [${lang}_]${style}_${fnv1a32(normalize(text))}_${len}
 ```
 
-- **`style`** ∈ `tutor | child | clinical | slow` — la prosodia se hornea en el
++ **`style`** ∈ `tutor | child | clinical | slow` — la prosodia se hornea en el
   audio: un mismo texto en dos estilos son DOS entradas con ids distintos.
-- **`lang`** ∈ `es | gl | es-DO` — la base `es` **no** lleva prefijo
++ **`lang`** ∈ `es | gl | es-DO` — la base `es` **no** lleva prefijo
   (retro-compat de assets ya sintetizados); `gl`/`es-DO` prefijan `${lang}_`.
-- **`fnv1a32`** — FNV-1a de 32 bits (hex), estable entre plataformas.
-- **`normalize`** — colapsa espacios y recorta bordes (los espacios no cambian
++ **`fnv1a32`** — FNV-1a de 32 bits (hex), estable entre plataformas.
++ **`normalize`** — colapsa espacios y recorta bordes (los espacios no cambian
   la locución; todo lo demás sí).
 
 La MISMA función se usa en build (al enumerar el corpus) y en runtime (al
@@ -91,13 +91,28 @@ SOLO en build-time; ver `tools/nos/README.md`):
 | `gl` | Coqui (VITS grafemas) | **Celtia** | **Proxecto Nós / ILENIA** | Provisional |
 | `es-DO` | Piper (VITS/ONNX) | `es_MX` (neutra LatAm) | rhasspy/piper-voices | Provisional (ADR Q4.3) |
 
-La síntesis del corpus general (consignas) reutiliza `tools/nos/tts.py` +
-post-proceso ffmpeg (`loudnorm I=-20:TP=-3:LRA=7`, m4a mono) — el mismo objetivo
-de sonoridad que la audiometría verbal — escribiendo en `assets/voice/<id>.m4a`.
-**Pendiente (tarea):** un `--corpus voice-corpus.json` en el pipeline que
-itere las entradas por lengua e invoque la voz correspondiente (equivalente a
-`generate-voice-assets.py --lang`), y el workflow CI con `HF_TOKEN` que sintetice
-y commitee los assets a la rama (los modelos jamás corren en el dispositivo).
+La síntesis del corpus general (consignas) la ejecuta
+**`scripts/synthesize-voice-corpus.js`** (equivalente a `generate-voice-assets.py
+--lang` del blueprint): consume `voice-corpus.json`, filtra por idioma,
+sintetiza **solo lo que falta** (incremental → sin churn) con
+`tools/nos/tts.py` (Piper es/es-DO · Celtia gl) y aplica el post-proceso ffmpeg
+(`loudnorm I=-20:TP=-3:LRA=7`, m4a mono 44.1k) — el MISMO objetivo de sonoridad
+que la audiometría verbal — escribiendo en `assets/voice/<id>.m4a`.
+
+```bash
+node scripts/synthesize-voice-corpus.js --lang gl       # voz neural (Celtia)
+VOICE_TTS=espeak node scripts/synthesize-voice-corpus.js --lang es-DO  # degradación
+node scripts/build-voice-asset-map.js                   # mapa id→asset
+```
+
+**Degradación sin pesos:** `VOICE_TTS=espeak` locuta con la voz clásica
+espeak-ng (es → `es`, es-DO → `es-419` LatAm); `gl` requiere el motor neural
+(no hay voz espeak-ng fiable). El workflow CI
+**`.github/workflows/voice-assets.yml`** (`workflow_dispatch` + push a
+`claude/**`) ejecuta export → síntesis por idioma → rebuild del mapa → commit de
+los assets a la rama (push con rebase, anti-bucle). Requiere el secret
+**`HF_TOKEN`** (la voz Celtia es «gated» en Hugging Face). Los modelos JAMÁS
+corren en el dispositivo; `main` está protegida y los assets entran por PR.
 
 ## 6. Runtime y cadena de degradación (P2)
 
@@ -116,15 +131,15 @@ de sesión.
 
 ## 7. Invariantes críticas
 
-- El módulo del corpus (`viaVoiceCorpus.ts` + `viaVoiceConsignas.ts`) permanece
++ El módulo del corpus (`viaVoiceCorpus.ts` + `viaVoiceConsignas.ts`) permanece
   **PURO** (sin imports de RN/UI), o el exportador falla en build-time.
-- `voiceCorpusId` es idéntica en build y runtime (ambos importan la misma).
-- Los ids de la base `es` **no** llevan prefijo (retro-compat de assets).
-- Los modelos de IA nunca corren en el dispositivo: solo en build-time.
-- `src/Voice/viaVoiceAssets.ts` es **GENERADO**: no editar a mano.
-- Toda locución sin asset cae limpiamente a la voz del sistema; nunca silencio
++ `voiceCorpusId` es idéntica en build y runtime (ambos importan la misma).
++ Los ids de la base `es` **no** llevan prefijo (retro-compat de assets).
++ Los modelos de IA nunca corren en el dispositivo: solo en build-time.
++ `src/Voice/viaVoiceAssets.ts` es **GENERADO**: no editar a mano.
++ Toda locución sin asset cae limpiamente a la voz del sistema; nunca silencio
   inesperado.
-- **Traducir no es adaptar (P6):** las consignas `gl`/`es-DO` se localizan con
++ **Traducir no es adaptar (P6):** las consignas `gl`/`es-DO` se localizan con
   revisión humana firmada (Nós M2 / Quisqueya Habla Q2); nada de traducción
   automática entra al corpus sin revisar. El material clínico (pares mínimos de
   la audiometría verbal) se REDISEÑA por lengua, no se traduce.
@@ -141,10 +156,13 @@ licencias T0.2, pendiente de firma — `tools/nos/README.md`).
 
 1. **Localización revisada** de las consignas en `gl` y `es-DO`
    (`EF_CONSIGNA_L10N` en `viaVoiceConsignas.ts`) — Nós M2 / Quisqueya Q2.
+   Hasta entonces el corpus solo tiene entradas `es` y no hay nada `gl`/`es-DO`
+   que sintetizar.
 2. **Propagar la lengua de sesión** (`state.locale.language`) a
    `speakConsigna(text, lang)` en las pantallas de Funciones Ejecutivas.
 3. **Registrar `gl` estructuralmente** en i18n y en `VERBAL_BANK_LANGS` (hoy
    `es`, `es-DO`), y ofrecerlo en el selector de sesión — plan Nós M1/M3.
-4. **Paso de síntesis del corpus general** en `tools/nos` + **workflow CI**
-   (`voice-assets.yml`) con `HF_TOKEN`.
+4. **Configurar el secret `HF_TOKEN`** en el repositorio y aceptar las
+   condiciones de la voz Celtia en Hugging Face con esa cuenta, para que el
+   workflow `voice-assets.yml` pueda sintetizar `gl`.
 5. Ampliar el corpus a las consignas de otros módulos (mismo patrón enumerable).
