@@ -4,8 +4,9 @@
 //
 //  Host del enrutado: muestra el splash al arrancar y luego el flujo según
 //  la sesión. Antes de iniciar sesión: Bienvenida → Créditos → Selección de
-//  profesional. Con sesión abierta: Pacientes → Hub de módulos. Replica el
-//  patrón "auth flow" del RootStack de React Navigation.
+//  profesional. Con sesión abierta: Pacientes → Consentimiento → CAP →
+//  Sonómetro → Hub de módulos. Replica el patrón "auth flow" del RootStack de
+//  React Navigation.
 //
 
 import SwiftUI
@@ -44,6 +45,8 @@ struct ContentView: View {
         case .patients: PatientsView()
         case .patientRegistration: PatientRegistrationView()
         case .consent(let next): ConsentView(next: next)
+        case .clinicalAssessment: ClinicalAssessmentView()
+        case .roomNoiseCheck: RoomNoiseCheckView()
         case .moduleHub: ModuleHubView()
         }
     }

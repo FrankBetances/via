@@ -21,6 +21,8 @@ enum Route: Hashable {
     case patients
     case patientRegistration
     case consent(ConsentNext)
+    case clinicalAssessment
+    case roomNoiseCheck
     case moduleHub
 }
 
@@ -44,6 +46,13 @@ final class AppRouter: ObservableObject {
     /// Paciente en curso (contexto del consentimiento y las pruebas).
     @Published var activePatient: Patient?
 
+    // MARK: - Prerrequisitos de la sesión
+
+    /// Resumen del CAP firmado en esta sesión (persistencia real pendiente).
+    @Published var capSummary: CAPSummary?
+    /// La sala pasó la verificación del sonómetro. Es un gate, no un dato clínico.
+    @Published var roomNoiseVerified = false
+
     // MARK: - Navegación
 
     func push(_ route: Route) { path.append(route) }
@@ -58,6 +67,23 @@ final class AppRouter: ObservableObject {
         activeProfessional = nil
         isLogged = false
         path = []
+        clearSession()
+    }
+
+    /// Abre el expediente de un paciente. Reinicia los prerrequisitos y arranca
+    /// por el consentimiento, que encadena CAP → sala → pruebas (en el RN el
+    /// punto de entrada depende de lo ya persistido; aquí siempre es el primero).
+    func openRecord(for patient: Patient) {
+        clearSession()
+        activePatient = patient
+        push(.consent(.cap))
+    }
+
+    /// Descarta el contexto clínico de la sesión anterior.
+    func clearSession() {
+        activePatient = nil
+        capSummary = nil
+        roomNoiseVerified = false
     }
 
     // MARK: - Altas
