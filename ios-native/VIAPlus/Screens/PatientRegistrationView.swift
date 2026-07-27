@@ -227,6 +227,7 @@ struct PatientRegistrationView: View {
                               dob: dob.trimmingCharacters(in: .whitespaces),
                               sex: sex)
         router.registerPatient(patient)
+        router.clearSession()
         router.activePatient = patient
         // Consentimiento informado: paso bloqueante antes de las pruebas.
         router.push(.consent(next))

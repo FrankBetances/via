@@ -26,6 +26,11 @@
 		2B3C4D5E000000000000021E /* PatientRegistrationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2B3C4D5E000000000000011E /* PatientRegistrationView.swift */; };
 		2B3C4D5E000000000000021F /* SignaturePad.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2B3C4D5E000000000000011F /* SignaturePad.swift */; };
 		2B3C4D5E0000000000000220 /* ConsentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2B3C4D5E0000000000000120 /* ConsentView.swift */; };
+		2B3C4D5E0000000000000221 /* ClinicalAssessmentLogic.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2B3C4D5E0000000000000121 /* ClinicalAssessmentLogic.swift */; };
+		2B3C4D5E0000000000000222 /* NoiseDSP.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2B3C4D5E0000000000000122 /* NoiseDSP.swift */; };
+		2B3C4D5E0000000000000223 /* NoiseMeter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2B3C4D5E0000000000000123 /* NoiseMeter.swift */; };
+		2B3C4D5E0000000000000224 /* ClinicalAssessmentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2B3C4D5E0000000000000124 /* ClinicalAssessmentView.swift */; };
+		2B3C4D5E0000000000000225 /* RoomNoiseCheckView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2B3C4D5E0000000000000125 /* RoomNoiseCheckView.swift */; };
 		1A2B3C4D0000000000000042 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 1A2B3C4D0000000000000032 /* Assets.xcassets */; };
 		1A2B3C4D0000000000000053 /* FirebaseCore in Frameworks */ = {isa = PBXBuildFile; productRef = 1A2B3C4D0000000000000051 /* FirebaseCore */; };
 		1A2B3C4D0000000000000054 /* FirebaseAnalytics in Frameworks */ = {isa = PBXBuildFile; productRef = 1A2B3C4D0000000000000052 /* FirebaseAnalytics */; };
@@ -52,6 +57,11 @@
 		2B3C4D5E000000000000011E /* PatientRegistrationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PatientRegistrationView.swift; sourceTree = "<group>"; };
 		2B3C4D5E000000000000011F /* SignaturePad.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SignaturePad.swift; sourceTree = "<group>"; };
 		2B3C4D5E0000000000000120 /* ConsentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConsentView.swift; sourceTree = "<group>"; };
+		2B3C4D5E0000000000000121 /* ClinicalAssessmentLogic.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClinicalAssessmentLogic.swift; sourceTree = "<group>"; };
+		2B3C4D5E0000000000000122 /* NoiseDSP.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NoiseDSP.swift; sourceTree = "<group>"; };
+		2B3C4D5E0000000000000123 /* NoiseMeter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NoiseMeter.swift; sourceTree = "<group>"; };
+		2B3C4D5E0000000000000124 /* ClinicalAssessmentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClinicalAssessmentView.swift; sourceTree = "<group>"; };
+		2B3C4D5E0000000000000125 /* RoomNoiseCheckView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoomNoiseCheckView.swift; sourceTree = "<group>"; };
 		1A2B3C4D0000000000000032 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		1A2B3C4D0000000000000033 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -93,6 +103,7 @@
 				2B3C4D5E0000000000000100 /* Theme */,
 				2B3C4D5E0000000000000101 /* Components */,
 				2B3C4D5E0000000000000102 /* Models */,
+				2B3C4D5E0000000000000105 /* Audio */,
 				2B3C4D5E0000000000000103 /* Navigation */,
 				2B3C4D5E0000000000000104 /* Screens */,
 				1A2B3C4D0000000000000032 /* Assets.xcassets */,
@@ -125,8 +136,18 @@
 			isa = PBXGroup;
 			children = (
 				2B3C4D5E0000000000000113 /* DomainModels.swift */,
+				2B3C4D5E0000000000000121 /* ClinicalAssessmentLogic.swift */,
 			);
 			path = Models;
+			sourceTree = "<group>";
+		};
+		2B3C4D5E0000000000000105 /* Audio */ = {
+			isa = PBXGroup;
+			children = (
+				2B3C4D5E0000000000000122 /* NoiseDSP.swift */,
+				2B3C4D5E0000000000000123 /* NoiseMeter.swift */,
+			);
+			path = Audio;
 			sourceTree = "<group>";
 		};
 		2B3C4D5E0000000000000103 /* Navigation */ = {
@@ -148,6 +169,8 @@
 				2B3C4D5E0000000000000119 /* PatientsView.swift */,
 				2B3C4D5E000000000000011E /* PatientRegistrationView.swift */,
 				2B3C4D5E0000000000000120 /* ConsentView.swift */,
+				2B3C4D5E0000000000000124 /* ClinicalAssessmentView.swift */,
+				2B3C4D5E0000000000000125 /* RoomNoiseCheckView.swift */,
 				2B3C4D5E000000000000011A /* ModuleHubView.swift */,
 			);
 			path = Screens;
@@ -248,6 +271,11 @@
 				2B3C4D5E000000000000021E /* PatientRegistrationView.swift in Sources */,
 				2B3C4D5E000000000000021F /* SignaturePad.swift in Sources */,
 				2B3C4D5E0000000000000220 /* ConsentView.swift in Sources */,
+				2B3C4D5E0000000000000221 /* ClinicalAssessmentLogic.swift in Sources */,
+				2B3C4D5E0000000000000222 /* NoiseDSP.swift in Sources */,
+				2B3C4D5E0000000000000223 /* NoiseMeter.swift in Sources */,
+				2B3C4D5E0000000000000224 /* ClinicalAssessmentView.swift in Sources */,
+				2B3C4D5E0000000000000225 /* RoomNoiseCheckView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

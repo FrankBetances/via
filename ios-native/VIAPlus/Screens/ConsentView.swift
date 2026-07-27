@@ -365,8 +365,10 @@ struct ConsentView: View {
     private func sign() {
         guard ready else { return }
         // Persistencia real (informed_consent) pendiente; continúa a las pruebas.
-        // CAP / RoomNoiseCheck aún no portados: se aterriza en el hub de módulos.
-        router.path = [.moduleHub]
+        // Disfagia salta el CAP y el sonómetro (su módulo aún no está portado,
+        // así que aterriza en el hub); el resto pasa por la Evaluación Clínica
+        // Previa, que a su vez encadena el sonómetro de sala.
+        router.path = next == .dysphagia ? [.moduleHub] : [.clinicalAssessment]
     }
 }
 

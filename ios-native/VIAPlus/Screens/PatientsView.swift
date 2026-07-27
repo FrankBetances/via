@@ -45,7 +45,9 @@ struct PatientsView: View {
                     searchField
 
                     ForEach(filtered) { patient in
-                        Button { router.push(.moduleHub) } label: { patientRow(patient) }
+                        // Abrir un expediente arranca la cadena de prerrequisitos:
+                        // consentimiento → CAP → sonómetro → pruebas.
+                        Button { router.openRecord(for: patient) } label: { patientRow(patient) }
                             .buttonStyle(PressableButtonStyle())
                     }
 

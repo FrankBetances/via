@@ -24,7 +24,11 @@ ios-native/
     │   ├── FlexibleWrap.swift     # Layout flex-wrap (chips de rol)
     │   └── SignaturePad.swift     # Pad de firma (Canvas + gestos)
     ├── Models/
-    │   └── DomainModels.swift     # Professional, Patient, ClinicalModule
+    │   ├── DomainModels.swift     # Professional, Patient, ClinicalModule
+    │   └── ClinicalAssessmentLogic.swift  # Lógica pura del CAP (4 dominios)
+    ├── Audio/
+    │   ├── NoiseDSP.swift         # DSP puro del sonómetro (Leq + FFT)
+    │   └── NoiseMeter.swift       # Captura AVAudioEngine + estado observable
     ├── Navigation/
     │   └── AppRouter.swift        # NavigationStack + patrón auth flow
     ├── Screens/
@@ -36,6 +40,8 @@ ios-native/
     │   ├── PatientsView.swift               # ← Pacientes
     │   ├── PatientRegistrationView.swift    # ← Alta de paciente
     │   ├── ConsentView.swift                # ← Consentimiento informado
+    │   ├── ClinicalAssessmentView.swift     # ← Evaluación Clínica Previa (CAP)
+    │   ├── RoomNoiseCheckView.swift         # ← Sonómetro ambiental (sala)
     │   └── ModuleHubView.swift              # ← Selección de ejercicios (hub)
     ├── Info.plist
     └── Assets.xcassets/           # AppIcon + AccentColor
@@ -45,10 +51,17 @@ ios-native/
 
 Se portó la **columna vertebral de navegación** del app RN, priorizando
 iteración visual sobre dispositivo. Flujo: `Splash → Bienvenida → Créditos →
-Selección de profesional →` (login) `→ Pacientes → Hub de módulos`. Los 8
-módulos clínicos del hub (voz, audición ×3, articulación, disfagia, funciones
-ejecutivas, M-CHAT, SAHS) se muestran como catálogo seleccionable; su lógica
-dependiente de hardware se conectará en fases posteriores.
+Selección de profesional →` (login) `→ Pacientes → Consentimiento → CAP →
+Sonómetro → Hub de módulos`. Los 8 módulos clínicos del hub (voz, audición ×3,
+articulación, disfagia, funciones ejecutivas, M-CHAT, SAHS) se muestran como
+catálogo seleccionable; su lógica dependiente de hardware se conectará en fases
+posteriores.
+
+Abrir un paciente de la lista reinicia el contexto clínico de la sesión
+(`AppRouter.clearSession`) y arranca por el consentimiento, de modo que la
+cadena de prerrequisitos se recorre entera. En el RN el punto de entrada
+depende de lo ya persistido (consentimiento firmado, CAP vigente); aquí, sin
+base de datos todavía, siempre se empieza por el primero.
 
 ### Formularios de alta (funcionales)
 
@@ -68,9 +81,51 @@ Paso obligatorio entre el alta de paciente y las pruebas. Texto legal versión
 tutor; adulto → paciente o familiar/representante con motivo de incapacidad),
 relación con el paciente, dos declaraciones a marcar y **firma manuscrita** en
 un `SignaturePad` nativo (`Canvas` + `DragGesture`). El destino tras firmar
-(`cap` / `dysphagia`) se propaga con `Route.consent(ConsentNext)`. La
-persistencia (tabla `informed_consent`) y las pantallas CAP/Sala se portan
-después; hoy, tras firmar se aterriza en el hub de módulos.
+(`cap` / `dysphagia`) se propaga con `Route.consent(ConsentNext)`: `cap`
+continúa a la Evaluación Clínica Previa y `dysphagia` la salta (su módulo aún
+no está portado, así que aterriza en el hub). La persistencia (tabla
+`informed_consent`) se conecta después.
+
+### Evaluación Clínica Previa · CAP (prerrequisito)
+
+Certifica las condiciones **mínimas de viabilidad** de la prueba en cuatro
+dominios —otoscopia (hallazgo por oído), capacidad visual, verbal y motora— y
+deriva qué juegos quedan habilitados. La lógica clínica se portó **1:1** desde
+`clinicalAssessmentResult.ts` a `Models/ClinicalAssessmentLogic.swift`, sin
+dependencias de UI: mismos ítems y códigos (V-0x, VB-x-0x, M-0x), mismas
+severidades otoscópicas (cerumen, OMA y perforación bloquean ese oído), mismo
+gating de los cinco juegos (J01–J05) y mismo veredicto global
+(`APTO · COMPLETO` / `APTO PARCIAL` / `NO APTO`).
+
+El grupo de edad verbal se **presugiere** con la fecha de nacimiento del
+paciente y el evaluador se precarga con el profesional en sesión. Al confirmar,
+el resumen queda en `AppRouter.capSummary` y se navega al sonómetro. La
+exploración de disfagia mantiene su atajo: no requiere CAP ni sonómetro.
+
+### Sonómetro ambiental · sala (prerrequisito)
+
+Medición **real** del ruido de fondo con el micrófono del dispositivo, no una
+maqueta: `Audio/NoiseDSP.swift` es el port del DSP del RN (promedio energético
+Leq entre bloques y espectro por bandas log con FFT radix-2 + ventana de Hann)
+y `Audio/NoiseMeter.swift` sustituye al par `useNoiseMeter` + `noiseMicAdapter`
+con `AVAudioEngine` (tap de entrada, sesión `.record`/`.measurement`) y un
+muestreo de UI cada 90 ms.
+
+Se conserva la regla clínica del RN: **nunca se simulan lecturas**. Sin permiso
+o sin micrófono el medidor queda en estado de error y no emite veredicto, y una
+medición sin ~1 s de señal real tampoco lo emite (evita un falso «SALA APTA»).
+El umbral por defecto es **≤ 45 dB** con medición de 5 s, y el gate para
+continuar es doble: veredicto apto **y** checklist de sala completa.
+
+> La lectura es una estimación **relativa** anclada en
+> `NoiseDSP.splAtFullScale` (92 dB a 0 dBFS). No sustituye a un sonómetro
+> calibrado; ajuste ese único valor si dispone de una referencia.
+
+## Permisos del sistema
+
+`NSMicrophoneUsageDescription` está declarado en `Info.plist` (sonómetro de
+sala y, más adelante, análisis acústico de la voz). Sin la autorización del
+usuario, el sonómetro muestra el error y el flujo queda bloqueado a propósito.
 
 ## Dependencias (Swift Package Manager)
 
