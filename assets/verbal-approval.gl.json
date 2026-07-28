@@ -1,0 +1,15 @@
+{
+  "scope": "bank",
+  "status": "aprobado-produccion",
+  "date": "2026-07-28",
+  "approvedBy": "ACOPROS",
+  "communicatedBy": "F. A. Betances (responsable del proyecto)",
+  "bank": "verbalAudiometryLists.gl.ts · bandas A–D · 38 láminas (4 de familiarización + 34 puntuables) · ids 1000–1037",
+  "covers": ["listas A", "listas B", "listas C", "listas D"],
+  "excludes": [
+    "locuciones gl (no existen todavía: pendientes del hito M4, voz Celtia)",
+    "ilustraciones propias gl (hoy se heredan de es por coincidencia de clave, o pictograma/inicial)",
+    "cortes de interpretación (§4 de validacion-clinica-verbal.md, comunes al módulo)"
+  ],
+  "notes": "Aprobación del BANCO DE ESTÍMULOS gallego (contenido de las listas) por ACOPROS, comunicada por el responsable del proyecto. Alcance: solo las listas A–D. El paquete de AUDIO gallego sigue siendo provisional —de hecho inexistente— así que el módulo dicta con la voz del dispositivo; cuando M4 sintetice las locuciones con la voz Celtia hará falta un registro aparte con scope 'audio' y la checklist de escucha firmada (T4.4). Adjuntar al expediente el acta de la sesión de revisión. Si se modifica cualquier lámina, esta aprobación deja de aplicar a la lámina modificada."
+}

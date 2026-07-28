@@ -32,6 +32,7 @@ import {
 import { VERBAL_BANDS } from './verbalAudiometryLists';
 import {
   resolveVerbalLang,
+  VERBAL_AUDIO_PENDING,
   VERBAL_BANK_LANGS,
   VERBAL_BANK_PROVISIONAL,
   VerbalLang,
@@ -326,9 +327,16 @@ export default function VerbalAudiometryScreen({ navigation }: Props) {
         {VERBAL_BANK_PROVISIONAL.includes(v.lang) ? (
           <HStack space="xs" alignItems="flex-start" mt="$2" p="$2.5" borderRadius={12} bg="$warning50">
             <Text size="2xs" color="$warning800" style={{ flex: 1, lineHeight: 15 }}>
-              Banco PROVISIONAL, pendiente de la validación clínica del logopeda gallego-hablante. Todavía sin
-              locuciones propias: las palabras se dictan con la voz del sistema, así que el nivel es aún menos
-              comparable que en castellano. Uso en pilotos técnicos, no diagnóstico.
+              Banco PROVISIONAL, pendiente de validación clínica. Uso en pilotos técnicos, no diagnóstico.
+            </Text>
+          </HStack>
+        ) : null}
+        {VERBAL_AUDIO_PENDING.includes(v.lang) ? (
+          <HStack space="xs" alignItems="flex-start" mt="$2" p="$2.5" borderRadius={12} bg="$warning50">
+            <Text size="2xs" color="$warning800" style={{ flex: 1, lineHeight: 15 }}>
+              Listas validadas, pero todavía SIN locuciones propias: las palabras se dictan con la voz del
+              dispositivo, así que el estímulo no es el definitivo y el nivel es aún menos comparable que en
+              castellano.
             </Text>
           </HStack>
         ) : null}
