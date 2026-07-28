@@ -124,9 +124,12 @@ gallego**, no traducido. Es el módulo que marca la fecha del release.
 
 ### Estado actual de M3
 
-**T3.4 hecho (con contenido provisional).** `verbalAudiometryLists.gl.ts`
-existe, está registrado en `verbalAudiometryBanks.ts` y el gallego aparece ya en
-el selector de lengua de la audiometría verbal. La suite
+**T3.3 y T3.4 hechos. El banco gallego está APROBADO por ACOPROS**
+(28-07-2026), registro en `assets/verbal-approval.gl.json` y contenido firmado
+en [`audiometria-verbal-gl.md`](./audiometria-verbal-gl.md).
+
+`verbalAudiometryLists.gl.ts` está registrado en `verbalAudiometryBanks.ts`, el
+gallego aparece en el selector de lengua de la audiometría verbal y la suite
 `verbalAudiometryValidation.test.ts` corre los **mismos invariantes sobre todos
 los bancos registrados** (`describe.each(VERBAL_BANK_LANGS)`), de modo que el
 banco gallego no puede degradarse sin romper CI.
@@ -137,18 +140,27 @@ bandeira), /ʎ/ y /ɲ/ (abella/ovella, piño/viño) y oxítonas en -á (ventá, 
 campá)— y **no** por traducción del banco castellano, que habría destruido los
 pares mínimos.
 
-Lo que **falta** para cerrar M3:
+Lo que **falta** para cerrar el gallego:
 
-- **T3.1/T3.2** siguen pendientes: la selección léxica actual no está anclada a
-  frecuencias de `proxectonos/corpora`.
-- **T3.3 (firma del logopeda gallego-hablante) sigue pendiente.** Hasta esa
-  firma el banco está marcado en `VERBAL_BANK_PROVISIONAL` y la pantalla avisa
-  al profesional de que es provisional y no diagnóstico.
-- **M4 (audio Celtia) pendiente**: no hay recortes `gl` empaquetados. El
-  adaptador **no** sustituye por los castellanos —«ventá» dictado con el
-  recorte de «ventana» sería otro estímulo— sino que degrada a la voz del
-  sistema, prefiriendo una voz `gl-*` si existe y declarando la caída a voz
-  castellana cuando no (`pickVoiceForLang`).
+- **T3.1/T3.2**: la selección léxica se firmó sin anclar a las frecuencias de
+  `proxectonos/corpora`. No invalida el banco aprobado; queda como trabajo de
+  refuerzo metodológico si se quiere justificar la elección con datos de
+  corpus.
+- **T3.5**: sin ilustraciones propias. Hoy 50 de 101 claves de imagen se
+  heredan del castellano por coincidencia de palabra; el resto cae a
+  pictograma o a tile de inicial.
+- **M4 (audio Celtia): PENDIENTE y es lo que bloquea el uso diagnóstico.** No
+  hay recortes `gl` empaquetados. El adaptador **no** sustituye por los
+  castellanos —«ventá» dictado con el recorte de «ventana» sería otro
+  estímulo— sino que degrada a la voz del dispositivo, prefiriendo una voz
+  `gl-*` si existe y declarando la caída a voz castellana cuando no
+  (`pickVoiceForLang`). El idioma está en `VERBAL_AUDIO_PENDING` y la pantalla
+  lo advierte.
+
+> La firma del BANCO no arrastra la del AUDIO: son artefactos distintos, con
+> registros de aprobación separados (`scope: "bank"` / `scope: "audio"`) y
+> banderas distintas en código. Cuando M4 sintetice las locuciones hará falta
+> un registro nuevo con `scope: "audio"` y la checklist de escucha de T4.4.
 
 ---
 

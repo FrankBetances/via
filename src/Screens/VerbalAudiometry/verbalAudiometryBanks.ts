@@ -34,11 +34,26 @@ export const VERBAL_BANK_BASE: Record<VerbalLang, VerbalLang | null> = {
 };
 
 /**
- * Idiomas cuyo banco y locuciones aún NO están firmados clínicamente. La
- * pantalla lo advierte al profesional (mismo criterio que el audio provisional
- * de es-DO).
+ * Idiomas cuyo BANCO DE ESTÍMULOS (listas A–D) aún no está firmado
+ * clínicamente. La pantalla lo advierte al profesional.
+ *
+ * Vacío: `es` está firmado en `docs/design/validacion-clinica-verbal.md`,
+ * `es-DO` hereda el castellano sin sustituciones (Q3) y `gl` lo dio por bueno
+ * ACOPROS (registro en `assets/verbal-approval.gl.json`, contenido en
+ * `docs/design/audiometria-verbal-gl.md`).
  */
-export const VERBAL_BANK_PROVISIONAL: readonly VerbalLang[] = ['gl'];
+export const VERBAL_BANK_PROVISIONAL: readonly VerbalLang[] = [];
+
+/**
+ * Idiomas SIN locuciones propias empaquetadas: sus palabras se dictan con la
+ * voz del sistema. Es una limitación distinta —y más acotada— que un banco sin
+ * validar: las listas son las firmadas, pero el ESTÍMULO no es el definitivo,
+ * así que el nivel es aún menos comparable y conviene advertirlo.
+ *
+ * `gl` sale de aquí cuando el hito M4 del plan Nós sintetice el banco con la
+ * voz Celtia y se firme la escucha (T4.4).
+ */
+export const VERBAL_AUDIO_PENDING: readonly VerbalLang[] = ['gl'];
 
 /** Banco de estímulos del idioma/variante indicado. */
 export const getVerbalBands = (lang: string): VerbalBandDef[] => {

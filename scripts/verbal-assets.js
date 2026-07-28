@@ -132,16 +132,25 @@ function cmdManifest({ bands, inventory }, lang) {
   const missingA = audio.filter(e => !e.exists);
   const missingI = images.filter(e => !e.exists);
 
-  // Aprobación clínica del AUDIO de una variante (Q4.4/Q6.3): si existe
-  // assets/verbal-approval.<lang>.json se incrusta en el manifiesto y el
-  // paquete de audio deja de ser provisional. El flag `provisional` global se
-  // mantiene mientras CUALQUIER contenido (p. ej. ilustraciones heredadas
-  // provisionales) siga sin producción clínica.
+  // Aprobaciones clínicas de un idioma/variante: si existe
+  // assets/verbal-approval.<lang>.json se incrustan en el manifiesto y el
+  // artefacto correspondiente deja de ser provisional. El archivo admite un
+  // registro suelto (formato histórico de es-DO) o una lista, porque los
+  // artefactos se firman por separado y en momentos distintos:
+  //   · scope 'audio' → locuciones (Q4.4/T4.4);
+  //   · scope 'bank'  → listas de estímulos A–D (Q3.3/T3.3; el gallego se
+  //     firmó antes de tener audio, así que la firma del banco NO puede
+  //     implicar la del audio).
+  // El flag `provisional` global se mantiene mientras CUALQUIER contenido
+  // (p. ej. ilustraciones heredadas provisionales) siga sin producción clínica.
   const approvalPath = path.join(ROOT, 'assets', `verbal-approval.${lang}.json`);
-  const approval =
+  const approvals =
     lang !== 'es' && fs.existsSync(approvalPath)
-      ? JSON.parse(fs.readFileSync(approvalPath, 'utf8'))
-      : null;
+      ? [JSON.parse(fs.readFileSync(approvalPath, 'utf8'))].flat()
+      : [];
+  const approvalOf = scope => approvals.find(a => (a.scope ?? 'audio') === scope) ?? null;
+  const audioApproval = approvalOf('audio');
+  const bankApproval = approvalOf('bank');
 
   fs.mkdirSync(path.dirname(manifest), { recursive: true });
   fs.writeFileSync(
@@ -151,7 +160,8 @@ function cmdManifest({ bands, inventory }, lang) {
         generatedAt: new Date().toISOString(),
         ...(lang !== 'es' ? { lang, baseLang: 'es' } : {}),
         provisional: true,
-        ...(approval ? { audioProvisional: false, audioApproval: approval } : {}),
+        ...(audioApproval ? { audioProvisional: false, audioApproval } : {}),
+        ...(bankApproval ? { bankProvisional: false, bankApproval } : {}),
         note:
           'Orden de producción de assets de la audiometría verbal. Locuciones e ilustraciones ' +
           'actuales son PROVISIONALES (síntesis espeak-ng/neural y pictogramas); la producción ' +

@@ -3,6 +3,7 @@ import {
   getVerbalBands,
   resolveVerbalLang,
   VERBAL_BANK_BASE,
+  VERBAL_AUDIO_PENDING,
   VERBAL_BANK_LANGS,
   VERBAL_BANK_PROVISIONAL,
 } from '../verbalAudiometryBanks';
@@ -71,9 +72,17 @@ describe('getVerbalBands · registro por idioma', () => {
     expect(glIds.filter(id => esIds.includes(id))).toEqual([]);
   });
 
-  it('gl está marcado como PROVISIONAL hasta la firma clínica (T3.3)', () => {
-    expect(VERBAL_BANK_PROVISIONAL).toContain('gl');
-    expect(VERBAL_BANK_PROVISIONAL).not.toContain('es');
+  it('gl ya NO es provisional: el banco lo firmó ACOPROS (T3.3)', () => {
+    expect(VERBAL_BANK_PROVISIONAL).not.toContain('gl');
+  });
+
+  it('el audio gl SÍ sigue pendiente: la firma del banco no arrastra la del audio', () => {
+    // Distinción importante: las listas están validadas, pero las locuciones
+    // gallegas no existen (hito M4). Marcar el idioma como «todo aprobado»
+    // ocultaría al profesional que el estímulo que oye no es el definitivo.
+    expect(VERBAL_AUDIO_PENDING).toContain('gl');
+    expect(VERBAL_AUDIO_PENDING).not.toContain('es');
+    expect(VERBAL_AUDIO_PENDING).not.toContain('es-DO');
   });
 
   it('un idioma sin banco registrado falla explícitamente', () => {
@@ -179,5 +188,65 @@ describe('coherencia con el motor de voz neural (tools/nos/voices.json)', () => 
   it('gl (plan Nós) tiene la voz Celtia registrada para locutar su banco', () => {
     expect(registry.voices.gl.model).toBe('proxectonos/Nos_TTS-celtia-vits-graphemes');
     expect(registry.voices.gl.engine).toBe('coqui-vits');
+  });
+});
+
+/* -------------------------------------------------------------------------- */
+/*  Trazabilidad de la aprobación clínica.                                     */
+/*                                                                             */
+/*  VIA+ es un SaMD: que un banco deje de estar marcado como provisional en el */
+/*  código tiene que corresponderse con un REGISTRO de aprobación en disco, no */
+/*  con la memoria de quien editó la constante. Estas pruebas atan las dos     */
+/*  cosas en ambos sentidos.                                                    */
+/* -------------------------------------------------------------------------- */
+
+describe('aprobación clínica · el código no puede adelantarse al registro', () => {
+  const approvalPath = (lang: string) =>
+    path.join(ROOT, 'assets', `verbal-approval.${lang}.json`);
+  const approvalsOf = (lang: string): any[] => {
+    const p = approvalPath(lang);
+    if (!fs.existsSync(p)) return [];
+    return [JSON.parse(fs.readFileSync(p, 'utf8'))].flat();
+  };
+  const scopeOf = (a: any) => a.scope ?? 'audio';
+
+  it('todo idioma NO provisional distinto de es tiene registro de aprobación del banco', () => {
+    for (const lang of VERBAL_BANK_LANGS) {
+      if (lang === 'es' || VERBAL_BANK_PROVISIONAL.includes(lang)) continue;
+      // es-DO hereda el banco castellano sin sustituciones: su validación es
+      // la del castellano y no necesita registro propio.
+      if (VERBAL_BANK_BASE[lang] === 'es') continue;
+      const bank = approvalsOf(lang).filter(a => scopeOf(a) === 'bank');
+      expect({ lang, tieneRegistro: bank.length === 1 }).toEqual({ lang, tieneRegistro: true });
+      expect(bank[0].status).toBe('aprobado-produccion');
+      expect(bank[0].approvedBy?.trim()).toBeTruthy();
+      expect(bank[0].date).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+    }
+  });
+
+  it('gl: la firma es del BANCO y excluye explícitamente el audio', () => {
+    const approvals = approvalsOf('gl');
+    expect(approvals.map(scopeOf)).toEqual(['bank']);
+    const [bank] = approvals;
+    expect(bank.approvedBy).toBe('ACOPROS');
+    // El registro debe decir qué NO cubre: sin esto, un lector futuro podría
+    // dar por aprobadas unas locuciones que ni siquiera se han generado.
+    expect(Array.isArray(bank.excludes)).toBe(true);
+    expect(bank.excludes.join(' ')).toMatch(/locuciones/i);
+  });
+
+  it('un idioma con audio pendiente NO tiene registro de aprobación de audio', () => {
+    for (const lang of VERBAL_AUDIO_PENDING) {
+      const audio = approvalsOf(lang).filter(a => scopeOf(a) === 'audio');
+      expect({ lang, audioAprobado: audio.length }).toEqual({ lang, audioAprobado: 0 });
+    }
+  });
+
+  it('el banco firmado coincide en tamaño con el que se compila (la firma no queda huérfana)', () => {
+    const items = getVerbalBands('gl').flatMap(b => b.items);
+    const scored = items.filter(i => !i.practice);
+    const [bank] = approvalsOf('gl');
+    expect(bank.bank).toContain(`${items.length} láminas`);
+    expect(bank.bank).toContain(`${scored.length} puntuables`);
   });
 });
