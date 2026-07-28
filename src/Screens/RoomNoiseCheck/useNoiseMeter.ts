@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { clamp } from '@/Helpers/numeric';
+import { NOISE_DB_MAX, NOISE_DB_MIN } from './noiseDsp';
 
 /* -------------------------------------------------------------------------- */
 /*  useNoiseMeter — medidor de ruido ambiente para React Native                */
@@ -23,10 +24,17 @@ export interface NoiseMicAdapter {
   start: () => Promise<void>;
   /** Detiene la captura y libera recursos. */
   stop: () => void;
-  /** Último nivel medido en dB (escala A aproximada). null si aún no hay lectura. */
+  /** Último nivel medido en dB(A). null si aún no hay lectura. */
   read: () => number | null;
   /** (Opcional) niveles de banda 0..1 para el espectro; el hook sintetiza si falta. */
   spectrum?: () => number[];
+  /**
+   * (Opcional) ¿ha entregado el motor nativo ALGÚN bloque desde el arranque?
+   * Permite distinguir «el micrófono no emite nada» (stream abierto pero mudo:
+   * ocupado por otra app, ruta de audio sin entrada…) de «la sala está en
+   * silencio», sin esperar a que termine la medición completa.
+   */
+  hasSignal?: () => boolean;
 }
 
 let micAdapter: NoiseMicAdapter | null = null;
@@ -70,7 +78,7 @@ export interface NoiseMeterApi {
 export const zoneOf = (db: number, threshold: number): NoiseZone =>
   db <= threshold ? 'ok' : db <= threshold + 10 ? 'warn' : 'block';
 
-const clampDb = (n: number) => clamp(n, 28, 92);
+const clampDb = (n: number) => clamp(n, NOISE_DB_MIN, NOISE_DB_MAX);
 
 export function useNoiseMeter({
   threshold,
@@ -158,7 +166,16 @@ export function useNoiseMeter({
           setAvg(null);
           setPeak(null);
           setVerdict('pending');
-          setError('El micrófono no entregó señal durante la medición. Compruebe el permiso de micrófono y repita.');
+          // Se distingue el stream abierto pero MUDO (otra app tiene el
+          // micrófono, la ruta de audio no tiene entrada) del permiso ausente:
+          // el mensaje genérico anterior mandaba a revisar un permiso que ya
+          // estaba concedido.
+          const gotBlocks = micAdapter?.hasSignal?.() ?? null;
+          setError(
+            gotBlocks === false
+              ? 'El micrófono no entregó ninguna muestra: puede estar en uso por otra aplicación o silenciado por el sistema. Ciérrelas y repita la medición.'
+              : 'El micrófono no entregó señal suficiente durante la medición. Compruebe el permiso de micrófono y repita.',
+          );
         } else {
           const a = samples.reduce((x, y) => x + y, 0) / samples.length;
           const p = testPeak.current;

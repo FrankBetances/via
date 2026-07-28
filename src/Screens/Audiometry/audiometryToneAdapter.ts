@@ -1,10 +1,6 @@
-import {
-  AudioContext,
-  AudioManager,
-  OscillatorNode,
-  GainNode,
-  StereoPannerNode,
-} from 'react-native-audio-api';
+import type { OscillatorNode, GainNode, StereoPannerNode } from 'react-native-audio-api';
+
+import { acquireAudioContext, releaseAudioContext, resumeAudioContext } from '@/Audio';
 import { setAudiometryToneAdapter, ToneChannel, ToneTarget } from './useAudiometryTest';
 import { dbHLtoGainFreeField } from './audiometryCalibration';
 
@@ -23,6 +19,12 @@ import { dbHLtoGainFreeField } from './audiometryCalibration';
  * dB HL) -> StereoPannerNode (OD = derecho, OI = izquierdo, CL = campo libre
  * centrado) -> destination. Rampas de subida/bajada siempre (anti-click,
  * imprescindible en audiometría).
+ *
+ * CONTEXTO COMPARTIDO: los nodos cuelgan del ÚNICO AudioContext de la app
+ * (`@/Audio`). Este adaptador creaba antes su propio contexto y, con él, un
+ * segundo stream nativo: en Android (Oboe, sharing mode EXCLUSIVO) el segundo
+ * contexto que se abría se quedaba mudo sin avisar, así que según el orden de
+ * arranque se silenciaban los tonos o las palabras de la verbal.
  *
  * TIMBRES: la pantalla infantil presenta cada frecuencia como un instrumento
  * (500 = tambor, 1000 = piano, 2000 = campana, 4000 = flauta), así que el
@@ -65,19 +67,17 @@ export function installAudiometryToneAdapter(opts: ToneAdapterOptions = {}): () 
   const dbHLtoGain = opts.dbHLtoGain ?? dbHLtoGainFreeField;
   const toneDurationMs = opts.toneDurationMs ?? 1600;
 
-  // Sesión de audio: reproducción a través del altavoz, permitiendo Bluetooth.
-  try {
-    AudioManager.setAudioSessionOptions({
-      iosCategory: 'playback',
-      iosMode: 'default',
-      iosOptions: ['defaultToSpeaker', 'allowBluetooth', 'allowBluetoothA2DP'],
-    });
-    AudioManager.setAudioSessionActivity(true);
-  } catch {
-    /* algunos targets de desarrollo no exponen AudioManager: se ignora */
+  // Contexto ÚNICO de la app (crea el stream nativo en la primera reserva y
+  // configura la sesión de reproducción por altavoz).
+  const ctx = acquireAudioContext();
+  if (!ctx) {
+    // Sin motor nativo NO se registra adaptador: así `hasTone` queda en false
+    // y la pantalla avisa («no se emitirán tonos») en vez de aparentar que la
+    // prueba es válida mientras presenta silencio.
+    console.warn('VIA+: motor de audio no disponible; la audiometría no emitirá tonos.');
+    releaseAudioContext();
+    return () => {};
   }
-
-  let ctx: AudioContext | null = new AudioContext({ sampleRate: 48000 });
 
   // Nodos activos del estímulo en curso (para poder detenerlos). Un estímulo
   // con timbre usa varios osciladores (parciales), de ahí las listas.
@@ -136,13 +136,7 @@ export function installAudiometryToneAdapter(opts: ToneAdapterOptions = {}): () 
     // Si el sistema suspendió el contexto (interrupción, cambio de ruta de
     // audio, arranque en segundo plano), reactivarlo antes de programar el
     // estímulo: un contexto suspendido reproduce silencio sin dar error.
-    try {
-      if ((ctx as any).state && (ctx as any).state !== 'running') {
-        void ctx.resume();
-      }
-    } catch {
-      /* state/resume no disponibles en algunos targets: se ignora */
-    }
+    resumeAudioContext();
     const now = ctx.currentTime;
 
     if (typeof freq === 'number') {
@@ -252,7 +246,8 @@ export function installAudiometryToneAdapter(opts: ToneAdapterOptions = {}): () 
   return () => {
     stop();
     setAudiometryToneAdapter(null);
-    try { ctx?.close(); } catch {}
-    ctx = null;
+    // No se cierra el contexto: es compartido. `releaseAudioContext` solo lo
+    // cierra cuando ya no queda ningún consumidor.
+    releaseAudioContext();
   };
 }

@@ -4,9 +4,9 @@
 //
 //  Portada de RegistroProfesionalScreen (RN): crea el perfil del evaluador
 //  responsable del dispositivo (una sola vez). Nombre, rol, email y
-//  contraseña (≥6) son obligatorios; colegiado/servicio/centro son
-//  opcionales. Incluye la vista previa EN VIVO del perfil y, al guardar,
-//  abre sesión y aterriza en Pacientes.
+//  contraseña (≥6) son obligatorios; colegiado y centro son opcionales.
+//  Incluye la vista previa EN VIVO del perfil y, al guardar, abre sesión y
+//  aterriza en Pacientes.
 //
 
 import SwiftUI
@@ -38,7 +38,8 @@ struct ProfessionalRegistrationView: View {
     @State private var email = ""
     @State private var password = ""
     @State private var license = ""
-    @State private var service = ""
+    // El campo «Servicio» se retiró del alta: no se persistía en el perfil ni
+    // se enviaba a ningún sitio, solo alargaba el formulario.
     @State private var center = ""
 
     private var selectedRole: RoleOption? { roleOptions.first { $0.label == roleLabel } }
@@ -164,10 +165,7 @@ struct ProfessionalRegistrationView: View {
             FormField(label: "Contraseña", required: true, placeholder: "Mínimo 6 caracteres",
                       text: $password, secure: true, autocapitalization: .never)
 
-            HStack(alignment: .top, spacing: 10) {
-                FormField(label: "Nº colegiado · opcional", placeholder: "28/1234", text: $license)
-                FormField(label: "Servicio · opcional", placeholder: "ORL pediátrica", text: $service)
-            }
+            FormField(label: "Nº colegiado · opcional", placeholder: "28/1234", text: $license)
 
             FormField(label: "Centro de trabajo · opcional",
                       placeholder: "Hospital / Centro de salud", text: $center)

@@ -68,7 +68,9 @@ export default function RegistroProfesionalScreen({ navigation: _navigation }: P
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [colegiado, setColegiado] = useState('');
-  const [servicio, setServicio] = useState('');
+  // El campo «Servicio» se retiró del alta: no se persistía en el perfil
+  // (`Professional` no tiene esa columna) ni viajaba a Firestore, así que solo
+  // añadía fricción al registro.
   const [centro, setCentro] = useState('');
   const [isSaving, setIsSaving] = useState(false);
 
@@ -309,16 +311,6 @@ export default function RegistroProfesionalScreen({ navigation: _navigation }: P
                   placeholderTextColor="#B8B2A7"
                   value={colegiado}
                   onChangeText={setColegiado}
-                />
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.fieldLabel}>Servicio · opcional</Text>
-                <TextInput
-                  style={styles.input}
-                  placeholder="ORL pediátrica"
-                  placeholderTextColor="#B8B2A7"
-                  value={servicio}
-                  onChangeText={setServicio}
                 />
               </View>
             </View>

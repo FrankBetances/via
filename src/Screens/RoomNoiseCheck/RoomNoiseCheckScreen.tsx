@@ -12,7 +12,13 @@ import { RootState } from '@/Store';
 import { Evaluation } from '@/Models/Evaluation/Evaluation';
 import { useClassSelector } from '@/Helpers/ClassTransformer';
 import { NoiseVerdict, NoiseZone, useNoiseMeter, zoneOf } from './useNoiseMeter';
-import { registerNoiseMicAdapter } from './noiseMicAdapter';
+import { registerNoiseMicAdapter, unregisterNoiseMicAdapter } from './noiseMicAdapter';
+import {
+  getNoiseCalibrationOffset,
+  NOISE_OFFSET_LIMIT_DB,
+  setNoiseCalibrationOffset,
+  splFraction,
+} from './noiseDsp';
 
 /* -------------------------------------------------------------------------- */
 /*  Constantes                                                                 */
@@ -83,10 +89,19 @@ export default function RoomNoiseCheckScreen({ navigation, route }: Props) {
 
   const meter = useNoiseMeter({ threshold, testDurationSec });
   const [checks, setChecks] = useState<Record<string, boolean>>({ c1: false, c2: false, c3: false, c4: false });
+  // Corrección de campo del sonómetro (dB): permite anclar la lectura a un
+  // sonómetro de referencia sin recompilar. Vive en el módulo DSP (proceso),
+  // no en el estado, para que el adaptador la aplique bloque a bloque.
+  const [calibration, setCalibration] = useState(() => getNoiseCalibrationOffset());
+  const adjustCalibration = (delta: number) => setCalibration(setNoiseCalibrationOffset(calibration + delta));
 
-  // Registra el motor de captura real (react-native-audio-api).
+  // Registra el motor de captura real (react-native-audio-api) y lo libera al
+  // salir: sin la baja, el recorder y la sesión de grabación quedaban abiertos
+  // y el resto de módulos sonaba atenuado (o el sonómetro se quedaba «pillado»
+  // al volver a entrar).
   useEffect(() => {
     registerNoiseMicAdapter();
+    return () => unregisterNoiseMicAdapter();
   }, []);
 
   const allChecked = useMemo(() => CHECKLIST.every(c => checks[c.id]), [checks]);
@@ -95,7 +110,9 @@ export default function RoomNoiseCheckScreen({ navigation, route }: Props) {
   const liveDb = meter.db;
   const zone: NoiseZone = liveDb == null ? 'ok' : zoneOf(liveDb, threshold);
   const ringColor = liveDb == null ? '#C9C2B6' : ZONE_HEX[zone];
-  const frac = liveDb == null ? 0 : Math.max(0, Math.min(1, (liveDb - 28) / 64));
+  // Fracción del anillo con la MISMA escala que el DSP (antes estaba fijada a
+  // mano en 28–92 dB y quedó desincronizada al recalibrar el sonómetro).
+  const frac = liveDb == null ? 0 : splFraction(liveDb);
   const dashoffset = RING_C * (1 - frac);
 
   const sourceMeta: { kind: 'ok' | 'block' | 'pending'; text: string } =
@@ -199,7 +216,7 @@ export default function RoomNoiseCheckScreen({ navigation, route }: Props) {
                       {liveDb == null ? '--' : Math.round(liveDb)}
                     </Text>
                     <Text size="lg" weight="semiBold" color="$textLight400" mb="$2">
-                      dB
+                      dB(A)
                     </Text>
                   </HStack>
                   <Text size="xs" weight="bold" style={{ letterSpacing: 0.6, color: liveDb == null ? '#B0A89C' : ZONE_HEX[zone] }}>
@@ -274,6 +291,46 @@ export default function RoomNoiseCheckScreen({ navigation, route }: Props) {
             </Button>
           </HStack>
 
+          {/* ================= CALIBRACIÓN DE CAMPO ================= */}
+          <Card bgColor="$white" borderRadius={18} borderWidth={1} borderColor="$borderLight100" p="$4">
+            <HStack alignItems="center" justifyContent="space-between">
+              <VStack style={{ flex: 1 }}>
+                <Text size="2xs" weight="bold" color="$textLight400" style={{ letterSpacing: 0.4 }}>
+                  CALIBRACIÓN DE CAMPO
+                </Text>
+                <Text size="xs" color="$textLight500" mt="$0.5" style={{ lineHeight: 16 }}>
+                  Ajuste la lectura a un sonómetro de referencia en la misma sala. Si VIA+ marca menos que el
+                  patrón, súbala.
+                </Text>
+              </VStack>
+              <HStack space="xs" alignItems="center">
+                <Pressable onPress={() => adjustCalibration(-1)} disabled={calibration <= -NOISE_OFFSET_LIMIT_DB}>
+                  <Center w={38} h={38} borderRadius={12} borderWidth={1} borderColor="$borderLight200" bg="$white">
+                    <Text size="lg" weight="bold" color="$textLight600">
+                      −
+                    </Text>
+                  </Center>
+                </Pressable>
+                <Box minWidth={58}>
+                  <Text
+                    size="md"
+                    weight="bold"
+                    color={calibration === 0 ? '$textLight400' : '$primary600'}
+                    style={{ textAlign: 'center', fontVariant: ['tabular-nums'] }}>
+                    {calibration > 0 ? `+${calibration}` : calibration} dB
+                  </Text>
+                </Box>
+                <Pressable onPress={() => adjustCalibration(1)} disabled={calibration >= NOISE_OFFSET_LIMIT_DB}>
+                  <Center w={38} h={38} borderRadius={12} borderWidth={1} borderColor="$borderLight200" bg="$white">
+                    <Text size="lg" weight="bold" color="$textLight600">
+                      +
+                    </Text>
+                  </Center>
+                </Pressable>
+              </HStack>
+            </HStack>
+          </Card>
+
           {/* error de captura (permiso denegado, micrófono sin señal…) */}
           {meter.error ? (
             <Card bgColor="$error50" borderRadius={18} borderWidth={1} borderColor="$error200" p="$4">
@@ -331,8 +388,9 @@ export default function RoomNoiseCheckScreen({ navigation, route }: Props) {
             </VStack>
             <HStack space="sm" alignItems="flex-start" mt="$3" p="$3" borderRadius={14} bg="$backgroundLight50">
               <Text size="2xs" color="$textLight500" style={{ flex: 1, lineHeight: 16 }}>
-                Las pruebas de discriminación auditiva requieren ≤ {threshold} dB de ruido de fondo. Estimación relativa del
-                micrófono del dispositivo; no sustituye un sonómetro calibrado.
+                Las pruebas de discriminación auditiva requieren ≤ {threshold} dB(A) de ruido de fondo. Lectura con
+                ponderación A (IEC 61672) sobre el micrófono del dispositivo, sin calibración certificada: es
+                orientativa y no sustituye a un sonómetro patrón.
               </Text>
             </HStack>
           </Card>

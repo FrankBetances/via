@@ -1,8 +1,9 @@
 # Entorno del motor de voz neural (tools/nos) — SOLO herramientas de build.
 # La app React Native no depende de nada de este archivo.
 #
-#   python3 -m venv tools/nos/.venv
+#   python3 -m venv tools/nos/.venv          (Python 3.10–3.12; probado en 3.11)
 #   tools/nos/.venv/bin/pip install -r tools/nos/requirements.txt
+#   tools/nos/.venv/bin/python tools/nos/tts.py --check   ← verifica el entorno
 #
 # piper-tts   → voces Piper/VITS-ONNX (es provisional, es-DO Quisqueya Habla)
 # coqui-tts   → fork mantenido (idiap) de Coqui TTS: voz Celtia (gl, Proxecto Nós)
@@ -11,3 +12,19 @@
 piper-tts==1.2.0
 coqui-tts>=0.24,<0.26
 huggingface_hub>=0.23,<1.0
+
+# --- Fijaciones defensivas de dependencias TRANSITIVAS ----------------------
+# No son dependencias nuestras: corrigen resoluciones que rompen el entorno.
+#
+# click — coqui-tts arrastra spacy 3.7.x, que hace `from click import ...` pero
+# solo declara `typer`. Desde typer 0.13 el paquete se dividió (`typer-slim`) y
+# YA NO arrastra click, así que un `pip install -r` limpio instalaba typer 0.27
+# sin click y `import TTS` moría con `ModuleNotFoundError: No module named
+# 'click'` — la voz gallega (Celtia) no arrancaba en un entorno recién creado.
+# Se fija click explícitamente en el rango que espera spacy 3.7.
+click>=8.0,<8.2
+
+# numpy — coqui-tts (numba/librosa) todavía no admite la ABI de NumPy 2.x; sin
+# este tope, piper/onnxruntime arrastraban numpy 2.x y la síntesis gallega
+# fallaba al importar numba.
+numpy>=1.24,<2.0

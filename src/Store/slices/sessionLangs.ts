@@ -5,11 +5,12 @@
 /*  Coincide con las lenguas que la app puede locutar (`VOICE_LANGS` en         */
 /*  `src/Voice`); un test de coherencia evita que diverjan.                     */
 /*                                                                             */
-/*  OJO — desacoplado de los BANCOS verbales (`VERBAL_BANK_LANGS` = es, es-DO): */
-/*  elegir un idioma sin banco propio (hoy `gl`) NO rompe la audiometría        */
-/*  verbal —degrada al banco español base hasta que el plan Nós (M3) registre   */
-/*  el banco gallego— pero SÍ selecciona las consignas habladas gallegas        */
-/*  (capa de voz). Módulo puro para poder testearlo sin arrastrar redux.        */
+/*  Las tres tienen ya banco verbal propio (`VERBAL_BANK_LANGS`), incluido el  */
+/*  gallego del plan Nós (M3); un test de coherencia impide que el selector    */
+/*  ofrezca una lengua sin banco. Aun así, la audiometría verbal SANEA el      */
+/*  idioma que recibe (`resolveVerbalLang`): un valor persistido de una         */
+/*  versión anterior degrada a castellano en vez de tumbar la pantalla.         */
+/*  Módulo puro para poder testearlo sin arrastrar redux.                       */
 /* -------------------------------------------------------------------------- */
 
 export const SESSION_LANGS = ['es', 'gl', 'es-DO'] as const;

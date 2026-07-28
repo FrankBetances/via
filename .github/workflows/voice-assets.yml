@@ -98,6 +98,11 @@ jobs:
           fi
           python -m pip install --upgrade pip
           pip install -r tools/nos/requirements.txt
+          # Verifica que las librerías IMPORTAN, no solo que estén instaladas:
+          # una resolución transitiva incompatible (p. ej. spacy sin `click`)
+          # deja `import TTS` roto y la síntesis gallega fallaba a mitad del
+          # job, tras descargar los pesos.
+          python tools/nos/tts.py --check
           HUGGING_FACE_HUB_TOKEN="$HF_TOKEN" tools/nos/fetch-models.sh
 
       - name: Export corpus

@@ -3,7 +3,7 @@
 /**
  * Pipeline de assets de la Audiometría Verbal (herramienta de desarrollo).
  *
- *   node scripts/verbal-assets.js manifest [--lang es|es-DO]  → estado del banco + manifiesto
+ *   node scripts/verbal-assets.js manifest [--lang es|gl|es-DO]  → estado del banco + manifiesto
  *   node scripts/verbal-assets.js images   [--lang …]         → ilustraciones PROVISIONALES (Chromium headless)
  *   node scripts/verbal-assets.js audio    [--lang …]         → locuciones PROVISIONALES (espeak-ng o motor neural)
  *   node scripts/verbal-assets.js registry                    → regenera src/Screens/VerbalAudiometry/verbalAssets.ts
@@ -477,7 +477,7 @@ async function main() {
   const langIdx = args.indexOf('--lang');
   const lang = langIdx >= 0 ? args[langIdx + 1] : 'es';
   if (langIdx >= 0) args.splice(langIdx, 2);
-  if (!lang) throw new Error('--lang requiere un valor (es | es-DO)');
+  if (!lang) throw new Error('--lang requiere un valor (es | gl | es-DO)');
   const cmd = args[0] || 'manifest';
 
   const mods = loadVerbalModules(lang); // valida el idioma contra el registro de bancos

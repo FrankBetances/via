@@ -1,14 +1,13 @@
 import { Buffer } from 'buffer';
-import {
+import type {
   AudioBuffer,
   AudioBufferSourceNode,
-  AudioContext,
-  AudioManager,
   GainNode,
   StereoPannerNode,
 } from 'react-native-audio-api';
 
-import { pickBestSpanishVoice } from './verbalTtsVoice';
+import { acquireAudioContext, releaseAudioContext, resumeAudioContext } from '@/Audio';
+import { pickVoiceForLang, ttsLanguageTagFor, type TtsVoice } from './verbalTtsVoice';
 
 /* -------------------------------------------------------------------------- */
 /*  Adaptador de audio de la Audiometría Verbal (campo libre, sin audífonos).  */
@@ -62,12 +61,18 @@ export interface VerbalAudioAdapter {
   playWord: (audioKey: string, word: string, levelDb: number, lang?: string) => void;
   /**
    * Dicta un TEXTO arbitrario (consignas de otros módulos, p. ej. los
-   * mini-juegos de funciones ejecutivas) con el TTS es-ES VERIFICADO, a
-   * volumen pleno. Silencioso si el dispositivo no tiene voz española: es
+   * mini-juegos de funciones ejecutivas) con la voz VERIFICADA de `lang`, a
+   * volumen pleno. Silencioso si el dispositivo no tiene voz utilizable: es
    * una ayuda de accesibilidad, no un estímulo clínico calibrado. Opcional
    * para no romper adaptadores de prueba ya registrados.
    */
-  speakText?: (text: string) => void;
+  speakText?: (text: string, lang?: string) => void;
+  /**
+   * ¿Hay una voz del sistema VERIFICADA para dictar texto? `speakText` existe
+   * siempre, pero es SILENCIOSO si el dispositivo no tiene voz española: la UI
+   * necesita este dato para no ofrecer un botón de altavoz que no suena.
+   */
+  ttsReady?: () => boolean;
   stop: () => void;
   /**
    * Motor activo. 'tts' = sintetizador nativo del sistema (nivel RELATIVO
@@ -157,19 +162,11 @@ export function installVerbalAudioAdapter(opts: VerbalAudioAdapterOptions = {}):
   const preferTts = opts.preferTts ?? true;
   const engine: VerbalAudioEngine = opts.engine ?? 'assets';
 
-  // Sesión de audio por altavoz (misma configuración que audiometryToneAdapter).
-  try {
-    AudioManager.setAudioSessionOptions({
-      iosCategory: 'playback',
-      iosMode: 'default',
-      iosOptions: ['defaultToSpeaker', 'allowBluetooth', 'allowBluetoothA2DP'],
-    });
-    AudioManager.setAudioSessionActivity(true);
-  } catch {
-    /* algunos targets de desarrollo no exponen AudioManager: se ignora */
-  }
-
-  let ctx: AudioContext | null = new AudioContext({ sampleRate: 48000 });
+  // Contexto ÚNICO de la app: este adaptador creaba antes su propio
+  // AudioContext y, con él, un segundo stream nativo que en Android (Oboe
+  // exclusivo) dejaba mudo al de los tonos —o se quedaba mudo él— según cuál
+  // arrancase primero.
+  const ctx = acquireAudioContext();
   const bufferCache = new Map<string, AudioBuffer>();
 
   // Nodos del estímulo en curso (para poder detenerlos).
@@ -189,16 +186,59 @@ export function installVerbalAudioAdapter(opts: VerbalAudioAdapterOptions = {}):
   let currentTts: { audioKey: string; levelDb: number; lang?: string } | null = null;
   let ttsConsecutiveFailures = 0;
   const TTS_FAILURE_LIMIT = 2;
-  // Selección de la MEJOR voz española del dispositivo (la más humana): se
-  // enumeran las voces instaladas y se elige la neural es-ES de mayor calidad
-  // (ver `pickBestSpanishVoice`), fijándola con `setDefaultVoice`. Solo si el
-  // dispositivo no expone la lista se recurre a `setDefaultLanguage('es-ES')`.
+  // Selección de la MEJOR voz del dispositivo PARA LA LENGUA DE LA SESIÓN (la
+  // más humana): se enumeran las voces instaladas y se elige la neural de mayor
+  // calidad del idioma pedido (ver `pickVoiceForLang`), fijándola con
+  // `setDefaultVoice`. Solo si el dispositivo no expone la lista se recurre a
+  // `setDefaultLanguage`.
   //
-  // La VERIFICACIÓN de que existe voz española es imprescindible: sin ella el
+  // La VERIFICACIÓN de que existe voz del idioma es imprescindible: sin ella el
   // motor quedaba con la voz por defecto del sistema (a menudo en-US) y las
   // palabras castellanas sonaban «en inglés» (bug de campo). Si no hay ninguna
-  // voz española, el TTS se desactiva y se usan los recortes empaquetados.
+  // voz utilizable, el TTS se desactiva y se usan los recortes empaquetados.
+  //
+  // Multi-idioma: el gallego rara vez tiene voz `gl-*` instalada, así que
+  // `pickVoiceForLang` degrada a la castellana y lo marca; la voz se refija
+  // solo cuando cambia la lengua de la locución (no en cada palabra).
   let ttsSpanishReady = false;
+  let ttsVoices: TtsVoice[] = [];
+  /** Lengua cuya voz está fijada ahora mismo en el motor. */
+  let ttsCurrentLang: string | null = null;
+  /** Lenguas ya descartadas por no tener voz utilizable (no reintentar). */
+  const ttsUnavailableLangs = new Set<string>();
+
+  const applyVoiceForLang = async (lang: string): Promise<boolean> => {
+    if (!ttsEngine) return false;
+    if (ttsCurrentLang === lang) return true;
+    if (ttsUnavailableLangs.has(lang)) return false;
+
+    const pick = pickVoiceForLang(ttsVoices, lang);
+    if (pick?.voice.id) {
+      try {
+        await ttsEngine.setDefaultVoice?.(pick.voice.id);
+        ttsCurrentLang = lang;
+        if (pick.degraded) {
+          console.warn(
+            `VIA+: sin voz del sistema para '${lang}'; se dicta con una voz '${pick.langPrefix}'.`,
+          );
+        }
+        return true;
+      } catch {
+        /* la voz elegida no se pudo fijar: probamos por etiqueta de idioma */
+      }
+    }
+    try {
+      await ttsEngine.setDefaultLanguage?.(ttsLanguageTagFor(lang));
+      ttsCurrentLang = lang;
+      return true;
+    } catch {
+      // Ni voz ni datos del idioma: se descarta esa lengua para no reintentar
+      // en cada palabra (y se degrada a recortes / silencio).
+      ttsUnavailableLangs.add(lang);
+      return false;
+    }
+  };
+
   const configureTts = async () => {
     if (!ttsEngine) return;
     try {
@@ -208,24 +248,10 @@ export function installVerbalAudioAdapter(opts: VerbalAudioAdapterOptions = {}):
       try { await ttsEngine.setDefaultRate?.(0.48); } catch { /* opcional */ }
       try { await ttsEngine.setDefaultPitch?.(1.0); } catch { /* opcional */ }
 
-      const voices = (await ttsEngine.voices?.()) ?? [];
-      const best = pickBestSpanishVoice(voices);
-      if (best?.id) {
-        try {
-          await ttsEngine.setDefaultVoice?.(best.id);
-          ttsSpanishReady = true;
-          return;
-        } catch {
-          /* la voz elegida no se pudo fijar: probamos por idioma */
-        }
-      }
-      // Sin lista de voces (o sin poder fijarla): fijar el idioma castellano.
-      try {
-        await ttsEngine.setDefaultLanguage?.('es-ES');
-        ttsSpanishReady = true;
-      } catch {
-        /* sin datos es-ES en el dispositivo: TTS desactivado → recortes */
-      }
+      ttsVoices = (await ttsEngine.voices?.()) ?? [];
+      // `ttsSpanishReady` gobierna si hay ALGUNA vía de dictado; la voz
+      // concreta se fija por locución según su lengua.
+      ttsSpanishReady = await applyVoiceForLang('es');
     } catch {
       /* motor TTS no inicializable: queda desactivado */
     }
@@ -246,43 +272,38 @@ export function installVerbalAudioAdapter(opts: VerbalAudioAdapterOptions = {}):
   };
 
   /**
-   * Dicta la palabra con el TTS es-ES verificado. Devuelve la promesa de
-   * `speak()` para que el llamador pueda DEGRADAR al recorte si la síntesis
-   * falla (p. ej. voz de red sin conectividad): rechaza si no hay voz española
-   * o si el motor rechaza el dictado. Nunca dicta castellano con voz inglesa.
+   * Dicta la palabra con la voz VERIFICADA de la lengua indicada. Devuelve la
+   * promesa de `speak()` para que el llamador pueda DEGRADAR al recorte si la
+   * síntesis falla (p. ej. voz de red sin conectividad): rechaza si no hay voz
+   * utilizable o si el motor rechaza el dictado. Nunca dicta con voz inglesa.
    */
-  const speakWord = (word: string, levelDb: number): Promise<unknown> => {
-    // Sin motor o sin voz española verificada: modo demostración (el clínico
-    // presenta el modelo con su voz).
-    if (!ttsEngine || !ttsSpanishReady) return Promise.reject(new Error('sin voz española'));
-    try {
+  const speakWord = (word: string, levelDb: number, lang = 'es'): Promise<unknown> => {
+    // Sin motor o sin voz verificada: modo demostración (el clínico presenta
+    // el modelo con su voz).
+    if (!ttsEngine || !ttsSpanishReady) return Promise.reject(new Error('sin voz del sistema'));
+    // Se fija la voz de la lengua ANTES de dictar (no-op si ya está fijada):
+    // sin esto, una sesión gallega dictaba con la voz castellana ya cargada.
+    return applyVoiceForLang(lang).then(ok => {
+      if (!ok) throw new Error(`sin voz del sistema para '${lang}'`);
       ttsEngine.stop?.();
       // Sintetizador nativo (Android: TextToSpeech). El nivel relativo se
       // aplica con KEY_PARAM_VOLUME (misma ganancia que los recortes) y la
       // presentación binaural centrada con KEY_PARAM_PAN = 0, por el stream
       // de música (mismo canal de salida que el resto de estímulos).
-      return Promise.resolve(
-        ttsEngine.speak?.(word, {
-          androidParams: {
-            KEY_PARAM_VOLUME: levelToGain(levelDb),
-            KEY_PARAM_PAN: 0,
-            KEY_PARAM_STREAM: 'STREAM_MUSIC',
-          },
-        }),
-      );
-    } catch (e) {
-      return Promise.reject(e);
-    }
+      return ttsEngine.speak?.(word, {
+        androidParams: {
+          KEY_PARAM_VOLUME: levelToGain(levelDb),
+          KEY_PARAM_PAN: 0,
+          KEY_PARAM_STREAM: 'STREAM_MUSIC',
+        },
+      });
+    });
   };
 
   const playBuffer = (buffer: AudioBuffer, levelDb: number) => {
     if (!ctx) return;
     // Reactivar el contexto si el sistema lo suspendió (ver audiometryToneAdapter).
-    try {
-      if ((ctx as any).state && (ctx as any).state !== 'running') void ctx.resume();
-    } catch {
-      /* state/resume no disponibles en algunos targets: se ignora */
-    }
+    resumeAudioContext();
     const now = ctx.currentTime;
     source = ctx.createBufferSource();
     source.buffer = buffer;
@@ -331,24 +352,27 @@ export function installVerbalAudioAdapter(opts: VerbalAudioAdapterOptions = {}):
     }
   };
 
-  /** Dictado de consignas (frases completas) con el TTS es-ES verificado. */
-  const speakText = (text: string) => {
+  /**
+   * Dictado de consignas (frases completas) con la voz verificada de la lengua
+   * de sesión. Es la vía que usan los mini-juegos de funciones ejecutivas y el
+   * resto de módulos a través de `@/Voice`.
+   */
+  const speakText = (text: string, lang = 'es') => {
     if (!ttsEngine || !ttsSpanishReady) return;
     currentTts = null; // la consigna sustituye cualquier palabra pendiente
-    try {
-      ttsEngine.stop?.();
-      Promise.resolve(
-        ttsEngine.speak?.(text, {
+    applyVoiceForLang(lang)
+      .then(ok => {
+        if (!ok) return;
+        ttsEngine.stop?.();
+        return ttsEngine.speak?.(text, {
           androidParams: {
             KEY_PARAM_VOLUME: 1,
             KEY_PARAM_PAN: 0,
             KEY_PARAM_STREAM: 'STREAM_MUSIC',
           },
-        }),
-      ).catch(() => { /* ayuda de accesibilidad: sin respaldo */ });
-    } catch {
-      /* noop */
-    }
+        });
+      })
+      .catch(() => { /* ayuda de accesibilidad: sin respaldo */ });
   };
 
   /**
@@ -377,23 +401,27 @@ export function installVerbalAudioAdapter(opts: VerbalAudioAdapterOptions = {}):
 
   const playWord = (audioKey: string, word: string, levelDb: number, lang?: string) => {
     stop();
+    const sessionLang = lang ?? 'es';
     const hasClip =
       engine === 'assets' && (!!assetBase64?.(audioKey, lang) || !!assetSource?.(audioKey, lang));
-    // VARIANTES (es-DO…): los recortes empaquetados son el estímulo validado
-    // por el logopeda de la variante y SIEMPRE la vía primaria — el TTS del
-    // dispositivo impondría otro acento y solo queda como último recurso.
-    const isVariant = !!lang && lang !== 'es';
+    // VARIANTES del castellano (es-DO): los recortes empaquetados son el
+    // estímulo validado por el logopeda de la variante y SIEMPRE la vía
+    // primaria — el TTS del dispositivo impondría otro acento y solo queda
+    // como último recurso. El GALLEGO no es una variante: es otro idioma sin
+    // recortes propios todavía, así que su vía primaria es el TTS (con la voz
+    // gallega si la hay y, si no, la castellana declarada como degradación).
+    const isSpanishVariant = sessionLang !== 'es' && sessionLang.startsWith('es');
 
-    // Vía PRIMARIA (solo es): TTS neural del dispositivo (voz humana) cuando
-    // hay voz española verificada. El recorte queda de respaldo REAL: si
+    // Vía PRIMARIA: TTS neural del dispositivo (voz humana) cuando hay voz
+    // verificada para la lengua. El recorte queda de respaldo REAL: si
     // `speak()` rechaza o el motor emite `tts-error` (síntesis de red sin
     // conexión, motor saturado…), esa palabra suena por el recorte y, tras
     // varios fallos seguidos, la sesión entera pasa a recortes — antes el
     // fallo se tragaba en silencio y la prueba se quedaba muda a mitad de la
     // lista.
-    if (!isVariant && preferTts && ttsSpanishReady && ttsConsecutiveFailures < TTS_FAILURE_LIMIT) {
+    if (!isSpanishVariant && preferTts && ttsSpanishReady && ttsConsecutiveFailures < TTS_FAILURE_LIMIT) {
       currentTts = { audioKey, levelDb, lang };
-      speakWord(word, levelDb).catch(() => {
+      speakWord(word, levelDb, sessionLang).catch(() => {
         ttsConsecutiveFailures += 1;
         currentTts = null;
         if (hasClip) playClip(audioKey, levelDb, lang);
@@ -401,15 +429,15 @@ export function installVerbalAudioAdapter(opts: VerbalAudioAdapterOptions = {}):
       return;
     }
 
-    // Sin TTS español utilizable (o variante): recortes empaquetados.
+    // Sin TTS utilizable (o variante del castellano): recortes empaquetados.
     if (!hasClip || !ctx) {
-      // Último recurso (silencioso si tampoco hay voz española).
-      speakWord(word, levelDb).catch(() => { /* sin vía de emisión */ });
+      // Último recurso (silencioso si tampoco hay voz del sistema).
+      speakWord(word, levelDb, sessionLang).catch(() => { /* sin vía de emisión */ });
       return;
     }
     // Recorte ilegible → degradar a TTS por palabra (comportamiento histórico).
     playClip(audioKey, levelDb, lang, () => {
-      speakWord(word, levelDb).catch(() => { /* sin vía de emisión */ });
+      speakWord(word, levelDb, sessionLang).catch(() => { /* sin vía de emisión */ });
     });
   };
 
@@ -438,6 +466,7 @@ export function installVerbalAudioAdapter(opts: VerbalAudioAdapterOptions = {}):
   setVerbalAudioAdapter({
     playWord,
     speakText,
+    ttsReady: () => ttsSpanishReady,
     stop,
     // Motor declarado: 'tts' cuando se prefiere la voz nativa (el objetivo de
     // calidad); 'assets' si se priorizan los recortes. La degradación real por
@@ -454,7 +483,7 @@ export function installVerbalAudioAdapter(opts: VerbalAudioAdapterOptions = {}):
       ttsEngine?.removeEventListener?.('tts-error', onTtsError);
     } catch {}
     bufferCache.clear();
-    try { ctx?.close(); } catch {}
-    ctx = null;
+    // El contexto es compartido: solo se suelta la referencia.
+    releaseAudioContext();
   };
 }

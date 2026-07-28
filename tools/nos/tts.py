@@ -126,12 +126,19 @@ class CoquiVitsEngine:
         # reproducibilidad del pipeline de assets).
         self._torch.manual_seed(seed_for(text))
         kwargs = {}
-        if "lengthScale" in self.params:
-            kwargs["length_scale"] = self.params["lengthScale"]
+        # La API de Coqui expone el ritmo como `speed` (multiplicador), no como
+        # el `length_scale` de VITS: son inversos (length_scale 1.1 = 10 % más
+        # lento = speed 0.909). Pasar `length_scale` acababa en un TypeError que
+        # se tragaba el `except` de abajo, de modo que el parámetro declarado en
+        # voices.json NO se aplicaba nunca y la locución gallega salía siempre a
+        # ritmo por defecto.
+        length_scale = self.params.get("lengthScale")
+        if length_scale:
+            kwargs["speed"] = 1.0 / float(length_scale)
         try:
             self.tts.tts_to_file(text=text, file_path=str(out_wav), **kwargs)
         except TypeError:
-            # Versiones de Coqui sin passthrough de length_scale.
+            # Versiones de Coqui sin passthrough del ritmo.
             self.tts.tts_to_file(text=text, file_path=str(out_wav))
 
 
@@ -155,6 +162,43 @@ def make_engine(lang: str, registry: dict):
 # --------------------------------------------------------------------------- #
 
 
+def cmd_check() -> int:
+    """Diagnóstico del entorno Python (`--check`).
+
+    Comprueba que las librerías de síntesis IMPORTAN de verdad, no solo que
+    estén instaladas: la ruta de fallo real del pipeline gallego fue un entorno
+    con `coqui-tts` presente pero `import TTS` roto porque spacy necesita
+    `click` y las versiones nuevas de typer ya no lo arrastran. Un `pip list`
+    no lo detecta; este comando sí.
+
+    Devuelve 0 si todo importa, 1 si falta algo (apto para CI).
+    """
+    checks: list[tuple[str, str, str]] = [
+        ("piper", "from piper import PiperVoice", "voces Piper (es, es-DO)"),
+        ("coqui-tts", "from TTS.api import TTS", "voz Celtia (gl, Proxecto Nós)"),
+        ("torch", "import torch", "backend de Coqui/VITS"),
+        ("huggingface_hub", "from huggingface_hub import snapshot_download", "descarga de pesos"),
+    ]
+    failed = 0
+    for name, statement, purpose in checks:
+        try:
+            exec(compile(statement, "<check>", "exec"), {})  # noqa: S102 — diagnóstico local
+        except Exception as exc:  # noqa: BLE001 — cualquier fallo de import cuenta
+            failed += 1
+            print(f"✗ {name:16} {purpose}\n    {type(exc).__name__}: {exc}")
+        else:
+            print(f"✓ {name:16} {purpose}")
+
+    if failed:
+        print(
+            "\nEntorno incompleto. Reinstale con:\n"
+            "  pip install -r tools/nos/requirements.txt\n"
+            "(el archivo fija `click` y `numpy<2`, que son las dos resoluciones "
+            "transitivas que rompen `import TTS`)."
+        )
+    return 1 if failed else 0
+
+
 def cmd_list(registry: dict) -> None:
     base = models_dir(registry)
     for lang, cfg in sorted(registry["voices"].items()):
@@ -174,7 +218,15 @@ def main() -> None:
     ap.add_argument("--batch", help="JSON {clave: texto} (modo lote)")
     ap.add_argument("--out-dir", help="directorio de salida del lote (<clave>.wav)")
     ap.add_argument("--list", action="store_true", help="listar voces registradas y su estado")
+    ap.add_argument(
+        "--check",
+        action="store_true",
+        help="verificar que las librerías de síntesis importan (diagnóstico del entorno)",
+    )
     args = ap.parse_args()
+
+    if args.check:
+        raise SystemExit(cmd_check())
 
     registry = load_registry()
     if args.list:

@@ -1,25 +1,30 @@
+import {
+  acquireAudioContext,
+  peekAudioContext,
+  releaseAudioContext,
+  resumeAudioContext,
+  type SharedAudioContext,
+} from '@/Audio';
+
 /* -------------------------------------------------------------------------- */
 /*  Reproductor de assets de voz (runtime · react-native-audio-api).            */
 /*                                                                             */
-/*  `playVoiceAsset(module)` reproduce el `.m4a` pre-sintetizado. Carga         */
-/*  PEREZOSA del módulo nativo: si `react-native-audio-api` no está disponible  */
-/*  (o el asset no decodifica), devuelve `false` y el llamante (`viaVoice`)     */
-/*  cae a la voz del sistema. Un ÚNICO slot de reproducción: empezar una        */
-/*  locución detiene la anterior (misma disciplina que el adaptador verbal).    */
+/*  `playVoiceAsset(module)` reproduce el `.m4a` pre-sintetizado. Usa el        */
+/*  contexto de audio COMPARTIDO de la app (`@/Audio`): antes creaba uno        */
+/*  propio y en Android (Oboe en modo exclusivo) ese contexto extra se quedaba  */
+/*  mudo —o dejaba mudos a los de las audiometrías—, que es por lo que las      */
+/*  consignas habladas de los ejercicios no sonaban.                            */
+/*                                                                             */
+/*  Si no hay motor nativo (o el asset no decodifica) devuelve `false` y el     */
+/*  llamante (`viaVoice`) cae a la voz del sistema. Un ÚNICO slot de            */
+/*  reproducción: empezar una locución detiene la anterior (misma disciplina    */
+/*  que el adaptador verbal).                                                    */
 /*                                                                             */
 /*  Los modelos de IA NUNCA corren aquí: en runtime solo se REPRODUCE audio ya  */
 /*  empaquetado (offline-first inviolable, P1).                                 */
 /* -------------------------------------------------------------------------- */
 
 /* Metro exige literales en `require(...)` (ver verbalAudiometryAudio.ts). */
-const optionalAudioApi = (): any => {
-  try {
-    return require('react-native-audio-api');
-  } catch (_e) {
-    return null;
-  }
-};
-
 const optionalRN = (): any => {
   try {
     return require('react-native');
@@ -28,20 +33,18 @@ const optionalRN = (): any => {
   }
 };
 
-let ctx: any = null;
 let source: any = null;
 const cache = new Map<number, any>(); // módulo de asset → AudioBuffer decodificado
+/** ¿Se tomó ya la referencia del contexto compartido? (una sola por proceso) */
+let holdsContext = false;
 
-const getContext = (): any => {
-  if (ctx) return ctx;
-  const api = optionalAudioApi();
-  if (!api?.AudioContext) return null;
-  try {
-    ctx = new api.AudioContext({ sampleRate: 48000 });
-    return ctx;
-  } catch {
-    return null;
-  }
+const getContext = (): SharedAudioContext | null => {
+  if (holdsContext) return peekAudioContext();
+  const ctx = acquireAudioContext();
+  // Se marca la reserva aunque el contexto sea null: `acquireAudioContext`
+  // incrementa el contador igualmente y hay que soltarlo en `dispose`.
+  holdsContext = true;
+  return ctx;
 };
 
 /** Detiene la locución en curso (si la hay). */
@@ -71,11 +74,7 @@ const uriForModule = (assetModule: number): string | null => {
 const play = (buffer: any): boolean => {
   const c = getContext();
   if (!c) return false;
-  try {
-    if (c.state && c.state !== 'running') void c.resume?.();
-  } catch {
-    /* algunos targets no exponen state/resume */
-  }
+  resumeAudioContext();
   try {
     stopVoiceAsset();
     const src = c.createBufferSource();
@@ -87,6 +86,28 @@ const play = (buffer: any): boolean => {
   } catch {
     return false;
   }
+};
+
+/**
+ * Decodifica el asset. En RELEASE el asset es un fichero del bundle y
+ * `decodeAudioDataSource` (que solo abre RUTAS locales) lo resuelve; en
+ * DESARROLLO `resolveAssetSource` devuelve una URL http del servidor de Metro
+ * que la vía nativa por ruta NO sabe abrir —por eso las consignas no sonaban
+ * en los builds de depuración—, así que se descarga y se decodifica en memoria.
+ * Mismo orden de degradación que el adaptador de la audiometría verbal.
+ */
+const decodeAsset = async (c: SharedAudioContext, uri: string): Promise<any> => {
+  const isRemote = /^https?:/i.test(uri);
+  if (!isRemote) {
+    try {
+      return await c.decodeAudioDataSource(uri);
+    } catch {
+      /* cae a la descarga */
+    }
+  }
+  const res = await fetch(uri);
+  const data = await res.arrayBuffer();
+  return await c.decodeAudioData(data);
 };
 
 /**
@@ -104,7 +125,7 @@ export const playVoiceAsset = async (assetModule: number | undefined): Promise<b
   const uri = uriForModule(assetModule);
   if (!uri) return false;
   try {
-    const buffer = await c.decodeAudioDataSource(uri);
+    const buffer = await decodeAsset(c, uri);
     cache.set(assetModule, buffer);
     return play(buffer);
   } catch {
@@ -112,14 +133,12 @@ export const playVoiceAsset = async (assetModule: number | undefined): Promise<b
   }
 };
 
-/** Libera el contexto de audio y la caché (limpieza en desmontaje). */
+/** Libera la referencia al contexto compartido y la caché (limpieza en desmontaje). */
 export const disposeVoicePlayback = (): void => {
   stopVoiceAsset();
-  try {
-    ctx?.close?.();
-  } catch {
-    /* noop */
+  if (holdsContext) {
+    holdsContext = false;
+    releaseAudioContext();
   }
-  ctx = null;
   cache.clear();
 };
