@@ -1,4 +1,11 @@
-import { isUsableSpanishVoice, pickBestSpanishVoice, scoreSpanishVoice, TtsVoice } from '../verbalTtsVoice';
+import {
+  isUsableSpanishVoice,
+  pickBestSpanishVoice,
+  pickVoiceForLang,
+  scoreSpanishVoice,
+  ttsLanguageTagFor,
+  TtsVoice,
+} from '../verbalTtsVoice';
 
 /* -------------------------------------------------------------------------- */
 /*  Selección de la mejor voz española del TTS: castellano y voz neural por    */
@@ -77,5 +84,59 @@ describe('pickBestSpanishVoice', () => {
     const neural = V({ id: 'es-es-x-eea-network', language: 'es-ES', quality: 400 });
     const plain = V({ id: 'es-es-basic', language: 'es-ES', quality: 400 });
     expect(scoreSpanishVoice(neural)).toBeGreaterThan(scoreSpanishVoice(plain));
+  });
+});
+
+/* -------------------------------------------------------------------------- */
+/*  Selección MULTI-IDIOMA (plan Nós: el gallego entra en la audiometría        */
+/*  verbal). El dispositivo casi nunca trae voz `gl-*`, así que la cadena de    */
+/*  degradación tiene que estar declarada y ser observable: gallego → voz       */
+/*  gallega si existe, si no castellana MARCADA como degradación, y nunca la    */
+/*  voz por defecto del sistema (inglesa) que invalidaría el estímulo.          */
+/* -------------------------------------------------------------------------- */
+
+describe('pickVoiceForLang · una voz por lengua de sesión', () => {
+  const ES = V({ id: 'es-es-local', language: 'es-ES', quality: 400, networkConnectionRequired: false });
+  const GL = V({ id: 'gl-es-local', language: 'gl-ES', quality: 400, networkConnectionRequired: false });
+  const EN = V({ id: 'en-us-local', language: 'en-US', quality: 500, networkConnectionRequired: false });
+
+  it('gallego: usa la voz gallega cuando está instalada (sin degradar)', () => {
+    const pick = pickVoiceForLang([EN, ES, GL], 'gl');
+    expect(pick?.voice.id).toBe('gl-es-local');
+    expect(pick?.langPrefix).toBe('gl');
+    expect(pick?.degraded).toBe(false);
+  });
+
+  it('gallego sin voz gallega: degrada a la castellana y lo DECLARA', () => {
+    const pick = pickVoiceForLang([EN, ES], 'gl');
+    expect(pick?.voice.id).toBe('es-es-local');
+    expect(pick?.langPrefix).toBe('es');
+    expect(pick?.degraded).toBe(true);
+  });
+
+  it('nunca cae en la voz inglesa del sistema: sin voz utilizable devuelve null', () => {
+    expect(pickVoiceForLang([EN], 'gl')).toBeNull();
+    expect(pickVoiceForLang([EN], 'es')).toBeNull();
+    expect(pickVoiceForLang([], 'gl')).toBeNull();
+    expect(pickVoiceForLang(null, 'es')).toBeNull();
+  });
+
+  it('castellano: NO se conforma con una voz gallega (no es su cadena de respaldo)', () => {
+    expect(pickVoiceForLang([GL], 'es')).toBeNull();
+  });
+
+  it('es-DO usa la cadena del castellano', () => {
+    expect(pickVoiceForLang([EN, ES], 'es-DO')?.voice.id).toBe('es-es-local');
+  });
+
+  it('dentro de una lengua manda la misma jerarquía (dialecto → sin red → calidad)', () => {
+    const glRed = V({ id: 'gl-red', language: 'gl-ES', quality: 500, networkConnectionRequired: true });
+    expect(pickVoiceForLang([glRed, GL], 'gl')?.voice.id).toBe('gl-es-local');
+  });
+
+  it('la etiqueta de idioma de respaldo es la correcta por lengua', () => {
+    expect(ttsLanguageTagFor('gl')).toBe('gl-ES');
+    expect(ttsLanguageTagFor('es')).toBe('es-ES');
+    expect(ttsLanguageTagFor('es-DO')).toBe('es-DO');
   });
 });

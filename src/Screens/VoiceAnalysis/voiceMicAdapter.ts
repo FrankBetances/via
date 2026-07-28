@@ -1,11 +1,14 @@
 import { PermissionsAndroid, Platform } from 'react-native';
-import {
-  AudioBufferSourceNode,
-  AudioContext,
-  AudioManager,
-  AudioRecorder,
-} from 'react-native-audio-api';
+import { AudioManager, AudioRecorder } from 'react-native-audio-api';
+import type { AudioBufferSourceNode } from 'react-native-audio-api';
 
+import {
+  acquireAudioContext,
+  acquireRecordingSession,
+  releaseAudioContext,
+  resumeAudioContext,
+  type SharedAudioContext,
+} from '@/Audio';
 import { setVoiceMicAdapter, VoiceLiveFrame, VoiceMicAdapter } from './useVoiceAnalysis';
 import {
   analyseFrame,
@@ -70,38 +73,11 @@ async function ensureMicPermission(): Promise<boolean> {
   }
 }
 
-/* ------------------------------ sesión de audio ---------------------------- */
-
-function setSessionForRecording() {
-  // Sesión de grabación SOLO mientras dura la captura (en iOS `playAndRecord`
-  // puede atenuar la salida; se restaura al parar).
-  try {
-    AudioManager.setAudioSessionOptions({
-      iosCategory: 'playAndRecord',
-      iosMode: 'measurement',
-      iosOptions: ['defaultToSpeaker', 'allowBluetooth'],
-    });
-    void AudioManager.setAudioSessionActivity(true);
-  } catch {
-    /* sin AudioManager en este target */
-  }
-}
-
-function setSessionForPlayback() {
-  try {
-    AudioManager.setAudioSessionOptions({
-      iosCategory: 'playback',
-      iosMode: 'default',
-      iosOptions: ['defaultToSpeaker', 'allowBluetooth', 'allowBluetoothA2DP'],
-    });
-  } catch {
-    /* sin AudioManager en este target */
-  }
-}
-
 /* ------------------------------- adaptador -------------------------------- */
 
 let registered = false;
+/** Limpieza del adaptador vivo (referencias nativas del registro en curso). */
+let disposeCurrent: (() => void) | null = null;
 
 /**
  * Registra el adaptador de micrófono real (idempotente; la pantalla lo llama
@@ -113,8 +89,18 @@ export function registerVoiceMicAdapter(): boolean {
   let recorder: AudioRecorder | null = null;
   let chunks: Float32Array[] = [];
   let decimate: ((raw: Float32Array) => Float32Array) | null = null;
-  let playbackCtx: AudioContext | null = null;
+  // Reproducción de las tomas sobre el contexto COMPARTIDO de la app: crear
+  // aquí un AudioContext propio abría un segundo stream nativo que en Android
+  // (Oboe exclusivo) se quedaba mudo, así que la toma grabada no se oía.
+  let playbackCtx: SharedAudioContext | null = null;
   let playbackSource: AudioBufferSourceNode | null = null;
+  /** Liberación de la sesión de grabación en curso (`null` = no reservada). */
+  let releaseSession: (() => void) | null = null;
+
+  const endRecordingSession = () => {
+    releaseSession?.();
+    releaseSession = null;
+  };
 
   const stopPlayback = () => {
     if (playbackSource) {
@@ -142,7 +128,8 @@ export function registerVoiceMicAdapter(): boolean {
       if (!granted) throw new Error('Permiso de micrófono denegado');
 
       stopPlayback();
-      setSessionForRecording();
+      endRecordingSession();
+      releaseSession = acquireRecordingSession();
 
       chunks = [];
       decimate = createDecimator3();
@@ -183,7 +170,7 @@ export function registerVoiceMicAdapter(): boolean {
       }
       recorder = null;
       decimate = null;
-      setSessionForPlayback();
+      endRecordingSession();
 
       // Concatena el PCM decimado; el análisis se hace después, bajo demanda.
       const total = chunks.reduce((a, c) => a + c.length, 0);
@@ -201,19 +188,17 @@ export function registerVoiceMicAdapter(): boolean {
 
     play: (pcm: Float32Array, onEnded: () => void) => {
       stopPlayback();
-      setSessionForPlayback();
-      try {
-        AudioManager.setAudioSessionActivity(true);
-      } catch {
-        /* sin AudioManager en este target */
-      }
+      // Reproducir exige devolver la sesión a `playback`: si quedó una captura
+      // a medias, en iOS `playAndRecord` atenúa la salida y la toma se oía
+      // muy floja o no se oía.
+      endRecordingSession();
 
-      if (!playbackCtx) playbackCtx = new AudioContext({ sampleRate: CAPTURE_SR });
-      try {
-        if (playbackCtx.state !== 'running') void playbackCtx.resume();
-      } catch {
-        /* state/resume no disponibles en algunos targets */
+      if (!playbackCtx) playbackCtx = acquireAudioContext();
+      if (!playbackCtx) {
+        onEnded();
+        return;
       }
+      resumeAudioContext();
 
       // Re-expansión ×3 (16 kHz → 48 kHz) por interpolación lineal para que la
       // toma suene a la frecuencia del contexto de reproducción.
@@ -248,13 +233,35 @@ export function registerVoiceMicAdapter(): boolean {
     stopPlayback,
   };
 
+  disposeCurrent = () => {
+    stopPlayback();
+    endRecordingSession();
+    try {
+      recorder?.stop();
+    } catch {
+      /* noop */
+    }
+    recorder = null;
+    if (playbackCtx) {
+      playbackCtx = null;
+      releaseAudioContext();
+    }
+  };
+
   setVoiceMicAdapter(adapter);
   registered = true;
   return true;
 }
 
-/** Quita el adaptador (p. ej. en tests). */
+/**
+ * Quita el adaptador y libera lo que tuviera abierto (sesión de grabación y
+ * referencia al contexto compartido). Se llama al desmontar la pantalla y en
+ * los tests: sin esto la sesión podía quedarse en modo `playAndRecord` y
+ * atenuar el audio del resto de módulos.
+ */
 export function unregisterVoiceMicAdapter(): void {
+  disposeCurrent?.();
+  disposeCurrent = null;
   setVoiceMicAdapter(null);
   registered = false;
 }

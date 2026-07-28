@@ -35,3 +35,10 @@ export const resolveVoiceAsset = (
   }
   return null;
 };
+
+/**
+ * ¿Hay locuciones pre-sintetizadas empaquetadas? Mientras el pipeline de voz
+ * no haya poblado `VOICE_ASSETS`, la única vía es el TTS del sistema; la UI lo
+ * usa para no ofrecer un botón de altavoz que no sonaría.
+ */
+export const hasVoiceAssets = (): boolean => Object.keys(VOICE_ASSETS).length > 0;

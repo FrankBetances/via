@@ -21,9 +21,12 @@ con voces neuronales abiertas. Implementa T0.1/T4.1 del plan gallego
 ## Uso
 
 ```bash
-# 1. Entorno aislado (una vez)
+# 1. Entorno aislado (una vez). Python 3.10–3.12; probado en 3.11.
 python3 -m venv tools/nos/.venv
 tools/nos/.venv/bin/pip install -r tools/nos/requirements.txt
+
+# 1b. Verificación del entorno (SIEMPRE tras instalar)
+tools/nos/.venv/bin/python tools/nos/tts.py --check
 
 # 2. Modelos (idempotente, con checksums anotados)
 tools/nos/fetch-models.sh
@@ -79,6 +82,26 @@ ninguna localización llega al catálogo sin la firma del revisor dominicano
 (Q2.3). La aprobación clínica del audio de una variante se registra en
 `assets/verbal-approval.<lang>.json` y el manifiesto la incrusta
 (`audioProvisional: false`).
+
+## Diagnóstico del entorno (`--check`)
+
+`tts.py --check` importa de verdad cada librería y sale con código 1 si alguna
+falla. Existe porque el modo de fallo real no es «falta el paquete» sino
+**paquete instalado con el entorno roto**: `coqui-tts` arrastra `spacy` 3.7,
+que hace `from click import …` pero solo declara `typer`; desde typer 0.13 el
+paquete se dividió en `typer-slim` y dejó de arrastrar `click`, así que un
+`pip install -r` limpio dejaba `import TTS` muerto con
+`ModuleNotFoundError: No module named 'click'` — y la voz gallega (Celtia) no
+arrancaba. `requirements.txt` fija ahora `click` y `numpy<2` por ese motivo, y
+CI ejecuta `--check` antes de descargar los pesos.
+
+```console
+$ python3 tools/nos/tts.py --check
+✓ piper            voces Piper (es, es-DO)
+✓ coqui-tts        voz Celtia (gl, Proxecto Nós)
+✓ torch            backend de Coqui/VITS
+✓ huggingface_hub  descarga de pesos
+```
 
 ## Reproducibilidad
 

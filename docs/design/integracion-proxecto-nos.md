@@ -122,6 +122,34 @@ gallego**, no traducido. Es el módulo que marca la fecha del release.
 **Entregable:** banco gl validado estructuralmente en CI y firmado en diseño
 (la firma clínica final llega en M6).
 
+### Estado actual de M3
+
+**T3.4 hecho (con contenido provisional).** `verbalAudiometryLists.gl.ts`
+existe, está registrado en `verbalAudiometryBanks.ts` y el gallego aparece ya en
+el selector de lengua de la audiometría verbal. La suite
+`verbalAudiometryValidation.test.ts` corre los **mismos invariantes sobre todos
+los bancos registrados** (`describe.each(VERBAL_BANK_LANGS)`), de modo que el
+banco gallego no puede degradarse sin romper CI.
+
+El contenido se construyó sobre rasgos propios del gallego —«x» /ʃ/
+(xerra, xeso, queixo, fixo), diptongos decrecientes «ou»/«ei» (lousa, vasoira,
+bandeira), /ʎ/ y /ɲ/ (abella/ovella, piño/viño) y oxítonas en -á (ventá, mazá,
+campá)— y **no** por traducción del banco castellano, que habría destruido los
+pares mínimos.
+
+Lo que **falta** para cerrar M3:
+
+- **T3.1/T3.2** siguen pendientes: la selección léxica actual no está anclada a
+  frecuencias de `proxectonos/corpora`.
+- **T3.3 (firma del logopeda gallego-hablante) sigue pendiente.** Hasta esa
+  firma el banco está marcado en `VERBAL_BANK_PROVISIONAL` y la pantalla avisa
+  al profesional de que es provisional y no diagnóstico.
+- **M4 (audio Celtia) pendiente**: no hay recortes `gl` empaquetados. El
+  adaptador **no** sustituye por los castellanos —«ventá» dictado con el
+  recorte de «ventana» sería otro estímulo— sino que degrada a la voz del
+  sistema, prefiriendo una voz `gl-*` si existe y declarando la caída a voz
+  castellana cuando no (`pickVoiceForLang`).
+
 ---
 
 ## M4 · Locuciones con TTS Celtia (VITS/Coqui) (~1 semana)

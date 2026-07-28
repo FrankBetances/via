@@ -37,7 +37,7 @@ import { useTelemetryTracker } from '@/Telemetry';
 import { useCreateVoiceAnalysisMutation } from '@/Services/local/modules/voiceAnalysis';
 import { showErrorToast, showSuccessToast } from '@/Helpers/showToast';
 import { useVoiceAnalysis, VoiceTake } from './useVoiceAnalysis';
-import { registerVoiceMicAdapter } from './voiceMicAdapter';
+import { registerVoiceMicAdapter, unregisterVoiceMicAdapter } from './voiceMicAdapter';
 import {
   buildInterpretation,
   GRBAS_DIMENSIONS,
@@ -109,9 +109,13 @@ export default function VoiceAnalysisScreen({ navigation }: Props) {
   const voice = useVoiceAnalysis();
   const tracker = useTelemetryTracker(); // telemetría silenciosa (useRef, sin re-render)
 
-  // Registra el motor de captura real (react-native-audio-api).
+  // Registra el motor de captura real (react-native-audio-api) y lo libera al
+  // salir: sin la baja quedaban abiertos el recorder, la referencia al contexto
+  // de audio compartido y la sesión en modo grabación, que en iOS atenúa la
+  // salida del resto de módulos.
   useEffect(() => {
     registerVoiceMicAdapter();
+    return () => unregisterVoiceMicAdapter();
   }, []);
 
   // Telemetría: reactivo de captura (la vocal sostenida /a/). Reanalizar o

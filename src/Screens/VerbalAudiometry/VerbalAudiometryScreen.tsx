@@ -30,9 +30,13 @@ import {
   verbalDiscriminationStatus,
 } from './verbalAudiometryResult';
 import { VERBAL_BANDS } from './verbalAudiometryLists';
-import { VERBAL_BANK_LANGS, VerbalLang } from './verbalAudiometryBanks';
-import { VERBAL_GLYPHS } from './verbalAudiometryGlyphs';
-import { verbalImageSourceForLang } from './verbalAssetsByLang';
+import {
+  resolveVerbalLang,
+  VERBAL_BANK_LANGS,
+  VERBAL_BANK_PROVISIONAL,
+  VerbalLang,
+} from './verbalAudiometryBanks';
+import { verbalGlyphForLang, verbalImageSourceForLang } from './verbalAssetsByLang';
 import WordCard, { WordCardState } from './components/WordCard';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'VerbalAudiometry'>;
@@ -80,9 +84,7 @@ export default function VerbalAudiometryScreen({ navigation }: Props) {
   // contra los bancos registrados. El selector de esta pantalla actúa como
   // override y actualiza el idioma de sesión para el resto de la evaluación.
   const sessionLanguageRaw = useSelector((state: RootState) => state.locale.language);
-  const sessionLang: VerbalLang = (VERBAL_BANK_LANGS as readonly string[]).includes(sessionLanguageRaw)
-    ? (sessionLanguageRaw as VerbalLang)
-    : 'es';
+  const sessionLang: VerbalLang = resolveVerbalLang(sessionLanguageRaw);
   const v = useVerbalAudiometryTest('A', sessionLang);
   const tracker = useTelemetryTracker(); // telemetría silenciosa (useRef, sin re-render)
 
@@ -288,7 +290,7 @@ export default function VerbalAudiometryScreen({ navigation }: Props) {
       {/* idioma/variante de la sesión (banco de estímulos + voz) */}
       <Card bgColor="$white" borderRadius={20} p="$4">
         <Text size="md" weight="bold" color="$textLight900" mb="$3">
-          Variante del español
+          Lengua de la prueba
         </Text>
         <HStack space="sm">
           {VERBAL_BANK_LANGS.map(l => {
@@ -318,8 +320,17 @@ export default function VerbalAudiometryScreen({ navigation }: Props) {
         </HStack>
         {v.lang !== 'es' ? (
           <Text size="2xs" color="$textLight400" mt="$2">
-            Banco de estímulos y locuciones de la variante; queda registrado en el informe.
+            Banco de estímulos y locuciones propios de la lengua; queda registrado en el informe.
           </Text>
+        ) : null}
+        {VERBAL_BANK_PROVISIONAL.includes(v.lang) ? (
+          <HStack space="xs" alignItems="flex-start" mt="$2" p="$2.5" borderRadius={12} bg="$warning50">
+            <Text size="2xs" color="$warning800" style={{ flex: 1, lineHeight: 15 }}>
+              Banco PROVISIONAL, pendiente de la validación clínica del logopeda gallego-hablante. Todavía sin
+              locuciones propias: las palabras se dictan con la voz del sistema, así que el nivel es aún menos
+              comparable que en castellano. Uso en pilotos técnicos, no diagnóstico.
+            </Text>
+          </HStack>
         ) : null}
       </Card>
 
@@ -469,7 +480,7 @@ export default function VerbalAudiometryScreen({ navigation }: Props) {
               <WordCard
                 word={opt.word}
                 imageSource={opt.image ? verbalImageSourceForLang(opt.image, v.lang) : undefined}
-                glyph={VERBAL_GLYPHS[opt.word]}
+                glyph={verbalGlyphForLang(opt.word, v.lang)}
                 modality={v.modality}
                 state={cardStateOf(opt.word)}
                 size={v.band === 'D' ? 'md' : 'lg'}

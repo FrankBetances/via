@@ -1,7 +1,7 @@
 import { getVerbalAudioAdapter } from '@/Screens/VerbalAudiometry/verbalAudiometryAudio';
 
 import { playVoiceAsset, stopVoiceAsset } from './viaVoicePlayback';
-import { resolveVoiceAsset, toVoiceLang } from './viaVoiceResolve';
+import { hasVoiceAssets, resolveVoiceAsset, toVoiceLang } from './viaVoiceResolve';
 import { VoiceStyle } from './voiceCorpusId';
 
 /* -------------------------------------------------------------------------- */
@@ -22,9 +22,9 @@ import { VoiceStyle } from './voiceCorpusId';
 /* -------------------------------------------------------------------------- */
 
 /** Voz del sistema (TTS) reutilizando el adaptador verbal ya registrado. */
-const systemVoice = (text: string): void => {
+const systemVoice = (text: string, lang: string): void => {
   try {
-    getVerbalAudioAdapter()?.speakText?.(text);
+    getVerbalAudioAdapter()?.speakText?.(text, lang);
   } catch {
     /* la voz es una ayuda: nunca debe tumbar la pantalla */
   }
@@ -44,12 +44,12 @@ export const speak = (style: VoiceStyle, text: string, lang: string = 'es'): voi
   const asset = resolveVoiceAsset(style, text, l);
   if (asset == null) {
     stopVoiceAsset();
-    systemVoice(text);
+    systemVoice(text, l);
     return;
   }
   void playVoiceAsset(asset).then(ok => {
     if (mine !== token) return; // otra locución tomó el relevo
-    if (!ok) systemVoice(text); // el asset no decodificó → voz del sistema
+    if (!ok) systemVoice(text, l); // el asset no decodificó → voz del sistema
   });
 };
 
@@ -64,5 +64,18 @@ export const stopSpeaking = (): void => {
   }
 };
 
-/** ¿Hay alguna vía de voz disponible? (para mostrar/ocultar el botón altavoz). */
-export const canSpeak = (): boolean => !!getVerbalAudioAdapter()?.speakText;
+/**
+ * ¿Hay alguna vía de voz REAL disponible? (para mostrar/ocultar el botón de
+ * altavoz). Antes bastaba con que existiese `speakText`, que está SIEMPRE
+ * definido: el botón aparecía también en dispositivos sin voz del sistema y al
+ * pulsarlo no sonaba nada. Ahora se exige o bien un motor de voz listo, o bien
+ * assets de locución empaquetados.
+ */
+export const canSpeak = (): boolean => {
+  const adapter = getVerbalAudioAdapter();
+  if (!adapter?.speakText) return false;
+  // `ttsReady` es opcional (adaptadores de prueba antiguos): si no lo declara,
+  // se mantiene el comportamiento histórico de suponer que hay voz.
+  if (!adapter.ttsReady) return true;
+  return adapter.ttsReady() || hasVoiceAssets();
+};

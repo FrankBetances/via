@@ -1,8 +1,10 @@
 import {
   collectLangAssetInventory,
   getVerbalBands,
+  resolveVerbalLang,
   VERBAL_BANK_BASE,
   VERBAL_BANK_LANGS,
+  VERBAL_BANK_PROVISIONAL,
 } from '../verbalAudiometryBanks';
 import { buildEsDoBands, ES_DO_ITEM_OVERRIDES } from '../verbalAudiometryLists.es-DO';
 import { collectAssetInventory, VERBAL_BANDS } from '../verbalAudiometryLists';
@@ -46,9 +48,49 @@ describe('getVerbalBands · registro por idioma', () => {
     expect(ES_DO_ITEM_OVERRIDES).toHaveLength(0);
   });
 
-  it('un idioma sin banco registrado falla explícitamente (gl llega con M3)', () => {
-    expect(() => getVerbalBands('gl')).toThrow(/no registrado/);
+  it('gl tiene banco PROPIO (plan Nós M3), no una copia del castellano', () => {
+    const gl = getVerbalBands('gl');
+    expect(gl).toHaveLength(VERBAL_BANDS.length);
+    for (let i = 0; i < gl.length; i++) {
+      expect(gl[i].band).toBe(VERBAL_BANDS[i].band);
+      expect(gl[i].optionsPerCard).toBe(VERBAL_BANDS[i].optionsPerCard);
+      expect(gl[i].modality).toBe(VERBAL_BANDS[i].modality);
+    }
+    // Contenido propio: si el gallego fuese una copia traducida palabra a
+    // palabra del castellano, los pares mínimos dejarían de serlo.
+    const glWords = gl.flatMap(b => b.items.map(i => i.targetWord));
+    const esWords = VERBAL_BANDS.flatMap(b => b.items.map(i => i.targetWord));
+    expect(glWords).not.toEqual(esWords);
+    expect(glWords.some(w => !esWords.includes(w))).toBe(true);
+  });
+
+  it('los ids del banco gallego no colisionan con los del castellano', () => {
+    const glIds = getVerbalBands('gl').flatMap(b => b.items.map(i => i.id));
+    const esIds = VERBAL_BANDS.flatMap(b => b.items.map(i => i.id));
+    expect(new Set(glIds).size).toBe(glIds.length); // únicos dentro de gl
+    expect(glIds.filter(id => esIds.includes(id))).toEqual([]);
+  });
+
+  it('gl está marcado como PROVISIONAL hasta la firma clínica (T3.3)', () => {
+    expect(VERBAL_BANK_PROVISIONAL).toContain('gl');
+    expect(VERBAL_BANK_PROVISIONAL).not.toContain('es');
+  });
+
+  it('un idioma sin banco registrado falla explícitamente', () => {
     expect(() => getVerbalBands('fr')).toThrow(/no registrado/);
+    expect(() => getVerbalBands('')).toThrow(/no registrado/);
+  });
+
+  it('resolveVerbalLang degrada a es en vez de dejar caer la pantalla', () => {
+    // Regresión: la pantalla abría el banco con el idioma de sesión sin
+    // sanear; un código sin banco (p. ej. `en`) lanzaba en el primer render y
+    // la audiometría verbal «no funcionaba» sin más explicación.
+    expect(resolveVerbalLang('gl')).toBe('gl');
+    expect(resolveVerbalLang('es-DO')).toBe('es-DO');
+    expect(resolveVerbalLang('en')).toBe('es');
+    expect(resolveVerbalLang(null)).toBe('es');
+    expect(resolveVerbalLang(undefined)).toBe('es');
+    expect(() => getVerbalBands(resolveVerbalLang('cualquier-cosa'))).not.toThrow();
   });
 
   it('todo idioma registrado declara su base de herencia', () => {
@@ -134,7 +176,7 @@ describe('coherencia con el motor de voz neural (tools/nos/voices.json)', () => 
     }
   });
 
-  it('gl (plan Nós) tiene la voz Celtia registrada aunque su banco aún no exista', () => {
+  it('gl (plan Nós) tiene la voz Celtia registrada para locutar su banco', () => {
     expect(registry.voices.gl.model).toBe('proxectonos/Nos_TTS-celtia-vits-graphemes');
     expect(registry.voices.gl.engine).toBe('coqui-vits');
   });
