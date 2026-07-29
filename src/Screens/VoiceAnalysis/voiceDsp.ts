@@ -222,9 +222,41 @@ const MIN_PEAK = 0.45; // umbral de periodicidad
  *  máximo global, que suele caer en un subarmónico (2·T, 3·T) — error de octava
  *  a la baja que hundía la F0 a ~100 Hz y dejaba la toma «sin datos». */
 const PEAK_FRACTION = 0.8;
-const LPC_ORDER = 14; // 16 kHz: order 12 no resolvía F1 en voz infantil (F1 se
-// fundía con los armónicos de pitch → sin formantes → «captura insuficiente»);
-// 14 (≈ fs/1000 − 2) separa F1–F3 de la vocal /a/ infantil sin sobreajustar.
+/**
+ * Orden del modelo LPC. Regla estándar del análisis de formantes: DOS polos
+ * por formante esperado, más 2–4 de margen para la fuente glotal y la
+ * radiación. A 16 kHz el modelo cubre hasta 8 kHz, donde caben unos ocho
+ * formantes → orden ≈ 2·8 + 4 = 20.
+ *
+ * El valor histórico (14) solo daba para cinco formantes en TODA la banda de
+ * 8 kHz: los polos se gastaban repartidos por el espectro y F3 —la que
+ * discrimina— se quedaba sin representar. La validación contra Praat
+ * (`tools/acoustics/`) lo dejó a la vista: VIA+ declaraba «formantes no
+ * estimables» en casi todos los casos en los que Praat los resolvía sin
+ * dificultad.
+ */
+const LPC_ORDER = 20;
+
+/* --------------------------------- HNR ------------------------------------ */
+
+/**
+ * TECHO del HNR (dB). El HNR se deriva del pico de autocorrelación `r` como
+ * `10·log10(r/(1−r))`, que diverge cuando `r → 1`; hay que acotar `r` y eso
+ * impone un techo. Con `r ≤ 0.999` el techo sale en ~30 dB.
+ *
+ * NO es una limitación práctica: las voces humanas se mueven entre ~5 dB
+ * (disfonía marcada) y ~25 dB (voz sana), así que todo el rango clínico queda
+ * por debajo. Lo que sí importa es que quede DECLARADO: una lectura de 30 dB
+ * significa «≥ 30», no «exactamente 30». La validación contra Praat
+ * (`tools/acoustics/`) confirma que dentro del rango medible ambos coinciden
+ * dentro de medio decibelio; por encima, Praat da 70–85 dB sobre señal
+ * sintética sin ruido y VIA+ satura aquí.
+ */
+export const HNR_CEILING_DB = 30;
+
+/** Acota el pico de autocorrelación al rango en que el HNR es finito. */
+const clampCorrelationForHnr = (peak: number): number =>
+  Math.min(0.999, Math.max(0.001, peak));
 
 /** F0 + fuerza de periodicidad de una ventana por autocorrelación normalizada.
  *  Elige el primer máximo local que supere `PEAK_FRACTION·max` (evita el salto
@@ -442,8 +474,8 @@ export async function analysePcm(raw: Float32Array): Promise<VoiceMicResult> {
       voicedOffsets.push(i);
       f0s.push(frame.f0);
       amplitudes.push(frame.rms);
-      const r = Math.min(0.999, Math.max(0.001, frame.peak));
-      hnrs.push(Math.max(0, Math.min(35, 10 * Math.log10(r / (1 - r)))));
+      const r = clampCorrelationForHnr(frame.peak);
+      hnrs.push(Math.max(0, Math.min(HNR_CEILING_DB, 10 * Math.log10(r / (1 - r)))));
     }
     if (++sinceYield >= 8) {
       sinceYield = 0;

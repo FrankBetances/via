@@ -1,0 +1,3 @@
+# Los WAV y las medidas son artefactos regenerables (`node fixtures.js`):
+# se versiona la herramienta, no su salida.
+out/

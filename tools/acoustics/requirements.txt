@@ -1,0 +1,4 @@
+# Validación del análisis acústico contra Praat (build-time; ver README.md).
+# Praat es el estándar de facto en fonética clínica: parselmouth lo expone
+# como biblioteca de Python sin salir del proceso.
+praat-parselmouth==0.4.7
