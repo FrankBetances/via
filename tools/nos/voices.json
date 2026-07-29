@@ -17,11 +17,11 @@
       "license": "ver ficha del modelo en Hugging Face (auditoría T0.2 pendiente de firma)",
       "provisional": true,
       "params": {
-        "lengthScale": 1.1,
+        "lengthScale": 1.35,
         "noiseScale": 0.333,
         "noiseW": 0.333
       },
-      "notes": "Voz de las locuciones castellanas de la audiometría verbal y del corpus de consignas. Sustituye definitivamente a espeak-ng: la síntesis neural es la vía por defecto del pipeline (`VERBAL_TTS=espeak` queda solo como degradación explícita para entornos sin acceso a los pesos). La producción clínica final sigue siendo locutor profesional (validacion-clinica-verbal.md)."
+      "notes": "Voz de las locuciones castellanas de la audiometría verbal y del corpus de consignas. RITMO: davefx habla notablemente más rápido que la voz es-DO (es_MX-claude-high) con el MISMO lengthScale. Medido sobre los 37 recortes comunes de la audiometría verbal generados con lengthScale=1.1: media es 0,454 s frente a 0,507 s en es-DO (ratio 1,17) y monosílabos que se desploman —«pan» 0,151 s frente a 0,386 s, «ven» 0,175 s frente a 0,352 s—. En una prueba de RECONOCIMIENTO de palabra eso no es «rápido», es un estímulo que el paciente no llega a resolver: reportado en campo como «el castellano va demasiado deprisa» (el resto de idiomas, correctos). De ahí el 1.35, que es un parámetro de la VOZ, no del banco. `scripts/verbal-assets.js` verifica la duración mínima de cada recorte al generarlo para que una regresión así no vuelva a pasar inadvertida. Sustituye definitivamente a espeak-ng: la síntesis neural es la vía por defecto del pipeline (`VERBAL_TTS=espeak` queda solo como degradación explícita para entornos sin acceso a los pesos). La producción clínica final sigue siendo locutor profesional (validacion-clinica-verbal.md)."
     },
     "es-DO": {
       "engine": "piper",

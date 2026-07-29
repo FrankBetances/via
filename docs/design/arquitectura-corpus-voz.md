@@ -193,6 +193,39 @@ de sesión.
   automática entra al corpus sin revisar. El material clínico (pares mínimos de
   la audiometría verbal) se REDISEÑA por lengua, no se traduce.
 
+## 7 bis. El ritmo de la voz es un parámetro del motor, y se le pone puerta
+
+La velocidad de locución no vive en el banco de estímulos: vive en el
+`lengthScale` de la voz declarada en `tools/nos/voices.json`. Eso significa que
+una voz mal parametrizada degrada **todo su banco a la vez y en silencio** —
+nada falla, nada avisa, simplemente el estímulo deja de ser reconocible.
+
+Ocurrió con el castellano. Medido sobre los 37 recortes comunes de la
+audiometría verbal, generados todos con el mismo post-proceso y el mismo
+`lengthScale = 1.1`:
+
+| Banco | Voz | Duración media | Monosílabos |
+|---|---|---|---|
+| `es` | Piper `es_ES-davefx-medium` | 0,454 s | «pan» 0,151 s · «ven» 0,175 s |
+| `es-DO` | Piper `es_MX-claude-high` | 0,507 s | «pan» 0,386 s · «ven» 0,352 s |
+
+El castellano era un 17 % más rápido de media y hasta 2,5 veces más rápido en
+los monosílabos, que quedaban directamente atropellados. En una prueba de
+RECONOCIMIENTO de palabra eso invalida el estímulo, y así se reportó desde
+campo: «el castellano va demasiado deprisa; el resto está bien».
+
+Dos consecuencias, ambas ya aplicadas:
+
+1. El `lengthScale` de una voz es un parámetro **por voz**, no un valor que se
+   copie entre modelos: cada modelo tiene su tempo natural. El castellano está
+   en 1.35.
+2. `scripts/verbal-assets.js` mide la duración de cada recorte recién
+   codificado y **falla la generación** si alguno baja de `VERBAL_MIN_CLIP_MS`
+   (250 ms por defecto), nombrando las locuciones culpables. La verificación
+   corre sobre un directorio temporal y el banco solo se publica entero si pasa:
+   así no queda un commit con los `.m4a` nuevos y el módulo base64 apuntando a
+   los viejos.
+
 ## 8. Créditos y licencias
 
 Voz **Celtia** del [Proxecto Nós](https://github.com/proxectonos) (gallego),
