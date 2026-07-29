@@ -16,6 +16,9 @@ REGISTRY="$HERE/voices.json"
 
 mkdir -p "$MODELS/piper"
 
+# Voces cuyo modelo no se pudo descargar (aviso, no abortan el resto).
+FAILED_LANGS=""
+
 checksum() { # checksum <archivo>  → anota o verifica <archivo>.sha256
   local f="$1"
   if [[ -f "$f.sha256" ]]; then
@@ -90,15 +93,24 @@ snapshot_download(repo_id=sys.argv[1], local_dir=sys.argv[2])
       echo "  aviso: $REPO no accesible, probando el siguiente…"
     done
     if [[ "$OK" -ne 1 ]]; then
-      echo "✗ Ningún repositorio de '$LANG' fue accesible: $REPOS"
+      # NO se aborta: la descarga de una voz no debe llevarse por delante las
+      # demás (mismo criterio que la síntesis, ver el workflow de voz). El
+      # idioma sin modelo fallará en su propio paso de síntesis, que ya es
+      # tolerante, y degradará a la voz del sistema.
+      echo "::warning::Ningún repositorio de '$LANG' fue accesible: $REPOS"
       echo "  Compruebe HF_TOKEN y que se hayan aceptado las condiciones del modelo."
-      exit 1
+      FAILED_LANGS="$FAILED_LANGS $LANG"
+      continue
     fi
   fi
   for f in "$DEST"/*.pth "$DEST"/config.json; do
     [[ -f "$f" ]] && checksum "$f"
   done
 done < <(vits_entries)
+
+if [[ -n "$FAILED_LANGS" ]]; then
+  echo "· Sin modelo descargado:$FAILED_LANGS (esos idiomas degradarán a la voz del sistema)."
+fi
 
 echo "✓ Modelos en $MODELS"
 python3 "$HERE/tts.py" --list

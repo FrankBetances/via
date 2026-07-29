@@ -125,6 +125,25 @@ VOICE_TTS=espeak node scripts/synthesize-voice-corpus.js --lang es-DO  # degrada
 node scripts/build-voice-asset-map.js                   # mapa id→asset
 ```
 
+**Tolerancia por idioma (portada de Valeria+).** La síntesis NO es todo o nada:
+cada idioma se sintetiza por separado y su fallo no tira el lote. El resto se
+commitea igual y el idioma que falta degrada a la voz del sistema, que es una
+degradación declarada y funcional. Antes un fallo en el primer idioma del bucle
+se llevaba por delante el trabajo de los demás. El job solo se declara fallido
+si NO se sintetizó ningún idioma.
+
+Ese diseño tiene dos mitades y hacen falta las dos:
+
++ en la **síntesis**, `scripts/check-verbal-coverage.js` es informativo — deja
+  en el log qué idiomas quedaron locutados, sin cortar;
++ en el **empaquetado**, el mismo chequeo con `--strict` sale con código 1: ahí
+  una voz ausente no es una degradación aceptada, es un APK defectuoso.
+
+> La segunda mitad **todavía no está cableada** en los workflows de Android de
+> VIA+. Mientras no lo esté, una voz que falle en CI puede llegar a una release
+> sin que nadie lo note: ejecute `node scripts/check-verbal-coverage.js --strict`
+> antes de empaquetar.
+
 **Degradación sin pesos:** `VOICE_TTS=espeak` locuta con la voz clásica
 espeak-ng (es → `es`, es-DO → `es-419` LatAm); `gl` requiere el motor neural
 (no hay voz espeak-ng fiable). El workflow CI

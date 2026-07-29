@@ -159,15 +159,27 @@ jobs:
       - name: Export corpus
         run: node scripts/export-voice-corpus.js
 
+      # TOLERANTE POR IDIOMA (mismo criterio que Valeria+): que una voz falle no
+      # debe tirar el lote entero. El resto de idiomas sí se ha sintetizado y
+      # hay que commitearlo; el que falta degrada a la voz del sistema, que es
+      # una degradación declarada y funcional. Antes, un fallo en el primer
+      # idioma del bucle se llevaba por delante el trabajo de los demás — es
+      # justo lo que pasó con el gallego.
       - name: Synthesize corpus assets (incremental)
+        id: corpus
         if: ${{ steps.langs.outputs.target != 'verbal' }}
         env:
           VOICE_TTS: ${{ steps.langs.outputs.engine == 'espeak' && 'espeak' || '' }}
         run: |
+          FAILED=""
           for L in ${{ steps.langs.outputs.langs }}; do
-            echo "── síntesis $L ──"
-            node scripts/synthesize-voice-corpus.js --lang "$L"
+            echo "── consignas · $L ──"
+            if ! node scripts/synthesize-voice-corpus.js --lang "$L"; then
+              echo "::warning::Consignas '$L': la síntesis falló; ese idioma degrada a la voz del sistema."
+              FAILED="$FAILED $L"
+            fi
           done
+          echo "failed=${FAILED# }" >> "$GITHUB_OUTPUT"
 
       # Recortes de la AUDIOMETRÍA VERBAL. Son un banco distinto del corpus de
       # consignas: `gl` y `eu` no tienen locuciones propias, así que la prueba
@@ -175,18 +187,37 @@ jobs:
       # castellana) — que es exactamente el «en gallego no hay nada» reportado
       # en campo. Este paso es el que las genera.
       - name: Synthesize verbal audiometry clips
+        id: verbal
         if: ${{ steps.langs.outputs.target != 'corpus' }}
         env:
           VERBAL_TTS: ${{ steps.langs.outputs.engine == 'espeak' && 'espeak' || 'neural' }}
           # La voz vasca descarga su vits.onnx de Hugging Face en tiempo de síntesis.
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
         run: |
+          FAILED=""
           for L in ${{ steps.langs.outputs.langs }}; do
-            echo "── recortes verbales $L ──"
-            node scripts/verbal-assets.js audio    --lang "$L"
-            node scripts/verbal-assets.js registry --lang "$L"
-            node scripts/verbal-assets.js manifest --lang "$L"
+            echo "── recortes verbales · $L ──"
+            # Los tres pasos van juntos: sin `registry` los .m4a no llegan a la
+            # app, así que un idioma cuenta como hecho solo si completa los tres.
+            if node scripts/verbal-assets.js audio    --lang "$L" \
+            && node scripts/verbal-assets.js registry --lang "$L" \
+            && node scripts/verbal-assets.js manifest --lang "$L"; then
+              echo "   ✓ $L"
+            else
+              echo "::warning::Recortes verbales '$L': la síntesis falló; ese idioma dicta con la voz del sistema."
+              FAILED="$FAILED $L"
+            fi
           done
+          echo "failed=${FAILED# }" >> "$GITHUB_OUTPUT"
+
+      # Informativo, NO bloqueante: deja constancia en el log de qué idiomas
+      # quedaron locutados. Quien debe bloquear es el empaquetado
+      # (`--strict`), donde una voz ausente sí es un defecto: aquí lo único
+      # que se pierde es información.
+      - name: Verbal clip coverage (informativo)
+        if: ${{ steps.langs.outputs.target != 'corpus' }}
+        continue-on-error: true
+        run: node scripts/check-verbal-coverage.js
 
       - name: Rebuild asset map
         if: ${{ steps.langs.outputs.target != 'verbal' }}
@@ -211,3 +242,24 @@ jobs:
             echo "push falló (intento $i), reintentando…"; sleep $((i * 3))
           done
           echo "::error::No se pudieron subir los assets tras varios reintentos."; exit 1
+
+      # El job solo se declara fallido si NO se sintetizó nada: con parte del
+      # lote hecho, el resultado es un avance real y los avisos de arriba dicen
+      # qué idioma se quedó fuera.
+      - name: Resumen de la síntesis
+        if: always()
+        run: |
+          CORPUS_FAILED="${{ steps.corpus.outputs.failed }}"
+          VERBAL_FAILED="${{ steps.verbal.outputs.failed }}"
+          # `if` y no `[ … ] && echo`: los `run:` corren con `bash -e`, donde una
+          # lista AND que acaba en falso (variable vacía) aborta el paso.
+          if [ -n "$CORPUS_FAILED" ]; then echo "Consignas sin sintetizar: $CORPUS_FAILED"; fi
+          if [ -n "$VERBAL_FAILED" ]; then echo "Recortes verbales sin sintetizar: $VERBAL_FAILED"; fi
+          PEDIDOS="${{ steps.langs.outputs.langs }}"
+          COUNT=$(echo "$PEDIDOS" | wc -w)
+          FAILED_COUNT=$(echo "$VERBAL_FAILED $CORPUS_FAILED" | tr ' ' '\n' | sort -u | grep -c . || true)
+          if [ "$FAILED_COUNT" -ge "$COUNT" ] && [ "$COUNT" -gt 0 ]; then
+            echo "::error::Ningún idioma se sintetizó correctamente."
+            exit 1
+          fi
+          echo "Síntesis completada (idiomas pedidos: $PEDIDOS)."
