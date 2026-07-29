@@ -21,10 +21,6 @@ on:
         type: choice
         options: ["ambos", "corpus", "verbal"]
         default: "ambos"
-      eu_repo:
-        description: "Repositorio de los pesos de la voz vasca Maider (solo si se sintetiza eu). Si se deja vacío se usa la variable NOS_EU_REPO del repositorio."
-        type: string
-        default: ""
       engine:
         description: "Motor de voz (neural = calidad; espeak = degradación sin pesos, no cubre gl)"
         type: choice
@@ -134,9 +130,6 @@ jobs:
         if: ${{ steps.langs.outputs.engine == 'neural' }}
         env:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
-          # Voz vasca Maider: su repositorio de pesos no está fijado en
-          # voices.json (ver sus `notes`), así que se resuelve desde aquí.
-          NOS_EU_REPO: ${{ github.event.inputs.eu_repo || vars.NOS_EU_REPO }}
         run: |
           if [ -z "$HF_TOKEN" ]; then
             echo "::error::HF_TOKEN no configurado. La voz neural (Celtia gl es 'gated') requiere el secret HF_TOKEN. Añádelo en Settings → Secrets, o usa engine=espeak (es/es-DO)."
@@ -150,6 +143,18 @@ jobs:
           # job, tras descargar los pesos.
           python tools/nos/tts.py --check
           HUGGING_FACE_HUB_TOKEN="$HF_TOKEN" tools/nos/fetch-models.sh
+
+      # AhoTTS (HiTZ/Aholab) aporta el binario `tts`, el frontend lingüístico
+      # vasco y el diccionario eu_dicc. La voz Maider se sintetiza A TRAVÉS de
+      # ese binario: su vits.onnx espera FONEMAS, no grafemas, así que inferirlo
+      # suelto —como sí se hace con Celtia— daría audio inservible. Mismo montaje
+      # que en Valeria+, donde esta voz ya está en producción.
+      - name: Set up AhoTTS (voz vasca Maider)
+        if: ${{ contains(steps.langs.outputs.langs, 'eu') }}
+        run: |
+          git clone --depth 1 https://github.com/hitz-zentroa/aHoTTS.git "$RUNNER_TEMP/ahotts"
+          chmod +x "$RUNNER_TEMP/ahotts/ahotts/tts" || true
+          echo "AHOTTS_DIR=$RUNNER_TEMP/ahotts" >> "$GITHUB_ENV"
 
       - name: Export corpus
         run: node scripts/export-voice-corpus.js
@@ -173,7 +178,8 @@ jobs:
         if: ${{ steps.langs.outputs.target != 'corpus' }}
         env:
           VERBAL_TTS: ${{ steps.langs.outputs.engine == 'espeak' && 'espeak' || 'neural' }}
-          NOS_EU_REPO: ${{ github.event.inputs.eu_repo || vars.NOS_EU_REPO }}
+          # La voz vasca descarga su vits.onnx de Hugging Face en tiempo de síntesis.
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
         run: |
           for L in ${{ steps.langs.outputs.langs }}; do
             echo "── recortes verbales $L ──"

@@ -41,19 +41,23 @@
       "notes": "Quisqueya Habla · Q4.1: no existe voz abierta es-DO, se usa una voz Piper neutra LatAm (es_MX) como provisional. La voz definitiva (locutor dominicano o VITS es-DO propio) se decide en el ADR Q4.3 tras el piloto de Santo Domingo."
     },
     "eu": {
-      "engine": "coqui-vits",
+      "engine": "ahotts",
       "model": "maider",
       "files": {
-        "dir": "maider"
+        "dir": "ahotts/voices/eu/maider"
       },
-      "repo": "${NOS_EU_REPO}",
-      "source": "https://huggingface.co/HiTZ",
-      "license": "ver ficha del modelo (auditoría T0.2 pendiente de firma)",
+      "hfRepos": [
+        "HiTZ/TTS-eu_maider",
+        "HiTZ/TTS-eu_antton"
+      ],
+      "source": "https://huggingface.co/HiTZ/TTS-eu_maider",
+      "toolchain": "https://github.com/hitz-zentroa/aHoTTS",
+      "license": "CC BY 4.0 (ILENIA / NEL-GAITU · HiTZ-Aholab, UPV/EHU)",
       "provisional": true,
       "params": {
         "lengthScale": 1.0
       },
-      "notes": "Euskera · voz MAIDER, decidida por el responsable del proyecto (equivalente vasco de lo que Celtia es en gallego). El identificador del repositorio de pesos NO está fijado aquí: se resuelve con la variable de entorno NOS_EU_REPO, porque el modelo hay que descargarlo de un repositorio concreto que debe verificarse antes de la primera síntesis (y su licencia auditarse, T0.2). `fetch-models.sh` falla con instrucciones si no está definida, en vez de descargar un modelo equivocado. Una vez confirmado el repositorio, sustitúyase el marcador por su ruta literal y quítese la dependencia de la variable."
+      "notes": "Euskera · AhoTTS «Maider» (femenina; respaldo Antton), HiTZ/Aholab (UPV/EHU) — la misma voz que usa Valeria+, portada de su registro. IMPORTANTE: el vits.onnx NO se infiere suelto. AhoTTS lo ejecuta a través de su binario `tts` con el frontend lingüístico vasco y el diccionario eu_dicc, que es quien genera los FONEMAS que el VITS espera; tratarlo como un VITS de grafemas (que es lo que sí es Celtia) produce audio inservible. El binario y los diccionarios vienen del repositorio aHoTTS, que el workflow clona exponiendo AHOTTS_DIR; el vits.onnx se descarga de Hugging Face."
     },
     "gl": {
       "engine": "coqui-vits",
@@ -68,7 +72,10 @@
         "lengthScale": 1.0
       },
       "notes": "Proxecto Nós · T4.1: voz Celtia (VITS sobre grafemas, Coqui TTS). Locuciones provisionales gl para pilotos técnicos; la producción clínica final sustituye archivo a archivo (misma clave).",
-      "repo": "proxectonos/Nos_TTS-celtia-vits-graphemes"
+      "hfRepos": [
+        "proxectonos/Nos_TTS-celtia-vits-graphemes",
+        "proxectonos/nos_tts-celtia-vits-graphemes"
+      ]
     }
   }
 }

@@ -54,12 +54,11 @@ distractores a ±1 sílaba, al menos un vecino a distancia ≤ 2 en C/D, y ≥ 3
    registro.
 2. **Locuciones propias.** Todavía no existen: `eu` está en
    `VERBAL_AUDIO_PENDING` y el módulo dicta con la voz `eu-ES` del dispositivo
-   (o degrada a la castellana declarándolo). La voz de build-time **ya está
-   decidida: Maider**, el equivalente vasco de lo que Celtia es en gallego. Lo
-   que falta para sintetizar es el identificador del repositorio de pesos, que
-   se pasa en `NOS_EU_REPO` (ver la entrada `eu` de `tools/nos/voices.json`) y
-   cuya licencia hay que auditar antes de empaquetar audio en una release
-   clínica.
+   (o degrada a la castellana declarándolo). La voz de build-time es
+   **Maider**, de HiTZ/Aholab (UPV/EHU), la misma que usa Valeria+: se sintetiza
+   con **AhoTTS**, no infiriendo el ONNX suelto —su VITS espera fonemas, que
+   produce el frontend lingüístico vasco con el diccionario `eu_dicc`—. El
+   workflow de voz ya la tiene cableada; basta lanzarlo con `lang: eu`.
 3. **Ilustraciones.** Hoy se heredan del banco castellano cuando la clave
    coincide y, si no, la tarjeta degrada a pictograma (`VERBAL_GLYPHS_EU`) y
    luego a inicial.

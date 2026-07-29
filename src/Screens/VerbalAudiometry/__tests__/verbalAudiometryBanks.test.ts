@@ -178,7 +178,10 @@ describe('coherencia con el motor de voz neural (tools/nos/voices.json)', () => 
 
   it('las voces declaran motor conocido, modelo y estado provisional explícito', () => {
     for (const [lang, cfg] of Object.entries<any>(registry.voices)) {
-      expect({ lang, engine: ['piper', 'coqui-vits'].includes(cfg.engine) }).toEqual({ lang, engine: true });
+      // `ahotts`: el euskera no se infiere como un VITS suelto — su ONNX espera
+      // fonemas y los produce el frontend lingüístico vasco de AhoTTS.
+      expect({ lang, engine: ['piper', 'coqui-vits', 'ahotts'].includes(cfg.engine) })
+        .toEqual({ lang, engine: true });
       expect(typeof cfg.model).toBe('string');
       expect(typeof cfg.provisional).toBe('boolean');
       expect(typeof cfg.source).toBe('string');
@@ -188,6 +191,27 @@ describe('coherencia con el motor de voz neural (tools/nos/voices.json)', () => 
   it('gl (plan Nós) tiene la voz Celtia registrada para locutar su banco', () => {
     expect(registry.voices.gl.model).toBe('proxectonos/Nos_TTS-celtia-vits-graphemes');
     expect(registry.voices.gl.engine).toBe('coqui-vits');
+  });
+
+  it('eu tiene la voz Maider de HiTZ, con su respaldo y su cadena AhoTTS', () => {
+    const eu = registry.voices.eu;
+    expect(eu.model).toBe('maider');
+    // El motor NO es `coqui-vits`: el vits.onnx vasco espera FONEMAS, que
+    // produce el binario de AhoTTS con el diccionario eu_dicc. Tratarlo como
+    // un VITS de grafemas (que es lo que sí es Celtia) da audio inservible.
+    expect(eu.engine).toBe('ahotts');
+    expect(eu.toolchain).toContain('aHoTTS');
+    // Voz femenina Maider y respaldo masculino Antton, en ese orden.
+    expect(eu.hfRepos).toEqual(['HiTZ/TTS-eu_maider', 'HiTZ/TTS-eu_antton']);
+    expect(eu.license).toContain('CC BY 4.0');
+  });
+
+  it('toda voz VITS declara sus repositorios de pesos por orden de preferencia', () => {
+    for (const [lang, cfg] of Object.entries<any>(registry.voices)) {
+      if (cfg.engine === 'piper') continue; // los Piper se resuelven por URL directa
+      expect({ lang, repos: Array.isArray(cfg.hfRepos) && cfg.hfRepos.length > 0 })
+        .toEqual({ lang, repos: true });
+    }
   });
 });
 

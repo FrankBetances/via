@@ -89,7 +89,7 @@ SOLO en build-time; ver `tools/nos/README.md`):
 |---|---|---|---|---|
 | `es` | Piper (VITS/ONNX) | `es_ES-davefx-medium` | rhasspy/piper-voices | Provisional |
 | `gl` | Coqui (VITS grafemas) | **Celtia** | **Proxecto Nós / ILENIA** | Provisional |
-| `eu` | Coqui (VITS) | **Maider** | ecosistema vasco (HiTZ/Aholab) | Provisional · repositorio de pesos por confirmar |
+| `eu` | **AhoTTS** (VITS + frontend vasco) | **Maider** (respaldo Antton) | **HiTZ/Aholab · UPV/EHU (ILENIA / NEL-GAITU)** | Provisional |
 | `es-DO` | Piper (VITS/ONNX) | `es_MX` (neutra LatAm) | rhasspy/piper-voices | Provisional (ADR Q4.3) |
 
 La voz **neural es la vía por defecto de todos los idiomas**, castellano
@@ -98,11 +98,18 @@ entornos sin acceso a los pesos (y no cubre `gl` ni `eu`). El castellano usaba
 espeak-ng por defecto por herencia histórica, de modo que un `audio --lang es`
 en local sustituía sin avisar los recortes neurales por los clásicos.
 
-El repositorio de pesos de **Maider** no está fijado en `voices.json`: se
-resuelve con la variable `NOS_EU_REPO` (entrada del workflow o variable del
-repositorio). `fetch-models.sh` falla con instrucciones si no está definida, en
-vez de descargar un modelo equivocado; una vez verificado el repositorio y
-auditada su licencia (T0.2), sustitúyase el marcador por la ruta literal.
+**El euskera no es un VITS de grafemas como el gallego.** Celtia se infiere
+directamente sobre el texto; el `vits.onnx` de Maider espera **fonemas**, y
+quien los produce es el binario `tts` de [AhoTTS](https://github.com/hitz-zentroa/aHoTTS)
+con el frontend lingüístico vasco y el diccionario `eu_dicc`. Inferir el ONNX
+por su cuenta produce audio inservible. Por eso `eu` declara `engine: "ahotts"`,
+el workflow clona el repositorio de AhoTTS y expone `AHOTTS_DIR`, y el
+`vits.onnx` se descarga de Hugging Face (`HiTZ/TTS-eu_maider`, con
+`HiTZ/TTS-eu_antton` de respaldo) en tiempo de síntesis y no con
+`fetch-models.sh`.
+
+Toda esta cadena está **portada de Valeria+**, donde la misma voz ya está en
+producción (`scripts/generate-voice-assets.py`, `docs/plan-integracion-euskera.md`).
 
 La síntesis del corpus general (consignas) la ejecuta
 **`scripts/synthesize-voice-corpus.js`** (equivalente a `generate-voice-assets.py
@@ -159,8 +166,10 @@ de sesión.
 
 ## 8. Créditos y licencias
 
-Voz **Celtia** del [Proxecto Nós](https://github.com/proxectonos) (gallego) y
-las voces Piper de [rhasspy/piper-voices](https://huggingface.co/rhasspy/piper-voices).
+Voz **Celtia** del [Proxecto Nós](https://github.com/proxectonos) (gallego),
+voz **Maider** de [HiTZ/Aholab](https://huggingface.co/HiTZ) (UPV/EHU, euskera —
+ILENIA / NEL-GAITU, CC BY 4.0) y las voces Piper de
+[rhasspy/piper-voices](https://huggingface.co/rhasspy/piper-voices).
 La atribución requerida por cada modelo debe reflejarse en la pantalla de
 créditos antes de empaquetar audio en una release clínica (auditoría de
 licencias T0.2, pendiente de firma — `tools/nos/README.md`).

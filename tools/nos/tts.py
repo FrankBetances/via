@@ -5,6 +5,7 @@ Sintetiza locuciones WAV con la voz neural registrada para cada idioma o
 variante de la batería (`tools/nos/voices.json`):
 
   · gl    → Celtia (VITS sobre grafemas, Coqui TTS) — Proxecto Nós / ILENIA
+  · eu    → Maider (AhoTTS) — HiTZ/Aholab, UPV/EHU (ILENIA / NEL-GAITU)
   · es    → Piper es_ES (provisional; sustituye a espeak-ng si se pide neural)
   · es-DO → Piper es_MX neutra LatAm (provisional Quisqueya Habla, ADR Q4.3)
 
@@ -34,6 +35,9 @@ import argparse
 import hashlib
 import json
 import os
+import shlex
+import shutil
+import subprocess
 import sys
 import wave
 from pathlib import Path
@@ -142,7 +146,78 @@ class CoquiVitsEngine:
             self.tts.tts_to_file(text=text, file_path=str(out_wav))
 
 
-ENGINES = {"piper": PiperEngine, "coqui-vits": CoquiVitsEngine}
+class AhoTtsEngine:
+    """Voz vasca de HiTZ/Aholab (Maider) a través de AhoTTS.
+
+    A diferencia de Celtia —un VITS de GRAFEMAS que se infiere directamente—,
+    el `vits.onnx` vasco NO se ejecuta suelto: espera FONEMAS. Quien los produce
+    es el binario `tts` de AhoTTS con el frontend lingüístico vasco y el
+    diccionario `eu_dicc`. Inferir el ONNX por su cuenta da audio inservible.
+
+    El binario y los diccionarios vienen del repositorio aHoTTS
+    (github.com/hitz-zentroa/aHoTTS), que el workflow clona exponiendo
+    `AHOTTS_DIR`; el `vits.onnx` se descarga de Hugging Face. Portado del
+    pipeline de Valeria+, donde esta misma voz ya está en producción.
+    """
+
+    def __init__(self, voice_cfg: dict, base: Path):
+        self.aho = Path(os.environ.get("AHOTTS_DIR", str(base / "ahotts")))
+        self.model = voice_cfg["model"]
+        self.tts_bin = self.aho / "ahotts" / "tts"
+        self.voice_dir = self.aho / "ahotts" / "voices" / "eu" / self.model
+        self.onnx = self.voice_dir / "vits.onnx"
+
+        if not self.tts_bin.exists():
+            raise SystemExit(
+                f"No encuentro el binario de AhoTTS en {self.tts_bin}.\n"
+                "Clone github.com/hitz-zentroa/aHoTTS y exporte AHOTTS_DIR "
+                "(el workflow de voz lo hace por usted)."
+            )
+        os.chmod(self.tts_bin, 0o755)
+        # `ldd` revela bibliotecas del sistema que le falten al binario, que es
+        # el fallo más habitual y el más opaco si no se mira.
+        subprocess.run(f'ldd "{self.tts_bin}" || true', shell=True, check=False)
+
+        if not self.onnx.exists():
+            self._download(voice_cfg)
+
+    def _download(self, voice_cfg: dict) -> None:
+        try:
+            from huggingface_hub import hf_hub_download  # noqa: PLC0415
+        except ImportError as exc:  # pragma: no cover
+            raise SystemExit(
+                "huggingface_hub no instalado: pip install -r tools/nos/requirements.txt"
+            ) from exc
+        token = os.environ.get("HF_TOKEN", "").strip() or None
+        self.voice_dir.mkdir(parents=True, exist_ok=True)
+        # Repositorios por orden de preferencia (Maider y, de respaldo, Antton).
+        for repo in voice_cfg.get("hfRepos", []):
+            try:
+                path = hf_hub_download(repo_id=repo, filename="vits.onnx", token=token)
+                shutil.copy2(path, self.onnx)
+                print(f"Voz vasca: {self.model} · modelo de {repo}")
+                return
+            except Exception as exc:  # noqa: BLE001 — se prueba el siguiente
+                print(f"aviso: {repo} no accesible ({exc})")
+        raise SystemExit(
+            f"No se pudo descargar vits.onnx de {voice_cfg.get('hfRepos')}. "
+            "Compruebe el secret HF_TOKEN y las condiciones del modelo en Hugging Face."
+        )
+
+    def synthesize(self, text: str, out_wav: Path) -> None:
+        # AhoTTS lee el texto por la entrada estándar en ISO-8859-1.
+        cmd = (
+            f"echo {shlex.quote(text)} | iconv -f UTF-8 -t ISO-8859-1//TRANSLIT | "
+            f"./ahotts/tts -Lang=eu -Method=Vits "
+            f"-HDic=./ahotts/dicts/eu/eu_dicc "
+            f"-voice_path=./ahotts/voices/eu/{self.model} {shlex.quote(str(out_wav))}"
+        )
+        subprocess.run(cmd, shell=True, check=True, cwd=str(self.aho))
+        if not out_wav.exists() or out_wav.stat().st_size < 128:
+            raise RuntimeError(f"AhoTTS no generó audio para: {text!r}")
+
+
+ENGINES = {"piper": PiperEngine, "coqui-vits": CoquiVitsEngine, "ahotts": AhoTtsEngine}
 
 
 def make_engine(lang: str, registry: dict):
