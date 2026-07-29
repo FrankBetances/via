@@ -16,6 +16,11 @@ on:
         type: choice
         options: ["all", "es", "gl", "eu", "es-DO"]
         default: "all"
+      target:
+        description: "Qué sintetizar: consignas (corpus general), recortes de la audiometría verbal, o ambos"
+        type: choice
+        options: ["ambos", "corpus", "verbal"]
+        default: "ambos"
       engine:
         description: "Motor de voz (neural = calidad; espeak = degradación sin pesos, no cubre gl)"
         type: choice
@@ -75,7 +80,7 @@ jobs:
           ENGINE="${{ github.event.inputs.engine || 'neural' }}"
           LANG_IN="${{ github.event.inputs.lang || 'all' }}"
           if [ "$LANG_IN" = "all" ]; then
-            LANGS="es gl es-DO"
+            LANGS="es gl eu es-DO"
           else
             LANGS="$LANG_IN"
           fi
@@ -86,6 +91,7 @@ jobs:
           fi
           echo "engine=$ENGINE" >> "$GITHUB_OUTPUT"
           echo "langs=$LANGS" >> "$GITHUB_OUTPUT"
+          echo "target=${{ github.event.inputs.target || 'ambos' }}" >> "$GITHUB_OUTPUT"
 
       - name: Install neural engine + fetch models
         if: ${{ steps.langs.outputs.engine == 'neural' }}
@@ -108,7 +114,8 @@ jobs:
       - name: Export corpus
         run: node scripts/export-voice-corpus.js
 
-      - name: Synthesize assets (incremental)
+      - name: Synthesize corpus assets (incremental)
+        if: ${{ steps.langs.outputs.target != 'verbal' }}
         env:
           VOICE_TTS: ${{ steps.langs.outputs.engine == 'espeak' && 'espeak' || '' }}
         run: |
@@ -117,19 +124,39 @@ jobs:
             node scripts/synthesize-voice-corpus.js --lang "$L"
           done
 
+      # Recortes de la AUDIOMETRÍA VERBAL. Son un banco distinto del corpus de
+      # consignas: `gl` y `eu` no tienen locuciones propias, así que la prueba
+      # degrada a la voz del sistema del dispositivo (en euskera, a la
+      # castellana) — que es exactamente el «en gallego no hay nada» reportado
+      # en campo. Este paso es el que las genera.
+      - name: Synthesize verbal audiometry clips
+        if: ${{ steps.langs.outputs.target != 'corpus' }}
+        env:
+          VERBAL_TTS: ${{ steps.langs.outputs.engine == 'espeak' && 'espeak' || 'neural' }}
+        run: |
+          for L in ${{ steps.langs.outputs.langs }}; do
+            echo "── recortes verbales $L ──"
+            node scripts/verbal-assets.js audio    --lang "$L"
+            node scripts/verbal-assets.js registry --lang "$L"
+            node scripts/verbal-assets.js manifest --lang "$L"
+          done
+
       - name: Rebuild asset map
+        if: ${{ steps.langs.outputs.target != 'verbal' }}
         run: node scripts/build-voice-asset-map.js
 
       - name: Commit assets to the working branch
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add assets/voice src/Voice/viaVoiceAssets.ts voice-corpus.json
+          git add assets/voice src/Voice/viaVoiceAssets.ts voice-corpus.json \
+                  assets/audio/verbal assets/verbal-manifest*.json \
+                  src/Screens/VerbalAudiometry/verbalAudioClips*.ts
           if git diff --cached --quiet; then
             echo "Sin cambios de assets (incremental: todo ya sintetizado)."
             exit 0
           fi
-          git commit -m "chore(voice): assets del corpus general [voice-assets]"
+          git commit -m "chore(voice): assets de voz (corpus y/o recortes verbales) [voice-assets]"
           # Push robusto ante concurrencia: rebase sobre la rama y reintenta.
           for i in 1 2 3 4 5; do
             git pull --rebase origin "${{ github.ref_name }}" && \
