@@ -1,0 +1,322 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Política de privacidad · VIA+</title>
+<meta name="description" content="Política de privacidad de VIA+ (Valoración Interactiva de Audición y Lenguaje): qué datos trata la aplicación, dónde se quedan y qué derechos tiene usted.">
+<link rel="stylesheet" href="estilo.css">
+</head>
+<body>
+<div class="envoltorio">
+
+<header>
+  <a class="marca" href="index.html">
+    <span class="emblema">V+</span>
+    <span>
+      <span class="marca-nombre">VIA+</span><br>
+      <span class="marca-sub">Valoración Interactiva de Audición y Lenguaje</span>
+    </span>
+  </a>
+</header>
+
+<main>
+  <h1>Política de privacidad</h1>
+  <p class="entradilla">
+    Cómo trata VIA+ los datos de las personas evaluadas y de los profesionales que la utilizan.
+  </p>
+  <p class="fecha">Versión 1.0 · en vigor desde el 29 de julio de 2026</p>
+
+  <div class="tarjeta destacado">
+    <h3>Lo esencial, en tres frases</h3>
+    <p>
+      <strong>Los datos clínicos y personales de la persona evaluada no salen del dispositivo.</strong>
+      Se guardan en una base de datos local de la propia tableta o teléfono y no se envían a ningún
+      servidor nuestro ni de terceros.
+    </p>
+    <p>
+      Lo único que sí viaja a la nube es la <strong>cuenta del profesional</strong> que usa la
+      aplicación: su correo electrónico y su ficha profesional, para poder iniciar sesión.
+    </p>
+    <p>
+      <strong>No hay publicidad, ni perfilado, ni venta de datos</strong>, ni herramientas de
+      analítica o seguimiento de terceros dentro de la aplicación.
+    </p>
+  </div>
+
+  <h2>1. Quién es responsable</h2>
+  <p>
+    VIA+ está desarrollada por <strong>Earlify Health</strong> (proyecto Future for Kids), en
+    adelante «el fabricante».
+  </p>
+  <ul>
+    <li>Correo de contacto y de privacidad: <a href="mailto:fbetances@futureforkids.eu">fbetances@futureforkids.eu</a></li>
+    <li>Web: <a href="https://futureforkids.eu">futureforkids.eu</a></li>
+  </ul>
+  <!--
+    COMPLETAR ANTES DE PUBLICAR LA FICHA: el RGPD (art. 13.1.a) exige la
+    identidad y los datos de contacto del responsable. Añadir aquí razón social
+    completa, NIF/CIF y domicilio, y el delegado de protección de datos si se
+    designa uno.
+  -->
+
+  <h3>Un matiz importante sobre quién responde de los datos del paciente</h3>
+  <p>
+    VIA+ es una herramienta profesional: la utiliza un clínico dentro de su consulta o su centro. De
+    los datos de salud de la persona evaluada responde <strong>el profesional o el centro sanitario
+    que aplica la prueba</strong>, que es quien decide para qué los recoge y los conserva. El
+    fabricante no accede a esos datos, no los recibe y no los almacena: se quedan en el dispositivo
+    donde se han generado.
+  </p>
+
+  <h2>2. Para qué sirve la aplicación y quién puede usarla</h2>
+  <p>
+    VIA+ es un <strong>software como dispositivo médico (SaMD) de Clase IIa</strong> conforme al
+    Reglamento (UE) 2017/745 (MDR), destinado a <strong>apoyar la decisión clínica</strong> en
+    audiología, logopedia y neurodesarrollo infantil. No emite diagnósticos automáticos ni sustituye
+    el juicio del profesional sanitario.
+  </p>
+  <p>
+    <strong>No está dirigida al público general ni a los propios menores.</strong> Su uso está
+    restringido a profesionales sanitarios cualificados, que la manejan durante la exploración. El
+    niño o la niña interactúa con las pruebas siempre bajo supervisión directa del profesional.
+  </p>
+
+  <h2>3. Qué datos se tratan y dónde se quedan</h2>
+
+  <div class="tabla-scroll">
+  <table>
+    <thead>
+      <tr><th>Dato</th><th>Para qué</th><th>Dónde se guarda</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Identificación de la persona evaluada (nombre, apellidos, número de historia clínica, fecha de nacimiento)</td>
+        <td>Vincular la evaluación a su historia y emitir el informe</td>
+        <td><strong>Solo en el dispositivo</strong> (base de datos local)</td>
+      </tr>
+      <tr>
+        <td>Resultados de las pruebas (audiometrías, articulación, voz, disfagia, cribados, funciones ejecutivas)</td>
+        <td>Registrar la exploración y generar el informe clínico</td>
+        <td><strong>Solo en el dispositivo</strong></td>
+      </tr>
+      <tr>
+        <td>Grabaciones de voz de la persona evaluada</td>
+        <td>Análisis acústico de la voz y comprobación de la repetición en el test de articulación</td>
+        <td><strong>Solo en el dispositivo</strong>. No se suben a ningún servidor</td>
+      </tr>
+      <tr>
+        <td>Consentimiento informado y firma</td>
+        <td>Acreditar que se ha informado y se ha autorizado la exploración</td>
+        <td><strong>Solo en el dispositivo</strong></td>
+      </tr>
+      <tr>
+        <td>Medidas del pulsioxímetro Bluetooth</td>
+        <td>Cribado de disfagia (saturación de oxígeno durante la deglución)</td>
+        <td><strong>Solo en el dispositivo</strong></td>
+      </tr>
+      <tr>
+        <td>Cuenta del profesional: correo electrónico y contraseña</td>
+        <td>Iniciar sesión en la aplicación</td>
+        <td>Firebase Authentication (Google)</td>
+      </tr>
+      <tr>
+        <td>Ficha del profesional: nombre, rol, número de colegiado y correo</td>
+        <td>Firmar los informes y recuperar el perfil al cambiar de dispositivo</td>
+        <td>Cloud Firestore (Google), en un documento privado del propio profesional</td>
+      </tr>
+      <tr>
+        <td>Telemetría de usabilidad</td>
+        <td>Medir cuánto cuesta usar cada prueba (ingeniería de usabilidad, IEC 62366-1)</td>
+        <td>Solo en memoria; ver el apartado 5</td>
+      </tr>
+    </tbody>
+  </table>
+  </div>
+
+  <h3>Reconocimiento de voz</h3>
+  <p>
+    El test de articulación puede transcribir lo que dice el niño o la niña para comparar la
+    repetición con la palabra modelo. Esa transcripción la hace <strong>el motor de reconocimiento de
+    voz del propio sistema operativo</strong> del dispositivo (Android o iOS), no la aplicación. Según
+    la configuración del dispositivo y el fabricante, ese motor puede procesar el audio en el propio
+    aparato o enviarlo a los servidores de su proveedor —normalmente Google o Apple— conforme a la
+    política de privacidad de ese proveedor, sobre la que el fabricante de VIA+ no tiene control. Si
+    esto no es aceptable en su contexto clínico, el profesional puede realizar la prueba sin
+    reconocimiento de voz y clasificar la producción manualmente: el módulo está diseñado para
+    funcionar así.
+  </p>
+
+  <h2>4. Permisos que pide la aplicación</h2>
+  <div class="tabla-scroll">
+  <table>
+    <thead>
+      <tr><th>Permiso</th><th>Por qué</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Micrófono</td>
+        <td>Medir el ruido de la sala, analizar la voz y grabar la repetición en el test de articulación</td>
+      </tr>
+      <tr>
+        <td>Bluetooth</td>
+        <td>Conectar con el pulsioxímetro de la exploración de disfagia</td>
+      </tr>
+      <tr>
+        <td>Ubicación aproximada y precisa</td>
+        <td>
+          <strong>Solo en Android 11 y anteriores, y solo para poder buscar el pulsioxímetro.</strong>
+          Esas versiones de Android exigían el permiso de ubicación para rastrear dispositivos
+          Bluetooth. La aplicación <strong>no obtiene ni registra su posición geográfica</strong>. En
+          Android 12 y posteriores el permiso ya no se solicita
+        </td>
+      </tr>
+      <tr>
+        <td>Internet</td>
+        <td>Iniciar sesión del profesional y sincronizar únicamente su ficha profesional</td>
+      </tr>
+      <tr>
+        <td>Vibración</td>
+        <td>Refuerzo táctil de las recompensas en la audiometría infantil condicionada</td>
+      </tr>
+    </tbody>
+  </table>
+  </div>
+
+  <h2>5. Telemetría de usabilidad, sin datos de salud</h2>
+  <p>
+    Al terminar una batería de pruebas, la aplicación puede resumir cuánto ha durado cada ítem y
+    cuántas veces ha rectificado el profesional. Ese resumen:
+  </p>
+  <ul>
+    <li>
+      <strong>no contiene ningún dato del paciente</strong>: ni nombre, ni número de historia, ni
+      identificador clínico. El identificador de sesión son ocho caracteres aleatorios, sin relación
+      con ningún dato de la persona evaluada;
+    </li>
+    <li>
+      <strong>vive solo en la memoria de la aplicación</strong> y desaparece al cerrarla: no se
+      escribe en la base de datos ni se envía a la nube;
+    </li>
+    <li>
+      <strong>solo sale del dispositivo si el profesional decide compartirlo</strong>, mostrándolo
+      como código QR para que se lea con otro aparato.
+    </li>
+  </ul>
+
+  <h2>6. Base jurídica del tratamiento</h2>
+  <ul>
+    <li>
+      <strong>Datos de salud de la persona evaluada</strong>: los trata el profesional o el centro
+      sanitario para la asistencia sanitaria (art. 6.1.c y 9.2.h del RGPD), con el consentimiento
+      informado que se recoge y firma dentro de la propia aplicación antes de empezar. La
+      participación es voluntaria y el consentimiento puede retirarse en cualquier momento.
+    </li>
+    <li>
+      <strong>Cuenta y ficha del profesional</strong>: ejecución de la relación de uso del software
+      (art. 6.1.b del RGPD). Sin ellas no es posible autenticar a quien firma los informes.
+    </li>
+  </ul>
+
+  <h2>7. Menores de edad</h2>
+  <p>
+    Las personas evaluadas con VIA+ son, en su mayoría, menores. Los datos los introduce y gestiona
+    siempre el profesional sanitario, nunca el propio menor, y el consentimiento lo otorga quien
+    ejerce la tutela legal (o el propio paciente cuando su edad lo permite conforme a la normativa
+    aplicable). La aplicación no ofrece registro público, ni funciones sociales, ni publicidad
+    dirigida a menores.
+  </p>
+
+  <h2>8. Con quién se comparten los datos</h2>
+  <p>
+    Los datos de la persona evaluada <strong>no se comparten con nadie</strong>: no salen del
+    dispositivo. Para la cuenta del profesional se utiliza un único proveedor:
+  </p>
+  <ul>
+    <li>
+      <strong>Google Firebase</strong> (Firebase Authentication y Cloud Firestore), como encargado
+      del tratamiento, para autenticar al profesional y guardar su ficha. Consulte
+      <a href="https://firebase.google.com/support/privacy" rel="noopener">la información de privacidad de Firebase</a>.
+    </li>
+  </ul>
+  <p>
+    No se venden ni se ceden datos a terceros, ni se utilizan para publicidad, elaboración de
+    perfiles o entrenamiento de modelos de inteligencia artificial. VIA+ no ejecuta ningún modelo de
+    IA durante su uso: las voces sintéticas que reproduce se generan por adelantado, antes de
+    publicar la aplicación.
+  </p>
+
+  <h2>9. Cuánto tiempo se conservan</h2>
+  <ul>
+    <li>
+      <strong>En el dispositivo</strong>: los datos permanecen mientras el profesional los mantenga.
+      Puede eliminarlos desde la propia aplicación, y desinstalarla borra la base de datos local
+      completa. Los plazos de conservación de la historia clínica los fija la normativa sanitaria
+      aplicable al profesional o al centro, no la aplicación.
+    </li>
+    <li>
+      <strong>Cuenta del profesional</strong>: se conserva mientras la cuenta esté activa. Al
+      solicitar su baja se elimina la cuenta y su ficha.
+    </li>
+  </ul>
+
+  <h2>10. Seguridad</h2>
+  <p>
+    La comunicación con Firebase va cifrada en tránsito (TLS). El acceso a la ficha del profesional
+    está restringido por reglas de seguridad de Firestore, de modo que cada profesional solo puede
+    leer y escribir su propio documento.
+  </p>
+  <p>
+    Como los datos clínicos residen en el dispositivo, su protección depende también de cómo esté
+    configurado ese dispositivo. Recomendamos encarecidamente al profesional y al centro
+    <strong>activar el cifrado del dispositivo y un bloqueo de pantalla robusto</strong>, no
+    compartir el aparato fuera del entorno clínico y mantener el sistema operativo actualizado.
+  </p>
+
+  <h2>11. Sus derechos</h2>
+  <p>
+    Puede ejercer los derechos de acceso, rectificación, supresión, limitación, portabilidad y
+    oposición previstos en el RGPD y en la LOPDGDD.
+  </p>
+  <ul>
+    <li>
+      <strong>Si es usted paciente o su representante legal</strong>: diríjase al profesional o al
+      centro sanitario donde se realizó la exploración. Es quien tiene sus datos y quien responde de
+      ellos; el fabricante no dispone de ellos y no puede localizarlos.
+    </li>
+    <li>
+      <strong>Si es usted un profesional usuario de la aplicación</strong>: escriba a
+      <a href="mailto:fbetances@futureforkids.eu">fbetances@futureforkids.eu</a> para acceder,
+      corregir o eliminar su cuenta y su ficha.
+    </li>
+  </ul>
+  <p>
+    También puede presentar una reclamación ante la autoridad de control competente; en España, la
+    <a href="https://www.aepd.es" rel="noopener">Agencia Española de Protección de Datos</a>.
+  </p>
+
+  <h2>12. Cambios en esta política</h2>
+  <p>
+    Si el tratamiento de datos cambia, se publicará aquí una versión actualizada con su fecha de
+    entrada en vigor. Los cambios sustanciales se anunciarán además dentro de la aplicación.
+  </p>
+
+  <h2>13. Contacto</h2>
+  <p>
+    Cualquier duda sobre esta política:
+    <a href="mailto:fbetances@futureforkids.eu">fbetances@futureforkids.eu</a>.
+  </p>
+</main>
+
+<footer>
+  <p>
+    VIA+ · Valoración Interactiva de Audición y Lenguaje — Earlify Health.<br>
+    Software como dispositivo médico Clase IIa (MDR 2017/745). Herramienta de apoyo a la decisión
+    clínica; no emite diagnósticos automatizados.
+  </p>
+  <p><a href="index.html">Volver al inicio</a></p>
+</footer>
+
+</div>
+</body>
+</html>

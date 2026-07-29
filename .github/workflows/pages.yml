@@ -1,0 +1,51 @@
+name: GitHub Pages
+
+# Publica el sitio público de VIA+ (`site/`), cuya pieza obligatoria es la
+# política de privacidad enlazada desde la ficha de Google Play: Play exige una
+# URL accesible sin autenticación y que siga estando viva mientras la app esté
+# publicada.
+#
+# El origen de Pages debe estar en «GitHub Actions» (Settings → Pages → Build
+# and deployment → Source: GitHub Actions). Con el origen en «Deploy from a
+# branch» este workflow se ejecuta pero el despliegue no se aplica.
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "site/**"
+      - ".github/workflows/pages.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Un despliegue a la vez, sin cancelar el que ya está en curso: cancelar a
+# medias puede dejar publicada una versión intermedia.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload site artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
