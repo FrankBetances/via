@@ -21,6 +21,10 @@ on:
         type: choice
         options: ["ambos", "corpus", "verbal"]
         default: "ambos"
+      eu_repo:
+        description: "Repositorio de los pesos de la voz vasca Maider (solo si se sintetiza eu). Si se deja vacío se usa la variable NOS_EU_REPO del repositorio."
+        type: string
+        default: ""
       engine:
         description: "Motor de voz (neural = calidad; espeak = degradación sin pesos, no cubre gl)"
         type: choice
@@ -130,6 +134,9 @@ jobs:
         if: ${{ steps.langs.outputs.engine == 'neural' }}
         env:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
+          # Voz vasca Maider: su repositorio de pesos no está fijado en
+          # voices.json (ver sus `notes`), así que se resuelve desde aquí.
+          NOS_EU_REPO: ${{ github.event.inputs.eu_repo || vars.NOS_EU_REPO }}
         run: |
           if [ -z "$HF_TOKEN" ]; then
             echo "::error::HF_TOKEN no configurado. La voz neural (Celtia gl es 'gated') requiere el secret HF_TOKEN. Añádelo en Settings → Secrets, o usa engine=espeak (es/es-DO)."
@@ -166,6 +173,7 @@ jobs:
         if: ${{ steps.langs.outputs.target != 'corpus' }}
         env:
           VERBAL_TTS: ${{ steps.langs.outputs.engine == 'espeak' && 'espeak' || 'neural' }}
+          NOS_EU_REPO: ${{ github.event.inputs.eu_repo || vars.NOS_EU_REPO }}
         run: |
           for L in ${{ steps.langs.outputs.langs }}; do
             echo "── recortes verbales $L ──"

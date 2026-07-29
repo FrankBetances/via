@@ -1,4 +1,4 @@
-# Arquitectura de corpus de voz neuronal en VIA+ (es · gl · es-DO)
+# Arquitectura de corpus de voz neuronal en VIA+ (es · gl · eu · es-DO)
 
 > **Estado:** INFRAESTRUCTURA (v1). Capa `src/Voice/` portada del blueprint
 > replicable de Valeria+ (`arquitectura-corpus-voz-nos-ilenia.json`, Proxecto
@@ -20,7 +20,7 @@ VIA+ ya tenía voz **acoplada a la audiometría verbal** (recortes por palabra e
 enumerable** del blueprint de Valeria: las **consignas habladas** de la app
 (hoy dictadas solo por el TTS del sistema en es-ES, sin assets ni multi-idioma)
 pasan a un contrato con id por hash de contenido, pipeline de síntesis y cadena
-de degradación elegante, cableado para **castellano, gallego y dominicano**.
+de degradación elegante, cableado para **castellano, gallego, euskera y dominicano**.
 
 La audiometría verbal conserva su pipeline propio (estímulo clínico validado por
 el logopeda); esta capa es para consignas/instrucciones y futuros módulos.
@@ -89,7 +89,20 @@ SOLO en build-time; ver `tools/nos/README.md`):
 |---|---|---|---|---|
 | `es` | Piper (VITS/ONNX) | `es_ES-davefx-medium` | rhasspy/piper-voices | Provisional |
 | `gl` | Coqui (VITS grafemas) | **Celtia** | **Proxecto Nós / ILENIA** | Provisional |
+| `eu` | Coqui (VITS) | **Maider** | ecosistema vasco (HiTZ/Aholab) | Provisional · repositorio de pesos por confirmar |
 | `es-DO` | Piper (VITS/ONNX) | `es_MX` (neutra LatAm) | rhasspy/piper-voices | Provisional (ADR Q4.3) |
+
+La voz **neural es la vía por defecto de todos los idiomas**, castellano
+incluido: `VERBAL_TTS=espeak` queda solo como degradación explícita para
+entornos sin acceso a los pesos (y no cubre `gl` ni `eu`). El castellano usaba
+espeak-ng por defecto por herencia histórica, de modo que un `audio --lang es`
+en local sustituía sin avisar los recortes neurales por los clásicos.
+
+El repositorio de pesos de **Maider** no está fijado en `voices.json`: se
+resuelve con la variable `NOS_EU_REPO` (entrada del workflow o variable del
+repositorio). `fetch-models.sh` falla con instrucciones si no está definida, en
+vez de descargar un modelo equivocado; una vez verificado el repositorio y
+auditada su licencia (T0.2), sustitúyase el marcador por la ruta literal.
 
 La síntesis del corpus general (consignas) la ejecuta
 **`scripts/synthesize-voice-corpus.js`** (equivalente a `generate-voice-assets.py

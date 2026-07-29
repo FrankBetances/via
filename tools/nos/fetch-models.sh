@@ -12,9 +12,9 @@ set -euo pipefail
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 MODELS="${NOS_MODELS_DIR:-$HERE/models}"
 PIPER_BASE="https://huggingface.co/rhasspy/piper-voices/resolve/main"
-CELTIA_REPO="proxectonos/Nos_TTS-celtia-vits-graphemes"
+REGISTRY="$HERE/voices.json"
 
-mkdir -p "$MODELS/piper" "$MODELS/celtia"
+mkdir -p "$MODELS/piper"
 
 checksum() { # checksum <archivo>  → anota o verifica <archivo>.sha256
   local f="$1"
@@ -42,23 +42,52 @@ fetch "$PIPER_BASE/es/es_ES/davefx/medium/es_ES-davefx-medium.onnx.json"  "$MODE
 fetch "$PIPER_BASE/es/es_MX/claude/high/es_MX-claude-high.onnx"           "$MODELS/piper/es_MX-claude-high.onnx"
 fetch "$PIPER_BASE/es/es_MX/claude/high/es_MX-claude-high.onnx.json"      "$MODELS/piper/es_MX-claude-high.onnx.json"
 
-# --- Voz Celtia (gl, Proxecto Nós / ILENIA, T4.1) -----------------------------
-# El repo trae config.json + checkpoint .pth; se descarga completo y versionado.
-if ! ls "$MODELS/celtia"/*.pth >/dev/null 2>&1; then
-  echo "↓ Celtia ($CELTIA_REPO)"
-  if command -v huggingface-cli >/dev/null 2>&1; then
-    huggingface-cli download "$CELTIA_REPO" --local-dir "$MODELS/celtia"
-  else
-    python3 - "$CELTIA_REPO" "$MODELS/celtia" <<'PY'
+# --- Voces VITS (Coqui) declaradas en voices.json ---------------------------
+# Se leen del REGISTRO en vez de estar a fuego: añadir una lengua es editar
+# voices.json, no este script. Cada entrada aporta su repositorio (`repo`, que
+# admite `${VAR}` para resolverse desde el entorno cuando el modelo aún no
+# tiene ruta fija) y su directorio de destino (`files.dir`).
+vits_entries() {
+  python3 -c '
+import json, os, re, sys
+registry = json.load(open(sys.argv[1], encoding="utf-8"))
+for lang, cfg in registry["voices"].items():
+    if cfg.get("engine") != "coqui-vits":
+        continue
+    repo = cfg.get("repo") or cfg.get("model", "")
+    repo = re.sub(r"\$\{(\w+)\}", lambda m: os.environ.get(m.group(1), ""), repo).strip()
+    print("\t".join([lang, repo, cfg["files"]["dir"]]))
+' "$REGISTRY"
+}
+
+while IFS=$'\t' read -r LANG REPO DIR; do
+  [[ -z "$LANG" ]] && continue
+  if [[ -z "$REPO" ]]; then
+    echo "✗ La voz '$LANG' no tiene repositorio de pesos resuelto."
+    echo "  El campo 'repo' de tools/nos/voices.json usa un marcador \${VAR} que no está"
+    echo "  definido en el entorno. Defina esa variable —o sustituya el marcador por la"
+    echo "  ruta literal del repositorio, una vez verificada— y repita."
+    exit 1
+  fi
+
+  DEST="$MODELS/$DIR"
+  mkdir -p "$DEST"
+  if ! ls "$DEST"/*.pth >/dev/null 2>&1; then
+    echo "↓ $LANG ($REPO)"
+    if command -v huggingface-cli >/dev/null 2>&1; then
+      huggingface-cli download "$REPO" --local-dir "$DEST"
+    else
+      python3 -c '
 import sys
 from huggingface_hub import snapshot_download
 snapshot_download(repo_id=sys.argv[1], local_dir=sys.argv[2])
-PY
+' "$REPO" "$DEST"
+    fi
   fi
-fi
-for f in "$MODELS/celtia"/*.pth "$MODELS/celtia"/config.json; do
-  [[ -f "$f" ]] && checksum "$f"
-done
+  for f in "$DEST"/*.pth "$DEST"/config.json; do
+    [[ -f "$f" ]] && checksum "$f"
+  done
+done < <(vits_entries)
 
 echo "✓ Modelos en $MODELS"
 python3 "$HERE/tts.py" --list

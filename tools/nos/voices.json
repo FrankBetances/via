@@ -16,8 +16,12 @@
       "source": "https://huggingface.co/rhasspy/piper-voices/tree/main/es/es_ES/davefx/medium",
       "license": "ver ficha del modelo en Hugging Face (auditoría T0.2 pendiente de firma)",
       "provisional": true,
-      "params": { "lengthScale": 1.1, "noiseScale": 0.333, "noiseW": 0.333 },
-      "notes": "Sustituye a espeak-ng como locución provisional castellana cuando se genera con VERBAL_TTS=neural. La producción clínica final sigue siendo locutor profesional (validacion-clinica-verbal.md)."
+      "params": {
+        "lengthScale": 1.1,
+        "noiseScale": 0.333,
+        "noiseW": 0.333
+      },
+      "notes": "Voz de las locuciones castellanas de la audiometría verbal y del corpus de consignas. Sustituye definitivamente a espeak-ng: la síntesis neural es la vía por defecto del pipeline (`VERBAL_TTS=espeak` queda solo como degradación explícita para entornos sin acceso a los pesos). La producción clínica final sigue siendo locutor profesional (validacion-clinica-verbal.md)."
     },
     "es-DO": {
       "engine": "piper",
@@ -29,20 +33,27 @@
       "source": "https://huggingface.co/rhasspy/piper-voices/tree/main/es/es_MX/claude/high",
       "license": "ver ficha del modelo en Hugging Face (auditoría T0.2 pendiente de firma)",
       "provisional": true,
-      "params": { "lengthScale": 1.1, "noiseScale": 0.333, "noiseW": 0.333 },
+      "params": {
+        "lengthScale": 1.1,
+        "noiseScale": 0.333,
+        "noiseW": 0.333
+      },
       "notes": "Quisqueya Habla · Q4.1: no existe voz abierta es-DO, se usa una voz Piper neutra LatAm (es_MX) como provisional. La voz definitiva (locutor dominicano o VITS es-DO propio) se decide en el ADR Q4.3 tras el piloto de Santo Domingo."
     },
     "eu": {
       "engine": "coqui-vits",
-      "model": "PENDIENTE-ADR-EU (ver notes: la voz vasca no está decidida)",
+      "model": "maider",
       "files": {
-        "dir": "euskara"
+        "dir": "maider"
       },
+      "repo": "${NOS_EU_REPO}",
       "source": "https://huggingface.co/HiTZ",
-      "license": "pendiente de la elección del modelo (auditoría T0.2)",
+      "license": "ver ficha del modelo (auditoría T0.2 pendiente de firma)",
       "provisional": true,
-      "params": { "lengthScale": 1.0 },
-      "notes": "Euskera · la voz NO está elegida todavía. El candidato natural es un modelo abierto del ecosistema ILENIA/HiTZ-Aholab (UPV/EHU), el equivalente vasco de lo que Proxecto Nós aporta en gallego, pero la selección concreta, su licencia y la firma de escucha son un ADR pendiente. Esta entrada existe para que el registro declare el hueco de forma explícita en vez de dejarlo implícito: `tts.py --list` lo muestra como PENDIENTE y `--lang eu` falla con un error claro en lugar de sintetizar con una voz equivocada. Mientras tanto la app dicta el banco vasco con la voz `eu-ES` del dispositivo si la tiene y, si no, degrada a la castellana declarándolo."
+      "params": {
+        "lengthScale": 1.0
+      },
+      "notes": "Euskera · voz MAIDER, decidida por el responsable del proyecto (equivalente vasco de lo que Celtia es en gallego). El identificador del repositorio de pesos NO está fijado aquí: se resuelve con la variable de entorno NOS_EU_REPO, porque el modelo hay que descargarlo de un repositorio concreto que debe verificarse antes de la primera síntesis (y su licencia auditarse, T0.2). `fetch-models.sh` falla con instrucciones si no está definida, en vez de descargar un modelo equivocado. Una vez confirmado el repositorio, sustitúyase el marcador por su ruta literal y quítese la dependencia de la variable."
     },
     "gl": {
       "engine": "coqui-vits",
@@ -53,8 +64,11 @@
       "source": "https://huggingface.co/proxectonos/Nos_TTS-celtia-vits-graphemes",
       "license": "ver ficha del modelo en Hugging Face (auditoría T0.2 pendiente de firma)",
       "provisional": true,
-      "params": { "lengthScale": 1.0 },
-      "notes": "Proxecto Nós · T4.1: voz Celtia (VITS sobre grafemas, Coqui TTS). Locuciones provisionales gl para pilotos técnicos; la producción clínica final sustituye archivo a archivo (misma clave)."
+      "params": {
+        "lengthScale": 1.0
+      },
+      "notes": "Proxecto Nós · T4.1: voz Celtia (VITS sobre grafemas, Coqui TTS). Locuciones provisionales gl para pilotos técnicos; la producción clínica final sustituye archivo a archivo (misma clave).",
+      "repo": "proxectonos/Nos_TTS-celtia-vits-graphemes"
     }
   }
 }

@@ -20,9 +20,9 @@
  * manifiesto las marca `inherited`), pero el AUDIO es siempre propio: cada
  * idioma se locuta con su voz (Q4.1).
  *
- * VOZ: `es` usa espeak-ng por defecto (histórico) o el motor de voz neural
- * (tools/nos/tts.py, Piper/Celtia) con VERBAL_TTS=neural; las demás lenguas
- * usan siempre el motor neural. El post-proceso ffmpeg (loudnorm, m4a) es
+ * VOZ: el motor NEURAL (tools/nos/tts.py — Piper es/es-DO, Celtia gl, Maider
+ * eu) para todos los idiomas. `VERBAL_TTS=espeak` degrada a la voz clásica en
+ * entornos sin acceso a los pesos (no cubre gl ni eu). El post-proceso ffmpeg (loudnorm, m4a) es
  * idéntico para todas las voces: mismo objetivo LUFS entre idiomas.
  *
  * PROVISIONALES: locuciones sintéticas e ilustraciones pictograma/tile.
@@ -302,12 +302,14 @@ function cmdAudio({ bands }, lang) {
   const entries = audioEntries(bands);
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'verbal-wav-'));
 
-  // Locución PROVISIONAL: es usa espeak-ng salvo VERBAL_TTS=neural; las
-  // variantes usan su voz neural (voices.json) salvo VERBAL_TTS=espeak —
-  // degradación explícita (voz clásica es-419 LatAm) para entornos sin
-  // acceso a los pesos; regenere con la voz neural en cuanto sea posible.
-  const forced = process.env.VERBAL_TTS;
-  const neural = forced ? forced === 'neural' : lang !== 'es';
+  // Locución PROVISIONAL con la voz NEURAL declarada en `tools/nos/voices.json`
+  // para TODOS los idiomas, castellano incluido. El castellano usaba espeak-ng
+  // por defecto por herencia histórica, de modo que un `audio --lang es` en
+  // local sustituía sin avisar los recortes neurales por los clásicos; la voz
+  // castellana ya está decidida (Piper es_ES-davefx-medium) y es la de por
+  // defecto. `VERBAL_TTS=espeak` sigue disponible como degradación EXPLÍCITA
+  // para entornos sin acceso a los pesos, y no cubre gl ni eu.
+  const neural = process.env.VERBAL_TTS !== 'espeak';
   if (neural) synthNeural(entries, tmp, lang);
   else synthEspeak(entries, tmp, lang);
 

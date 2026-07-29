@@ -52,11 +52,14 @@ distractores a ±1 sílaba, al menos un vecino a distancia ≤ 2 en C/D, y ≥ 3
    `VERBAL_BANK_PROVISIONAL`; la prueba de trazabilidad de
    `verbalAudiometryBanks.test.ts` impide que el código se adelante al
    registro.
-2. **Locuciones propias.** No existen: `eu` está en `VERBAL_AUDIO_PENDING` y
-   el módulo dicta con la voz `eu-ES` del dispositivo (o degrada a la
-   castellana declarándolo). La voz neural de build-time tampoco está
-   decidida — ver la entrada `eu` de `tools/nos/voices.json`, que declara el
-   hueco de forma explícita en lugar de dejarlo implícito.
+2. **Locuciones propias.** Todavía no existen: `eu` está en
+   `VERBAL_AUDIO_PENDING` y el módulo dicta con la voz `eu-ES` del dispositivo
+   (o degrada a la castellana declarándolo). La voz de build-time **ya está
+   decidida: Maider**, el equivalente vasco de lo que Celtia es en gallego. Lo
+   que falta para sintetizar es el identificador del repositorio de pesos, que
+   se pasa en `NOS_EU_REPO` (ver la entrada `eu` de `tools/nos/voices.json`) y
+   cuya licencia hay que auditar antes de empaquetar audio en una release
+   clínica.
 3. **Ilustraciones.** Hoy se heredan del banco castellano cuando la clave
    coincide y, si no, la tarjeta degrada a pictograma (`VERBAL_GLYPHS_EU`) y
    luego a inicial.
