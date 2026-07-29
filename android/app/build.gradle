@@ -95,9 +95,9 @@ android {
     buildToolsVersion rootProject.ext.buildToolsVersion
     compileSdk rootProject.ext.compileSdkVersion
 
-    namespace "com.viaplus.app"
+    namespace "eu.futureforkids.via"
     defaultConfig {
-        applicationId "com.viaplus.app"
+        applicationId "eu.futureforkids.via"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode appVersionCode

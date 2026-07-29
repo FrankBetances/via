@@ -1,5 +1,5 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="com.viaplus.app">
+    xmlns:tools="http://schemas.android.com/tools">
 
     <uses-permission android:name="android.permission.INTERNET" />
 
@@ -17,7 +17,18 @@
     <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
     <uses-permission android:name="android.permission.BLUETOOTH" android:maxSdkVersion="30" />
     <uses-permission android:name="android.permission.BLUETOOTH_ADMIN" android:maxSdkVersion="30" />
-    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" android:maxSdkVersion="30" />
+
+    <!-- Ubicación: en Android ≤ 11 el escaneo BLE la exigía a nivel de sistema;
+         desde Android 12 no hace falta porque BLUETOOTH_SCAN va marcado
+         `neverForLocation`. De ahí el maxSdkVersion=30.
+
+         react-native-ble-plx declara estos dos permisos SIN maxSdkVersion, así
+         que el merge dejaba dos <uses-permission> del mismo permiso con
+         maxSdkVersion distinto y Play Console rechazaba el bundle.
+         `tools:node="replace"` hace que gane la declaración de la app y quede
+         una sola entrada por permiso. -->
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" android:maxSdkVersion="30" tools:node="replace" />
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" android:maxSdkVersion="30" tools:node="replace" />
 
     <application
       android:name=".MainApplication"

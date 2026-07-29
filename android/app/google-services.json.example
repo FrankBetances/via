@@ -9,7 +9,7 @@
       "client_info": {
         "mobilesdk_app_id": "1:TU_PROJECT_NUMBER:android:TU_APP_ID",
         "android_client_info": {
-          "package_name": "com.viaplus.app"
+          "package_name": "eu.futureforkids.via"
         }
       },
       "oauth_client": [],

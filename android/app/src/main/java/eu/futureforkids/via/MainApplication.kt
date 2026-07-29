@@ -1,4 +1,4 @@
-package com.viaplus.app
+package eu.futureforkids.via
 
 import android.app.Application
 import com.facebook.react.PackageList

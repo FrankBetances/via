@@ -1,4 +1,4 @@
-package com.viaplus.app
+package eu.futureforkids.via
 
 import com.facebook.react.ReactActivity
 import com.facebook.react.ReactActivityDelegate
