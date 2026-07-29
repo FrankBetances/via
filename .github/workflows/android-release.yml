@@ -8,6 +8,8 @@ on:
     paths:
       - "android/**"
       - "src/**"
+      - "assets/audio/**"
+      - "scripts/check-verbal-coverage.js"
       - "package.json"
       - "package-lock.json"
       - ".github/workflows/android-release.yml"
@@ -30,6 +32,24 @@ jobs:
 
       - name: Install JS dependencies
         run: npm ci --legacy-peer-deps
+
+      # Puerta de locuciones. La síntesis en CI es TOLERANTE a propósito (una
+      # voz que falle no debe tirar el lote de las demás), así que sin este
+      # chequeo un idioma sin locutar viajaría hasta el APK sin que nadie se
+      # entere: la audiometría verbal dictaría con la voz del dispositivo, que
+      # no es el estímulo validado.
+      #
+      # No exige «todos los idiomas al 100 %», sino COHERENCIA con
+      # `VERBAL_AUDIO_PENDING`, que es la declaración revisada de qué idiomas
+      # se sabe que aún no tienen locuciones propias — y que la pantalla usa
+      # para advertir al profesional. Falla en los dos sentidos: recortes que
+      # faltan sin estar declarados, y declaraciones que se quedaron obsoletas
+      # después de sintetizar.
+      #
+      # Va ANTES de descifrar el keystore: falla rápido y sin material sensible
+      # en el runner.
+      - name: Verify verbal clip coverage
+        run: node scripts/check-verbal-coverage.js --strict
 
       - name: Decode release keystore
         env:

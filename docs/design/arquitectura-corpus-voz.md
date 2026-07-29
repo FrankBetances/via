@@ -136,13 +136,23 @@ Ese diseño tiene dos mitades y hacen falta las dos:
 
 + en la **síntesis**, `scripts/check-verbal-coverage.js` es informativo — deja
   en el log qué idiomas quedaron locutados, sin cortar;
-+ en el **empaquetado**, el mismo chequeo con `--strict` sale con código 1: ahí
-  una voz ausente no es una degradación aceptada, es un APK defectuoso.
++ en el **empaquetado** (`android-release.yml`, antes de descifrar el
+  keystore), el mismo chequeo con `--strict` sale con código 1: ahí una voz
+  ausente no es una degradación aceptada, es un APK defectuoso.
 
-> La segunda mitad **todavía no está cableada** en los workflows de Android de
-> VIA+. Mientras no lo esté, una voz que falle en CI puede llegar a una release
-> sin que nadie lo note: ejecute `node scripts/check-verbal-coverage.js --strict`
-> antes de empaquetar.
+El modo estricto no exige «todos los idiomas al 100 %», sino **coherencia con
+`VERBAL_AUDIO_PENDING`**, la declaración revisada de qué idiomas se sabe que aún
+no tienen locuciones propias y que la propia pantalla usa para advertir al
+profesional. Falla en los dos sentidos:
+
++ un idioma **no** declarado pendiente al que le falten recortes — la app
+  promete un estímulo locutado que no existe;
++ un idioma declarado pendiente que **ya** los tiene todos — el aviso de «el
+  estímulo no es el definitivo» ha pasado a ser falso.
+
+Es decir: cuando el workflow de voz sintetice el gallego, la release seguirá
+fallando hasta que se saque `gl` de `VERBAL_AUDIO_PENDING`, que es exactamente
+el momento en que hay que revisarlo.
 
 **Degradación sin pesos:** `VOICE_TTS=espeak` locuta con la voz clásica
 espeak-ng (es → `es`, es-DO → `es-419` LatAm); `gl` requiere el motor neural

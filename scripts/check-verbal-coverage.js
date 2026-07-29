@@ -13,8 +13,21 @@
  *     entero, porque el resto de idiomas sí se ha generado y hay que
  *     commitearlo; el idioma que falta degrada a la voz del sistema, que es
  *     una degradación declarada y funcional;
- *   · en el EMPAQUETADO sería bloqueante (`--strict`) — ahí un APK sin sus
- *     locuciones es un APK defectuoso, no una degradación aceptada.
+ *   · en el EMPAQUETADO es bloqueante (`--strict`, cableado en
+ *     `android-release.yml`) — ahí un APK sin sus locuciones es un APK
+ *     defectuoso, no una degradación aceptada.
+ *
+ * En modo `--strict` el criterio NO es «todos los idiomas al 100 %», sino
+ * COHERENCIA CON `VERBAL_AUDIO_PENDING`, que es la declaración revisada de qué
+ * idiomas se sabe que aún no tienen locuciones propias. Se comprueba en los dos
+ * sentidos, igual que las pruebas de trazabilidad de la aprobación clínica:
+ *
+ *   · un idioma NO declarado pendiente al que le falten recortes → error: la
+ *     app promete un estímulo locutado que no existe;
+ *   · un idioma declarado pendiente que YA los tiene todos → error también:
+ *     la pantalla sigue advirtiendo al profesional de que el estímulo no es el
+ *     definitivo cuando ya lo es, y el aviso pasa a ser falso. Basta sacarlo de
+ *     la lista.
  *
  * Sin la primera mitad, un fallo de una voz se lleva por delante el trabajo de
  * las demás. Sin la segunda, una voz ausente viaja hasta producción sin que
@@ -53,20 +66,22 @@ const audioKeys = bands => {
 function main() {
   const strict = process.argv.includes('--strict');
   const banks = loadBanks();
+  const pending = new Set(banks.VERBAL_AUDIO_PENDING);
 
   const rows = [];
   for (const lang of banks.VERBAL_BANK_LANGS) {
     const keys = audioKeys(banks.getVerbalBands(lang));
     const dir = audioDir(lang);
     const missing = keys.filter(k => !fs.existsSync(path.join(dir, `${k}.m4a`)));
-    rows.push({ lang, total: keys.length, missing });
+    rows.push({ lang, total: keys.length, missing, declaredPending: pending.has(lang) });
   }
 
   console.log('Cobertura de locuciones del banco verbal\n');
-  for (const { lang, total, missing } of rows) {
+  for (const { lang, total, missing, declaredPending } of rows) {
     const have = total - missing.length;
-    const mark = missing.length === 0 ? '✓' : '·';
-    console.log(`  ${mark} ${lang.padEnd(6)} ${String(have).padStart(3)}/${total}`);
+    const mark = missing.length === 0 ? '✓' : declaredPending ? '·' : '✗';
+    const tag = declaredPending ? '  (audio declarado pendiente)' : '';
+    console.log(`  ${mark} ${lang.padEnd(6)} ${String(have).padStart(3)}/${total}${tag}`);
     if (missing.length) {
       // Se listan acotadas: con un banco entero sin sintetizar, volcar las 38
       // claves no aporta nada sobre «no hay ninguna».
@@ -77,23 +92,50 @@ function main() {
   }
 
   const incomplete = rows.filter(r => r.missing.length);
-  if (!incomplete.length) {
-    console.log('\n✓ Todos los idiomas registrados tienen su banco locutado.');
+
+  if (!strict) {
+    if (!incomplete.length) {
+      console.log('\n✓ Todos los idiomas registrados tienen su banco locutado.');
+      return 0;
+    }
+    console.log(
+      `\n· Sin locutar: ${incomplete.map(r => r.lang).join(', ')}. Esos idiomas degradan ` +
+      'a la voz del sistema, que es una degradación declarada; no bloquea la síntesis del resto.',
+    );
     return 0;
   }
 
-  const langs = incomplete.map(r => r.lang).join(', ');
-  if (strict) {
-    console.error(
-      `\n✗ Faltan locuciones en: ${langs}.\n` +
-      '  Genérelas con el workflow de voz (o `verbal-assets.js audio --lang <lang>`) ' +
-      'antes de empaquetar.',
-    );
+  /* ----------------------- coherencia con la declaración ------------------- */
+
+  const problems = [];
+  for (const { lang, missing, declaredPending, total } of rows) {
+    if (missing.length && !declaredPending) {
+      problems.push(
+        `'${lang}': faltan ${missing.length} de ${total} locuciones y NO está declarado ` +
+        'como pendiente. O se generan (workflow de voz) o se añade el idioma a ' +
+        'VERBAL_AUDIO_PENDING en verbalAudiometryBanks.ts.',
+      );
+    }
+    if (!missing.length && declaredPending) {
+      problems.push(
+        `'${lang}': ya tiene sus ${total} locuciones pero sigue en VERBAL_AUDIO_PENDING. ` +
+        'La pantalla advierte al profesional de que el estímulo no es el definitivo cuando ' +
+        'ya lo es: quítelo de la lista.',
+      );
+    }
+  }
+
+  if (problems.length) {
+    console.error(`\n✗ ${problems.length} incoherencia(s) entre las locuciones y su declaración:`);
+    for (const p of problems) console.error(`  · ${p}`);
     return 1;
   }
+
+  const pendientes = rows.filter(r => r.declaredPending).map(r => r.lang);
   console.log(
-    `\n· Sin locutar: ${langs}. Esos idiomas degradan a la voz del sistema, que es ` +
-    'una degradación declarada; no bloquea la síntesis del resto.',
+    `\n✓ Locuciones coherentes con VERBAL_AUDIO_PENDING${
+      pendientes.length ? ` (pendientes declarados: ${pendientes.join(', ')})` : ''
+    }.`,
   );
   return 0;
 }
