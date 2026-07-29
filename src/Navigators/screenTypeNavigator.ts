@@ -32,6 +32,8 @@ export type RootStackParamList = {
   SeleccionEjercicios: undefined;
   ResultadosPreliminares: undefined;
   ResultadosFinal: undefined;
+  /** Historial de pruebas de un paciente (sesiones anteriores). */
+  HistorialPaciente: { patientId: number; patientName: string; nhc?: string };
 };
 
 declare global {

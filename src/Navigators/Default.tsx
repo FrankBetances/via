@@ -26,6 +26,7 @@ import { ExecutiveFunctionsScreen } from '@/Screens/ExecutiveFunctions';
 import SeleccionEjerciciosScreen from '@/Screens/SeleccionEjercicios/SeleccionEjerciciosScreen';
 import ResultadosPreliminaresScreen from '@/Screens/ResultadosPreliminares/ResultadosPreliminaresScreen';
 import ResultadosFinalScreen from '@/Screens/ResultadosFinal/ResultadosFinalScreen';
+import { HistorialPacienteScreen } from '@/Screens/HistorialPaciente';
 
 /* -------------------------------------------------------------------------- */
 /*  Navigator raíz — VIA+ (patrón "auth flow" de React Navigation).           */
@@ -82,6 +83,7 @@ export default function DefaultNavigator() {
           <RootStack.Screen name="SeleccionEjercicios" component={SeleccionEjerciciosScreen} />
           <RootStack.Screen name="ResultadosPreliminares" component={ResultadosPreliminaresScreen} />
           <RootStack.Screen name="ResultadosFinal" component={ResultadosFinalScreen} />
+          <RootStack.Screen name="HistorialPaciente" component={HistorialPacienteScreen} />
         </RootStack.Group>
       )}
     </RootStack.Navigator>

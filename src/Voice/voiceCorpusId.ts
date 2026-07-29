@@ -21,11 +21,11 @@
 /** Estilo prosódico horneado en el audio (velocidad/registro). */
 export type VoiceStyle = 'tutor' | 'child' | 'clinical' | 'slow';
 
-/** Lenguas/variantes locutables de VIA+: castellano, gallego, dominicano. */
-export type VoiceLang = 'es' | 'gl' | 'es-DO';
+/** Lenguas/variantes locutables de VIA+: castellano, gallego, euskera y dominicano. */
+export type VoiceLang = 'es' | 'gl' | 'eu' | 'es-DO';
 
 /** Todas las lenguas del corpus (orden estable para estadísticas). */
-export const VOICE_LANGS: readonly VoiceLang[] = ['es', 'gl', 'es-DO'];
+export const VOICE_LANGS: readonly VoiceLang[] = ['es', 'gl', 'eu', 'es-DO'];
 
 /** Idioma base sin prefijo de id (retro-compat de assets ya sintetizados). */
 export const VOICE_BASE_LANG: VoiceLang = 'es';

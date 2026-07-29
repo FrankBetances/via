@@ -33,7 +33,7 @@ import {
 import { Button, Content, FontSizeControl, Header, ScaledTextScope, Text } from '@/Components/Common';
 import { QuestionDots, QuestionTransition, SurveyProgress, YesNoAnswer } from '@/Components/Survey';
 import RadialBackground from '@/Components/Themed/RadialBackground';
-import { RootStackParamList } from '@/Navigators';
+import { finishModule, RootStackParamList } from '@/Navigators';
 import { RootState } from '@/Store';
 import { Evaluation } from '@/Models/Evaluation/Evaluation';
 import { SahsScreening } from '@/Models/SahsScreening/SahsScreening';
@@ -314,7 +314,8 @@ export default function SahsScreeningScreen({ navigation }: Props) {
       await createSahsScreening(s);
 
       showSuccessToast('Cribado guardado', `SAHS · ${score.total}/${score.totalMax} · ${suspicionLabel(score.level)}.`);
-      navigation.goBack();
+      // Aterriza en los resultados, no de vuelta al hub (ver finishModule).
+      finishModule(navigation);
     } catch (e) {
       showErrorToast('Error al guardar', 'No se pudo registrar el cribado. Inténtelo de nuevo.');
     }

@@ -10,35 +10,23 @@ import { RootState } from '@/Store';
 import { Evaluation } from '@/Models/Evaluation/Evaluation';
 import { useClassSelector } from '@/Helpers/ClassTransformer';
 
-import { AudiometryRepository } from '@/Repositories/AudiometryRepository';
-import { VoiceAnalysisRepository } from '@/Repositories/VoiceAnalysisRepository';
-import { DysphagiaTestRepository } from '@/Repositories/DysphagiaTestRepository';
-import { SahsScreeningRepository } from '@/Repositories/SahsScreeningRepository';
-import { ArticulationTestRepository } from '@/Repositories/ArticulationTestRepository';
-import { ScreeningRepository } from '@/Repositories/ScreeningRepository';
-import { ExecutiveFunctionsRepository } from '@/Repositories/ExecutiveFunctionsRepository';
-
-import { interpretAudiometry, pta, severityOf } from '@/Screens/Audiometry/audiometryResult';
-import { buildInterpretation as buildVoiceInterpretation } from '@/Screens/VoiceAnalysis/voiceAnalysisResult';
-import { efStatus } from '@/Screens/ExecutiveFunctions/executiveFunctionsGame';
+import {
+  countResults,
+  loadEvaluationResultCards,
+  type ResultCard,
+  type ResultStatus,
+} from './evaluationResults';
 
 /* -------------------------------------------------------------------------- */
 /*  ResultadosPreliminaresScreen — vista rápida de resultados de la sesión    */
-/*  (mockup `Resultados Preliminares.dc.html`). Lee cada repositorio de       */
-/*  módulo por evaluación y muestra una tarjeta resumida por resultado.       */
+/*  (mockup `Resultados Preliminares.dc.html`). La lectura de los             */
+/*  repositorios vive en `evaluationResults`, compartida con el historial     */
+/*  del paciente.                                                             */
 /* -------------------------------------------------------------------------- */
 
 type Props = NativeStackScreenProps<RootStackParamList, 'ResultadosPreliminares'>;
 
-type StatusKind = 'ok' | 'warn' | 'alt';
-
-interface ResultCard {
-  key: string;
-  title: string;
-  status: StatusKind;
-  headline: string;
-  metric: string;
-}
+type StatusKind = ResultStatus;
 
 const STATUS_TOKENS: Record<StatusKind, { fg: string; bg: string; label: string }> = {
   ok: { fg: '$success700', bg: '$success50', label: 'Normal' },
@@ -63,122 +51,7 @@ export default function ResultadosPreliminaresScreen({ navigation }: Props) {
     let mounted = true;
     (async () => {
       try {
-        const result: ResultCard[] = [];
-
-        const audiometries = await AudiometryRepository.getAudiometryByEvaluation(evaluationId);
-        audiometries.forEach(a => {
-          let status: StatusKind;
-          let metric: string;
-          if (a.thresholds.CL) {
-            // Cribado en campo libre: PTA binaural único.
-            const clPta = pta(a.thresholds.CL);
-            status = severityOf(clPta)?.key === 'normal' ? 'ok' : 'warn';
-            metric = `Campo libre ${clPta ?? '—'} dB HL`;
-          } else {
-            const odPta = pta(a.thresholds.OD);
-            const oiPta = pta(a.thresholds.OI);
-            const sevOd = severityOf(odPta);
-            const sevOi = severityOf(oiPta);
-            status = (sevOd?.key !== 'normal' || sevOi?.key !== 'normal') ? 'warn' : 'ok';
-            metric = `OD ${odPta ?? '—'} dB HL · OI ${oiPta ?? '—'} dB HL`;
-          }
-          result.push({
-            key: `audio-${a.id}`,
-            title: a.method === 'conditioned' ? 'Audiometría Condicionada' : 'Audiometría Infantil',
-            status,
-            headline: interpretAudiometry(a.thresholds),
-            metric,
-          });
-        });
-
-        const voiceAnalyses = await VoiceAnalysisRepository.getVoiceAnalysisByEvaluation(evaluationId);
-        voiceAnalyses.forEach(v => {
-          // Cierre manual: sin acústica, se muestra la valoración GRBAS registrada.
-          if (v.f0 == null || v.jitter == null || v.shimmer == null || v.hnr == null) {
-            result.push({
-              key: `voice-${v.id}`,
-              title: 'Análisis Acústico de Voz',
-              status: v.grbas && v.grbas.g >= 1 ? 'warn' : 'ok',
-              headline: v.interpretation || 'Prueba de voz cerrada manualmente (análisis acústico no disponible).',
-              metric: v.grbas
-                ? `GRBAS G${v.grbas.g} R${v.grbas.r} B${v.grbas.b} A${v.grbas.a} S${v.grbas.s}`
-                : 'Cierre manual',
-            });
-            return;
-          }
-          const params = { f0: v.f0, jitter: v.jitter, shimmer: v.shimmer, hnr: v.hnr, formants: v.formants };
-          const interp = buildVoiceInterpretation(params);
-          const altered = interp.startsWith('Se observa');
-          result.push({
-            key: `voice-${v.id}`,
-            title: 'Análisis Acústico de Voz',
-            status: altered ? 'alt' : 'ok',
-            headline: interp,
-            metric: `F0 ${Math.round(v.f0)} Hz · Jitter ${v.jitter.toFixed(1)}% · Shimmer ${v.shimmer.toFixed(1)}%`,
-          });
-        });
-
-        const efTests = await ExecutiveFunctionsRepository.getExecutiveFunctionsByEvaluation(evaluationId);
-        efTests.forEach(ef => {
-          const overall = ef.overallScore;
-          const st: StatusKind = overall === null ? 'warn' : efStatus(overall);
-          result.push({
-            key: `ef-${ef.id}`,
-            title: 'Funciones Ejecutivas',
-            status: st,
-            headline: ef.interpretation || 'Exploración lúdica de funciones ejecutivas completada.',
-            metric: `Índice global ${overall !== null ? `${overall}/100` : '—'} · banda ${ef.ageBand}`,
-          });
-        });
-
-        const dysphagias = await DysphagiaTestRepository.getDysphagiaByEvaluation(evaluationId);
-        dysphagias.forEach(d => {
-          const status: StatusKind = d.verdict === 'safe' ? 'ok' : d.verdict === 'safety' ? 'alt' : 'warn';
-          result.push({
-            key: `dys-${d.id}`,
-            title: 'Exploración de Disfagia',
-            status,
-            headline: d.interpretation || 'Exploración MECV-V completada.',
-            metric: `SpO₂ basal ${d.basalSpO2}% · mín. ${d.minSpO2 ?? '—'}%`,
-          });
-        });
-
-        const sahsScreenings = await SahsScreeningRepository.getSahsScreeningsByEvaluation(evaluationId);
-        sahsScreenings.forEach(s => {
-          const status: StatusKind = s.suspicionLevel === 'high' ? 'alt' : s.suspicionLevel === 'med' ? 'warn' : 'ok';
-          result.push({
-            key: `sahs-${s.id}`,
-            title: 'Cribado SAHS Infantil',
-            status,
-            headline: s.suspicionLabel || s.recommendation,
-            metric: `PSQ ${s.psqYesCount}/${s.psqTotal} · Puntuación ${s.totalScore}/${s.scoreMax}`,
-          });
-        });
-
-        const articulations = await ArticulationTestRepository.getArticulationByEvaluation(evaluationId);
-        articulations.forEach(a => {
-          const status: StatusKind = a.correctPct >= 90 ? 'ok' : a.correctPct >= 70 ? 'warn' : 'alt';
-          result.push({
-            key: `art-${a.id}`,
-            title: 'Articulación · T.A.R.',
-            status,
-            headline: `${a.correctPct}% de producción correcta`,
-            metric: `${a.evaluatedCount}/${a.totalCount} ítems · ${a.affectedPhonemes.length} fonema(s) afectado(s)`,
-          });
-        });
-
-        const screenings = await ScreeningRepository.getScreeningsByEvaluation(evaluationId);
-        screenings.forEach(s => {
-          const status: StatusKind = s.riskLevel === 'high' ? 'alt' : s.riskLevel === 'med' ? 'warn' : 'ok';
-          result.push({
-            key: `screen-${s.id}`,
-            title: s.instrument === 'autism-tea' ? 'Cuestionario Autismo' : s.instrument,
-            status,
-            headline: s.rangeLabel,
-            metric: `Puntuación ${s.score}/${s.total}`,
-          });
-        });
-
+        const result = await loadEvaluationResultCards(evaluationId);
         if (mounted) setCards(result);
       } finally {
         if (mounted) setIsLoading(false);
@@ -189,14 +62,8 @@ export default function ResultadosPreliminaresScreen({ navigation }: Props) {
     };
   }, [evaluationId]);
 
-  const counts = useMemo(() => {
-    const ok = cards.filter(c => c.status === 'ok').length;
-    const warn = cards.filter(c => c.status === 'warn').length;
-    const alt = cards.filter(c => c.status === 'alt').length;
-    return { ok, warn, alt };
-  }, [cards]);
-
-  const affectedAreas = counts.warn + counts.alt;
+  const counts = useMemo(() => countResults(cards), [cards]);
+  const affectedAreas = counts.affected;
 
   return (
     <Content

@@ -4,6 +4,7 @@ import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useDispatch, useSelector } from 'react-redux';
 import { Box, Center, HStack, Icon, VStack } from '@gluestack-ui/themed';
 import {
+  AlertTriangle,
   ArrowRight,
   BrainCircuit,
   Check,
@@ -11,6 +12,7 @@ import {
   ClipboardList,
   Droplets,
   Ear,
+  FileClock,
   Headphones,
   Languages,
   LogOut,
@@ -33,6 +35,8 @@ import { signOutQuietly } from '@/Services/firebase';
 import { Evaluation } from '@/Models/Evaluation/Evaluation';
 import { useClassSelector } from '@/Helpers/ClassTransformer';
 import { useTelemetryTracker } from '@/Telemetry';
+import { useVoiceEngineStatus } from '@/Voice';
+import { VERBAL_BANK_PROVISIONAL } from '@/Screens/VerbalAudiometry/verbalAudiometryBanks';
 import ModuleCardItem, { ModuleCardData } from './ModuleCardItem';
 
 /* -------------------------------------------------------------------------- */
@@ -67,6 +71,10 @@ export default function SeleccionEjerciciosScreen({ navigation }: Props) {
   // Idioma/variante de la sesión (persistido): decide el banco de estímulos y
   // la voz de los módulos localizados (hoy la audiometría verbal).
   const sessionLanguage = useSelector((state: RootState) => state.locale.language);
+
+  // Estado del motor de voz del sistema: si no va a sonar nada, hay que
+  // decirlo aquí (donde se elige el idioma) y ofrecer reintentar.
+  const voiceEngine = useVoiceEngineStatus();
 
   // Tracker de telemetría SILENCIOSO (useRef, cero useState → cero re-render).
   const tracker = useTelemetryTracker();
@@ -203,9 +211,40 @@ export default function SeleccionEjerciciosScreen({ navigation }: Props) {
                 })}
               </HStack>
               <Text size="2xs" color="$textLight400">
-                Determina las consignas habladas y el banco de estímulos. El gallego usa
-                el banco español provisional hasta validar el propio.
+                Determina las consignas habladas y el banco de estímulos. Gallego y euskera se
+                dictan con la voz del sistema hasta que existan sus locuciones propias.
               </Text>
+
+              {/* Banco sin firma clínica: hay que decirlo donde se elige. */}
+              {VERBAL_BANK_PROVISIONAL.includes(sessionLanguage as never) ? (
+                <HStack space="xs" alignItems="flex-start" p="$2.5" borderRadius={12} bg="$warning50">
+                  <Icon as={AlertTriangle} size="2xs" color="$warning700" style={{ marginTop: 2 }} />
+                  <Text size="2xs" color="$warning800" style={{ flex: 1, lineHeight: 15 }}>
+                    Banco de estímulos provisional: pendiente de validación clínica. Úselo solo con fines
+                    de desarrollo o pilotaje.
+                  </Text>
+                </HStack>
+              ) : null}
+
+              {/* Motor de voz caído: decir POR QUÉ y ofrecer reintentar, en vez
+                  de dejar que el profesional descubra que nada suena. */}
+              {voiceEngine.shouldWarn ? (
+                <VStack space="xs" p="$2.5" borderRadius={12} bg="$error50">
+                  <HStack space="xs" alignItems="flex-start">
+                    <Icon as={AlertTriangle} size="2xs" color="$error600" style={{ marginTop: 2 }} />
+                    <Text size="2xs" color="$error700" style={{ flex: 1, lineHeight: 15 }}>
+                      {voiceEngine.status?.detail}
+                    </Text>
+                  </HStack>
+                  <Pressable onPress={voiceEngine.retry} disabled={voiceEngine.retrying}>
+                    <Center py="$1.5" borderRadius={10} borderWidth={1} borderColor="$error200" bg="$white">
+                      <Text size="2xs" weight="bold" color="$error600">
+                        {voiceEngine.retrying ? 'Reintentando…' : 'Reintentar la voz del sistema'}
+                      </Text>
+                    </Center>
+                  </Pressable>
+                </VStack>
+              ) : null}
             </VStack>
 
             {/* ----- module grid ----- */}
@@ -216,14 +255,53 @@ export default function SeleccionEjerciciosScreen({ navigation }: Props) {
               })}
             </HStack>
 
+            {/* ----- resultados de la sesión ----- */}
+            {/* Era un enlace de texto gris de bajo contraste al final de la
+                lista: pasaba desapercibido y por eso «no aparecía un botón
+                para ver resultados previos». Ahora es una tarjeta con la
+                misma jerarquía visual que el resto de accesos. */}
             <Pressable onPress={() => navigation.navigate('ResultadosPreliminares')}>
-              <HStack alignItems="center" justifyContent="center" space="xs" py="$2">
-                <Icon as={CheckCircle2} size="xs" color="$textLight400" />
-                <Text size="xs" weight="semiBold" color="$textLight500">
-                  Ver resultados preliminares de la sesión
-                </Text>
+              <HStack
+                alignItems="center"
+                space="sm"
+                p="$3.5"
+                borderRadius={16}
+                borderWidth={1.5}
+                borderColor="$primary200"
+                bg="$primary0">
+                <Center w={36} h={36} borderRadius={12} bg="$primary500">
+                  <Icon as={CheckCircle2} size="sm" color="$white" />
+                </Center>
+                <VStack style={{ flex: 1 }}>
+                  <Text size="sm" weight="bold" color="$textLight900">
+                    Ver resultados de la sesión
+                  </Text>
+                  <Text size="2xs" color="$textLight500" style={{ lineHeight: 15 }}>
+                    Resumen de las pruebas ya realizadas y acceso al informe detallado
+                  </Text>
+                </VStack>
+                <Icon as={ArrowRight} size="sm" color="$primary600" />
               </HStack>
             </Pressable>
+
+            {/* Historial completo del paciente (sesiones anteriores). */}
+            {patient?.id ? (
+              <Pressable
+                onPress={() =>
+                  navigation.navigate('HistorialPaciente', {
+                    patientId: patient.id,
+                    patientName: patientName ?? 'Paciente',
+                    nhc: patient.nhc ?? undefined,
+                  })
+                }>
+                <HStack alignItems="center" justifyContent="center" space="xs" py="$2.5" borderRadius={14} borderWidth={1} borderColor="$borderLight200" bg="$white">
+                  <Icon as={FileClock} size="xs" color="$textLight600" />
+                  <Text size="xs" weight="bold" color="$textLight600">
+                    Historial de sesiones anteriores
+                  </Text>
+                </HStack>
+              </Pressable>
+            ) : null}
 
             <Box style={{ flex: 1 }} />
 

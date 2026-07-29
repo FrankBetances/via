@@ -7,7 +7,7 @@ import { Check, ChevronLeft, Play, RotateCcw, Save, Volume2, X } from 'lucide-re
 
 import { Button, Content, Header, Text } from '@/Components/Common';
 import RadialBackground from '@/Components/Themed/RadialBackground';
-import { RootStackParamList } from '@/Navigators';
+import { finishModule, RootStackParamList } from '@/Navigators';
 import { AppDispatch, RootState } from '@/Store';
 import { setSessionLanguage } from '@/Store/slices/localeSlice';
 import { Evaluation } from '@/Models/Evaluation/Evaluation';
@@ -193,7 +193,8 @@ export default function VerbalAudiometryScreen({ navigation }: Props) {
 
       await createVerbalAudiometry(item);
       showSuccessToast('Audiometría verbal guardada', `Discriminación ${v.score.discriminationPct}% a ${v.level} dB.`);
-      navigation.goBack();
+      // Aterriza en los resultados, no de vuelta al hub (ver finishModule).
+      finishModule(navigation);
     } catch {
       showErrorToast('Error al guardar', 'No se pudo registrar la audiometría verbal. Inténtelo de nuevo.');
     }

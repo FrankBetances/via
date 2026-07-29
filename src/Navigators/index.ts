@@ -6,3 +6,5 @@
 
 export type { RootStackParamList } from '@/Navigators/screenTypeNavigator';
 export { default } from '@/Navigators/Default';
+export { finishModule } from '@/Navigators/finishModule';
+export type { ModuleExitNavigation } from '@/Navigators/finishModule';

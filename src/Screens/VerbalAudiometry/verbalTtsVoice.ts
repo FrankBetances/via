@@ -38,10 +38,15 @@ const LANG_FALLBACKS: Record<string, string[]> = {
   // Sin voz gallega instalada se dicta con la castellana (degradación
   // declarada); nunca con la voz por defecto del sistema, que suele ser en-US.
   gl: ['gl', 'es'],
+  // Euskera: igual que el gallego. La voz `eu-*` existe en Android desde hace
+  // años (Google la distribuye) pero no viene instalada de serie; sin ella se
+  // degrada a la castellana, cuyo inventario vocálico de cinco vocales es el
+  // más próximo al vasco de entre las voces habituales del sistema.
+  eu: ['eu', 'es'],
 };
 
 /** Dialecto preferido dentro de cada prefijo (bonus de puntuación). */
-const PREFERRED_DIALECT: Record<string, string> = { es: 'es-es', gl: 'gl-es' };
+const PREFERRED_DIALECT: Record<string, string> = { es: 'es-es', gl: 'gl-es', eu: 'eu-es' };
 
 const NEURAL_MARKER = /(-x-|network|enhanced|neural|premium|wavenet|natural)/i;
 
@@ -138,4 +143,4 @@ export function pickVoiceForLang(
 
 /** Código BCP-47 con el que fijar el idioma del motor si no hay lista de voces. */
 export const ttsLanguageTagFor = (lang: string): string =>
-  lang === 'gl' ? 'gl-ES' : lang === 'es-DO' ? 'es-DO' : 'es-ES';
+  lang === 'gl' ? 'gl-ES' : lang === 'eu' ? 'eu-ES' : lang === 'es-DO' ? 'es-DO' : 'es-ES';

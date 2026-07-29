@@ -32,6 +32,18 @@
       "params": { "lengthScale": 1.1, "noiseScale": 0.333, "noiseW": 0.333 },
       "notes": "Quisqueya Habla · Q4.1: no existe voz abierta es-DO, se usa una voz Piper neutra LatAm (es_MX) como provisional. La voz definitiva (locutor dominicano o VITS es-DO propio) se decide en el ADR Q4.3 tras el piloto de Santo Domingo."
     },
+    "eu": {
+      "engine": "coqui-vits",
+      "model": "PENDIENTE-ADR-EU (ver notes: la voz vasca no está decidida)",
+      "files": {
+        "dir": "euskara"
+      },
+      "source": "https://huggingface.co/HiTZ",
+      "license": "pendiente de la elección del modelo (auditoría T0.2)",
+      "provisional": true,
+      "params": { "lengthScale": 1.0 },
+      "notes": "Euskera · la voz NO está elegida todavía. El candidato natural es un modelo abierto del ecosistema ILENIA/HiTZ-Aholab (UPV/EHU), el equivalente vasco de lo que Proxecto Nós aporta en gallego, pero la selección concreta, su licencia y la firma de escucha son un ADR pendiente. Esta entrada existe para que el registro declare el hueco de forma explícita en vez de dejarlo implícito: `tts.py --list` lo muestra como PENDIENTE y `--lang eu` falla con un error claro en lugar de sintetizar con una voz equivocada. Mientras tanto la app dicta el banco vasco con la voz `eu-ES` del dispositivo si la tiene y, si no, degrada a la castellana declarándolo."
+    },
     "gl": {
       "engine": "coqui-vits",
       "model": "proxectonos/Nos_TTS-celtia-vits-graphemes",

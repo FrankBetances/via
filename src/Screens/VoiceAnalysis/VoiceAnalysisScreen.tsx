@@ -28,7 +28,7 @@ import {
 
 import { Button, Content, Header, SignaturePad, Text } from '@/Components/Common';
 import RadialBackground from '@/Components/Themed/RadialBackground';
-import { RootStackParamList } from '@/Navigators';
+import { finishModule, RootStackParamList } from '@/Navigators';
 import { RootState } from '@/Store';
 import { Evaluation } from '@/Models/Evaluation/Evaluation';
 import { GrbasScores, VoiceAnalysis } from '@/Models/VoiceAnalysis/VoiceAnalysis';
@@ -304,7 +304,8 @@ export default function VoiceAnalysisScreen({ navigation }: Props) {
           ? `F0 ${r.f0} Hz · HNR ${r.hnr} dB · Jitter ${r.jitter}%.`
           : `Cierre manual con valoración GRBAS firmado por ${evaluatorName.trim()}.`,
       );
-      navigation.goBack();
+      // Aterriza en los resultados, no de vuelta al hub (ver finishModule).
+      finishModule(navigation);
     } catch {
       showErrorToast('Error al guardar', 'No se pudo registrar el análisis. Inténtelo de nuevo.');
     }

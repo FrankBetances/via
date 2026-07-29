@@ -3,7 +3,7 @@ import { FlatList, ListRenderItemInfo, Pressable } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useDispatch, useSelector } from 'react-redux';
 import { Box, Card, Center, HStack, Icon, Input, InputField, VStack } from '@gluestack-ui/themed';
-import { ChevronRight, LogOut, Plus, Search } from 'lucide-react-native';
+import { ChevronRight, FileClock, LogOut, Plus, Search } from 'lucide-react-native';
 
 import { Content, Header, Text } from '@/Components/Common';
 import RadialBackground from '@/Components/Themed/RadialBackground';
@@ -53,9 +53,15 @@ interface PatientListItemProps {
   row: PatientRow;
   paletteColor: string;
   onPress: (row: PatientRow) => void;
+  onHistory: (row: PatientRow) => void;
 }
 
-const PatientListItem = React.memo(function PatientListItem({ row, paletteColor, onPress }: PatientListItemProps) {
+const PatientListItem = React.memo(function PatientListItem({
+  row,
+  paletteColor,
+  onPress,
+  onHistory,
+}: PatientListItemProps) {
   const { patient, latestEvaluation } = row;
   const completed = latestEvaluation?.status === 'completed';
   const statusLabel = completed ? 'Completado' : 'En curso';
@@ -63,8 +69,8 @@ const PatientListItem = React.memo(function PatientListItem({ row, paletteColor,
   const statusFg = completed ? '$success700' : '$warning800';
 
   return (
-    <Pressable onPress={() => onPress(row)}>
-      <Card bgColor="$white" borderRadius={18} p="$4">
+    <Card bgColor="$white" borderRadius={18} p="$4">
+      <Pressable onPress={() => onPress(row)}>
         <HStack alignItems="center" space="sm">
           <Center w={44} h={44} borderRadius="$full" bg={paletteColor}>
             <Text size="sm" weight="bold" color="$white">
@@ -95,8 +101,32 @@ const PatientListItem = React.memo(function PatientListItem({ row, paletteColor,
             <Icon as={ChevronRight} size="sm" color="$textLight400" />
           </VStack>
         </HStack>
-      </Card>
-    </Pressable>
+      </Pressable>
+
+      {/* Acceso a los resultados YA REGISTRADOS. Abrir la ficha inicia o
+          retoma una sesión (consentimiento → CAP → sala), que no es lo que
+          quiere quien solo va a consultar lo que ya se hizo: sin esta vía no
+          había forma de volver a ver los resultados de un paciente. */}
+      <Pressable
+        onPress={() => onHistory(row)}
+        accessibilityRole="button"
+        accessibilityLabel={`Ver resultados de ${patient.nameEnc}`}>
+        <HStack
+          space="xs"
+          alignItems="center"
+          justifyContent="center"
+          mt="$3"
+          py="$2"
+          borderRadius={12}
+          borderWidth={1}
+          borderColor="$borderLight200">
+          <Icon as={FileClock} size="xs" color="$primary600" />
+          <Text size="2xs" weight="bold" color="$primary600">
+            Ver resultados de pruebas realizadas
+          </Text>
+        </HStack>
+      </Pressable>
+    </Card>
   );
 });
 
@@ -210,11 +240,27 @@ export default function PacientesScreen({ navigation }: Props) {
     [currentProfessional, dispatch, navigation],
   );
 
+  const handleOpenHistory = useCallback(
+    (row: PatientRow) => {
+      navigation.navigate('HistorialPaciente', {
+        patientId: row.patient.id,
+        patientName: row.patient.nameEnc,
+        nhc: row.patient.idHash,
+      });
+    },
+    [navigation],
+  );
+
   const renderItem = useCallback(
     ({ item, index }: ListRenderItemInfo<PatientRow>) => (
-      <PatientListItem row={item} paletteColor={AVATAR_PALETTES[index % AVATAR_PALETTES.length]} onPress={handleSelectPatient} />
+      <PatientListItem
+        row={item}
+        paletteColor={AVATAR_PALETTES[index % AVATAR_PALETTES.length]}
+        onPress={handleSelectPatient}
+        onHistory={handleOpenHistory}
+      />
     ),
-    [handleSelectPatient],
+    [handleSelectPatient, handleOpenHistory],
   );
 
   return (
