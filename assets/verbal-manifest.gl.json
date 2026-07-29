@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-07-28T15:47:33.338Z",
+  "generatedAt": "2026-07-29T14:09:11.772Z",
   "lang": "gl",
   "baseLang": "es",
   "provisional": true,
@@ -30,223 +30,223 @@
       "key": "abella",
       "word": "abella",
       "file": "assets/audio/verbal/gl/abella.m4a",
-      "exists": false
+      "exists": true
     },
     {
       "key": "ben",
       "word": "ben",
       "file": "assets/audio/verbal/gl/ben.m4a",
-      "exists": false
+      "exists": true
     },
     {
       "key": "boca",
       "word": "boca",
       "file": "assets/audio/verbal/gl/boca.m4a",
-      "exists": false
+      "exists": true
     },
     {
       "key": "bolboreta",
       "word": "bolboreta",
       "file": "assets/audio/verbal/gl/bolboreta.m4a",
-      "exists": false
+      "exists": true
     },
     {
       "key": "bota",
       "word": "bota",
       "file": "assets/audio/verbal/gl/bota.m4a",
-      "exists": false
+      "exists": true
     },
     {
       "key": "botella",
       "word": "botella",
       "file": "assets/audio/verbal/gl/botella.m4a",
-      "exists": false
+      "exists": true
     },
     {
       "key": "cama",
       "word": "cama",
       "file": "assets/audio/verbal/gl/cama.m4a",
-      "exists": false
+      "exists": true
     },
     {
       "key": "cana",
       "word": "cana",
       "file": "assets/audio/verbal/gl/cana.m4a",
-      "exists": false
+      "exists": true
     },
     {
       "key": "casa",
       "word": "casa",
       "file": "assets/audio/verbal/gl/casa.m4a",
-      "exists": false
+      "exists": true
     },
     {
       "key": "cebola",
       "word": "cebola",
       "file": "assets/audio/verbal/gl/cebola.m4a",
-      "exists": false
+      "exists": true
     },
     {
       "key": "coma",
       "word": "coma",
       "file": "assets/audio/verbal/gl/coma.m4a",
-      "exists": false
+      "exists": true
     },
     {
       "key": "figo",
       "word": "figo",
       "file": "assets/audio/verbal/gl/figo.m4a",
-      "exists": false
+      "exists": true
     },
     {
       "key": "flor",
       "word": "flor",
       "file": "assets/audio/verbal/gl/flor.m4a",
-      "exists": false
+      "exists": true
     },
     {
       "key": "galo",
       "word": "galo",
       "file": "assets/audio/verbal/gl/galo.m4a",
-      "exists": false
+      "exists": true
     },
     {
       "key": "gato",
       "word": "gato",
       "file": "assets/audio/verbal/gl/gato.m4a",
-      "exists": false
+      "exists": true
     },
     {
       "key": "gota",
       "word": "gota",
       "file": "assets/audio/verbal/gl/gota.m4a",
-      "exists": false
+      "exists": true
     },
     {
       "key": "man",
       "word": "man",
       "file": "assets/audio/verbal/gl/man.m4a",
-      "exists": false
+      "exists": true
     },
     {
       "key": "mora",
       "word": "mora",
       "file": "assets/audio/verbal/gl/mora.m4a",
-      "exists": false
+      "exists": true
     },
     {
       "key": "pala",
       "word": "pala",
       "file": "assets/audio/verbal/gl/pala.m4a",
-      "exists": false
+      "exists": true
     },
     {
       "key": "pan",
       "word": "pan",
       "file": "assets/audio/verbal/gl/pan.m4a",
-      "exists": false
+      "exists": true
     },
     {
       "key": "pato",
       "word": "pato",
       "file": "assets/audio/verbal/gl/pato.m4a",
-      "exists": false
+      "exists": true
     },
     {
       "key": "peite",
       "word": "peite",
       "file": "assets/audio/verbal/gl/peite.m4a",
-      "exists": false
+      "exists": true
     },
     {
       "key": "pelota",
       "word": "pelota",
       "file": "assets/audio/verbal/gl/pelota.m4a",
-      "exists": false
+      "exists": true
     },
     {
       "key": "pinyo",
       "word": "piño",
       "file": "assets/audio/verbal/gl/pinyo.m4a",
-      "exists": false
+      "exists": true
     },
     {
       "key": "platano",
       "word": "plátano",
       "file": "assets/audio/verbal/gl/platano.m4a",
-      "exists": false
+      "exists": true
     },
     {
       "key": "pote",
       "word": "pote",
       "file": "assets/audio/verbal/gl/pote.m4a",
-      "exists": false
+      "exists": true
     },
     {
       "key": "rata",
       "word": "rata",
       "file": "assets/audio/verbal/gl/rata.m4a",
-      "exists": false
+      "exists": true
     },
     {
       "key": "rosa",
       "word": "rosa",
       "file": "assets/audio/verbal/gl/rosa.m4a",
-      "exists": false
+      "exists": true
     },
     {
       "key": "sol",
       "word": "sol",
       "file": "assets/audio/verbal/gl/sol.m4a",
-      "exists": false
+      "exists": true
     },
     {
       "key": "taza",
       "word": "taza",
       "file": "assets/audio/verbal/gl/taza.m4a",
-      "exists": false
+      "exists": true
     },
     {
       "key": "tesoiras",
       "word": "tesoiras",
       "file": "assets/audio/verbal/gl/tesoiras.m4a",
-      "exists": false
+      "exists": true
     },
     {
       "key": "vaca",
       "word": "vaca",
       "file": "assets/audio/verbal/gl/vaca.m4a",
-      "exists": false
+      "exists": true
     },
     {
       "key": "vasoira",
       "word": "vasoira",
       "file": "assets/audio/verbal/gl/vasoira.m4a",
-      "exists": false
+      "exists": true
     },
     {
       "key": "venta",
       "word": "ventá",
       "file": "assets/audio/verbal/gl/venta.m4a",
-      "exists": false
+      "exists": true
     },
     {
       "key": "xerra",
       "word": "xerra",
       "file": "assets/audio/verbal/gl/xerra.m4a",
-      "exists": false
+      "exists": true
     },
     {
       "key": "xeso",
       "word": "xeso",
       "file": "assets/audio/verbal/gl/xeso.m4a",
-      "exists": false
+      "exists": true
     },
     {
       "key": "zapato",
       "word": "zapato",
       "file": "assets/audio/verbal/gl/zapato.m4a",
-      "exists": false
+      "exists": true
     }
   ],
   "images": [

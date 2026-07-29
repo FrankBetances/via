@@ -1,0 +1,602 @@
+{
+  "generatedAt": "2026-07-29T14:10:01.031Z",
+  "lang": "eu",
+  "baseLang": "es",
+  "provisional": true,
+  "note": "Orden de producción de assets de la audiometría verbal. Locuciones e ilustraciones actuales son PROVISIONALES (síntesis espeak-ng/neural y pictogramas); la producción clínica final sustituye cada archivo conservando su clave.",
+  "audio": [
+    {
+      "key": "ahate",
+      "word": "ahate",
+      "file": "assets/audio/verbal/eu/ahate.m4a",
+      "exists": true
+    },
+    {
+      "key": "aldi",
+      "word": "aldi",
+      "file": "assets/audio/verbal/eu/aldi.m4a",
+      "exists": true
+    },
+    {
+      "key": "ardi",
+      "word": "ardi",
+      "file": "assets/audio/verbal/eu/ardi.m4a",
+      "exists": true
+    },
+    {
+      "key": "ardo",
+      "word": "ardo",
+      "file": "assets/audio/verbal/eu/ardo.m4a",
+      "exists": true
+    },
+    {
+      "key": "argi",
+      "word": "argi",
+      "file": "assets/audio/verbal/eu/argi.m4a",
+      "exists": true
+    },
+    {
+      "key": "aulki",
+      "word": "aulki",
+      "file": "assets/audio/verbal/eu/aulki.m4a",
+      "exists": true
+    },
+    {
+      "key": "bero",
+      "word": "bero",
+      "file": "assets/audio/verbal/eu/bero.m4a",
+      "exists": true
+    },
+    {
+      "key": "beso",
+      "word": "beso",
+      "file": "assets/audio/verbal/eu/beso.m4a",
+      "exists": true
+    },
+    {
+      "key": "bete",
+      "word": "bete",
+      "file": "assets/audio/verbal/eu/bete.m4a",
+      "exists": true
+    },
+    {
+      "key": "botila",
+      "word": "botila",
+      "file": "assets/audio/verbal/eu/botila.m4a",
+      "exists": true
+    },
+    {
+      "key": "eskailera",
+      "word": "eskailera",
+      "file": "assets/audio/verbal/eu/eskailera.m4a",
+      "exists": true
+    },
+    {
+      "key": "eskola",
+      "word": "eskola",
+      "file": "assets/audio/verbal/eu/eskola.m4a",
+      "exists": true
+    },
+    {
+      "key": "esku",
+      "word": "esku",
+      "file": "assets/audio/verbal/eu/esku.m4a",
+      "exists": true
+    },
+    {
+      "key": "etxe",
+      "word": "etxe",
+      "file": "assets/audio/verbal/eu/etxe.m4a",
+      "exists": true
+    },
+    {
+      "key": "gari",
+      "word": "gari",
+      "file": "assets/audio/verbal/eu/gari.m4a",
+      "exists": true
+    },
+    {
+      "key": "gazi",
+      "word": "gazi",
+      "file": "assets/audio/verbal/eu/gazi.m4a",
+      "exists": true
+    },
+    {
+      "key": "gazta",
+      "word": "gazta",
+      "file": "assets/audio/verbal/eu/gazta.m4a",
+      "exists": true
+    },
+    {
+      "key": "guraize",
+      "word": "guraize",
+      "file": "assets/audio/verbal/eu/guraize.m4a",
+      "exists": true
+    },
+    {
+      "key": "hari",
+      "word": "hari",
+      "file": "assets/audio/verbal/eu/hari.m4a",
+      "exists": true
+    },
+    {
+      "key": "ilargi",
+      "word": "ilargi",
+      "file": "assets/audio/verbal/eu/ilargi.m4a",
+      "exists": true
+    },
+    {
+      "key": "karta",
+      "word": "karta",
+      "file": "assets/audio/verbal/eu/karta.m4a",
+      "exists": true
+    },
+    {
+      "key": "kate",
+      "word": "kate",
+      "file": "assets/audio/verbal/eu/kate.m4a",
+      "exists": true
+    },
+    {
+      "key": "katu",
+      "word": "katu",
+      "file": "assets/audio/verbal/eu/katu.m4a",
+      "exists": true
+    },
+    {
+      "key": "leiho",
+      "word": "leiho",
+      "file": "assets/audio/verbal/eu/leiho.m4a",
+      "exists": true
+    },
+    {
+      "key": "lore",
+      "word": "lore",
+      "file": "assets/audio/verbal/eu/lore.m4a",
+      "exists": true
+    },
+    {
+      "key": "mahai",
+      "word": "mahai",
+      "file": "assets/audio/verbal/eu/mahai.m4a",
+      "exists": true
+    },
+    {
+      "key": "ogi",
+      "word": "ogi",
+      "file": "assets/audio/verbal/eu/ogi.m4a",
+      "exists": true
+    },
+    {
+      "key": "pilota",
+      "word": "pilota",
+      "file": "assets/audio/verbal/eu/pilota.m4a",
+      "exists": true
+    },
+    {
+      "key": "sari",
+      "word": "sari",
+      "file": "assets/audio/verbal/eu/sari.m4a",
+      "exists": true
+    },
+    {
+      "key": "tximeleta",
+      "word": "tximeleta",
+      "file": "assets/audio/verbal/eu/tximeleta.m4a",
+      "exists": true
+    },
+    {
+      "key": "zapata",
+      "word": "zapata",
+      "file": "assets/audio/verbal/eu/zapata.m4a",
+      "exists": true
+    },
+    {
+      "key": "zubi",
+      "word": "zubi",
+      "file": "assets/audio/verbal/eu/zubi.m4a",
+      "exists": true
+    }
+  ],
+  "images": [
+    {
+      "key": "ahate",
+      "word": "ahate",
+      "file": "assets/img/verbal/eu/ahate.png",
+      "inherited": false,
+      "exists": false
+    },
+    {
+      "key": "aho",
+      "word": "aho",
+      "file": "assets/img/verbal/eu/aho.png",
+      "inherited": false,
+      "exists": false
+    },
+    {
+      "key": "aldi",
+      "word": "aldi",
+      "file": "assets/img/verbal/eu/aldi.png",
+      "inherited": false,
+      "exists": false
+    },
+    {
+      "key": "ardi",
+      "word": "ardi",
+      "file": "assets/img/verbal/eu/ardi.png",
+      "inherited": false,
+      "exists": false
+    },
+    {
+      "key": "ardo",
+      "word": "ardo",
+      "file": "assets/img/verbal/eu/ardo.png",
+      "inherited": false,
+      "exists": false
+    },
+    {
+      "key": "argi",
+      "word": "argi",
+      "file": "assets/img/verbal/eu/argi.png",
+      "inherited": false,
+      "exists": false
+    },
+    {
+      "key": "armiarma",
+      "word": "armiarma",
+      "file": "assets/img/verbal/eu/armiarma.png",
+      "inherited": false,
+      "exists": false
+    },
+    {
+      "key": "arrain",
+      "word": "arrain",
+      "file": "assets/img/verbal/eu/arrain.png",
+      "inherited": false,
+      "exists": false
+    },
+    {
+      "key": "aulki",
+      "word": "aulki",
+      "file": "assets/img/verbal/eu/aulki.png",
+      "inherited": false,
+      "exists": false
+    },
+    {
+      "key": "bandera",
+      "word": "bandera",
+      "file": "assets/img/verbal/bandera.png",
+      "inherited": true,
+      "exists": true
+    },
+    {
+      "key": "behi",
+      "word": "behi",
+      "file": "assets/img/verbal/eu/behi.png",
+      "inherited": false,
+      "exists": false
+    },
+    {
+      "key": "belarri",
+      "word": "belarri",
+      "file": "assets/img/verbal/eu/belarri.png",
+      "inherited": false,
+      "exists": false
+    },
+    {
+      "key": "botila",
+      "word": "botila",
+      "file": "assets/img/verbal/eu/botila.png",
+      "inherited": false,
+      "exists": false
+    },
+    {
+      "key": "eguzki",
+      "word": "eguzki",
+      "file": "assets/img/verbal/eu/eguzki.png",
+      "inherited": false,
+      "exists": false
+    },
+    {
+      "key": "erratz",
+      "word": "erratz",
+      "file": "assets/img/verbal/eu/erratz.png",
+      "inherited": false,
+      "exists": false
+    },
+    {
+      "key": "eskailera",
+      "word": "eskailera",
+      "file": "assets/img/verbal/eu/eskailera.png",
+      "inherited": false,
+      "exists": false
+    },
+    {
+      "key": "eskola",
+      "word": "eskola",
+      "file": "assets/img/verbal/eu/eskola.png",
+      "inherited": false,
+      "exists": false
+    },
+    {
+      "key": "esku",
+      "word": "esku",
+      "file": "assets/img/verbal/eu/esku.png",
+      "inherited": false,
+      "exists": false
+    },
+    {
+      "key": "esne",
+      "word": "esne",
+      "file": "assets/img/verbal/eu/esne.png",
+      "inherited": false,
+      "exists": false
+    },
+    {
+      "key": "etxe",
+      "word": "etxe",
+      "file": "assets/img/verbal/eu/etxe.png",
+      "inherited": false,
+      "exists": false
+    },
+    {
+      "key": "gaileta",
+      "word": "gaileta",
+      "file": "assets/img/verbal/eu/gaileta.png",
+      "inherited": false,
+      "exists": false
+    },
+    {
+      "key": "garbi",
+      "word": "garbi",
+      "file": "assets/img/verbal/eu/garbi.png",
+      "inherited": false,
+      "exists": false
+    },
+    {
+      "key": "gari",
+      "word": "gari",
+      "file": "assets/img/verbal/eu/gari.png",
+      "inherited": false,
+      "exists": false
+    },
+    {
+      "key": "gazi",
+      "word": "gazi",
+      "file": "assets/img/verbal/eu/gazi.png",
+      "inherited": false,
+      "exists": false
+    },
+    {
+      "key": "gazta",
+      "word": "gazta",
+      "file": "assets/img/verbal/eu/gazta.png",
+      "inherited": false,
+      "exists": false
+    },
+    {
+      "key": "gaztelu",
+      "word": "gaztelu",
+      "file": "assets/img/verbal/eu/gaztelu.png",
+      "inherited": false,
+      "exists": false
+    },
+    {
+      "key": "gori",
+      "word": "gori",
+      "file": "assets/img/verbal/eu/gori.png",
+      "inherited": false,
+      "exists": false
+    },
+    {
+      "key": "guraize",
+      "word": "guraize",
+      "file": "assets/img/verbal/eu/guraize.png",
+      "inherited": false,
+      "exists": false
+    },
+    {
+      "key": "handi",
+      "word": "handi",
+      "file": "assets/img/verbal/eu/handi.png",
+      "inherited": false,
+      "exists": false
+    },
+    {
+      "key": "hari",
+      "word": "hari",
+      "file": "assets/img/verbal/eu/hari.png",
+      "inherited": false,
+      "exists": false
+    },
+    {
+      "key": "harri",
+      "word": "harri",
+      "file": "assets/img/verbal/eu/harri.png",
+      "inherited": false,
+      "exists": false
+    },
+    {
+      "key": "ilargi",
+      "word": "ilargi",
+      "file": "assets/img/verbal/eu/ilargi.png",
+      "inherited": false,
+      "exists": false
+    },
+    {
+      "key": "ispilu",
+      "word": "ispilu",
+      "file": "assets/img/verbal/eu/ispilu.png",
+      "inherited": false,
+      "exists": false
+    },
+    {
+      "key": "izar",
+      "word": "izar",
+      "file": "assets/img/verbal/eu/izar.png",
+      "inherited": false,
+      "exists": false
+    },
+    {
+      "key": "kalte",
+      "word": "kalte",
+      "file": "assets/img/verbal/eu/kalte.png",
+      "inherited": false,
+      "exists": false
+    },
+    {
+      "key": "kanta",
+      "word": "kanta",
+      "file": "assets/img/verbal/eu/kanta.png",
+      "inherited": false,
+      "exists": false
+    },
+    {
+      "key": "karta",
+      "word": "karta",
+      "file": "assets/img/verbal/eu/karta.png",
+      "inherited": false,
+      "exists": false
+    },
+    {
+      "key": "kate",
+      "word": "kate",
+      "file": "assets/img/verbal/eu/kate.png",
+      "inherited": false,
+      "exists": false
+    },
+    {
+      "key": "katilu",
+      "word": "katilu",
+      "file": "assets/img/verbal/eu/katilu.png",
+      "inherited": false,
+      "exists": false
+    },
+    {
+      "key": "katu",
+      "word": "katu",
+      "file": "assets/img/verbal/eu/katu.png",
+      "inherited": false,
+      "exists": false
+    },
+    {
+      "key": "koilara",
+      "word": "koilara",
+      "file": "assets/img/verbal/eu/koilara.png",
+      "inherited": false,
+      "exists": false
+    },
+    {
+      "key": "leiho",
+      "word": "leiho",
+      "file": "assets/img/verbal/eu/leiho.png",
+      "inherited": false,
+      "exists": false
+    },
+    {
+      "key": "lore",
+      "word": "lore",
+      "file": "assets/img/verbal/eu/lore.png",
+      "inherited": false,
+      "exists": false
+    },
+    {
+      "key": "mahai",
+      "word": "mahai",
+      "file": "assets/img/verbal/eu/mahai.png",
+      "inherited": false,
+      "exists": false
+    },
+    {
+      "key": "mahats",
+      "word": "mahats",
+      "file": "assets/img/verbal/eu/mahats.png",
+      "inherited": false,
+      "exists": false
+    },
+    {
+      "key": "makila",
+      "word": "makila",
+      "file": "assets/img/verbal/eu/makila.png",
+      "inherited": false,
+      "exists": false
+    },
+    {
+      "key": "ogi",
+      "word": "ogi",
+      "file": "assets/img/verbal/eu/ogi.png",
+      "inherited": false,
+      "exists": false
+    },
+    {
+      "key": "oilo",
+      "word": "oilo",
+      "file": "assets/img/verbal/eu/oilo.png",
+      "inherited": false,
+      "exists": false
+    },
+    {
+      "key": "pilota",
+      "word": "pilota",
+      "file": "assets/img/verbal/eu/pilota.png",
+      "inherited": false,
+      "exists": false
+    },
+    {
+      "key": "sagar",
+      "word": "sagar",
+      "file": "assets/img/verbal/eu/sagar.png",
+      "inherited": false,
+      "exists": false
+    },
+    {
+      "key": "sagu",
+      "word": "sagu",
+      "file": "assets/img/verbal/eu/sagu.png",
+      "inherited": false,
+      "exists": false
+    },
+    {
+      "key": "sari",
+      "word": "sari",
+      "file": "assets/img/verbal/eu/sari.png",
+      "inherited": false,
+      "exists": false
+    },
+    {
+      "key": "txakur",
+      "word": "txakur",
+      "file": "assets/img/verbal/eu/txakur.png",
+      "inherited": false,
+      "exists": false
+    },
+    {
+      "key": "tximeleta",
+      "word": "tximeleta",
+      "file": "assets/img/verbal/eu/tximeleta.png",
+      "inherited": false,
+      "exists": false
+    },
+    {
+      "key": "zapata",
+      "word": "zapata",
+      "file": "assets/img/verbal/eu/zapata.png",
+      "inherited": false,
+      "exists": false
+    },
+    {
+      "key": "zubi",
+      "word": "zubi",
+      "file": "assets/img/verbal/eu/zubi.png",
+      "inherited": false,
+      "exists": false
+    },
+    {
+      "key": "zuri",
+      "word": "zuri",
+      "file": "assets/img/verbal/eu/zuri.png",
+      "inherited": false,
+      "exists": false
+    }
+  ]
+}
