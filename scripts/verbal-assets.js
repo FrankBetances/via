@@ -60,6 +60,17 @@ function langPaths(lang) {
 
 /* ------------------- carga de la lógica pura (TS → CJS) ------------------- */
 
+/** Pictogramas propios de un idioma completo (`VERBAL_GLYPHS_GL`, `_EU`…). */
+function langGlyphs(outDir, lang) {
+  if (lang === 'es' || lang === 'es-DO') return null;
+  try {
+    const mod = require(path.join(outDir, `verbalAudiometryLists.${lang}.js`));
+    return mod[`VERBAL_GLYPHS_${lang.toUpperCase().replace(/-/g, '_')}`] ?? null;
+  } catch {
+    return null; // idioma sin mapa propio: se usan solo los castellanos
+  }
+}
+
 function loadVerbalModules(lang) {
   const out = fs.mkdtempSync(path.join(os.tmpdir(), 'verbal-cjs-'));
   const tsc = path.join(ROOT, 'node_modules', '.bin', 'tsc');
@@ -75,8 +86,16 @@ function loadVerbalModules(lang) {
   return {
     bands: banks.getVerbalBands(lang),
     inventory: banks.collectLangAssetInventory(lang),
-    glyphs: require(path.join(out, 'verbalAudiometryGlyphs.js')).VERBAL_GLYPHS,
+    // Pictogramas: los del castellano MÁS los propios del idioma, que es la
+    // misma resolución que hace la app en `verbalGlyphForLang`. Los módulos de
+    // listas ya los compila tsc al seguir los imports de `verbalAudiometryBanks`.
+    glyphs: {
+      ...require(path.join(out, 'verbalAudiometryGlyphs.js')).VERBAL_GLYPHS,
+      ...(langGlyphs(out, lang) ?? {}),
+    },
     audit: require(path.join(out, 'verbalAudiometryAudit.es-DO.js')),
+    // `null` = idioma COMPLETO (gl, eu); un código = variante que hereda de él.
+    baseLang: banks.VERBAL_BANK_BASE[lang] ?? null,
   };
 }
 
@@ -318,14 +337,46 @@ function cmdAudio({ bands }, lang) {
  * reproducción es el base64 en memoria, así que la variante no necesita un
  * registro de `require()` propio mientras no tenga imágenes propias.
  */
-function cmdRegistryVariant({ bands, inventory }, lang) {
+function cmdRegistryVariant({ bands, inventory, baseLang, glyphs }, lang) {
   const { audioDir } = langPaths(lang);
   const own = inventory.images.filter(k => !inventory.inheritedImages.includes(k));
-  if (own.length) {
+
+  // Imágenes propias sin registro de `require()` en la app.
+  //
+  // En una VARIANTE (es-DO, que hereda de es) esto es un error: si el logopeda
+  // sustituyó una lámina, su ilustración tiene que existir o la sustitución se
+  // pierde en silencio.
+  //
+  // En un idioma COMPLETO (gl, eu) es el comportamiento DISEÑADO: su banco es
+  // propio, muchas palabras no existen en castellano y la tarjeta degrada a
+  // pictograma y luego a inicial (ver verbalAudiometryLists.gl.ts y
+  // `verbalImageSourceForLang`). Bloquear aquí acoplaba el registro del AUDIO
+  // —que es el estímulo clínico— a un asunto de ilustraciones, y dejaba al
+  // gallego sin locuciones por una razón que no tiene que ver con el audio.
+  if (own.length && baseLang) {
     throw new Error(
-      `La variante ${lang} tiene imágenes PROPIAS sin registro en la app (${own.join(' ')}): ` +
-      'extienda cmdRegistryVariant con un registro de require() antes de usarlas.',
+      `La variante ${lang} hereda de '${baseLang}' pero tiene imágenes PROPIAS sin registro ` +
+      `en la app (${own.join(' ')}): extienda cmdRegistryVariant con un registro de require().`,
     );
+  }
+  if (own.length) {
+    // Se avisa Y se comprueba que la degradación llega a pictograma: caer a la
+    // inicial de la palabra deja la lámina sin apoyo visual, que en las bandas
+    // pediátricas (A/B, solo imágenes) la haría inservible.
+    const words = new Map(imageEntries(bands).map(e => [e.key, e.word]));
+    const withoutGlyph = own.filter(k => !glyphs[words.get(k)]);
+    console.log(
+      `${lang}: ${own.length} ilustraciones propias sin archivo; esas tarjetas ` +
+      'degradan a pictograma (comportamiento previsto para un idioma completo).',
+    );
+    if (withoutGlyph.length) {
+      throw new Error(
+        `${lang}: ${withoutGlyph.length} palabra(s) se quedarían sin imagen Y sin pictograma ` +
+        `(${withoutGlyph.join(' ')}): añádalas a VERBAL_GLYPHS_${lang.toUpperCase().replace(/-/g, '_')} ` +
+        `o genere sus ` +
+        `ilustraciones con \`images --lang ${lang}\`.`,
+      );
+    }
   }
   const audio = audioEntries(bands);
   const missing = audio.filter(e => !fs.existsSync(path.join(audioDir, `${e.key}.m4a`)));
