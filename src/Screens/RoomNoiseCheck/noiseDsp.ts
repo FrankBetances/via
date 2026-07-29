@@ -22,14 +22,34 @@ import { clamp } from '@/Helpers/numeric';
 /*     frecuencia —climatización, tráfico, manejo del propio dispositivo—      */
 /*     domina la energía y hacía leer 10–20 dB de más frente a un sonómetro    */
 /*     de referencia, aunque la sala fuese silenciosa en la banda del habla.   */
-/*   · REFERENCIA dBFS→SPL realista: RMS digital 1.0 ↔ ~120 dB(A) SPL, que es  */
-/*     el orden del punto de sobrecarga acústica de los micrófonos MEMS de     */
-/*     móvil/tableta. El valor anterior (92) comprimía toda la escala hacia el */
-/*     suelo: una sala normal de 40–45 dB(A) caía por debajo del mínimo y se   */
-/*     mostraba clavada en 28 dB.                                             */
-/*   · OFFSET de campo: `setNoiseCalibrationOffset` permite anclar la lectura  */
-/*     a un sonómetro patrón sin tocar el código. Sigue SIN ser calibración    */
-/*     absoluta certificada y así debe advertirse en UI/PDF.                   */
+/*   · REFERENCIA dBFS→SPL: ver `NOISE_SPL_AT_FULL_SCALE`.                     */
+/*   · OFFSET de campo: `setNoiseCalibrationOffset` (o, mejor,                 */
+/*     `offsetForReference`, que lo calcula solo a partir de la lectura de un  */
+/*     sonómetro patrón) ancla la escala al dispositivo concreto. Sigue SIN    */
+/*     ser calibración absoluta certificada y así debe advertirse en UI/PDF.   */
+/*                                                                            */
+/*  BUG DEL FILTRO CON ESTADO REINICIADO (causa de «muy al azar»):            */
+/*   La cascada de ponderación A tiene dos polos en 20.6 Hz, es decir, una     */
+/*   constante de tiempo de decenas de milisegundos. Arrancarla con estado     */
+/*   cero en CADA bloque de 100 ms —como hacía `aWeight`— equivale a decirle   */
+/*   al filtro que antes del bloque no había señal: el salto respecto al       */
+/*   valor real produce un transitorio de arranque cuya energía entra entera   */
+/*   en el mean square del bloque.                                            */
+/*                                                                            */
+/*   El transitorio es proporcional al INFRASONIDO presente (deriva de línea   */
+/*   de base al mover el equipo, retumbe de climatización, portazos: 0.5–15 Hz)*/
+/*   que la curva A debería atenuar más de 50 dB. Medido en la prueba de       */
+/*   regresión de este módulo, una sala con ese contenido lee varios dB de más */
+/*   y salta más de 5 dB de un bloque al siguiente según la fase del           */
+/*   infrasonido en el corte — es decir, alto y errático. El comentario        */
+/*   histórico daba el transitorio por irrelevante «porque el Leq lo           */
+/*   promedia», pero se repite en TODOS los bloques: no se promedia, se        */
+/*   acumula como sesgo.                                                       */
+/*                                                                            */
+/*   Solución: `createNoiseWeightingChain` mantiene el estado del filtro entre */
+/*   bloques (más un bloqueador de DC previo) y el adaptador descarta los      */
+/*   primeros bloques de calentamiento. `aWeight` se conserva sin estado solo  */
+/*   como utilidad de prueba sobre un bloque suelto.                          */
 /* -------------------------------------------------------------------------- */
 
 /* eslint-disable no-bitwise -- aritmética binaria inherente a la FFT radix-2 */
@@ -43,12 +63,22 @@ export const NOISE_DB_MAX = 110;
 
 /**
  * Nivel en dB(A) SPL que corresponde al fondo de escala del micrófono
- * (0 dBFS RMS). Orden de magnitud del punto de sobrecarga acústica de los
- * micrófonos MEMS de teléfono/tableta. NO es calibración absoluta: el
- * micrófono del dispositivo no está caracterizado, pero fija una escala
- * plausible y reproducible sobre la que aplicar el offset de campo.
+ * (0 dBFS RMS).
+ *
+ * NO es el punto de sobrecarga acústica del transductor (los MEMS de móvil
+ * llegan a 120–130 dB SPL): es el nivel que satura la CADENA de captura —
+ * micrófono + preamplificador + conversión— tal y como la entrega el sistema.
+ * Ese es el número que importa aquí, y en teléfonos y tabletas ronda los
+ * 100–110 dB(A) SPL. El valor anterior (120, tomado del AOP del transductor)
+ * empujaba TODA la escala hacia arriba y es la parte sistemática del «entre 15
+ * y 20 dB por encima» reportado en campo; 105 es el centro del rango realista.
+ *
+ * Sigue sin ser calibración absoluta: el micrófono del dispositivo no está
+ * caracterizado. Lo que fija es una escala plausible y reproducible sobre la
+ * que aplicar el offset de campo, que es la vía para anclar la lectura a un
+ * sonómetro patrón (ver `offsetForReference`).
  */
-export const NOISE_SPL_AT_FULL_SCALE = 120;
+export const NOISE_SPL_AT_FULL_SCALE = 105;
 
 /**
  * Corrección de campo (dB) que se suma a la lectura. Se ajusta comparando con
@@ -58,8 +88,12 @@ export const NOISE_SPL_AT_FULL_SCALE = 120;
  */
 let calibrationOffsetDb = 0;
 
-/** Límite del ajuste manual de campo (dB). */
-export const NOISE_OFFSET_LIMIT_DB = 25;
+/**
+ * Límite del ajuste manual de campo (dB). Amplio a propósito: la sensibilidad
+ * de la cadena de captura varía mucho entre dispositivos y con ±25 dB no se
+ * podía anclar un terminal alejado de la referencia por defecto.
+ */
+export const NOISE_OFFSET_LIMIT_DB = 40;
 
 /** Fija la corrección de campo (dB), acotada a ±`NOISE_OFFSET_LIMIT_DB`. */
 export const setNoiseCalibrationOffset = (db: number): number => {
@@ -69,6 +103,24 @@ export const setNoiseCalibrationOffset = (db: number): number => {
 
 /** Corrección de campo vigente (dB). */
 export const getNoiseCalibrationOffset = (): number => calibrationOffsetDb;
+
+/**
+ * Offset que haría que una lectura de VIA+ coincidiera con la de un sonómetro
+ * patrón medido a la vez en la misma sala. Es la vía RECOMENDADA de
+ * calibración: el clínico no tiene que deducir el signo ni ir sumando dB de
+ * uno en uno, solo teclear lo que marca el patrón.
+ *
+ * `viaReading` es la lectura MOSTRADA (ya incluye el offset vigente), así que
+ * el offset nuevo se compone con el actual.
+ */
+export const offsetForReference = (referenceDb: number, viaReading: number): number => {
+  if (!Number.isFinite(referenceDb) || !Number.isFinite(viaReading)) return calibrationOffsetDb;
+  return clamp(
+    calibrationOffsetDb + (referenceDb - viaReading),
+    -NOISE_OFFSET_LIMIT_DB,
+    NOISE_OFFSET_LIMIT_DB,
+  );
+};
 
 /** Suelo de energía (evita log(0) en silencio digital). */
 const MIN_MS = 1e-12;
@@ -219,37 +271,161 @@ export function aWeightingStages(sampleRate: number): AWeighting {
 }
 
 /**
- * Aplica la ponderación A a un bloque PCM y devuelve la señal ponderada.
- * Estado NO persistente entre bloques (cada bloque de ~100 ms se filtra por su
- * cuenta): el transitorio de arranque del filtro dura milisegundos y el Leq lo
- * promedia, de modo que no afecta a la lectura.
+ * Aplica la ponderación A a un bloque PCM SUELTO (estado del filtro a cero).
+ *
+ * Utilidad de prueba y de análisis puntual. La captura en vivo NO debe usarla
+ * bloque a bloque: reiniciar el estado en cada bloque de 100 ms inyecta el
+ * transitorio de arranque de los polos de 20.6 Hz una y otra vez e infla la
+ * lectura de forma variable (ver cabecera del módulo). Para eso está
+ * `createNoiseWeightingChain`, que conserva el estado entre bloques.
  */
 export function aWeight(pcm: Float32Array, sampleRate: number): Float32Array {
-  const { stages, gain } = aWeightingStages(sampleRate);
-  const out = new Float32Array(pcm.length);
-  out.set(pcm);
-  for (const s of stages) {
-    let x1 = 0;
-    let x2 = 0;
-    let y1 = 0;
-    let y2 = 0;
-    for (let i = 0; i < out.length; i++) {
-      const x0 = out[i];
-      const y0 = s.b0 * x0 + s.b1 * x1 + s.b2 * x2 - s.a1 * y1 - s.a2 * y2;
-      x2 = x1;
-      x1 = x0;
-      y2 = y1;
-      y1 = y0;
-      out[i] = y0;
-    }
-  }
-  for (let i = 0; i < out.length; i++) out[i] *= gain;
-  return out;
+  const chain = createNoiseWeightingChain(sampleRate, { dcBlock: false });
+  return chain.process(pcm);
 }
 
-/** Energía media (mean square) del bloque tras la ponderación A. */
+/** Energía media (mean square) de un bloque suelto tras la ponderación A. */
 export function aWeightMeanSquare(pcm: Float32Array, sampleRate: number): number {
   return meanSquare(aWeight(pcm, sampleRate));
+}
+
+/* -------------------- cadena de ponderación CON ESTADO -------------------- */
+
+export interface NoiseWeightingChain {
+  /** Filtra un bloque conservando el estado del anterior. No muta la entrada. */
+  process: (pcm: Float32Array) => Float32Array;
+  /** Vuelve al estado inicial (arranque de una medición nueva). */
+  reset: () => void;
+}
+
+export interface NoiseWeightingOptions {
+  /**
+   * Bloqueador de componente continua antes de la ponderación (por defecto
+   * `true`). Muchos micrófonos de móvil entregan un offset de DC pequeño pero
+   * no nulo; sin quitarlo, los integradores de la curva A tardan en asentarse
+   * y el arranque de cada medición lee de más.
+   */
+  dcBlock?: boolean;
+}
+
+/** Frecuencia de corte del bloqueador de DC (Hz): muy por debajo de la banda
+ *  de interés, así que no toca la lectura ponderada. */
+const DC_BLOCK_HZ = 5;
+
+/**
+ * Cadena de medición del sonómetro con ESTADO PERSISTENTE entre bloques:
+ * bloqueo de DC → cascada de ponderación A → ganancia de normalización.
+ *
+ * Es la vía que debe usar la captura en vivo: procesar el stream como una
+ * señal continua (y no como bloques independientes) elimina el transitorio de
+ * arranque por bloque que inflaba y aleatorizaba la lectura.
+ */
+export function createNoiseWeightingChain(
+  sampleRate: number,
+  opts: NoiseWeightingOptions = {},
+): NoiseWeightingChain {
+  const { stages, gain } = aWeightingStages(sampleRate);
+  const useDcBlock = opts.dcBlock ?? true;
+  // y[n] = x[n] − x[n−1] + R·y[n−1] (polo simple en DC_BLOCK_HZ).
+  const R = Math.exp((-2 * Math.PI * DC_BLOCK_HZ) / sampleRate);
+
+  // Estado por sección: [x1, x2, y1, y2].
+  const state = stages.map(() => new Float64Array(4));
+  let dcX1 = 0;
+  let dcY1 = 0;
+
+  const reset = () => {
+    for (const s of state) s.fill(0);
+    dcX1 = 0;
+    dcY1 = 0;
+  };
+
+  const process = (pcm: Float32Array): Float32Array => {
+    const out = new Float32Array(pcm.length);
+    if (useDcBlock) {
+      for (let i = 0; i < pcm.length; i++) {
+        const x0 = pcm[i];
+        dcY1 = x0 - dcX1 + R * dcY1;
+        dcX1 = x0;
+        out[i] = dcY1;
+      }
+    } else {
+      out.set(pcm);
+    }
+    for (let s = 0; s < stages.length; s++) {
+      const { b0, b1, b2, a1, a2 } = stages[s];
+      const st = state[s];
+      let x1 = st[0];
+      let x2 = st[1];
+      let y1 = st[2];
+      let y2 = st[3];
+      for (let i = 0; i < out.length; i++) {
+        const x0 = out[i];
+        const y0 = b0 * x0 + b1 * x1 + b2 * x2 - a1 * y1 - a2 * y2;
+        x2 = x1;
+        x1 = x0;
+        y2 = y1;
+        y1 = y0;
+        out[i] = y0;
+      }
+      st[0] = x1;
+      st[1] = x2;
+      st[2] = y1;
+      st[3] = y2;
+    }
+    for (let i = 0; i < out.length; i++) out[i] *= gain;
+    return out;
+  };
+
+  return { process, reset };
+}
+
+/* --------------------------- calidad del bloque --------------------------- */
+
+/**
+ * Nivel a partir del cual una muestra se considera saturada. Un bloque
+ * recortado tiene un nivel real DESCONOCIDO (y siempre mayor que el medido),
+ * así que no debe entrar en el promedio: contaminaba la medición cuando el
+ * micrófono recibía un golpe o el propio manejo del dispositivo.
+ */
+export const CLIP_LEVEL = 0.985;
+
+/** ¿El bloque contiene muestras a fondo de escala (recorte)? */
+export function isBlockClipped(pcm: Float32Array): boolean {
+  for (let i = 0; i < pcm.length; i++) {
+    if (pcm[i] >= CLIP_LEVEL || pcm[i] <= -CLIP_LEVEL) return true;
+  }
+  return false;
+}
+
+/* ------------------------- estadística de la medición --------------------- */
+
+/**
+ * Percentil (0..100) de una serie de dB. `percentileDb(x, 10)` es el nivel
+ * superado el 90 % del tiempo (L90, el RUIDO DE FONDO de la sala) y
+ * `percentileDb(x, 90)` el L10 (los picos sostenidos). Interpolación lineal
+ * entre muestras contiguas; `null` si no hay datos.
+ */
+export function percentileDb(values: number[], p: number): number | null {
+  if (!values.length) return null;
+  const s = [...values].sort((a, b) => a - b);
+  const pos = clamp(p, 0, 100) / 100 * (s.length - 1);
+  const lo = Math.floor(pos);
+  const hi = Math.ceil(pos);
+  return lo === hi ? s[lo] : s[lo] + (s[hi] - s[lo]) * (pos - lo);
+}
+
+/**
+ * Nivel continuo equivalente (LAeq) de una serie de lecturas en dB: media
+ * ENERGÉTICA, no aritmética. Promediar decibelios directamente subestima el
+ * nivel cuando la serie tiene picos, que es justo lo que pasa en una consulta
+ * con ruido intermitente.
+ */
+export function energyAverageDb(values: number[]): number | null {
+  if (!values.length) return null;
+  let acc = 0;
+  for (const db of values) acc += Math.pow(10, db / 10);
+  return 10 * Math.log10(acc / values.length);
 }
 
 /**

@@ -7,7 +7,16 @@ import type {
 } from 'react-native-audio-api';
 
 import { acquireAudioContext, releaseAudioContext, resumeAudioContext } from '@/Audio';
+import { SESSION_LANGS } from '@/Store/slices/sessionLangs';
 import { pickVoiceForLang, ttsLanguageTagFor, type TtsVoice } from './verbalTtsVoice';
+
+/**
+ * Lenguas que se prueban al arrancar el motor, en orden. Basta que UNA quede
+ * fijada para que haya vía de dictado; la voz concreta se reajusta por
+ * locución. Antes solo se probaba el castellano, así que un dispositivo con
+ * voz gallega o vasca pero sin datos de español se declaraba «sin voz».
+ */
+const TTS_PROBE_LANGS: readonly string[] = SESSION_LANGS;
 
 /* -------------------------------------------------------------------------- */
 /*  Adaptador de audio de la Audiometría Verbal (campo libre, sin audífonos).  */
@@ -50,6 +59,21 @@ import { pickVoiceForLang, ttsLanguageTagFor, type TtsVoice } from './verbalTtsV
 
 export type VerbalAudioEngine = 'assets' | 'tts';
 
+/** Fase del motor de voz del sistema. */
+export type TtsPhase = 'initializing' | 'ready' | 'unavailable';
+
+export interface TtsStatus {
+  phase: TtsPhase;
+  /** Motivo legible cuando no hay voz (para mostrárselo al profesional). */
+  detail: string;
+  /** Nº de voces que expone el dispositivo (0 = el motor no las enumera). */
+  voiceCount: number;
+  /** Lengua cuya voz está fijada ahora en el motor (`null` = ninguna). */
+  currentLang: string | null;
+  /** `true` si la voz en uso no es del idioma pedido (p. ej. gl dictado en es). */
+  degraded: boolean;
+}
+
 export interface VerbalAudioAdapter {
   /**
    * Reproduce la palabra objetivo al nivel indicado (dB, orientativo).
@@ -73,6 +97,20 @@ export interface VerbalAudioAdapter {
    * necesita este dato para no ofrecer un botón de altavoz que no suena.
    */
   ttsReady?: () => boolean;
+  /**
+   * Estado detallado del motor de voz del sistema, para que la UI pueda
+   * DECIR qué pasa en vez de limitarse a no sonar. Opcional para no romper
+   * adaptadores de prueba ya registrados.
+   */
+  ttsStatus?: () => TtsStatus;
+  /**
+   * Reintenta la inicialización del motor (el usuario acaba de instalar una
+   * voz, o el motor no estaba listo al arrancar la app). Resuelve a `true` si
+   * quedó operativo.
+   */
+  retryTts?: () => Promise<boolean>;
+  /** Suscripción a los cambios de `ttsStatus` (devuelve la baja). */
+  onTtsStatusChange?: (listener: () => void) => () => void;
   stop: () => void;
   /**
    * Motor activo. 'tts' = sintetizador nativo del sistema (nivel RELATIVO
@@ -204,8 +242,34 @@ export function installVerbalAudioAdapter(opts: VerbalAudioAdapterOptions = {}):
   let ttsVoices: TtsVoice[] = [];
   /** Lengua cuya voz está fijada ahora mismo en el motor. */
   let ttsCurrentLang: string | null = null;
+  /** ¿La voz fijada es una degradación (otro idioma que el pedido)? */
+  let ttsDegraded = false;
   /** Lenguas ya descartadas por no tener voz utilizable (no reintentar). */
   const ttsUnavailableLangs = new Set<string>();
+
+  /* ------------------------- estado observable ---------------------------- */
+
+  let ttsPhase: TtsPhase = ttsEngine ? 'initializing' : 'unavailable';
+  let ttsDetail = ttsEngine
+    ? 'Preparando la voz del dispositivo…'
+    : 'Este dispositivo no incorpora el módulo de síntesis de voz.';
+  const statusListeners = new Set<() => void>();
+  const notifyStatus = () => statusListeners.forEach(l => l());
+
+  const setPhase = (phase: TtsPhase, detail: string) => {
+    if (ttsPhase === phase && ttsDetail === detail) return;
+    ttsPhase = phase;
+    ttsDetail = detail;
+    notifyStatus();
+  };
+
+  const ttsStatus = (): TtsStatus => ({
+    phase: ttsPhase,
+    detail: ttsDetail,
+    voiceCount: ttsVoices.length,
+    currentLang: ttsCurrentLang,
+    degraded: ttsDegraded,
+  });
 
   const applyVoiceForLang = async (lang: string): Promise<boolean> => {
     if (!ttsEngine) return false;
@@ -217,19 +281,30 @@ export function installVerbalAudioAdapter(opts: VerbalAudioAdapterOptions = {}):
       try {
         await ttsEngine.setDefaultVoice?.(pick.voice.id);
         ttsCurrentLang = lang;
+        ttsDegraded = pick.degraded;
         if (pick.degraded) {
           console.warn(
             `VIA+: sin voz del sistema para '${lang}'; se dicta con una voz '${pick.langPrefix}'.`,
           );
         }
+        notifyStatus();
         return true;
       } catch {
         /* la voz elegida no se pudo fijar: probamos por etiqueta de idioma */
       }
     }
+    // Vía por ETIQUETA de idioma. Es la que funciona en los motores que no
+    // enumeran voces (y en los que `setDefaultVoice` rechaza ids válidos), así
+    // que nunca debe saltarse: era la razón por la que un dispositivo con TTS
+    // perfectamente utilizable se quedaba mudo.
     try {
-      await ttsEngine.setDefaultLanguage?.(ttsLanguageTagFor(lang));
+      const result = await ttsEngine.setDefaultLanguage?.(ttsLanguageTagFor(lang));
+      // Android devuelve un código negativo si al idioma le faltan datos; el
+      // `await` no rechaza, así que hay que mirarlo.
+      if (typeof result === 'number' && result < 0) throw new Error(`idioma no disponible (${result})`);
       ttsCurrentLang = lang;
+      ttsDegraded = false;
+      notifyStatus();
       return true;
     } catch {
       // Ni voz ni datos del idioma: se descarta esa lengua para no reintentar
@@ -239,24 +314,129 @@ export function installVerbalAudioAdapter(opts: VerbalAudioAdapterOptions = {}):
     }
   };
 
-  const configureTts = async () => {
-    if (!ttsEngine) return;
-    try {
-      await ttsEngine.getInitStatus?.();
-      // Ritmo natural de palabra aislada: ni acelerado ni arrastrado (las voces
-      // neurales suenan artificiales muy lentas; 0.48 mantiene naturalidad).
-      try { await ttsEngine.setDefaultRate?.(0.48); } catch { /* opcional */ }
-      try { await ttsEngine.setDefaultPitch?.(1.0); } catch { /* opcional */ }
+  /* ------------------------ inicialización del motor ----------------------- */
 
-      ttsVoices = (await ttsEngine.voices?.()) ?? [];
-      // `ttsSpanishReady` gobierna si hay ALGUNA vía de dictado; la voz
-      // concreta se fija por locución según su lengua.
-      ttsSpanishReady = await applyVoiceForLang('es');
-    } catch {
-      /* motor TTS no inicializable: queda desactivado */
+  /** Intentos de arranque del motor antes de darlo por no disponible. */
+  const TTS_INIT_ATTEMPTS = 3;
+  /** Espera entre intentos (ms). El TextToSpeech de Android tarda en estar
+   *  listo tras el arranque en frío y `getInitStatus()` rechaza mientras tanto. */
+  const TTS_INIT_RETRY_MS = 700;
+  /** Tope de espera de una locución por la inicialización en curso. */
+  const TTS_READY_TIMEOUT_MS = 2500;
+
+  const delay = (ms: number) => new Promise<void>(resolve => setTimeout(resolve, ms));
+
+  /**
+   * Arranque del motor por PASOS INDEPENDIENTES. La versión anterior envolvía
+   * todo en un único `try`: si `getInitStatus()` rechazaba (arranque en frío,
+   * motor todavía cargando) o si `voices()` fallaba, se abortaba entero y
+   * `ttsSpanishReady` quedaba en `false` PARA SIEMPRE — sin reintento y sin
+   * decir nada. De ahí el «ningún motor de voz funciona»: bastaba un fallo
+   * transitorio en el primer segundo de vida de la app.
+   */
+  const configureTts = async (): Promise<boolean> => {
+    if (!ttsEngine) {
+      setPhase('unavailable', 'Este dispositivo no incorpora el módulo de síntesis de voz.');
+      return false;
     }
+
+    // Paso 1 — esperar a que el motor esté inicializado, con reintentos.
+    let initError: unknown = null;
+    for (let attempt = 1; attempt <= TTS_INIT_ATTEMPTS; attempt++) {
+      try {
+        await ttsEngine.getInitStatus?.();
+        initError = null;
+        break;
+      } catch (e) {
+        initError = e;
+        if (attempt < TTS_INIT_ATTEMPTS) await delay(TTS_INIT_RETRY_MS);
+      }
+    }
+    if (initError) {
+      const code = (initError as { code?: string })?.code;
+      setPhase(
+        'unavailable',
+        code === 'no_engine'
+          ? 'No hay ningún motor de síntesis de voz instalado. Instale «Voz de Google» (o el motor del fabricante) desde la tienda de aplicaciones.'
+          : 'El motor de voz del dispositivo no llegó a inicializarse. Reintente desde este mismo aviso.',
+      );
+      return false;
+    }
+
+    // Paso 2 — prosodia. Opcional: que falle no impide dictar.
+    try { await ttsEngine.setDefaultRate?.(0.48); } catch { /* ritmo por defecto */ }
+    try { await ttsEngine.setDefaultPitch?.(1.0); } catch { /* tono por defecto */ }
+
+    // Paso 3 — lista de voces. Que un motor no la exponga es NORMAL, no un
+    // fallo: se dicta fijando la etiqueta de idioma.
+    try {
+      ttsVoices = (await ttsEngine.voices?.()) ?? [];
+    } catch {
+      ttsVoices = [];
+    }
+
+    // Paso 4 — fijar una voz utilizable. Se reintentan todas las lenguas de
+    // sesión: un dispositivo puede no tener castellano pero sí euskera o
+    // gallego, y antes se declaraba «sin voz» solo por mirar el castellano.
+    ttsUnavailableLangs.clear();
+    ttsCurrentLang = null;
+    for (const lang of TTS_PROBE_LANGS) {
+      if (await applyVoiceForLang(lang)) {
+        ttsSpanishReady = true;
+        setPhase('ready', `Voz del sistema lista (${ttsVoices.length || 'sin lista de'} voces).`);
+        return true;
+      }
+    }
+
+    ttsSpanishReady = false;
+    setPhase(
+      'unavailable',
+      ttsVoices.length
+        ? 'El motor de voz no tiene ninguna voz de los idiomas de la batería. Instale los datos de voz en español desde los ajustes del sistema.'
+        : 'El motor de voz no expone ninguna voz utilizable. Revise los ajustes de síntesis de voz del sistema.',
+    );
+    return false;
   };
-  void configureTts();
+
+  /** Configuración en curso (evita arrancar varias a la vez). */
+  let configuring: Promise<boolean> | null = null;
+
+  /**
+   * Garantiza que el motor esté listo antes de dictar. Si sigue arrancando,
+   * espera (acotado) en vez de descartar la locución: antes, cualquier `speak`
+   * de los primeros ~2 s se tragaba en silencio porque `ttsSpanishReady`
+   * todavía era `false`.
+   */
+  const ensureTtsReady = (): Promise<boolean> => {
+    if (ttsSpanishReady) return Promise.resolve(true);
+    if (!ttsEngine) return Promise.resolve(false);
+    if (!configuring) {
+      configuring = configureTts().finally(() => {
+        configuring = null;
+      });
+    }
+    // Carrera contra un tope de espera. El temporizador se cancela en cuanto
+    // la configuración termina: dejarlo vivo mantenía el proceso despierto
+    // (y hacía que Jest avisase de operaciones pendientes).
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    const timeout = new Promise<boolean>(resolve => {
+      timer = setTimeout(() => resolve(ttsSpanishReady), TTS_READY_TIMEOUT_MS);
+    });
+    return Promise.race([configuring, timeout]).finally(() => {
+      if (timer) clearTimeout(timer);
+    });
+  };
+
+  /** Reintento explícito (botón de la UI): olvida el veredicto anterior. */
+  const retryTts = (): Promise<boolean> => {
+    ttsSpanishReady = false;
+    ttsCurrentLang = null;
+    ttsUnavailableLangs.clear();
+    setPhase('initializing', 'Preparando la voz del dispositivo…');
+    return ensureTtsReady();
+  };
+
+  void ensureTtsReady();
 
   const stop = () => {
     // Detención deliberada: anula el respaldo pendiente para que el
@@ -279,11 +459,14 @@ export function installVerbalAudioAdapter(opts: VerbalAudioAdapterOptions = {}):
    */
   const speakWord = (word: string, levelDb: number, lang = 'es'): Promise<unknown> => {
     // Sin motor o sin voz verificada: modo demostración (el clínico presenta
-    // el modelo con su voz).
-    if (!ttsEngine || !ttsSpanishReady) return Promise.reject(new Error('sin voz del sistema'));
-    // Se fija la voz de la lengua ANTES de dictar (no-op si ya está fijada):
-    // sin esto, una sesión gallega dictaba con la voz castellana ya cargada.
-    return applyVoiceForLang(lang).then(ok => {
+    // el modelo con su voz). Si el motor SIGUE arrancando se espera a que
+    // termine en vez de descartar la palabra.
+    return ensureTtsReady().then(ready => {
+      if (!ttsEngine || !ready) throw new Error('sin voz del sistema');
+      // Se fija la voz de la lengua ANTES de dictar (no-op si ya está fijada):
+      // sin esto, una sesión gallega dictaba con la voz castellana ya cargada.
+      return applyVoiceForLang(lang);
+    }).then(ok => {
       if (!ok) throw new Error(`sin voz del sistema para '${lang}'`);
       ttsEngine.stop?.();
       // Sintetizador nativo (Android: TextToSpeech). El nivel relativo se
@@ -358,9 +541,10 @@ export function installVerbalAudioAdapter(opts: VerbalAudioAdapterOptions = {}):
    * resto de módulos a través de `@/Voice`.
    */
   const speakText = (text: string, lang = 'es') => {
-    if (!ttsEngine || !ttsSpanishReady) return;
+    if (!ttsEngine) return;
     currentTts = null; // la consigna sustituye cualquier palabra pendiente
-    applyVoiceForLang(lang)
+    ensureTtsReady()
+      .then(ready => (ready ? applyVoiceForLang(lang) : false))
       .then(ok => {
         if (!ok) return;
         ttsEngine.stop?.();
@@ -419,7 +603,12 @@ export function installVerbalAudioAdapter(opts: VerbalAudioAdapterOptions = {}):
     // varios fallos seguidos, la sesión entera pasa a recortes — antes el
     // fallo se tragaba en silencio y la prueba se quedaba muda a mitad de la
     // lista.
-    if (!isSpanishVariant && preferTts && ttsSpanishReady && ttsConsecutiveFailures < TTS_FAILURE_LIMIT) {
+    //
+    // `ttsPhase !== 'unavailable'` (en vez de `ttsSpanishReady`) evita que la
+    // PRIMERA palabra de la sesión caiga al recorte solo porque el motor aún
+    // esté arrancando: `speakWord` espera a que termine y, si no llega a
+    // estarlo, degrada igual.
+    if (!isSpanishVariant && preferTts && ttsPhase !== 'unavailable' && ttsConsecutiveFailures < TTS_FAILURE_LIMIT) {
       currentTts = { audioKey, levelDb, lang };
       speakWord(word, levelDb, sessionLang).catch(() => {
         ttsConsecutiveFailures += 1;
@@ -467,6 +656,12 @@ export function installVerbalAudioAdapter(opts: VerbalAudioAdapterOptions = {}):
     playWord,
     speakText,
     ttsReady: () => ttsSpanishReady,
+    ttsStatus,
+    retryTts,
+    onTtsStatusChange: listener => {
+      statusListeners.add(listener);
+      return () => statusListeners.delete(listener);
+    },
     stop,
     // Motor declarado: 'tts' cuando se prefiere la voz nativa (el objetivo de
     // calidad); 'assets' si se priorizan los recortes. La degradación real por

@@ -2,7 +2,10 @@ import {
   aWeight,
   aWeightMeanSquare,
   aWeightingDb,
+  createNoiseWeightingChain,
+  energyAverageDb,
   getNoiseCalibrationOffset,
+  isBlockClipped,
   meanSquare,
   meanSquareToSpl,
   NOISE_BANDS,
@@ -10,6 +13,8 @@ import {
   NOISE_DB_MIN,
   NOISE_OFFSET_LIMIT_DB,
   NOISE_SPL_AT_FULL_SCALE,
+  offsetForReference,
+  percentileDb,
   setNoiseCalibrationOffset,
   smoothBands,
   spectrumBands,
@@ -220,6 +225,174 @@ describe('espectro: FFT real por bandas de frecuencia', () => {
     const loud = spectrumBands(sine(1000, 0.5), SR);
     const b = bandOf(1000);
     expect(loud[b]).toBeGreaterThan(soft[b]);
+  });
+});
+
+/* -------------------------------------------------------------------------- */
+/*  Regresión del bug reportado en campo: «de media entre 15 y 20 por encima,  */
+/*  en ocasiones hasta 40 dB, resultados muy al azar».                         */
+/* -------------------------------------------------------------------------- */
+
+describe('cadena de medición con ESTADO entre bloques', () => {
+  /** Trocea una señal larga en bloques de `size` muestras (como el recorder). */
+  const chunks = (x: Float32Array, size: number): Float32Array[] => {
+    const out: Float32Array[] = [];
+    for (let i = 0; i + size <= x.length; i += size) out.push(x.subarray(i, i + size));
+    return out;
+  };
+
+  const BLOCK = 4800; // 100 ms a 48 kHz
+
+  /** Ruido de banda ancha reproducible (el «suelo» audible de la sala). */
+  const broadband = (n: number, amp: number, offset = 0): Float32Array => {
+    let seed = 7;
+    const rnd = () => {
+      seed = (seed * 1103515245 + 12345) & 0x7fffffff;
+      return seed / 0x7fffffff - 0.5;
+    };
+    const x = new Float32Array(n);
+    for (let i = 0; i < n; i++) x[i] = amp * rnd();
+    return offset ? x.map(v => v + offset) as Float32Array : x;
+  };
+
+  /**
+   * Sala real: el suelo audible de banda ancha MÁS infrasonido —deriva de
+   * línea de base a 0.5 Hz y retumbe de climatización a 12 Hz—, que es
+   * justo lo que aporta el manejo del equipo, el aire acondicionado o una
+   * puerta. La ponderación A debe dejarlo en nada; el nivel dB(A) correcto
+   * es el del ruido de banda ancha solo.
+   */
+  const roomWithInfrasound = (blocks: number): Float32Array => {
+    const n = blocks * BLOCK;
+    const x = broadband(n, 0.02);
+    for (let i = 0; i < n; i++) {
+      x[i] += 0.3 * Math.sin((2 * Math.PI * 0.5 * i) / SR) + 0.15 * Math.sin((2 * Math.PI * 12 * i) / SR);
+    }
+    return x;
+  };
+
+  it('reiniciar el filtro en cada bloque INFLA la lectura y la vuelve errática', () => {
+    const blocks = chunks(roomWithInfrasound(20), BLOCK);
+
+    // Nivel dB(A) VERDADERO de la sala: el del ruido de banda ancha, sin el
+    // infrasonido (que la curva A atenúa más de 50 dB).
+    const chainTruth = createNoiseWeightingChain(SR);
+    const truth = chunks(broadband(20 * BLOCK, 0.02), BLOCK)
+      .map(b => meanSquareToSpl(meanSquare(chainTruth.process(b))))
+      .slice(5);
+    const truthAvg = truth.reduce((a, b) => a + b, 0) / truth.length;
+
+    // Vía histórica: estado a cero en cada bloque de 100 ms.
+    const perBlockReset = blocks.map(b => meanSquareToSpl(aWeightMeanSquare(b, SR))).slice(5);
+    // Vía nueva: una única cadena que trata el stream como señal continua.
+    const chain = createNoiseWeightingChain(SR);
+    const continuous = blocks.map(b => meanSquareToSpl(meanSquare(chain.process(b)))).slice(5);
+
+    const spread = (a: number[]) => Math.max(...a) - Math.min(...a);
+
+    // (1) SESGO: el transitorio de arranque de los polos de 20.6 Hz se repite
+    // en CADA bloque, así que no se promedia — se acumula y la medición
+    // completa sale varios dB por encima del nivel real de la sala.
+    expect((energyAverageDb(perBlockReset) as number) - truthAvg).toBeGreaterThan(3);
+    // (2) DISPERSIÓN: el exceso depende de la fase del infrasonido en el corte
+    // del bloque, o sea, la lectura salta «al azar» de un bloque al siguiente.
+    expect(spread(perBlockReset)).toBeGreaterThan(5);
+
+    // La cadena con estado se queda pegada al nivel real y no salta.
+    for (const db of continuous) expect(Math.abs(db - truthAvg)).toBeLessThan(1);
+    expect(spread(continuous)).toBeLessThan(1);
+  });
+
+  it('un offset de DC del micrófono no altera la lectura de la cadena', () => {
+    const limpio = createNoiseWeightingChain(SR);
+    const conDc = createNoiseWeightingChain(SR);
+    const sinOffset = chunks(broadband(20 * BLOCK, 0.02), BLOCK).map(b =>
+      meanSquareToSpl(meanSquare(limpio.process(b))),
+    );
+    const offset = chunks(broadband(20 * BLOCK, 0.02, 0.05), BLOCK).map(b =>
+      meanSquareToSpl(meanSquare(conDc.process(b))),
+    );
+    for (let i = 5; i < sinOffset.length; i++) {
+      expect(Math.abs(offset[i] - sinOffset[i])).toBeLessThan(0.2);
+    }
+  });
+
+  it('la lectura es ESTABLE bloque a bloque con ruido de sala constante', () => {
+    const chain = createNoiseWeightingChain(SR);
+    const readings = chunks(roomWithInfrasound(30), BLOCK)
+      .map(b => meanSquareToSpl(meanSquare(chain.process(b))))
+      .slice(5);
+    expect(Math.max(...readings) - Math.min(...readings)).toBeLessThan(1);
+  });
+
+  it('reset() devuelve la cadena al estado inicial', () => {
+    const chain = createNoiseWeightingChain(SR);
+    const block = roomWithInfrasound(1);
+    const first = meanSquare(chain.process(block));
+    chain.process(block);
+    chain.process(block);
+    chain.reset();
+    expect(meanSquare(chain.process(block))).toBeCloseTo(first, 12);
+  });
+});
+
+describe('bloques saturados', () => {
+  it('detecta el recorte a fondo de escala y no marca una señal normal', () => {
+    expect(isBlockClipped(sine(1000, 0.5))).toBe(false);
+    expect(isBlockClipped(sine(1000, 1))).toBe(true);
+    const golpe = sine(1000, 0.2);
+    golpe[100] = -1;
+    expect(isBlockClipped(golpe)).toBe(true);
+  });
+});
+
+describe('estadística de la medición (LAeq y percentiles)', () => {
+  it('LAeq es la media ENERGÉTICA: un pico pesa más que en la media aritmética', () => {
+    const serie = [40, 40, 40, 40, 60];
+    const aritmetica = serie.reduce((a, b) => a + b, 0) / serie.length;
+    const leq = energyAverageDb(serie) as number;
+    expect(leq).toBeGreaterThan(aritmetica);
+    expect(leq).toBeCloseTo(10 * Math.log10((4 * 1e4 + 1e6) / 5), 6);
+  });
+
+  it('un nivel constante da LAeq igual a ese nivel', () => {
+    expect(energyAverageDb([45, 45, 45]) as number).toBeCloseTo(45, 10);
+    expect(energyAverageDb([])).toBeNull();
+  });
+
+  it('L90 describe el fondo y L10 los picos sostenidos, ignorando el golpe aislado', () => {
+    // 39 bloques de sala tranquila + 1 golpe: el fondo sigue siendo el fondo.
+    const serie = [...new Array(39).fill(38), 95];
+    expect(percentileDb(serie, 10) as number).toBeCloseTo(38, 6); // L90
+    expect(percentileDb(serie, 90) as number).toBeCloseTo(38, 6); // L10
+    expect(Math.max(...serie)).toBe(95); // el máximo absoluto sí se dispara
+    expect(percentileDb([], 50)).toBeNull();
+  });
+
+  it('interpola entre muestras contiguas y respeta los extremos', () => {
+    expect(percentileDb([10, 20], 50) as number).toBeCloseTo(15, 10);
+    expect(percentileDb([10, 20, 30], 0) as number).toBe(10);
+    expect(percentileDb([10, 20, 30], 100) as number).toBe(30);
+  });
+});
+
+describe('calibración guiada contra un sonómetro patrón', () => {
+  it('calcula el offset que iguala la lectura de VIA+ a la del patrón', () => {
+    // VIA+ marca 58 y el patrón 45 → hay que bajar 13 dB.
+    expect(offsetForReference(45, 58)).toBeCloseTo(-13, 10);
+    setNoiseCalibrationOffset(-13);
+    // Con el offset ya aplicado, si ahora coinciden, no se mueve nada.
+    expect(offsetForReference(45, 45)).toBeCloseTo(-13, 10);
+    // Y se compone con el vigente.
+    expect(offsetForReference(48, 45)).toBeCloseTo(-10, 10);
+  });
+
+  it('se acota al límite y no se mueve con entradas no numéricas', () => {
+    expect(offsetForReference(200, 20)).toBe(NOISE_OFFSET_LIMIT_DB);
+    expect(offsetForReference(20, 200)).toBe(-NOISE_OFFSET_LIMIT_DB);
+    setNoiseCalibrationOffset(4);
+    expect(offsetForReference(Number.NaN, 45)).toBe(4);
+    expect(offsetForReference(45, Number.NaN)).toBe(4);
   });
 });
 

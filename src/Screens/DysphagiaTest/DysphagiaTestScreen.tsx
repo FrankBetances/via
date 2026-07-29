@@ -27,6 +27,7 @@ import {
 
 import { Button, Content, Header, Text } from '@/Components/Common';
 import RadialBackground from '@/Components/Themed/RadialBackground';
+import { finishModule } from '@/Navigators';
 import { RootState } from '@/Store';
 import { Evaluation } from '@/Models/Evaluation/Evaluation';
 import { DysphagiaTest, BolusRecord, DysphagiaVerdict } from '@/Models/DysphagiaTest/DysphagiaTest';
@@ -507,7 +508,8 @@ export default function DysphagiaTestScreen() {
 
       await createDysphagia(item);
       showSuccessToast('Exploración guardada', `${reportTitle} · ${analysis.recom}.`);
-      navigation.goBack();
+      // Aterriza en los resultados, no de vuelta al hub (ver finishModule).
+      finishModule(navigation);
     } catch {
       showErrorToast('Error al guardar', 'No se pudo registrar la exploración. Inténtelo de nuevo.');
     }

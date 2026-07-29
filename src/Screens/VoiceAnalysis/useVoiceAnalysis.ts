@@ -49,6 +49,13 @@ export interface VoiceMicAdapter {
   stopRecording: () => Promise<Float32Array>;
   /** Análisis acústico de un PCM ya grabado (asíncrono, puede tardar). */
   analyse: (pcm: Float32Array) => Promise<VoiceMicResult>;
+  /**
+   * (Opcional) ¿ha entregado el motor nativo ALGÚN bloque desde el arranque?
+   * Distingue «el micrófono no da audio» (ocupado por otra app, silenciado por
+   * el sistema, ruta sin entrada) de «se grabó pero sin voz», que llevan a
+   * acciones distintas por parte del clínico.
+   */
+  hasSignal?: () => boolean;
   /** Reproduce un PCM grabado; `onEnded` se llama al terminar por sí solo. */
   play: (pcm: Float32Array, onEnded: () => void) => void;
   stopPlayback: () => void;
@@ -296,9 +303,10 @@ export function useVoiceAnalysis() {
       );
       const durationSec = pcm.length / micAdapter.sampleRate;
       if (durationSec < MIN_TAKE_SEC) {
+        const gotBlocks = micAdapter.hasSignal?.() ?? null;
         setInsufficientReason(
-          durationSec === 0
-            ? 'El motor de audio no entregó ninguna muestra: el micrófono puede estar ocupado por otra aplicación.'
+          durationSec === 0 && gotBlocks !== true
+            ? 'El motor de audio no entregó ninguna muestra: el micrófono puede estar ocupado por otra aplicación o silenciado por el sistema. Ciérrelas y repita la grabación.'
             : `La grabación duró solo ${durationSec.toFixed(1)} s (mínimo ${MIN_TAKE_SEC} s).`,
         );
         setPhase('insufficient');

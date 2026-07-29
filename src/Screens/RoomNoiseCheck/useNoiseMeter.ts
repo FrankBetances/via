@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { clamp } from '@/Helpers/numeric';
-import { NOISE_DB_MAX, NOISE_DB_MIN } from './noiseDsp';
+import { energyAverageDb, NOISE_DB_MAX, NOISE_DB_MIN, percentileDb } from './noiseDsp';
 
 /* -------------------------------------------------------------------------- */
 /*  useNoiseMeter — medidor de ruido ambiente para React Native                */
@@ -35,6 +35,16 @@ export interface NoiseMicAdapter {
    * silencio», sin esperar a que termine la medición completa.
    */
   hasSignal?: () => boolean;
+  /**
+   * (Opcional) niveles dB(A) por BLOQUE de captura (~100 ms) acumulados desde
+   * la última llamada, que se vacían al leerlos. Son la materia prima de la
+   * estadística de la medición: LAeq y percentiles se calculan sobre el nivel
+   * real de cada bloque, no sobre la lectura ya suavizada del gauge (que
+   * comprime los picos y desdibuja el ruido de fondo).
+   */
+  takeBlockLevels?: () => number[];
+  /** (Opcional) bloques descartados por saturación desde el arranque. */
+  clippedBlocks?: () => number;
 }
 
 let micAdapter: NoiseMicAdapter | null = null;
@@ -63,8 +73,15 @@ export interface NoiseMeterApi {
   db: number | null;
   zone: NoiseZone;
   levels: number[];
+  /** LAeq de la medición (media ENERGÉTICA, no aritmética, de los dB). */
   avg: number | null;
+  /** L10: nivel superado el 10 % del tiempo. Representa los picos SOSTENIDOS,
+   *  no el golpe aislado que antes se colaba como «pico máximo». */
   peak: number | null;
+  /** L90: nivel superado el 90 % del tiempo = ruido de FONDO de la sala. */
+  background: number | null;
+  /** Bloques descartados por saturación durante la medición (manejo del equipo). */
+  clipped: number;
   verdict: NoiseVerdict;
   testing: boolean;
   testProgress: number;
@@ -92,6 +109,8 @@ export function useNoiseMeter({
   const [levels, setLevels] = useState<number[]>(() => new Array(bars).fill(0.04));
   const [avg, setAvg] = useState<number | null>(null);
   const [peak, setPeak] = useState<number | null>(null);
+  const [background, setBackground] = useState<number | null>(null);
+  const [clipped, setClipped] = useState(0);
   const [verdict, setVerdict] = useState<NoiseVerdict>('pending');
   const [testing, setTesting] = useState(false);
   const [testRemaining, setTestRemaining] = useState(0);
@@ -102,8 +121,8 @@ export function useNoiseMeter({
   const smooth = useRef<number | null>(null);
   const testActive = useRef(false);
   const testSamples = useRef<number[]>([]);
-  const testPeak = useRef(0);
   const testStart = useRef(0);
+  const clippedAtStart = useRef(0);
   const srcRef = useRef<NoiseSource>('idle');
 
   /** Lectura real del micrófono; `null` mientras no haya señal (calentamiento,
@@ -133,24 +152,32 @@ export function useNoiseMeter({
     [bars],
   );
 
+  /** Niveles por bloque (~100 ms) desde la última llamada. Si el adaptador no
+   *  los expone (adaptadores de prueba antiguos), degrada a la lectura
+   *  suavizada actual, que es lo que se hacía históricamente. */
+  const drainBlockLevels = useCallback((fallback: number | null): number[] => {
+    if (micAdapter?.takeBlockLevels) {
+      return micAdapter.takeBlockLevels().map(clampDb);
+    }
+    return fallback == null ? [] : [fallback];
+  }, []);
+
   const tick = useCallback(() => {
     const raw = sampleDb();
     if (raw != null) {
       // El adaptador ya entrega un nivel promediado energéticamente (Leq); esta
       // EMA ligera solo suaviza el refresco de la UI.
       smooth.current = smooth.current == null ? raw : smooth.current * 0.78 + raw * 0.22;
-      const sdb = smooth.current;
-
-      setDb(sdb);
+      setDb(smooth.current);
       setLevels(sampleSpectrum());
-
-      if (testActive.current) {
-        testSamples.current.push(sdb);
-        if (sdb > testPeak.current) testPeak.current = sdb;
-      }
     }
 
     if (testActive.current) {
+      // La estadística se hace sobre el nivel de CADA bloque de captura, no
+      // sobre la muestra suavizada del gauge: así el LAeq es el de verdad y
+      // los percentiles separan el fondo de sala de los picos.
+      for (const db of drainBlockLevels(smooth.current)) testSamples.current.push(db);
+
       const elapsed = Date.now() - testStart.current;
       const durMs = testDurationSec * 1000;
       setTestProgress(Math.min(1, elapsed / durMs));
@@ -165,6 +192,7 @@ export function useNoiseMeter({
         if (samples.length < minSamples) {
           setAvg(null);
           setPeak(null);
+          setBackground(null);
           setVerdict('pending');
           // Se distingue el stream abierto pero MUDO (otra app tiene el
           // micrófono, la ruta de audio no tiene entrada) del permiso ausente:
@@ -177,18 +205,30 @@ export function useNoiseMeter({
               : 'El micrófono no entregó señal suficiente durante la medición. Compruebe el permiso de micrófono y repita.',
           );
         } else {
-          const a = samples.reduce((x, y) => x + y, 0) / samples.length;
-          const p = testPeak.current;
-          const v: NoiseVerdict = a <= threshold && p <= threshold + 12 ? 'ok' : a <= threshold + 8 ? 'warn' : 'block';
+          // LAeq (media energética) + percentiles, como un sonómetro:
+          //  · L90 = ruido de FONDO real de la sala, que es lo que invalida una
+          //    audiometría (ISO 8253-1 habla del ruido de fondo, no de un
+          //    portazo puntual);
+          //  · L10 = picos SOSTENIDOS. El máximo absoluto que se usaba antes
+          //    convertía cualquier roce del dispositivo en un veredicto de
+          //    «demasiado ruido», y era otra vía por la que el resultado
+          //    parecía aleatorio.
+          const a = energyAverageDb(samples) as number;
+          const l10 = percentileDb(samples, 90) as number;
+          const l90 = percentileDb(samples, 10) as number;
+          const v: NoiseVerdict =
+            a <= threshold && l10 <= threshold + 12 ? 'ok' : a <= threshold + 8 ? 'warn' : 'block';
           setAvg(a);
-          setPeak(p);
+          setPeak(l10);
+          setBackground(l90);
           setVerdict(v);
         }
+        setClipped(Math.max(0, (micAdapter?.clippedBlocks?.() ?? 0) - clippedAtStart.current));
         setTesting(false);
         setTestProgress(1);
       }
     }
-  }, [sampleDb, sampleSpectrum, testDurationSec, threshold, intervalMs]);
+  }, [sampleDb, sampleSpectrum, drainBlockLevels, testDurationSec, threshold, intervalMs]);
 
   const startLoop = useCallback(() => {
     if (timer.current) return;
@@ -249,6 +289,8 @@ export function useNoiseMeter({
     setLevels(new Array(bars).fill(0.04));
     setAvg(null);
     setPeak(null);
+    setBackground(null);
+    setClipped(0);
     setVerdict('pending');
     setTesting(false);
     setTestProgress(0);
@@ -257,7 +299,11 @@ export function useNoiseMeter({
 
   const beginTest = useCallback(() => {
     testSamples.current = [];
-    testPeak.current = 0;
+    // Descarta los bloques acumulados antes de arrancar la medición: son del
+    // periodo de ajuste previo, no de la ventana que se está midiendo.
+    micAdapter?.takeBlockLevels?.();
+    clippedAtStart.current = micAdapter?.clippedBlocks?.() ?? 0;
+    setClipped(0);
     testStart.current = Date.now();
     testActive.current = true;
     setTesting(true);
@@ -297,6 +343,8 @@ export function useNoiseMeter({
     levels,
     avg,
     peak,
+    background,
+    clipped,
     verdict,
     testing,
     testProgress,

@@ -6,7 +6,7 @@ import { Check, RotateCcw, Save, Volume2, X } from 'lucide-react-native';
 
 import { Button, Content, Header, Text } from '@/Components/Common';
 import RadialBackground from '@/Components/Themed/RadialBackground';
-import { RootStackParamList } from '@/Navigators';
+import { finishModule, RootStackParamList } from '@/Navigators';
 import { RootState } from '@/Store';
 import { Evaluation } from '@/Models/Evaluation/Evaluation';
 import { AudiometryTest } from '@/Models/Audiometry/AudiometryTest';
@@ -114,7 +114,8 @@ export default function AudiometryScreen({ navigation }: Props) {
 
       await createAudiometry(item);
       showSuccessToast('Audiometría guardada', `PTA OD ${a.ptaOD ?? '—'} · PTA OI ${a.ptaOI ?? '—'} dB HL.`);
-      navigation.goBack();
+      // Aterriza en los resultados, no de vuelta al hub (ver finishModule).
+      finishModule(navigation);
     } catch {
       showErrorToast('Error al guardar', 'No se pudo registrar la audiometría. Inténtelo de nuevo.');
     }

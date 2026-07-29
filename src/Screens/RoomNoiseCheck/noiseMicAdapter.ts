@@ -4,7 +4,9 @@ import { AudioManager, AudioRecorder } from 'react-native-audio-api';
 import { acquireRecordingSession } from '@/Audio';
 import { NoiseMicAdapter, setNoiseMicAdapter } from './useNoiseMeter';
 import {
-  aWeightMeanSquare,
+  createNoiseWeightingChain,
+  isBlockClipped,
+  meanSquare,
   meanSquareToSpl,
   smoothBands,
   spectrumBands,
@@ -21,13 +23,25 @@ import {
 /*  nueva arquitectura de RN 0.80 no entrega audio: el sonómetro quedaba       */
 /*  atrapado en modo demostración con datos simulados.                         */
 /*                                                                             */
-/*  Pipeline: bloques PCM mono de ~100 ms a 48 kHz → PONDERACIÓN A (IEC 61672) */
-/*  → energía media → promedio ENERGÉTICO (Leq, ver `noiseDsp`) → dB(A) SPL    */
-/*  + espectro FFT real por bandas log (sin ponderar: el espectro muestra el   */
-/*  contenido real). El Leq y la FFT sustituyen al RMS de un único bloque y a  */
-/*  la envolvente temporal, que hacían que la lectura y el espectro «saltaran  */
-/*  al azar»; la ponderación A corrige la lectura inflada por el retumbe de    */
-/*  baja frecuencia (ver `noiseDsp` para la calibración).                       */
+/*  Pipeline: bloques PCM mono de ~100 ms a 48 kHz → bloqueo de DC +           */
+/*  PONDERACIÓN A (IEC 61672) con ESTADO CONTINUO entre bloques → energía      */
+/*  media → promedio ENERGÉTICO (Leq, ver `noiseDsp`) → dB(A) SPL + espectro   */
+/*  FFT real por bandas log (sin ponderar: el espectro muestra el contenido    */
+/*  real).                                                                     */
+/*                                                                             */
+/*  Tres decisiones que corrigen la lectura «entre 15 y 20 dB por encima, a    */
+/*  veces 40, muy al azar»:                                                    */
+/*   1. El filtro de ponderación conserva su estado entre bloques              */
+/*      (`createNoiseWeightingChain`). Reiniciarlo en cada bloque —lo que se   */
+/*      hacía antes— inyectaba el transitorio de los polos de 20.6 Hz cien     */
+/*      veces por segundo: un sesgo grande y dependiente del contenido grave,  */
+/*      o sea, alto y errático (ver cabecera de `noiseDsp`).                   */
+/*   2. Se DESCARTAN los bloques de calentamiento (`WARMUP_MS`): el arranque   */
+/*      del stream nativo, el asentamiento del filtro y la ganancia inicial    */
+/*      del micrófono no son ruido de la sala.                                 */
+/*   3. Se descartan los bloques SATURADOS: un golpe en el dispositivo recorta */
+/*      la señal y su nivel real es desconocido; promediarlo disparaba la      */
+/*      lectura decenas de dB de forma impredecible.                           */
 /*                                                                             */
 /*  Permisos: Android `RECORD_AUDIO` (lo solicita el adaptador); iOS           */
 /*  `NSMicrophoneUsageDescription` en Info.plist.                              */
@@ -45,6 +59,12 @@ const BUFFER_SAMPLES = Math.round(CAPTURE_SR * 0.1); // ~100 ms por bloque
 const LEQ_ALPHA = 0.12;
 /** Suavizado del espectro entre frames (barras estables, sin parpadeo). */
 const SPECTRUM_ALPHA = 0.5;
+/** Bloques iniciales que se descartan (arranque del stream + asentamiento del
+ *  filtro de ponderación). 100 ms/bloque → 400 ms de calentamiento. */
+const WARMUP_BLOCKS = 4;
+/** Tope del historial de niveles por bloque (≈60 s a 100 ms/bloque): acota la
+ *  memoria si la pantalla se deja abierta mucho rato. */
+const MAX_BLOCK_HISTORY = 600;
 
 async function ensureMicPermission(): Promise<boolean> {
   if (Platform.OS === 'android') {
@@ -82,6 +102,13 @@ export function registerNoiseMicAdapter(): boolean {
   let bandsEma: number[] | null = null;
   /** Bloques recibidos desde el último arranque (detecta un stream mudo). */
   let blocks = 0;
+  /** Bloques descartados por saturación (diagnóstico de manejo del equipo). */
+  let clipped = 0;
+  /** dB(A) de cada bloque VÁLIDO, sin suavizar, pendientes de consumir por el
+   *  hook (que calcula LAeq y percentiles sobre ellos). */
+  let pendingBlockDb: number[] = [];
+  /** Cadena de medición con estado (se reinicia en cada `start`). */
+  const chain = createNoiseWeightingChain(CAPTURE_SR);
   let releaseSession: (() => void) | null = null;
 
   const teardownNative = () => {
@@ -111,6 +138,9 @@ export function registerNoiseMicAdapter(): boolean {
       lastDb = null;
       lastLevels = null;
       blocks = 0;
+      clipped = 0;
+      pendingBlockDb = [];
+      chain.reset();
 
       // Sesión de grabación SOLO mientras dura la medición; la libera
       // `stop()` y, con ella, la sesión vuelve sola a reproducción.
@@ -128,12 +158,32 @@ export function registerNoiseMicAdapter(): boolean {
             if (!pcm.length) return;
             blocks += 1;
 
+            // El filtro SÍ consume el bloque de calentamiento (necesita esas
+            // muestras para asentarse), pero su salida no se mide.
+            const weighted = chain.process(pcm);
+            if (blocks <= WARMUP_BLOCKS) return;
+
+            // Bloque saturado: nivel real desconocido, no entra en la medición.
+            if (isBlockClipped(pcm)) {
+              clipped += 1;
+              return;
+            }
+
             // Nivel: promedio ENERGÉTICO entre bloques (Leq) sobre la señal
             // PONDERADA A → dB(A) estable, en vez del RMS sin ponderar de un
             // único bloque de 100 ms (que salta varios dB por frame y además
             // sobreestima por el retumbe de baja frecuencia).
-            leqMs = updateLeqMeanSquare(leqMs, aWeightMeanSquare(pcm, CAPTURE_SR), LEQ_ALPHA);
+            const blockMs = meanSquare(weighted);
+            leqMs = updateLeqMeanSquare(leqMs, blockMs, LEQ_ALPHA);
             lastDb = meanSquareToSpl(leqMs);
+
+            // Nivel SIN suavizar del bloque, para la estadística de la medición
+            // (LAeq y percentiles): un percentil sobre la señal ya promediada
+            // no distingue el fondo de la sala de sus picos.
+            pendingBlockDb.push(meanSquareToSpl(blockMs));
+            if (pendingBlockDb.length > MAX_BLOCK_HISTORY) {
+              pendingBlockDb.splice(0, pendingBlockDb.length - MAX_BLOCK_HISTORY);
+            }
 
             // Espectro: FFT real por bandas log de frecuencia, suavizado.
             bandsEma = smoothBands(bandsEma, spectrumBands(pcm, CAPTURE_SR), SPECTRUM_ALPHA);
@@ -160,10 +210,19 @@ export function registerNoiseMicAdapter(): boolean {
       leqMs = null;
       bandsEma = null;
       blocks = 0;
+      clipped = 0;
+      pendingBlockDb = [];
+      chain.reset();
     },
     read: () => lastDb,
     spectrum: () => lastLevels ?? [],
-    hasSignal: () => blocks > 0,
+    hasSignal: () => blocks > WARMUP_BLOCKS,
+    takeBlockLevels: () => {
+      const out = pendingBlockDb;
+      pendingBlockDb = [];
+      return out;
+    },
+    clippedBlocks: () => clipped,
   };
 
   disposeCurrent = teardownNative;

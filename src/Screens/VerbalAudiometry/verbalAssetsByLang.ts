@@ -3,6 +3,7 @@ import { ImageSourcePropType } from 'react-native';
 import { verbalAudioBase64, verbalAudioSource, verbalImageSource } from './verbalAssets';
 import { VERBAL_AUDIO_BASE64_ES_DO } from './verbalAudioClips.es-DO';
 import { VERBAL_GLYPHS } from './verbalAudiometryGlyphs';
+import { VERBAL_GLYPHS_EU } from './verbalAudiometryLists.eu';
 import { VERBAL_GLYPHS_GL } from './verbalAudiometryLists.gl';
 
 /* -------------------------------------------------------------------------- */
@@ -24,22 +25,27 @@ import { VERBAL_GLYPHS_GL } from './verbalAudiometryLists.gl';
 /*    a inicial (WordCard ya lo hace).                                          */
 /* -------------------------------------------------------------------------- */
 
+/**
+ * Idiomas COMPLETOS (no variantes del castellano) sin locuciones propias
+ * todavía. No degradan a los recortes castellanos: reproducir «mahai» con el
+ * recorte de «mesa» sería un estímulo distinto del que se puntúa. Devuelven
+ * `null` y el adaptador degrada a la voz del sistema, que es la degradación
+ * honesta (y la pantalla lo advierte).
+ */
+const LANGS_WITHOUT_CLIPS = ['gl', 'eu'];
+
 /** Recorte base64 de la palabra en la voz del idioma indicado. */
 export const verbalAudioBase64ForLang = (audioKey: string, lang?: string): string | null => {
   if (lang === 'es-DO') {
     return VERBAL_AUDIO_BASE64_ES_DO[audioKey] ?? verbalAudioBase64(audioKey);
   }
-  if (lang === 'gl') {
-    // Los recortes gallegos llegan con la síntesis Celtia (T4.1); hasta
-    // entonces no hay recorte propio y NO se sustituye por el castellano.
-    return null;
-  }
+  if (lang && LANGS_WITHOUT_CLIPS.includes(lang)) return null;
   return verbalAudioBase64(audioKey);
 };
 
 /** Ruta local del recorte (vía secundaria; ver nota de degradación arriba). */
 export const verbalAudioSourceForLang = (audioKey: string, lang?: string): string | null => {
-  if (lang === 'gl') return null;
+  if (lang && LANGS_WITHOUT_CLIPS.includes(lang)) return null;
   return verbalAudioSource(audioKey);
 };
 
@@ -53,10 +59,17 @@ export const verbalImageSourceForLang = (
   _lang?: string,
 ): ImageSourcePropType | undefined => verbalImageSource(imageKey);
 
+/** Pictogramas propios de cada idioma completo (los coincidentes con el banco
+ *  castellano se resuelven por el mapa base). */
+const GLYPHS_BY_LANG: Record<string, Record<string, string>> = {
+  gl: VERBAL_GLYPHS_GL,
+  eu: VERBAL_GLYPHS_EU,
+};
+
 /**
  * Pictograma provisional de una palabra en el idioma de la sesión. El gallego
- * aporta los suyos para las palabras que no existen en el banco castellano y
- * reutiliza el mapa castellano en las que sí (pan, gato, casa…).
+ * y el euskera aportan los suyos para las palabras que no existen en el banco
+ * castellano y reutilizan el mapa castellano en las que sí (pan, gato, casa…).
  */
 export const verbalGlyphForLang = (word: string, lang?: string): string | undefined =>
-  (lang === 'gl' ? VERBAL_GLYPHS_GL[word] : undefined) ?? VERBAL_GLYPHS[word];
+  (lang ? GLYPHS_BY_LANG[lang]?.[word] : undefined) ?? VERBAL_GLYPHS[word];

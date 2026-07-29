@@ -29,7 +29,7 @@ import {
 
 import { Button, Content, Header, Text } from '@/Components/Common';
 import RadialBackground from '@/Components/Themed/RadialBackground';
-import { RootStackParamList } from '@/Navigators';
+import { finishModule, RootStackParamList } from '@/Navigators';
 import { RootState } from '@/Store';
 import { Evaluation } from '@/Models/Evaluation/Evaluation';
 import { ArticulationTest } from '@/Models/ArticulationTest/ArticulationTest';
@@ -244,7 +244,8 @@ export default function ArticulationTestScreen({ navigation }: Props) {
       await createArticulation(t);
 
       showSuccessToast('Registro guardado', `T.A.R. · ${score.evaluatedCount} ítems · ${score.correctPct}% acierto.`);
-      navigation.goBack();
+      // Aterriza en los resultados, no de vuelta al hub (ver finishModule).
+      finishModule(navigation);
     } catch (e) {
       showErrorToast('Error al guardar', 'No se pudo registrar el test. Inténtelo de nuevo.');
     }

@@ -1,5 +1,6 @@
 import { VERBAL_BANDS, VerbalBandDef } from './verbalAudiometryLists';
 import { ES_DO_VERBAL_BANDS } from './verbalAudiometryLists.es-DO';
+import { EU_VERBAL_BANDS } from './verbalAudiometryLists.eu';
 import { GL_VERBAL_BANDS } from './verbalAudiometryLists.gl';
 
 /* -------------------------------------------------------------------------- */
@@ -12,10 +13,10 @@ import { GL_VERBAL_BANDS } from './verbalAudiometryLists.gl';
 /*  módulo para que listas y assets no diverjan.                               */
 /* -------------------------------------------------------------------------- */
 
-export type VerbalLang = 'es' | 'es-DO' | 'gl';
+export type VerbalLang = 'es' | 'es-DO' | 'gl' | 'eu';
 
 /** Idiomas/variantes con banco registrado. */
-export const VERBAL_BANK_LANGS: readonly VerbalLang[] = ['es', 'gl', 'es-DO'];
+export const VERBAL_BANK_LANGS: readonly VerbalLang[] = ['es', 'gl', 'eu', 'es-DO'];
 
 /**
  * Idioma base del que hereda cada variante (`null` = idioma completo).
@@ -30,6 +31,7 @@ export const VERBAL_BANK_LANGS: readonly VerbalLang[] = ['es', 'gl', 'es-DO'];
 export const VERBAL_BANK_BASE: Record<VerbalLang, VerbalLang | null> = {
   es: null,
   gl: null,
+  eu: null,
   'es-DO': 'es',
 };
 
@@ -37,12 +39,17 @@ export const VERBAL_BANK_BASE: Record<VerbalLang, VerbalLang | null> = {
  * Idiomas cuyo BANCO DE ESTÍMULOS (listas A–D) aún no está firmado
  * clínicamente. La pantalla lo advierte al profesional.
  *
- * Vacío: `es` está firmado en `docs/design/validacion-clinica-verbal.md`,
- * `es-DO` hereda el castellano sin sustituciones (Q3) y `gl` lo dio por bueno
- * ACOPROS (registro en `assets/verbal-approval.gl.json`, contenido en
+ * `es` está firmado en `docs/design/validacion-clinica-verbal.md`, `es-DO`
+ * hereda el castellano sin sustituciones (Q3) y `gl` lo dio por bueno ACOPROS
+ * (registro en `assets/verbal-approval.gl.json`, contenido en
  * `docs/design/audiometria-verbal-gl.md`).
+ *
+ * `eu` es PROVISIONAL: el banco cumple los invariantes estructurales que
+ * verifica la CI, pero no lo ha revisado todavía ningún logopeda euskaldun.
+ * Sale de esta lista con su acta de aprobación en
+ * `assets/verbal-approval.eu.json`, igual que se hizo con el gallego.
  */
-export const VERBAL_BANK_PROVISIONAL: readonly VerbalLang[] = [];
+export const VERBAL_BANK_PROVISIONAL: readonly VerbalLang[] = ['eu'];
 
 /**
  * Idiomas SIN locuciones propias empaquetadas: sus palabras se dictan con la
@@ -51,9 +58,10 @@ export const VERBAL_BANK_PROVISIONAL: readonly VerbalLang[] = [];
  * así que el nivel es aún menos comparable y conviene advertirlo.
  *
  * `gl` sale de aquí cuando el hito M4 del plan Nós sintetice el banco con la
- * voz Celtia y se firme la escucha (T4.4).
+ * voz Celtia y se firme la escucha (T4.4); `eu`, cuando se decida la voz vasca
+ * (ver `tools/nos/voices.json`) y se sintetice su banco.
  */
-export const VERBAL_AUDIO_PENDING: readonly VerbalLang[] = ['gl'];
+export const VERBAL_AUDIO_PENDING: readonly VerbalLang[] = ['gl', 'eu'];
 
 /** Banco de estímulos del idioma/variante indicado. */
 export const getVerbalBands = (lang: string): VerbalBandDef[] => {
@@ -62,6 +70,8 @@ export const getVerbalBands = (lang: string): VerbalBandDef[] => {
       return VERBAL_BANDS;
     case 'gl':
       return GL_VERBAL_BANDS;
+    case 'eu':
+      return EU_VERBAL_BANDS;
     case 'es-DO':
       return ES_DO_VERBAL_BANDS;
     default:

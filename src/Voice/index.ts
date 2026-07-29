@@ -1,5 +1,5 @@
 /* -------------------------------------------------------------------------- */
-/*  Capa de voz neuronal multi-idioma de VIA+ (es · gl · es-DO).               */
+/*  Capa de voz neuronal multi-idioma de VIA+ (es · gl · eu · es-DO).          */
 /*                                                                             */
 /*  Arquitectura portada del blueprint «corpus de voz neuronal NÓS/ILENIA»     */
 /*  (Valeria+). Ver docs/design/arquitectura-corpus-voz.md para el mapa de     */
@@ -26,5 +26,15 @@ export type { ConsignaSpec, ConsignaText } from './viaVoiceConsignas';
 export { resolveVoiceAsset, toVoiceLang } from './viaVoiceResolve';
 export { VOICE_ASSETS, VOICE_ASSETS_VERSION } from './viaVoiceAssets';
 
-export { speak, stopSpeaking, canSpeak } from './viaVoice';
+export {
+  speak,
+  stopSpeaking,
+  canSpeak,
+  voiceStatus,
+  retryVoiceEngine,
+  onVoiceStatusChange,
+} from './viaVoice';
 export { playVoiceAsset, stopVoiceAsset, disposeVoicePlayback } from './viaVoicePlayback';
+
+export { useVoiceEngineStatus } from './useVoiceEngineStatus';
+export type { VoiceEngineStatus } from './useVoiceEngineStatus';

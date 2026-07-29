@@ -1,4 +1,7 @@
-import { getVerbalAudioAdapter } from '@/Screens/VerbalAudiometry/verbalAudiometryAudio';
+import {
+  getVerbalAudioAdapter,
+  type TtsStatus,
+} from '@/Screens/VerbalAudiometry/verbalAudiometryAudio';
 
 import { playVoiceAsset, stopVoiceAsset } from './viaVoicePlayback';
 import { hasVoiceAssets, resolveVoiceAsset, toVoiceLang } from './viaVoiceResolve';
@@ -70,12 +73,34 @@ export const stopSpeaking = (): void => {
  * definido: el botón aparecía también en dispositivos sin voz del sistema y al
  * pulsarlo no sonaba nada. Ahora se exige o bien un motor de voz listo, o bien
  * assets de locución empaquetados.
+ *
+ * Mientras el motor ARRANCA se responde que sí: la inicialización tarda un par
+ * de segundos y ocultar el botón en ese hueco lo hacía aparecer y desaparecer
+ * (y `speak` ya espera a que el motor esté listo antes de dictar).
  */
 export const canSpeak = (): boolean => {
   const adapter = getVerbalAudioAdapter();
   if (!adapter?.speakText) return false;
+  if (hasVoiceAssets()) return true;
+  const phase = adapter.ttsStatus?.().phase;
+  if (phase) return phase !== 'unavailable';
   // `ttsReady` es opcional (adaptadores de prueba antiguos): si no lo declara,
   // se mantiene el comportamiento histórico de suponer que hay voz.
   if (!adapter.ttsReady) return true;
-  return adapter.ttsReady() || hasVoiceAssets();
+  return adapter.ttsReady();
 };
+
+/**
+ * Estado del motor de voz del sistema, para que una pantalla pueda explicar al
+ * profesional por qué no se oye nada (y ofrecerle reintentar) en vez de
+ * limitarse a no sonar. `null` si el adaptador no lo declara.
+ */
+export const voiceStatus = (): TtsStatus | null => getVerbalAudioAdapter()?.ttsStatus?.() ?? null;
+
+/** Reintenta arrancar el motor de voz del sistema (botón «reintentar»). */
+export const retryVoiceEngine = (): Promise<boolean> =>
+  getVerbalAudioAdapter()?.retryTts?.() ?? Promise.resolve(false);
+
+/** Suscripción a los cambios de estado del motor (devuelve la baja). */
+export const onVoiceStatusChange = (listener: () => void): (() => void) =>
+  getVerbalAudioAdapter()?.onTtsStatusChange?.(listener) ?? (() => {});

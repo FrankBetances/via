@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Pressable, ScrollView } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import Svg, { Circle } from 'react-native-svg';
-import { Box, Card, Center, HStack, Icon, VStack } from '@gluestack-ui/themed';
+import { Box, Card, Center, HStack, Icon, Input, InputField, VStack } from '@gluestack-ui/themed';
 import { AlertTriangle, ArrowRight, Check, Mic, Square } from 'lucide-react-native';
 
 import { Button, Content, Header, Text } from '@/Components/Common';
@@ -13,10 +13,11 @@ import { Evaluation } from '@/Models/Evaluation/Evaluation';
 import { useClassSelector } from '@/Helpers/ClassTransformer';
 import { NoiseVerdict, NoiseZone, useNoiseMeter, zoneOf } from './useNoiseMeter';
 import { registerNoiseMicAdapter, unregisterNoiseMicAdapter } from './noiseMicAdapter';
+import { loadNoiseCalibration, saveNoiseCalibration } from './noiseCalibrationStore';
 import {
   getNoiseCalibrationOffset,
   NOISE_OFFSET_LIMIT_DB,
-  setNoiseCalibrationOffset,
+  offsetForReference,
   splFraction,
 } from './noiseDsp';
 
@@ -91,9 +92,24 @@ export default function RoomNoiseCheckScreen({ navigation, route }: Props) {
   const [checks, setChecks] = useState<Record<string, boolean>>({ c1: false, c2: false, c3: false, c4: false });
   // Corrección de campo del sonómetro (dB): permite anclar la lectura a un
   // sonómetro de referencia sin recompilar. Vive en el módulo DSP (proceso),
-  // no en el estado, para que el adaptador la aplique bloque a bloque.
+  // no en el estado, para que el adaptador la aplique bloque a bloque; y se
+  // PERSISTE, porque es una propiedad del micrófono del equipo y no de la
+  // sesión (antes se perdía al cerrar la app y había que recalibrar cada vez).
   const [calibration, setCalibration] = useState(() => getNoiseCalibrationOffset());
-  const adjustCalibration = (delta: number) => setCalibration(setNoiseCalibrationOffset(calibration + delta));
+  const [referenceInput, setReferenceInput] = useState('');
+  const applyCalibration = (db: number) => {
+    setCalibration(db);
+    void saveNoiseCalibration(db).then(setCalibration);
+  };
+  const adjustCalibration = (delta: number) => applyCalibration(calibration + delta);
+  /** Calibración GUIADA: el clínico teclea lo que marca su sonómetro patrón y
+   *  VIA+ calcula el offset. Evita tener que deducir el signo y sumar dB a dB. */
+  const calibrateToReference = () => {
+    const reference = Number(referenceInput.replace(',', '.'));
+    if (!Number.isFinite(reference) || meter.db == null) return;
+    applyCalibration(offsetForReference(reference, meter.db));
+    setReferenceInput('');
+  };
 
   // Registra el motor de captura real (react-native-audio-api) y lo libera al
   // salir: sin la baja, el recorder y la sesión de grabación quedaban abiertos
@@ -102,6 +118,17 @@ export default function RoomNoiseCheckScreen({ navigation, route }: Props) {
   useEffect(() => {
     registerNoiseMicAdapter();
     return () => unregisterNoiseMicAdapter();
+  }, []);
+
+  // Recupera la calibración guardada en este dispositivo.
+  useEffect(() => {
+    let mounted = true;
+    void loadNoiseCalibration().then(db => {
+      if (mounted) setCalibration(db);
+    });
+    return () => {
+      mounted = false;
+    };
   }, []);
 
   const allChecked = useMemo(() => CHECKLIST.every(c => checks[c.id]), [checks]);
@@ -235,22 +262,37 @@ export default function RoomNoiseCheckScreen({ navigation, route }: Props) {
           </Card>
 
           {/* ===================== STATS ===================== */}
+          {/* Nomenclatura de sonómetro: LAeq (media energética), L90 (ruido de
+              fondo) y L10 (picos sostenidos). El «pico máximo» absoluto que se
+              mostraba antes convertía cualquier roce del equipo en un valor
+              alarmante y no describía la sala. */}
           <HStack space="sm">
             {[
-              { label: 'PROMEDIO 5 s', value: fmt(meter.avg), color: '$textLight900' },
-              { label: 'PICO MÁX.', value: fmt(meter.peak), color: '$textLight900' },
+              { label: `LAeq ${testDurationSec} s`, value: fmt(meter.avg), color: '$textLight900' },
+              { label: 'FONDO L90', value: fmt(meter.background), color: '$textLight900' },
+              { label: 'PICOS L10', value: fmt(meter.peak), color: '$textLight900' },
               { label: 'UMBRAL APTO', value: `≤ ${threshold}`, color: '$primary600' },
             ].map((stat, i) => (
               <Card key={i} bgColor="$white" borderRadius={14} p="$3" style={{ flex: 1 }}>
                 <Text size="2xs" color="$textLight400" style={{ letterSpacing: 0.4, textAlign: 'center' }}>
                   {stat.label}
                 </Text>
-                <Text size="xl" weight="bold" color={stat.color} mt="$0.5" style={{ textAlign: 'center', fontVariant: ['tabular-nums'] }}>
+                <Text size="lg" weight="bold" color={stat.color} mt="$0.5" style={{ textAlign: 'center', fontVariant: ['tabular-nums'] }}>
                   {stat.value}
                 </Text>
               </Card>
             ))}
           </HStack>
+
+          {meter.clipped > 0 ? (
+            <HStack space="sm" alignItems="flex-start" p="$3" borderRadius={14} bg="$warning50">
+              <Icon as={AlertTriangle} size="xs" color="$warning700" style={{ marginTop: 2 }} />
+              <Text size="2xs" color="$warning800" style={{ flex: 1, lineHeight: 15 }}>
+                Se descartaron {meter.clipped} tramo{meter.clipped === 1 ? '' : 's'} por saturación del micrófono
+                (golpes o roces del equipo). Deje el dispositivo apoyado y quieto durante la medición.
+              </Text>
+            </HStack>
+          ) : null}
 
           {/* test progress */}
           {meter.testing ? (
@@ -299,8 +341,8 @@ export default function RoomNoiseCheckScreen({ navigation, route }: Props) {
                   CALIBRACIÓN DE CAMPO
                 </Text>
                 <Text size="xs" color="$textLight500" mt="$0.5" style={{ lineHeight: 16 }}>
-                  Ajuste la lectura a un sonómetro de referencia en la misma sala. Si VIA+ marca menos que el
-                  patrón, súbala.
+                  Ajuste la lectura a un sonómetro de referencia en la misma sala. El ajuste se guarda en este
+                  dispositivo.
                 </Text>
               </VStack>
               <HStack space="xs" alignItems="center">
@@ -329,6 +371,34 @@ export default function RoomNoiseCheckScreen({ navigation, route }: Props) {
                 </Pressable>
               </HStack>
             </HStack>
+
+            {/* Calibración GUIADA: teclear la lectura del patrón es mucho menos
+                propenso a error que deducir el signo del offset y sumar dB a dB. */}
+            <VStack space="xs" mt="$3" pt="$3" borderTopWidth={1} borderColor="$borderLight100">
+              <Text size="2xs" color="$textLight500" style={{ lineHeight: 15 }}>
+                Con el micrófono activo, escriba lo que marca el sonómetro patrón y VIA+ calculará el ajuste.
+              </Text>
+              <HStack space="sm" alignItems="center">
+                <Input variant="outline" borderRadius={12} bg="$white" style={{ flex: 1 }}>
+                  <InputField
+                    placeholder="dB(A) del patrón"
+                    keyboardType="numeric"
+                    value={referenceInput}
+                    onChangeText={setReferenceInput}
+                  />
+                </Input>
+                <Button
+                  action="secondary"
+                  variant="outline"
+                  rounded="$full"
+                  isDisabled={meter.db == null || !referenceInput.trim()}
+                  onPress={calibrateToReference}>
+                  <Text size="xs" weight="bold" color="$primary500">
+                    Ajustar
+                  </Text>
+                </Button>
+              </HStack>
+            </VStack>
           </Card>
 
           {/* error de captura (permiso denegado, micrófono sin señal…) */}

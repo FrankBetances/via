@@ -6,7 +6,7 @@ import { AlertTriangle, Pause, Play, RotateCcw, Save, Sparkles, Train, Volume2 }
 
 import { Button, Content, Header, Text } from '@/Components/Common';
 import RadialBackground from '@/Components/Themed/RadialBackground';
-import { RootStackParamList } from '@/Navigators';
+import { finishModule, RootStackParamList } from '@/Navigators';
 import { RootState } from '@/Store';
 import { Evaluation } from '@/Models/Evaluation/Evaluation';
 import { AudiometryTest } from '@/Models/Audiometry/AudiometryTest';
@@ -307,7 +307,8 @@ export default function AudiometryConditionedScreen({ navigation }: Props) {
 
       await createAudiometry(item);
       showSuccessToast('Audiometría guardada', `PTA campo libre ${a.ptaCL ?? '—'} dB HL.`);
-      navigation.goBack();
+      // Aterriza en los resultados, no de vuelta al hub (ver finishModule).
+      finishModule(navigation);
     } catch {
       showErrorToast('Error al guardar', 'No se pudo registrar la audiometría. Inténtelo de nuevo.');
     }

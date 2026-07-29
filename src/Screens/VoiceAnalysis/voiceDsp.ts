@@ -15,6 +15,35 @@ import type { VoiceMicResult } from './useVoiceAnalysis';
 /*   - Formantes F1–F3 por LPC (Levinson-Durbin) + picos de la envolvente      */
 /* -------------------------------------------------------------------------- */
 
+/* -------------------------------------------------------------------------- */
+/*  LIMPIEZA DE BAJA FRECUENCIA (bug «el análisis acústico no funciona»)       */
+/*                                                                            */
+/*  La captura de micrófono llega casi siempre con contenido por DEBAJO de la  */
+/*  banda de análisis (70 Hz): componente continua del convertidor, deriva de  */
+/*  línea de base al mover el equipo, retumbe de climatización, roce del       */
+/*  soporte. Nada de eso es voz, pero destroza los tres cálculos del módulo:   */
+/*                                                                            */
+/*   · AUTOCORRELACIÓN — `r[lag] = 2·Σx[i]x[i+lag] / Σ(x[i]²+x[i+lag]²)` está  */
+/*     normalizada sobre la energía TOTAL de la ventana. Una componente lenta  */
+/*     y potente correlaciona consigo misma a todos los lags, así que r sube   */
+/*     en bloque y el «primer máximo local por encima de 0.8·max» deja de caer */
+/*     en el periodo de la voz: se va a un lag más corto y la F0 sale DOBLADA. */
+/*   · JITTER/SHIMMER — se calculan sobre esas F0 y esos RMS contaminados.     */
+/*   · LPC — la deriva se lleva los primeros coeficientes y la envolvente      */
+/*     pierde F1–F3.                                                          */
+/*                                                                            */
+/*  Medido en `voiceDsp.test.ts` sobre una /a/ sintética de 200 Hz: con una    */
+/*  deriva de 3 Hz el módulo devolvía F0 358 Hz, jitter 33 % y shimmer 45 %    */
+/*  —una voz sana leída como gravemente patológica— en vez de F0 200 Hz,       */
+/*  jitter ~0 y shimmer ~1 %. Y NO fallaba de forma visible: devolvía números  */
+/*  plausibles, que es el peor modo de fallo posible en un SaMD.               */
+/*                                                                            */
+/*  Solución: pasa-alto de Butterworth de 2.º orden a `HIGHPASS_HZ`, por       */
+/*  debajo del suelo de la banda de análisis (70 Hz), aplicado tanto al        */
+/*  análisis de la toma como al feedback en vivo. El PCM GRABADO se conserva   */
+/*  intacto (la reproducción de la toma debe sonar como se grabó).            */
+/* -------------------------------------------------------------------------- */
+
 /** Frecuencia efectiva del PCM analizado (48 kHz decimado ×3 en el adaptador). */
 export const SAMPLE_RATE = 16000;
 /** Factor de decimación de la cadena de captura (48 kHz → 16 kHz). */
@@ -82,6 +111,86 @@ export function createDecimator3(): (raw: Float32Array) => Float32Array {
     hist.set(ext.subarray(ext.length - hist.length));
     return out;
   };
+}
+
+/* ------------------------ pasa-alto de acondicionado ---------------------- */
+
+/**
+ * Corte del pasa-alto de acondicionado (Hz). Por debajo del suelo de la banda
+ * de análisis de F0 (70 Hz), así que no toca ninguna voz analizable: solo
+ * quita lo que de todas formas no se mide.
+ */
+export const HIGHPASS_HZ = 55;
+
+export interface VoiceHighpass {
+  /** Filtra un bloque conservando el estado (stream continuo). No muta la entrada. */
+  process: (x: Float32Array) => Float32Array;
+  reset: () => void;
+}
+
+/**
+ * Pasa-alto de Butterworth de 2.º orden (forma directa II transpuesta) con
+ * estado entre bloques, para acondicionar la señal antes del análisis.
+ */
+export function createVoiceHighpass(
+  sampleRate: number = SAMPLE_RATE,
+  cutoffHz: number = HIGHPASS_HZ,
+): VoiceHighpass {
+  const w0 = (2 * Math.PI * cutoffHz) / sampleRate;
+  const cosw = Math.cos(w0);
+  const alpha = Math.sin(w0) / Math.SQRT2; // Q = 1/√2 (Butterworth)
+  const a0 = 1 + alpha;
+  const b0 = ((1 + cosw) / 2) / a0;
+  const b1 = (-(1 + cosw)) / a0;
+  const b2 = b0;
+  const a1 = (-2 * cosw) / a0;
+  const a2 = (1 - alpha) / a0;
+
+  let x1 = 0;
+  let x2 = 0;
+  let y1 = 0;
+  let y2 = 0;
+
+  return {
+    process: (x: Float32Array): Float32Array => {
+      const out = new Float32Array(x.length);
+      for (let i = 0; i < x.length; i++) {
+        const x0 = x[i];
+        const y0 = b0 * x0 + b1 * x1 + b2 * x2 - a1 * y1 - a2 * y2;
+        x2 = x1;
+        x1 = x0;
+        y2 = y1;
+        y1 = y0;
+        out[i] = y0;
+      }
+      return out;
+    },
+    reset: () => {
+      x1 = 0;
+      x2 = 0;
+      y1 = 0;
+      y2 = 0;
+    },
+  };
+}
+
+/**
+ * Acondiciona una toma completa: pasa-alto y, además, resta la media residual
+ * (el transitorio de arranque del propio filtro sobre el primer tramo). Se usa
+ * en `analysePcm`, de modo que el análisis es robusto venga el PCM de donde
+ * venga —incluidas tomas capturadas antes de esta corrección—.
+ */
+export function conditionForAnalysis(
+  pcm: Float32Array,
+  sampleRate: number = SAMPLE_RATE,
+): Float32Array {
+  const out = createVoiceHighpass(sampleRate).process(pcm);
+  if (!out.length) return out;
+  let sum = 0;
+  for (let i = 0; i < out.length; i++) sum += out[i];
+  const mean = sum / out.length;
+  if (mean !== 0) for (let i = 0; i < out.length; i++) out[i] -= mean;
+  return out;
 }
 
 const MIN_LAG = Math.floor(SAMPLE_RATE / 500); // 500 Hz
@@ -281,11 +390,17 @@ async function estimateFormants(
   // Bastan 2 ventanas coincidentes: la mediana sigue filtrando espurios y el
   // mínimo histórico (3) tiraba tomas enteras cuando la emisión solo tenía un
   // tramo corto estable — «se detectó voz pero sin formantes».
-  if (f1s.length < 2 || f2s.length < 2) return null;
+  //
+  // F3 EXIGE MEDICIÓN REAL. El respaldo histórico (`mediana(F2)·2`) fabricaba
+  // un tercer formante que el informe presentaba como medido, y en la práctica
+  // salía por encima de la banda que la LPC analiza (150–4000 Hz) — un valor
+  // imposible presentado como dato clínico. Sin F3 medible, la toma no tiene
+  // formantes fiables y se declara así.
+  if (f1s.length < 2 || f2s.length < 2 || f3s.length < 2) return null;
   return {
     f1: Math.round(median(f1s)),
     f2: Math.round(median(f2s)),
-    f3: f3s.length >= 2 ? Math.round(median(f3s)) : Math.round(median(f2s) * 2),
+    f3: Math.round(median(f3s)),
   };
 }
 
@@ -295,7 +410,12 @@ async function estimateFormants(
  * una pieza congelaba la pantalla (el «cuelgue» que se veía al terminar de
  * grabar cuando esto corría dentro de `stopRecording`).
  */
-export async function analysePcm(pcm: Float32Array): Promise<VoiceMicResult> {
+export async function analysePcm(raw: Float32Array): Promise<VoiceMicResult> {
+  // Acondicionado OBLIGATORIO: sin quitar la deriva de baja frecuencia, la
+  // autocorrelación y la LPC devuelven números plausibles pero falsos (ver
+  // cabecera del módulo). La toma grabada NO se modifica: esto es una copia.
+  const pcm = conditionForAnalysis(raw);
+
   const f0s: number[] = [];
   const amplitudes: number[] = [];
   const hnrs: number[] = [];

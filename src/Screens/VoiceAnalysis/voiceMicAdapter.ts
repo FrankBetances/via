@@ -14,6 +14,7 @@ import {
   analyseFrame,
   analysePcm,
   createDecimator3,
+  createVoiceHighpass,
   DECIMATION,
   FRAME,
   SAMPLE_RATE,
@@ -54,6 +55,10 @@ import {
 const DECIMATE = DECIMATION;
 const CAPTURE_SR = SAMPLE_RATE * DECIMATE; // 48000
 
+/** Espera tras `stop()` para recoger los últimos bloques que el motor nativo
+ *  entrega por el emisor de eventos (ver `stopRecording`). */
+const TAIL_DRAIN_MS = 120;
+
 /* ------------------------------- permisos --------------------------------- */
 
 async function ensureMicPermission(): Promise<boolean> {
@@ -89,6 +94,13 @@ export function registerVoiceMicAdapter(): boolean {
   let recorder: AudioRecorder | null = null;
   let chunks: Float32Array[] = [];
   let decimate: ((raw: Float32Array) => Float32Array) | null = null;
+  /** Pasa-alto de acondicionado del feedback EN VIVO (la toma se guarda cruda
+   *  y `analysePcm` la acondiciona por su cuenta). Sin él, la F0 en vivo
+   *  saltaba al doble en cuanto había deriva de línea de base. */
+  const liveHighpass = createVoiceHighpass(SAMPLE_RATE);
+  /** Bloques entregados por el motor nativo desde el último arranque: permite
+   *  distinguir «el micrófono no da audio» de «no se emitió voz». */
+  let blocksReceived = 0;
   // Reproducción de las tomas sobre el contexto COMPARTIDO de la app: crear
   // aquí un AudioContext propio abría un segundo stream nativo que en Android
   // (Oboe exclusivo) se quedaba mudo, así que la toma grabada no se oía.
@@ -132,7 +144,9 @@ export function registerVoiceMicAdapter(): boolean {
       releaseSession = acquireRecordingSession();
 
       chunks = [];
+      blocksReceived = 0;
       decimate = createDecimator3();
+      liveHighpass.reset();
       recorder = new AudioRecorder({
         sampleRate: CAPTURE_SR,
         bufferLengthInSamples: Math.round(CAPTURE_SR * 0.1), // ~100 ms
@@ -144,10 +158,15 @@ export function registerVoiceMicAdapter(): boolean {
           // Decimación ×3 con anti-alias → 16 kHz efectivos para el análisis.
           const ds = decimate ? decimate(raw) : new Float32Array(0);
           if (!ds.length) return;
+          blocksReceived += 1;
+          // La toma se guarda CRUDA (para que la reproducción suene como se
+          // grabó); el acondicionado se aplica al analizar.
           chunks.push(ds);
 
           if (onLive) {
-            const win = ds.length >= FRAME ? ds.subarray(ds.length - FRAME) : ds;
+            // El feedback en vivo sí se acondiciona aquí, con estado continuo.
+            const clean = liveHighpass.process(ds);
+            const win = clean.length >= FRAME ? clean.subarray(clean.length - FRAME) : clean;
             let sum = 0;
             for (let i = 0; i < win.length; i++) sum += win[i] * win[i];
             const rms = Math.sqrt(sum / (win.length || 1));
@@ -172,6 +191,13 @@ export function registerVoiceMicAdapter(): boolean {
       decimate = null;
       endRecordingSession();
 
+      // `stop()` vacía el buffer nativo pendiente, pero los bloques llegan por
+      // el emisor de eventos, es decir, en un turno posterior del hilo JS.
+      // Leyendo `chunks` de inmediato se perdía la cola de la emisión (hasta
+      // un par de décimas), justo el tramo final que el clínico acaba de pedir
+      // sostener. Un turno de espera basta para recogerla.
+      await new Promise<void>(resolve => setTimeout(resolve, TAIL_DRAIN_MS));
+
       // Concatena el PCM decimado; el análisis se hace después, bajo demanda.
       const total = chunks.reduce((a, c) => a + c.length, 0);
       const pcm = new Float32Array(total);
@@ -185,6 +211,8 @@ export function registerVoiceMicAdapter(): boolean {
     },
 
     analyse: analysePcm,
+
+    hasSignal: () => blocksReceived > 0,
 
     play: (pcm: Float32Array, onEnded: () => void) => {
       stopPlayback();

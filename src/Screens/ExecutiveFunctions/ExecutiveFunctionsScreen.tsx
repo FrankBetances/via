@@ -6,7 +6,7 @@ import { Check, ChevronLeft, Play, RotateCcw, Save, Volume2, X } from 'lucide-re
 
 import { Button, Content, Header, Text } from '@/Components/Common';
 import RadialBackground from '@/Components/Themed/RadialBackground';
-import { RootStackParamList } from '@/Navigators';
+import { finishModule, RootStackParamList } from '@/Navigators';
 import { RootState } from '@/Store';
 import { Evaluation } from '@/Models/Evaluation/Evaluation';
 import { ExecutiveFunctionsTest } from '@/Models/ExecutiveFunctions/ExecutiveFunctionsTest';
@@ -184,7 +184,8 @@ export default function ExecutiveFunctionsScreen({ navigation }: Props) {
 
       await createExecutiveFunctions(item);
       showSuccessToast('Exploración guardada', `Índice global ${overall}/100 (banda ${band}).`);
-      navigation.goBack();
+      // Aterriza en los resultados, no de vuelta al hub (ver finishModule).
+      finishModule(navigation);
     } catch {
       showErrorToast('Error al guardar', 'No se pudo registrar la exploración. Inténtelo de nuevo.');
     }
