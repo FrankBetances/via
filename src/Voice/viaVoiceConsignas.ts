@@ -1,3 +1,4 @@
+import { buildArticulationItems } from '../Screens/Articulation/articulationResult';
 import { EF_DOMAIN_META, EF_DOMAIN_ORDER } from '../Screens/ExecutiveFunctions/executiveFunctionsGame';
 
 import type { VoiceLang, VoiceStyle } from './voiceCorpusId';
@@ -65,3 +66,41 @@ export const CONSIGNAS: ConsignaSpec[] = EF_DOMAIN_ORDER.map(domain => {
   if (l10n['es-DO']) text['es-DO'] = l10n['es-DO'];
   return { key: `ef.${domain}`, source: 'executiveFunctions', style: 'tutor', text };
 });
+
+/**
+ * Modelos hablados del T.A.R. (Test de Articulación a la Repetición).
+ *
+ * El módulo presenta una palabra o frase para que el niño/a la repita, y esa
+ * presentación es el estímulo: hasta ahora salía por el TTS del sistema con la
+ * voz que hubiera instalada, mientras el resto de la app ya locutaba con voz
+ * neuronal. Enumerar el inventario aquí lo mete en el mismo pipeline que las
+ * consignas, así que cada palabra pasa a tener recorte propio en cuanto se
+ * sintetiza el corpus.
+ *
+ * DERIVA CERO (P3): el texto se deriva de `buildArticulationItems()` — la
+ * MISMA función que dicta la pantalla —, así que corpus e inventario no pueden
+ * divergir. Si una palabra cambia, cambia su id y esa locución cae limpiamente
+ * a la voz del sistema hasta que se regenere.
+ *
+ * LENGUAS: el inventario T.A.R. es castellano (fonología del español) y se
+ * enumera para `es` y para la variante dominicana `es-DO`, que comparte
+ * inventario y solo cambia de VOZ. El gallego y el euskera no aparecen: no
+ * tienen inventario articulatorio propio todavía, y `resolveVoiceAsset` ya
+ * degrada esas sesiones al recorte base `es` (la palabra sigue siendo la
+ * castellana que se está evaluando).
+ */
+export const TAR_MODELS: ConsignaSpec[] = [
+  ...new Set(buildArticulationItems().map(item => item.word)),
+].map(word => ({
+  key: `tar.${word}`,
+  source: 'articulation',
+  style: 'tutor' as VoiceStyle,
+  text: { es: word, 'es-DO': word },
+}));
+
+/**
+ * Todos los bancos de contenido locutable de la app. `buildVoiceCorpus` los
+ * recorre en orden; añadir un banco nuevo aquí lo incorpora al corpus, al
+ * pipeline de síntesis y a los tests de invariantes sin tocar nada más.
+ */
+export const VOICE_CONTENT_BANKS: ConsignaSpec[] = [...CONSIGNAS, ...TAR_MODELS];

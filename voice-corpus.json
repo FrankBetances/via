@@ -1,22 +1,780 @@
 {
   "schema": "via-plus/voice-corpus@1",
-  "entries": 5,
+  "entries": 177,
   "byLang": {
-    "es": 5
+    "es": 91,
+    "es-DO": 86
   },
   "byStyle": {
-    "tutor": 5
+    "tutor": 177
   },
   "bySource": {
-    "executiveFunctions": 5
+    "executiveFunctions": 5,
+    "articulation": 172
   },
   "corpus": [
+    {
+      "id": "es-DO_tutor_003d9986_66",
+      "lang": "es-DO",
+      "style": "tutor",
+      "text": "Juanito se metió debajo de la cama para que no lo pillara su mamá.",
+      "source": "articulation"
+    },
+    {
+      "id": "es-DO_tutor_010fe67e_5",
+      "lang": "es-DO",
+      "style": "tutor",
+      "text": "Piano",
+      "source": "articulation"
+    },
+    {
+      "id": "es-DO_tutor_04563e7d_4",
+      "lang": "es-DO",
+      "style": "tutor",
+      "text": "Nube",
+      "source": "articulation"
+    },
+    {
+      "id": "es-DO_tutor_06c2191f_6",
+      "lang": "es-DO",
+      "style": "tutor",
+      "text": "Camisa",
+      "source": "articulation"
+    },
+    {
+      "id": "es-DO_tutor_075a20e8_48",
+      "lang": "es-DO",
+      "style": "tutor",
+      "text": "El mono que estaba dentro de la jaula se perdió.",
+      "source": "articulation"
+    },
+    {
+      "id": "es-DO_tutor_097855b3_6",
+      "lang": "es-DO",
+      "style": "tutor",
+      "text": "Puñete",
+      "source": "articulation"
+    },
+    {
+      "id": "es-DO_tutor_09e129d9_11",
+      "lang": "es-DO",
+      "style": "tutor",
+      "text": "Helicóptero",
+      "source": "articulation"
+    },
+    {
+      "id": "es-DO_tutor_0e6614b7_3",
+      "lang": "es-DO",
+      "style": "tutor",
+      "text": "Fui",
+      "source": "articulation"
+    },
+    {
+      "id": "es-DO_tutor_11397b83_15",
+      "lang": "es-DO",
+      "style": "tutor",
+      "text": "El perro salta.",
+      "source": "articulation"
+    },
+    {
+      "id": "es-DO_tutor_11fc45fa_5",
+      "lang": "es-DO",
+      "style": "tutor",
+      "text": "Dulce",
+      "source": "articulation"
+    },
+    {
+      "id": "es-DO_tutor_126befb6_4",
+      "lang": "es-DO",
+      "style": "tutor",
+      "text": "Auto",
+      "source": "articulation"
+    },
+    {
+      "id": "es-DO_tutor_148a2f8b_4",
+      "lang": "es-DO",
+      "style": "tutor",
+      "text": "Caña",
+      "source": "articulation"
+    },
+    {
+      "id": "es-DO_tutor_19702d43_6",
+      "lang": "es-DO",
+      "style": "tutor",
+      "text": "Aftosa",
+      "source": "articulation"
+    },
+    {
+      "id": "es-DO_tutor_1ce091cd_38",
+      "lang": "es-DO",
+      "style": "tutor",
+      "text": "La guagua lloraba porque tenía hambre.",
+      "source": "articulation"
+    },
+    {
+      "id": "es-DO_tutor_1d67f411_5",
+      "lang": "es-DO",
+      "style": "tutor",
+      "text": "Llave",
+      "source": "articulation"
+    },
+    {
+      "id": "es-DO_tutor_1e186b41_6",
+      "lang": "es-DO",
+      "style": "tutor",
+      "text": "Búfalo",
+      "source": "articulation"
+    },
+    {
+      "id": "es-DO_tutor_1f518b1d_4",
+      "lang": "es-DO",
+      "style": "tutor",
+      "text": "Casa",
+      "source": "articulation"
+    },
+    {
+      "id": "es-DO_tutor_271e170c_4",
+      "lang": "es-DO",
+      "style": "tutor",
+      "text": "Sapo",
+      "source": "articulation"
+    },
+    {
+      "id": "es-DO_tutor_2d9e0a99_5",
+      "lang": "es-DO",
+      "style": "tutor",
+      "text": "Torta",
+      "source": "articulation"
+    },
+    {
+      "id": "es-DO_tutor_32789720_4",
+      "lang": "es-DO",
+      "style": "tutor",
+      "text": "Mano",
+      "source": "articulation"
+    },
+    {
+      "id": "es-DO_tutor_3390cfa0_4",
+      "lang": "es-DO",
+      "style": "tutor",
+      "text": "Dama",
+      "source": "articulation"
+    },
+    {
+      "id": "es-DO_tutor_37cff43d_4",
+      "lang": "es-DO",
+      "style": "tutor",
+      "text": "Apto",
+      "source": "articulation"
+    },
+    {
+      "id": "es-DO_tutor_3a0654eb_6",
+      "lang": "es-DO",
+      "style": "tutor",
+      "text": "Cadena",
+      "source": "articulation"
+    },
+    {
+      "id": "es-DO_tutor_3b8dd689_5",
+      "lang": "es-DO",
+      "style": "tutor",
+      "text": "Pared",
+      "source": "articulation"
+    },
+    {
+      "id": "es-DO_tutor_4b08850b_5",
+      "lang": "es-DO",
+      "style": "tutor",
+      "text": "Fruta",
+      "source": "articulation"
+    },
+    {
+      "id": "es-DO_tutor_4b12236a_7",
+      "lang": "es-DO",
+      "style": "tutor",
+      "text": "Chándal",
+      "source": "articulation"
+    },
+    {
+      "id": "es-DO_tutor_532b2a94_9",
+      "lang": "es-DO",
+      "style": "tutor",
+      "text": "Panadería",
+      "source": "articulation"
+    },
+    {
+      "id": "es-DO_tutor_538a9ce0_4",
+      "lang": "es-DO",
+      "style": "tutor",
+      "text": "Coro",
+      "source": "articulation"
+    },
+    {
+      "id": "es-DO_tutor_566320a1_4",
+      "lang": "es-DO",
+      "style": "tutor",
+      "text": "Bote",
+      "source": "articulation"
+    },
+    {
+      "id": "es-DO_tutor_5b033c7a_6",
+      "lang": "es-DO",
+      "style": "tutor",
+      "text": "Payaso",
+      "source": "articulation"
+    },
+    {
+      "id": "es-DO_tutor_5c69ceb4_4",
+      "lang": "es-DO",
+      "style": "tutor",
+      "text": "Mata",
+      "source": "articulation"
+    },
+    {
+      "id": "es-DO_tutor_5fb04fe8_7",
+      "lang": "es-DO",
+      "style": "tutor",
+      "text": "Lechuga",
+      "source": "articulation"
+    },
+    {
+      "id": "es-DO_tutor_603cb897_5",
+      "lang": "es-DO",
+      "style": "tutor",
+      "text": "Perro",
+      "source": "articulation"
+    },
+    {
+      "id": "es-DO_tutor_643ecd31_5",
+      "lang": "es-DO",
+      "style": "tutor",
+      "text": "Signo",
+      "source": "articulation"
+    },
+    {
+      "id": "es-DO_tutor_644dd081_5",
+      "lang": "es-DO",
+      "style": "tutor",
+      "text": "Campo",
+      "source": "articulation"
+    },
+    {
+      "id": "es-DO_tutor_6506690e_5",
+      "lang": "es-DO",
+      "style": "tutor",
+      "text": "Clavo",
+      "source": "articulation"
+    },
+    {
+      "id": "es-DO_tutor_65674aae_13",
+      "lang": "es-DO",
+      "style": "tutor",
+      "text": "Ametralladora",
+      "source": "articulation"
+    },
+    {
+      "id": "es-DO_tutor_68f16619_4",
+      "lang": "es-DO",
+      "style": "tutor",
+      "text": "Tapa",
+      "source": "articulation"
+    },
+    {
+      "id": "es-DO_tutor_6d8f42fc_4",
+      "lang": "es-DO",
+      "style": "tutor",
+      "text": "Copa",
+      "source": "articulation"
+    },
+    {
+      "id": "es-DO_tutor_6dfcbb65_6",
+      "lang": "es-DO",
+      "style": "tutor",
+      "text": "Premio",
+      "source": "articulation"
+    },
+    {
+      "id": "es-DO_tutor_734f216c_5",
+      "lang": "es-DO",
+      "style": "tutor",
+      "text": "Atlas",
+      "source": "articulation"
+    },
+    {
+      "id": "es-DO_tutor_735dafa2_4",
+      "lang": "es-DO",
+      "style": "tutor",
+      "text": "Codo",
+      "source": "articulation"
+    },
+    {
+      "id": "es-DO_tutor_73fe7487_5",
+      "lang": "es-DO",
+      "style": "tutor",
+      "text": "Brazo",
+      "source": "articulation"
+    },
+    {
+      "id": "es-DO_tutor_75ab83ca_5",
+      "lang": "es-DO",
+      "style": "tutor",
+      "text": "Tigre",
+      "source": "articulation"
+    },
+    {
+      "id": "es-DO_tutor_773944a4_19",
+      "lang": "es-DO",
+      "style": "tutor",
+      "text": "La niña rubia come.",
+      "source": "articulation"
+    },
+    {
+      "id": "es-DO_tutor_79d25e0e_6",
+      "lang": "es-DO",
+      "style": "tutor",
+      "text": "Tejido",
+      "source": "articulation"
+    },
+    {
+      "id": "es-DO_tutor_7a546549_6",
+      "lang": "es-DO",
+      "style": "tutor",
+      "text": "Cabeza",
+      "source": "articulation"
+    },
+    {
+      "id": "es-DO_tutor_7c619d11_4",
+      "lang": "es-DO",
+      "style": "tutor",
+      "text": "Nido",
+      "source": "articulation"
+    },
+    {
+      "id": "es-DO_tutor_7e287e95_5",
+      "lang": "es-DO",
+      "style": "tutor",
+      "text": "Crema",
+      "source": "articulation"
+    },
+    {
+      "id": "es-DO_tutor_852f89a7_4",
+      "lang": "es-DO",
+      "style": "tutor",
+      "text": "Luna",
+      "source": "articulation"
+    },
+    {
+      "id": "es-DO_tutor_8a4f5101_9",
+      "lang": "es-DO",
+      "style": "tutor",
+      "text": "Bicicleta",
+      "source": "articulation"
+    },
+    {
+      "id": "es-DO_tutor_8c353864_5",
+      "lang": "es-DO",
+      "style": "tutor",
+      "text": "Canto",
+      "source": "articulation"
+    },
+    {
+      "id": "es-DO_tutor_8f0dd300_10",
+      "lang": "es-DO",
+      "style": "tutor",
+      "text": "Caperucita",
+      "source": "articulation"
+    },
+    {
+      "id": "es-DO_tutor_92c6c730_4",
+      "lang": "es-DO",
+      "style": "tutor",
+      "text": "Taco",
+      "source": "articulation"
+    },
+    {
+      "id": "es-DO_tutor_946e6a72_4",
+      "lang": "es-DO",
+      "style": "tutor",
+      "text": "Rosa",
+      "source": "articulation"
+    },
+    {
+      "id": "es-DO_tutor_9606bd35_4",
+      "lang": "es-DO",
+      "style": "tutor",
+      "text": "Etna",
+      "source": "articulation"
+    },
+    {
+      "id": "es-DO_tutor_9c8d40a4_4",
+      "lang": "es-DO",
+      "style": "tutor",
+      "text": "Gato",
+      "source": "articulation"
+    },
+    {
+      "id": "es-DO_tutor_9cff83a2_5",
+      "lang": "es-DO",
+      "style": "tutor",
+      "text": "Vaina",
+      "source": "articulation"
+    },
+    {
+      "id": "es-DO_tutor_a4fba661_5",
+      "lang": "es-DO",
+      "style": "tutor",
+      "text": "Plato",
+      "source": "articulation"
+    },
+    {
+      "id": "es-DO_tutor_a5f93f91_5",
+      "lang": "es-DO",
+      "style": "tutor",
+      "text": "Reloj",
+      "source": "articulation"
+    },
+    {
+      "id": "es-DO_tutor_a67c1b64_5",
+      "lang": "es-DO",
+      "style": "tutor",
+      "text": "Noche",
+      "source": "articulation"
+    },
+    {
+      "id": "es-DO_tutor_aa144ed0_32",
+      "lang": "es-DO",
+      "style": "tutor",
+      "text": "Ana fue al jardín con su gatita.",
+      "source": "articulation"
+    },
+    {
+      "id": "es-DO_tutor_ab52d68b_4",
+      "lang": "es-DO",
+      "style": "tutor",
+      "text": "Suma",
+      "source": "articulation"
+    },
+    {
+      "id": "es-DO_tutor_ad49f916_5",
+      "lang": "es-DO",
+      "style": "tutor",
+      "text": "Pasto",
+      "source": "articulation"
+    },
+    {
+      "id": "es-DO_tutor_ada2429b_7",
+      "lang": "es-DO",
+      "style": "tutor",
+      "text": "Carroza",
+      "source": "articulation"
+    },
+    {
+      "id": "es-DO_tutor_add2090e_5",
+      "lang": "es-DO",
+      "style": "tutor",
+      "text": "Regla",
+      "source": "articulation"
+    },
+    {
+      "id": "es-DO_tutor_afa71ed7_10",
+      "lang": "es-DO",
+      "style": "tutor",
+      "text": "Carabinero",
+      "source": "articulation"
+    },
+    {
+      "id": "es-DO_tutor_b018520c_4",
+      "lang": "es-DO",
+      "style": "tutor",
+      "text": "Acto",
+      "source": "articulation"
+    },
+    {
+      "id": "es-DO_tutor_b3369d9c_4",
+      "lang": "es-DO",
+      "style": "tutor",
+      "text": "Café",
+      "source": "articulation"
+    },
+    {
+      "id": "es-DO_tutor_b47d0812_6",
+      "lang": "es-DO",
+      "style": "tutor",
+      "text": "Zapato",
+      "source": "articulation"
+    },
+    {
+      "id": "es-DO_tutor_b86035f6_4",
+      "lang": "es-DO",
+      "style": "tutor",
+      "text": "Foca",
+      "source": "articulation"
+    },
+    {
+      "id": "es-DO_tutor_c2345f0e_5",
+      "lang": "es-DO",
+      "style": "tutor",
+      "text": "Malla",
+      "source": "articulation"
+    },
+    {
+      "id": "es-DO_tutor_c77c6da8_7",
+      "lang": "es-DO",
+      "style": "tutor",
+      "text": "Paquete",
+      "source": "articulation"
+    },
+    {
+      "id": "es-DO_tutor_d2174676_6",
+      "lang": "es-DO",
+      "style": "tutor",
+      "text": "Poroto",
+      "source": "articulation"
+    },
+    {
+      "id": "es-DO_tutor_d30ce533_5",
+      "lang": "es-DO",
+      "style": "tutor",
+      "text": "Tabla",
+      "source": "articulation"
+    },
+    {
+      "id": "es-DO_tutor_d4c11d02_4",
+      "lang": "es-DO",
+      "style": "tutor",
+      "text": "José",
+      "source": "articulation"
+    },
+    {
+      "id": "es-DO_tutor_d88dc9ae_6",
+      "lang": "es-DO",
+      "style": "tutor",
+      "text": "Panera",
+      "source": "articulation"
+    },
+    {
+      "id": "es-DO_tutor_defaa905_5",
+      "lang": "es-DO",
+      "style": "tutor",
+      "text": "Diuca",
+      "source": "articulation"
+    },
+    {
+      "id": "es-DO_tutor_e42c4229_4",
+      "lang": "es-DO",
+      "style": "tutor",
+      "text": "Pala",
+      "source": "articulation"
+    },
+    {
+      "id": "es-DO_tutor_e78c8b8c_6",
+      "lang": "es-DO",
+      "style": "tutor",
+      "text": "Violín",
+      "source": "articulation"
+    },
+    {
+      "id": "es-DO_tutor_eca8b35c_6",
+      "lang": "es-DO",
+      "style": "tutor",
+      "text": "Objeto",
+      "source": "articulation"
+    },
+    {
+      "id": "es-DO_tutor_ed66b27a_6",
+      "lang": "es-DO",
+      "style": "tutor",
+      "text": "Dragón",
+      "source": "articulation"
+    },
+    {
+      "id": "es-DO_tutor_ee66e90f_4",
+      "lang": "es-DO",
+      "style": "tutor",
+      "text": "Pato",
+      "source": "articulation"
+    },
+    {
+      "id": "es-DO_tutor_f3bc4825_5",
+      "lang": "es-DO",
+      "style": "tutor",
+      "text": "Ñandú",
+      "source": "articulation"
+    },
+    {
+      "id": "es-DO_tutor_f593bd57_6",
+      "lang": "es-DO",
+      "style": "tutor",
+      "text": "Laguna",
+      "source": "articulation"
+    },
+    {
+      "id": "es-DO_tutor_fb94cb94_6",
+      "lang": "es-DO",
+      "style": "tutor",
+      "text": "Flecha",
+      "source": "articulation"
+    },
+    {
+      "id": "tutor_003d9986_66",
+      "lang": "es",
+      "style": "tutor",
+      "text": "Juanito se metió debajo de la cama para que no lo pillara su mamá.",
+      "source": "articulation"
+    },
+    {
+      "id": "tutor_010fe67e_5",
+      "lang": "es",
+      "style": "tutor",
+      "text": "Piano",
+      "source": "articulation"
+    },
+    {
+      "id": "tutor_04563e7d_4",
+      "lang": "es",
+      "style": "tutor",
+      "text": "Nube",
+      "source": "articulation"
+    },
+    {
+      "id": "tutor_06c2191f_6",
+      "lang": "es",
+      "style": "tutor",
+      "text": "Camisa",
+      "source": "articulation"
+    },
+    {
+      "id": "tutor_075a20e8_48",
+      "lang": "es",
+      "style": "tutor",
+      "text": "El mono que estaba dentro de la jaula se perdió.",
+      "source": "articulation"
+    },
+    {
+      "id": "tutor_097855b3_6",
+      "lang": "es",
+      "style": "tutor",
+      "text": "Puñete",
+      "source": "articulation"
+    },
+    {
+      "id": "tutor_09e129d9_11",
+      "lang": "es",
+      "style": "tutor",
+      "text": "Helicóptero",
+      "source": "articulation"
+    },
+    {
+      "id": "tutor_0e6614b7_3",
+      "lang": "es",
+      "style": "tutor",
+      "text": "Fui",
+      "source": "articulation"
+    },
+    {
+      "id": "tutor_11397b83_15",
+      "lang": "es",
+      "style": "tutor",
+      "text": "El perro salta.",
+      "source": "articulation"
+    },
+    {
+      "id": "tutor_11fc45fa_5",
+      "lang": "es",
+      "style": "tutor",
+      "text": "Dulce",
+      "source": "articulation"
+    },
+    {
+      "id": "tutor_126befb6_4",
+      "lang": "es",
+      "style": "tutor",
+      "text": "Auto",
+      "source": "articulation"
+    },
+    {
+      "id": "tutor_148a2f8b_4",
+      "lang": "es",
+      "style": "tutor",
+      "text": "Caña",
+      "source": "articulation"
+    },
+    {
+      "id": "tutor_19702d43_6",
+      "lang": "es",
+      "style": "tutor",
+      "text": "Aftosa",
+      "source": "articulation"
+    },
+    {
+      "id": "tutor_1ce091cd_38",
+      "lang": "es",
+      "style": "tutor",
+      "text": "La guagua lloraba porque tenía hambre.",
+      "source": "articulation"
+    },
+    {
+      "id": "tutor_1d67f411_5",
+      "lang": "es",
+      "style": "tutor",
+      "text": "Llave",
+      "source": "articulation"
+    },
+    {
+      "id": "tutor_1e186b41_6",
+      "lang": "es",
+      "style": "tutor",
+      "text": "Búfalo",
+      "source": "articulation"
+    },
+    {
+      "id": "tutor_1f518b1d_4",
+      "lang": "es",
+      "style": "tutor",
+      "text": "Casa",
+      "source": "articulation"
+    },
     {
       "id": "tutor_21853718_99",
       "lang": "es",
       "style": "tutor",
       "text": "No despiertes al lobo. Toca cada animal que aparezca… ¡pero NUNCA toques al lobo, que está dormido!",
       "source": "executiveFunctions"
+    },
+    {
+      "id": "tutor_271e170c_4",
+      "lang": "es",
+      "style": "tutor",
+      "text": "Sapo",
+      "source": "articulation"
+    },
+    {
+      "id": "tutor_2d9e0a99_5",
+      "lang": "es",
+      "style": "tutor",
+      "text": "Torta",
+      "source": "articulation"
+    },
+    {
+      "id": "tutor_32789720_4",
+      "lang": "es",
+      "style": "tutor",
+      "text": "Mano",
+      "source": "articulation"
+    },
+    {
+      "id": "tutor_3390cfa0_4",
+      "lang": "es",
+      "style": "tutor",
+      "text": "Dama",
+      "source": "articulation"
+    },
+    {
+      "id": "tutor_37cff43d_4",
+      "lang": "es",
+      "style": "tutor",
+      "text": "Apto",
+      "source": "articulation"
     },
     {
       "id": "tutor_387fbf0e_78",
@@ -26,11 +784,284 @@
       "source": "executiveFunctions"
     },
     {
+      "id": "tutor_3a0654eb_6",
+      "lang": "es",
+      "style": "tutor",
+      "text": "Cadena",
+      "source": "articulation"
+    },
+    {
+      "id": "tutor_3b8dd689_5",
+      "lang": "es",
+      "style": "tutor",
+      "text": "Pared",
+      "source": "articulation"
+    },
+    {
+      "id": "tutor_4b08850b_5",
+      "lang": "es",
+      "style": "tutor",
+      "text": "Fruta",
+      "source": "articulation"
+    },
+    {
+      "id": "tutor_4b12236a_7",
+      "lang": "es",
+      "style": "tutor",
+      "text": "Chándal",
+      "source": "articulation"
+    },
+    {
+      "id": "tutor_532b2a94_9",
+      "lang": "es",
+      "style": "tutor",
+      "text": "Panadería",
+      "source": "articulation"
+    },
+    {
+      "id": "tutor_538a9ce0_4",
+      "lang": "es",
+      "style": "tutor",
+      "text": "Coro",
+      "source": "articulation"
+    },
+    {
+      "id": "tutor_566320a1_4",
+      "lang": "es",
+      "style": "tutor",
+      "text": "Bote",
+      "source": "articulation"
+    },
+    {
+      "id": "tutor_5b033c7a_6",
+      "lang": "es",
+      "style": "tutor",
+      "text": "Payaso",
+      "source": "articulation"
+    },
+    {
+      "id": "tutor_5c69ceb4_4",
+      "lang": "es",
+      "style": "tutor",
+      "text": "Mata",
+      "source": "articulation"
+    },
+    {
+      "id": "tutor_5fb04fe8_7",
+      "lang": "es",
+      "style": "tutor",
+      "text": "Lechuga",
+      "source": "articulation"
+    },
+    {
+      "id": "tutor_603cb897_5",
+      "lang": "es",
+      "style": "tutor",
+      "text": "Perro",
+      "source": "articulation"
+    },
+    {
+      "id": "tutor_643ecd31_5",
+      "lang": "es",
+      "style": "tutor",
+      "text": "Signo",
+      "source": "articulation"
+    },
+    {
+      "id": "tutor_644dd081_5",
+      "lang": "es",
+      "style": "tutor",
+      "text": "Campo",
+      "source": "articulation"
+    },
+    {
+      "id": "tutor_6506690e_5",
+      "lang": "es",
+      "style": "tutor",
+      "text": "Clavo",
+      "source": "articulation"
+    },
+    {
+      "id": "tutor_65674aae_13",
+      "lang": "es",
+      "style": "tutor",
+      "text": "Ametralladora",
+      "source": "articulation"
+    },
+    {
+      "id": "tutor_68f16619_4",
+      "lang": "es",
+      "style": "tutor",
+      "text": "Tapa",
+      "source": "articulation"
+    },
+    {
+      "id": "tutor_6d8f42fc_4",
+      "lang": "es",
+      "style": "tutor",
+      "text": "Copa",
+      "source": "articulation"
+    },
+    {
+      "id": "tutor_6dfcbb65_6",
+      "lang": "es",
+      "style": "tutor",
+      "text": "Premio",
+      "source": "articulation"
+    },
+    {
+      "id": "tutor_734f216c_5",
+      "lang": "es",
+      "style": "tutor",
+      "text": "Atlas",
+      "source": "articulation"
+    },
+    {
+      "id": "tutor_735dafa2_4",
+      "lang": "es",
+      "style": "tutor",
+      "text": "Codo",
+      "source": "articulation"
+    },
+    {
+      "id": "tutor_73fe7487_5",
+      "lang": "es",
+      "style": "tutor",
+      "text": "Brazo",
+      "source": "articulation"
+    },
+    {
+      "id": "tutor_75ab83ca_5",
+      "lang": "es",
+      "style": "tutor",
+      "text": "Tigre",
+      "source": "articulation"
+    },
+    {
+      "id": "tutor_773944a4_19",
+      "lang": "es",
+      "style": "tutor",
+      "text": "La niña rubia come.",
+      "source": "articulation"
+    },
+    {
+      "id": "tutor_79d25e0e_6",
+      "lang": "es",
+      "style": "tutor",
+      "text": "Tejido",
+      "source": "articulation"
+    },
+    {
+      "id": "tutor_7a546549_6",
+      "lang": "es",
+      "style": "tutor",
+      "text": "Cabeza",
+      "source": "articulation"
+    },
+    {
+      "id": "tutor_7c619d11_4",
+      "lang": "es",
+      "style": "tutor",
+      "text": "Nido",
+      "source": "articulation"
+    },
+    {
+      "id": "tutor_7e287e95_5",
+      "lang": "es",
+      "style": "tutor",
+      "text": "Crema",
+      "source": "articulation"
+    },
+    {
+      "id": "tutor_852f89a7_4",
+      "lang": "es",
+      "style": "tutor",
+      "text": "Luna",
+      "source": "articulation"
+    },
+    {
+      "id": "tutor_8a4f5101_9",
+      "lang": "es",
+      "style": "tutor",
+      "text": "Bicicleta",
+      "source": "articulation"
+    },
+    {
+      "id": "tutor_8c353864_5",
+      "lang": "es",
+      "style": "tutor",
+      "text": "Canto",
+      "source": "articulation"
+    },
+    {
+      "id": "tutor_8f0dd300_10",
+      "lang": "es",
+      "style": "tutor",
+      "text": "Caperucita",
+      "source": "articulation"
+    },
+    {
+      "id": "tutor_92c6c730_4",
+      "lang": "es",
+      "style": "tutor",
+      "text": "Taco",
+      "source": "articulation"
+    },
+    {
+      "id": "tutor_946e6a72_4",
+      "lang": "es",
+      "style": "tutor",
+      "text": "Rosa",
+      "source": "articulation"
+    },
+    {
       "id": "tutor_95399f2d_99",
       "lang": "es",
       "style": "tutor",
       "text": "Ordena la historia. Estas tarjetas están desordenadas: tócalas en el orden correcto de la historia.",
       "source": "executiveFunctions"
+    },
+    {
+      "id": "tutor_9606bd35_4",
+      "lang": "es",
+      "style": "tutor",
+      "text": "Etna",
+      "source": "articulation"
+    },
+    {
+      "id": "tutor_9c8d40a4_4",
+      "lang": "es",
+      "style": "tutor",
+      "text": "Gato",
+      "source": "articulation"
+    },
+    {
+      "id": "tutor_9cff83a2_5",
+      "lang": "es",
+      "style": "tutor",
+      "text": "Vaina",
+      "source": "articulation"
+    },
+    {
+      "id": "tutor_a4fba661_5",
+      "lang": "es",
+      "style": "tutor",
+      "text": "Plato",
+      "source": "articulation"
+    },
+    {
+      "id": "tutor_a5f93f91_5",
+      "lang": "es",
+      "style": "tutor",
+      "text": "Reloj",
+      "source": "articulation"
+    },
+    {
+      "id": "tutor_a67c1b64_5",
+      "lang": "es",
+      "style": "tutor",
+      "text": "Noche",
+      "source": "articulation"
     },
     {
       "id": "tutor_a8c07bce_104",
@@ -40,11 +1071,186 @@
       "source": "executiveFunctions"
     },
     {
+      "id": "tutor_aa144ed0_32",
+      "lang": "es",
+      "style": "tutor",
+      "text": "Ana fue al jardín con su gatita.",
+      "source": "articulation"
+    },
+    {
+      "id": "tutor_ab52d68b_4",
+      "lang": "es",
+      "style": "tutor",
+      "text": "Suma",
+      "source": "articulation"
+    },
+    {
+      "id": "tutor_ad49f916_5",
+      "lang": "es",
+      "style": "tutor",
+      "text": "Pasto",
+      "source": "articulation"
+    },
+    {
+      "id": "tutor_ada2429b_7",
+      "lang": "es",
+      "style": "tutor",
+      "text": "Carroza",
+      "source": "articulation"
+    },
+    {
+      "id": "tutor_add2090e_5",
+      "lang": "es",
+      "style": "tutor",
+      "text": "Regla",
+      "source": "articulation"
+    },
+    {
+      "id": "tutor_afa71ed7_10",
+      "lang": "es",
+      "style": "tutor",
+      "text": "Carabinero",
+      "source": "articulation"
+    },
+    {
+      "id": "tutor_b018520c_4",
+      "lang": "es",
+      "style": "tutor",
+      "text": "Acto",
+      "source": "articulation"
+    },
+    {
+      "id": "tutor_b3369d9c_4",
+      "lang": "es",
+      "style": "tutor",
+      "text": "Café",
+      "source": "articulation"
+    },
+    {
+      "id": "tutor_b47d0812_6",
+      "lang": "es",
+      "style": "tutor",
+      "text": "Zapato",
+      "source": "articulation"
+    },
+    {
+      "id": "tutor_b86035f6_4",
+      "lang": "es",
+      "style": "tutor",
+      "text": "Foca",
+      "source": "articulation"
+    },
+    {
+      "id": "tutor_c2345f0e_5",
+      "lang": "es",
+      "style": "tutor",
+      "text": "Malla",
+      "source": "articulation"
+    },
+    {
+      "id": "tutor_c77c6da8_7",
+      "lang": "es",
+      "style": "tutor",
+      "text": "Paquete",
+      "source": "articulation"
+    },
+    {
+      "id": "tutor_d2174676_6",
+      "lang": "es",
+      "style": "tutor",
+      "text": "Poroto",
+      "source": "articulation"
+    },
+    {
       "id": "tutor_d21e608b_101",
       "lang": "es",
       "style": "tutor",
       "text": "El loro repetidor. Mira qué tarjetas se encienden y repite la secuencia tocándolas en el mismo orden.",
       "source": "executiveFunctions"
+    },
+    {
+      "id": "tutor_d30ce533_5",
+      "lang": "es",
+      "style": "tutor",
+      "text": "Tabla",
+      "source": "articulation"
+    },
+    {
+      "id": "tutor_d4c11d02_4",
+      "lang": "es",
+      "style": "tutor",
+      "text": "José",
+      "source": "articulation"
+    },
+    {
+      "id": "tutor_d88dc9ae_6",
+      "lang": "es",
+      "style": "tutor",
+      "text": "Panera",
+      "source": "articulation"
+    },
+    {
+      "id": "tutor_defaa905_5",
+      "lang": "es",
+      "style": "tutor",
+      "text": "Diuca",
+      "source": "articulation"
+    },
+    {
+      "id": "tutor_e42c4229_4",
+      "lang": "es",
+      "style": "tutor",
+      "text": "Pala",
+      "source": "articulation"
+    },
+    {
+      "id": "tutor_e78c8b8c_6",
+      "lang": "es",
+      "style": "tutor",
+      "text": "Violín",
+      "source": "articulation"
+    },
+    {
+      "id": "tutor_eca8b35c_6",
+      "lang": "es",
+      "style": "tutor",
+      "text": "Objeto",
+      "source": "articulation"
+    },
+    {
+      "id": "tutor_ed66b27a_6",
+      "lang": "es",
+      "style": "tutor",
+      "text": "Dragón",
+      "source": "articulation"
+    },
+    {
+      "id": "tutor_ee66e90f_4",
+      "lang": "es",
+      "style": "tutor",
+      "text": "Pato",
+      "source": "articulation"
+    },
+    {
+      "id": "tutor_f3bc4825_5",
+      "lang": "es",
+      "style": "tutor",
+      "text": "Ñandú",
+      "source": "articulation"
+    },
+    {
+      "id": "tutor_f593bd57_6",
+      "lang": "es",
+      "style": "tutor",
+      "text": "Laguna",
+      "source": "articulation"
+    },
+    {
+      "id": "tutor_fb94cb94_6",
+      "lang": "es",
+      "style": "tutor",
+      "text": "Flecha",
+      "source": "articulation"
     }
   ]
 }

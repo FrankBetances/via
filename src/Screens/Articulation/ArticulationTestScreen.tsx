@@ -12,6 +12,7 @@ import {
   ScrollView,
   VStack,
 } from '@gluestack-ui/themed';
+import { useDispatch, useSelector } from 'react-redux';
 import {
   AlertTriangle,
   ArrowLeft,
@@ -20,6 +21,7 @@ import {
   CheckCircle2,
   ClipboardCheck,
   Info,
+  Languages,
   Mic,
   Play,
   ShieldCheck,
@@ -30,7 +32,8 @@ import {
 import { Button, Content, Header, Text } from '@/Components/Common';
 import RadialBackground from '@/Components/Themed/RadialBackground';
 import { finishModule, RootStackParamList } from '@/Navigators';
-import { RootState } from '@/Store';
+import { AppDispatch, RootState } from '@/Store';
+import { SESSION_LANGS, SESSION_LANG_LABEL, setSessionLanguage } from '@/Store/slices/localeSlice';
 import { Evaluation } from '@/Models/Evaluation/Evaluation';
 import { ArticulationTest } from '@/Models/ArticulationTest/ArticulationTest';
 import { useClassSelector } from '@/Helpers/ClassTransformer';
@@ -141,7 +144,13 @@ type Props = NativeStackScreenProps<RootStackParamList, 'Articulation'>;
 export default function ArticulationTestScreen({ navigation }: Props) {
   const activeEvaluation = useClassSelector(Evaluation, (state: RootState) => state.activeEvaluation.evaluation);
   const [createArticulation, { isLoading: isSaving }] = useCreateArticulationMutation();
-  const audio = useArticulationAudio();
+  // Idioma/variante de la sesión: es el mismo estado que fija el hub, así que
+  // cambiarlo aquí lo cambia para toda la batería (y al revés). El T.A.R. no
+  // lo leía: presentaba el modelo con la voz por defecto del sistema,
+  // ignorando la lengua elegida.
+  const dispatch = useDispatch<AppDispatch>();
+  const sessionLanguage = useSelector((state: RootState) => state.locale.language);
+  const audio = useArticulationAudio(sessionLanguage);
   // Telemetría silenciosa (useRef, sin re-render). Módulo de referencia del
   // patrón de instrumentación por-reactivo; los otros 8 lo replican igual.
   const tracker = useTelemetryTracker();
@@ -337,6 +346,59 @@ export default function ArticulationTestScreen({ navigation }: Props) {
                   ))}
                 </VStack>
               </Card>
+
+              {/* ----- idioma / variante de la sesión ----- */}
+              {/* El inventario T.A.R. es castellano: lo que elige este selector
+                  es la VOZ con la que se presenta el modelo y la lengua con la
+                  que transcribe el reconocedor, no otras palabras. */}
+              <Card bgColor="$white" borderRadius={20} p="$5">
+                <HStack alignItems="center" space="sm" mb="$1">
+                  <Icon as={Languages} size="sm" color="$primary500" />
+                  <Text size="sm" weight="bold" color="$textLight800" style={{ textTransform: 'uppercase', letterSpacing: 0.4 }}>
+                    Voz del modelo hablado
+                  </Text>
+                </HStack>
+                <Text size="xs" color="$textLight600" mb="$3">
+                  Determina con qué voz se presenta cada palabra y en qué lengua transcribe el
+                  reconocimiento. Es el idioma de la sesión: cambiarlo aquí lo cambia en toda la
+                  batería.
+                </Text>
+                <HStack space="sm" flexWrap="wrap" style={{ rowGap: 8 }}>
+                  {SESSION_LANGS.map(l => {
+                    const on = sessionLanguage === l;
+                    return (
+                      <Pressable key={l} onPress={() => dispatch(setSessionLanguage(l))}>
+                        <Center
+                          px="$3.5"
+                          py="$2"
+                          borderRadius="$full"
+                          bg={on ? '$primary500' : '$white'}
+                          borderWidth={1.5}
+                          borderColor={on ? '$primary500' : '$borderLight200'}>
+                          <Text size="2xs" weight="bold" color={on ? '$white' : '$textLight600'}>
+                            {SESSION_LANG_LABEL[l] ?? l}
+                          </Text>
+                        </Center>
+                      </Pressable>
+                    );
+                  })}
+                </HStack>
+                <Text size="2xs" color="$textLight400" mt="$3" style={{ lineHeight: 15 }}>
+                  El inventario fonético es del español: gallego y euskera cambian la voz, no las
+                  palabras.
+                </Text>
+              </Card>
+
+              {!audio.modelVoiceAvailable ? (
+                <HStack space="sm" alignItems="flex-start" p="$3.5" borderRadius={16} bg="$warning50" borderWidth={1} borderColor="$warning200">
+                  <Icon as={Info} size="sm" color="$warning700" style={{ marginTop: 1 }} />
+                  <Text size="xs" color="$warning800" style={{ flex: 1, lineHeight: 18 }}>
+                    Sin voz disponible para el modelo hablado: no hay locuciones empaquetadas ni voz
+                    del sistema utilizable. Presente el modelo con su propia voz; el registro SODA
+                    funciona igual.
+                  </Text>
+                </HStack>
+              ) : null}
 
               {!audio.available && !audio.recognitionAvailable ? (
                 <HStack space="sm" alignItems="flex-start" p="$3.5" borderRadius={16} bg="$warning50" borderWidth={1} borderColor="$warning200">

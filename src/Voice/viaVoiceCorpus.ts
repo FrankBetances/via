@@ -1,4 +1,4 @@
-import { CONSIGNAS } from './viaVoiceConsignas';
+import { VOICE_CONTENT_BANKS } from './viaVoiceConsignas';
 import { VOICE_LANGS, VoiceLang, VoiceStyle, voiceCorpusId } from './voiceCorpusId';
 
 /* -------------------------------------------------------------------------- */
@@ -27,14 +27,16 @@ export interface VoiceCorpusEntry {
 }
 
 /**
- * Construye el corpus completo recorriendo cada banco de contenido por lengua.
+ * Construye el corpus completo recorriendo todos los bancos de contenido
+ * (`VOICE_CONTENT_BANKS`: consignas de los mini-juegos y modelos del T.A.R.)
+ * por lengua.
  * Solo emite una entrada cuando la lengua tiene texto para esa consigna (una
  * lengua sin localizar no genera entradas: en runtime cae a la voz del
  * sistema). El idioma base `es` siempre está presente.
  */
 export const buildVoiceCorpus = (): VoiceCorpusEntry[] => {
   const entries: VoiceCorpusEntry[] = [];
-  for (const spec of CONSIGNAS) {
+  for (const spec of VOICE_CONTENT_BANKS) {
     for (const lang of VOICE_LANGS) {
       const text = spec.text[lang];
       if (typeof text !== 'string' || text.trim() === '') continue;

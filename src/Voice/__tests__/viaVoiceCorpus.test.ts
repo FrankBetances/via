@@ -1,4 +1,4 @@
-import { CONSIGNAS } from '../viaVoiceConsignas';
+import { VOICE_CONTENT_BANKS } from '../viaVoiceConsignas';
 import { buildVoiceCorpus, voiceCorpusStats } from '../viaVoiceCorpus';
 import { resolveVoiceAsset, toVoiceLang } from '../viaVoiceResolve';
 import { VOICE_ASSETS } from '../viaVoiceAssets';
@@ -26,10 +26,10 @@ describe('buildVoiceCorpus', () => {
     }
   });
 
-  it('la base `es` enumera TODAS las consignas declaradas', () => {
+  it('la base `es` enumera TODO el contenido locutable declarado', () => {
     const esEntries = corpus.filter(e => e.lang === 'es');
-    expect(esEntries).toHaveLength(CONSIGNAS.length);
-    for (const spec of CONSIGNAS) {
+    expect(esEntries).toHaveLength(VOICE_CONTENT_BANKS.length);
+    for (const spec of VOICE_CONTENT_BANKS) {
       expect(esEntries.some(e => e.text === spec.text.es)).toBe(true);
     }
   });
@@ -37,7 +37,7 @@ describe('buildVoiceCorpus', () => {
   it('solo enumera una lengua cuando esa lengua tiene texto (sin vacíos)', () => {
     for (const e of corpus) {
       expect(e.text.trim()).not.toBe('');
-      expect(CONSIGNAS.some(s => s.text[e.lang] === e.text)).toBe(true);
+      expect(VOICE_CONTENT_BANKS.some(s => s.text[e.lang] === e.text)).toBe(true);
     }
   });
 

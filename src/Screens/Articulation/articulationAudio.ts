@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
+import { canSpeak, speak, stopSpeaking } from '@/Voice';
+
 /* -------------------------------------------------------------------------- */
 /*  Adaptador de audio del T.A.R.                                              */
 /*  Tres capacidades, todas con DEGRADACIÓN (principio VIA+): si la librería   */
@@ -7,19 +9,29 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 /*  (el clínico clasifica SODA manualmente) y la bandera correspondiente queda */
 /*  en `false`, de modo que la UI muestra el chip de «modo limitado».          */
 /*                                                                              */
-/*   1. Modelo hablado (TTS)         → `react-native-tts`                       */
+/*   1. Modelo hablado               → capa de voz `@/Voice` (ver abajo)        */
 /*   2. Grabación de la repetición   → `react-native-audio-recorder-player`     */
 /*      (Android: MediaRecorder · iOS: AVAudioRecorder · grabación + playback)  */
 /*   3. Reconocimiento de voz        → `@react-native-voice/voice`              */
-/*      (Android: SpeechRecognizer · iOS: SFSpeechRecognizer · es-ES)           */
+/*      (Android: SpeechRecognizer · iOS: SFSpeechRecognizer)                   */
 /*   ·  Permisos de micrófono        → `react-native-permissions`               */
+/*                                                                              */
+/*  MODELO HABLADO — el módulo montaba su PROPIO `react-native-tts` con        */
+/*  `setDefaultLanguage('es-ES')` fijo y llamaba a `speak(word)` a secas: sin   */
+/*  elegir voz, el motor dictaba con la que el sistema tuviera por defecto (la  */
+/*  clásica, y en un dispositivo sin datos de español incluso en inglés), y el  */
+/*  idioma de la sesión no le llegaba nunca. Ahora el modelo pasa por `@/Voice` */
+/*  como el resto de la app, que resuelve en este orden: recorte NEURONAL       */
+/*  pre-sintetizado de la lengua → recorte neuronal base `es` → voz del sistema */
+/*  con la MEJOR voz verificada de esa lengua (`pickVoiceForLang` prioriza las  */
+/*  neurales) → silencio. Un solo motor de voz en toda la app, y el T.A.R.      */
+/*  hereda gratis las locuciones que sintetice el pipeline.                     */
 /* -------------------------------------------------------------------------- */
 
 /* Metro exige literales en `require(...)` para poder empaquetar el módulo: un
  * nombre de variable (`require(name)`) rompe el build de producción aunque la
  * librería esté instalada. Por eso cada caso usa su propio `require` literal. */
 type OptionalLibName =
-  | 'react-native-tts'
   | 'react-native-audio-recorder-player'
   | '@react-native-voice/voice'
   | 'react-native-permissions';
@@ -27,8 +39,6 @@ type OptionalLibName =
 const optionalRequire = (name: OptionalLibName): any => {
   try {
     switch (name) {
-      case 'react-native-tts':
-        return require('react-native-tts');
       case 'react-native-audio-recorder-player':
         return require('react-native-audio-recorder-player');
       case '@react-native-voice/voice':
@@ -41,26 +51,42 @@ const optionalRequire = (name: OptionalLibName): any => {
   }
 };
 
+/**
+ * Etiqueta BCP-47 del reconocedor de voz para cada lengua de sesión. El
+ * reconocimiento iba clavado a 'es-ES': una sesión dominicana se transcribía
+ * con el modelo peninsular y una gallega o vasca, directamente con el
+ * castellano. Si el dispositivo no trae el modelo pedido, `startRecognition`
+ * reintenta con la lengua base (mejor transcribir con acento ajeno que no
+ * transcribir).
+ */
+const RECOGNITION_LOCALE: Record<string, string> = {
+  es: 'es-ES',
+  'es-DO': 'es-DO',
+  gl: 'gl-ES',
+  eu: 'eu-ES',
+};
+
+/** Lengua a la que degrada el reconocedor si no hay modelo para la pedida. */
+const RECOGNITION_FALLBACK = 'es-ES';
+
 /* ───────────────────────────────────────────────────────────────────────────
  * ACTIVAR AUDIO REAL (recomendado para producción)
  * Por defecto se resuelve con `require` opcional (envuelto en try/catch): el
  * build NO se rompe si las librerías no están instaladas y el módulo
- * funciona en modo limitado (SODA manual). Para integrar TTS + grabación +
+ * funciona en modo limitado (SODA manual). Para integrar grabación +
  * reconocimiento reales:
  *   1) instala las deps (ver LEEME §5) y `cd ios && pod install`.
- *   2) descomenta las 4 líneas `import` y las 4 asignaciones de abajo.
+ *   2) descomenta las 3 líneas `import` y las 3 asignaciones de abajo.
  * El import LITERAL garantiza que Metro EMPAQUETE los módulos nativos (un
  * require dinámico podría no incluirlos en el bundle aunque estén instalados).
+ * El TTS ya no aparece aquí: el modelo hablado lo sirve `@/Voice`.
  * ─────────────────────────────────────────────────────────────────────────── */
-// import TtsLib from 'react-native-tts';
 // import AudioRecorderPlayerLib from 'react-native-audio-recorder-player';
 // import VoiceLib from '@react-native-voice/voice';
 // import * as PermissionsLib from 'react-native-permissions';
-let RN_TTS: any = null;
 let RN_RECORDER: any = null;
 let RN_VOICE: any = null;
 let RN_PERMISSIONS: any = null;
-// RN_TTS = TtsLib;
 // RN_RECORDER = AudioRecorderPlayerLib;
 // RN_VOICE = VoiceLib;
 // RN_PERMISSIONS = PermissionsLib;
@@ -73,6 +99,8 @@ export type RecStatus = 'idle' | 'recording' | 'ready';
 export interface ArticulationAudio {
   available: boolean;            // hay motor de grabación
   recognitionAvailable: boolean; // hay motor de reconocimiento de voz
+  /** Hay alguna vía para el modelo hablado (recorte neuronal o voz del sistema). */
+  modelVoiceAvailable: boolean;
   micGranted: boolean;           // permiso de micrófono concedido
   speaking: boolean;
   recStatus: RecStatus;
@@ -119,7 +147,12 @@ export const matchesTarget = (target: string, heard: string): boolean => {
 /*  Hook                                                                       */
 /* -------------------------------------------------------------------------- */
 
-export function useArticulationAudio(): ArticulationAudio {
+/**
+ * `lang` es el idioma/variante de la SESIÓN (`state.locale.language`): decide
+ * con qué voz se presenta el modelo hablado y en qué lengua transcribe el
+ * reconocedor. Por defecto castellano, que es el idioma base del inventario.
+ */
+export function useArticulationAudio(lang: string = 'es'): ArticulationAudio {
   const [speaking, setSpeaking] = useState(false);
   const [recStatus, setRecStatus] = useState<RecStatus>('idle');
   const [audioUri, setAudioUri] = useState<string | null>(null);
@@ -128,29 +161,20 @@ export function useArticulationAudio(): ArticulationAudio {
   const [transcript, setTranscript] = useState('');
   const [matched, setMatched] = useState<boolean | null>(null);
 
-  const ttsRef = useRef<any>(null);
   const recorderRef = useRef<any>(null);
   const voiceRef = useRef<any>(null);
   const targetRef = useRef<string>('');
+  const langRef = useRef<string>(lang);
+  langRef.current = lang;
+  /** Salvaguarda del indicador «hablando» (el asset/TTS no siempre avisa). */
+  const speakTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const availableRef = useRef<boolean>(false);      // grabación
   const recognitionRef = useRef<boolean>(false);    // reconocimiento
 
   /* ---------------------------- init libs ----------------------------- */
   useEffect(() => {
-    // 1) TTS
-    const ttsMod = resolveLib(RN_TTS, 'react-native-tts');
-    if (ttsMod) {
-      ttsRef.current = ttsMod.default ?? ttsMod;
-      try {
-        ttsRef.current.setDefaultLanguage?.('es-ES');
-        ttsRef.current.setDefaultRate?.(0.42);
-      } catch (_e) {
-        /* noop */
-      }
-    }
-
-    // 2) Grabación + playback
+    // 1) Grabación + playback
     const recMod = resolveLib(RN_RECORDER, 'react-native-audio-recorder-player');
     const RecorderPlayer = recMod?.default ?? recMod;
     if (RecorderPlayer) {
@@ -162,7 +186,7 @@ export function useArticulationAudio(): ArticulationAudio {
       }
     }
 
-    // 3) Reconocimiento de voz
+    // 2) Reconocimiento de voz
     const voiceMod = resolveLib(RN_VOICE, '@react-native-voice/voice');
     const Voice = voiceMod?.default ?? voiceMod;
     if (Voice) {
@@ -182,8 +206,9 @@ export function useArticulationAudio(): ArticulationAudio {
     }
 
     return () => {
+      if (speakTimerRef.current) clearTimeout(speakTimerRef.current);
       try {
-        ttsRef.current?.stop?.();
+        stopSpeaking();
       } catch (_e) {
         /* noop */
       }
@@ -222,18 +247,25 @@ export function useArticulationAudio(): ArticulationAudio {
     }
   }, []);
 
-  /* ---------------------------- TTS modelo ---------------------------- */
+  /* --------------------------- modelo hablado -------------------------- */
+  /**
+   * Presenta el modelo con la voz de la lengua de sesión. `@/Voice` elige la
+   * mejor vía disponible (recorte neuronal → voz verificada del sistema) y es
+   * silencioso si no hay ninguna: en ese caso el clínico pronuncia el modelo,
+   * que es la degradación prevista del módulo.
+   *
+   * El estilo es `tutor`, el mismo con el que el pipeline sintetiza el resto
+   * de locuciones habladas de la app: la palabra tiene asset propio en cuanto
+   * el corpus se sintetiza (ver `TAR_MODELS` en `viaVoiceConsignas.ts`).
+   */
   const speakModel = useCallback((word: string) => {
-    const tts = ttsRef.current;
-    if (!tts) return; // sin TTS: el clínico pronuncia el modelo manualmente
     try {
-      tts.stop?.();
       setSpeaking(true);
-      const onFinish = () => setSpeaking(false);
-      tts.addEventListener?.('tts-finish', onFinish);
-      tts.addEventListener?.('tts-cancel', onFinish);
-      tts.speak?.(word);
-      setTimeout(() => setSpeaking(false), 2500); // salvaguarda
+      speak('tutor', word, langRef.current);
+      // Salvaguarda: ni el reproductor de recortes ni el TTS garantizan un
+      // evento de fin, y el indicador no puede quedarse encendido.
+      if (speakTimerRef.current) clearTimeout(speakTimerRef.current);
+      speakTimerRef.current = setTimeout(() => setSpeaking(false), 2500);
     } catch (_e) {
       setSpeaking(false);
     }
@@ -245,11 +277,25 @@ export function useArticulationAudio(): ArticulationAudio {
     targetRef.current = targetWord ?? '';
     setTranscript('');
     setMatched(null);
+    const locale = RECOGNITION_LOCALE[langRef.current] ?? RECOGNITION_FALLBACK;
     try {
-      await voiceRef.current?.start?.('es-ES');
+      await voiceRef.current?.start?.(locale);
       setRecognizing(true);
     } catch (_e) {
-      setRecognizing(false);
+      // El dispositivo no trae ese modelo de reconocimiento (habitual en
+      // gl/eu y en variantes como es-DO). Se reintenta con la lengua base
+      // antes de rendirse: transcribir con acento ajeno sigue siendo más útil
+      // que no transcribir, y la clasificación SODA la firma el clínico.
+      if (locale === RECOGNITION_FALLBACK) {
+        setRecognizing(false);
+        return;
+      }
+      try {
+        await voiceRef.current?.start?.(RECOGNITION_FALLBACK);
+        setRecognizing(true);
+      } catch (_e2) {
+        setRecognizing(false);
+      }
     }
   }, []);
 
@@ -322,6 +368,13 @@ export function useArticulationAudio(): ArticulationAudio {
     setTranscript('');
     setMatched(null);
     setRecognizing(false);
+    setSpeaking(false);
+    if (speakTimerRef.current) clearTimeout(speakTimerRef.current);
+    try {
+      stopSpeaking();
+    } catch (_e) {
+      /* noop */
+    }
     try {
       recorderRef.current?.stopRecorder?.();
       recorderRef.current?.stopPlayer?.();
@@ -338,6 +391,7 @@ export function useArticulationAudio(): ArticulationAudio {
   return {
     available: availableRef.current,
     recognitionAvailable: recognitionRef.current,
+    modelVoiceAvailable: canSpeak(),
     micGranted,
     speaking,
     recStatus,

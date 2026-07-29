@@ -20,7 +20,7 @@ export type { VoiceStyle, VoiceLang } from './voiceCorpusId';
 export { buildVoiceCorpus, voiceCorpusStats } from './viaVoiceCorpus';
 export type { VoiceCorpusEntry, VoiceCorpusStats } from './viaVoiceCorpus';
 
-export { CONSIGNAS, efConsignaText } from './viaVoiceConsignas';
+export { CONSIGNAS, TAR_MODELS, VOICE_CONTENT_BANKS, efConsignaText } from './viaVoiceConsignas';
 export type { ConsignaSpec, ConsignaText } from './viaVoiceConsignas';
 
 export { resolveVoiceAsset, toVoiceLang } from './viaVoiceResolve';
