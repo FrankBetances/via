@@ -126,19 +126,14 @@ describe('audiometría verbal · el recorte es la vía primaria', () => {
     expect(Tts.speak).not.toHaveBeenCalled();
   });
 
-  it('sin banco de locuciones (gl, eu) degrada a la voz del sistema', async () => {
-    // Degradación declarada: es lo único disponible hasta que se sintetice el
-    // banco de esas lenguas con el pipeline neural.
-    for (const lang of ['gl', 'eu']) {
-      const adapter = await install();
-      adapter.playWord('pan', 'ogi', 65, lang);
-      await flush();
-      expect(audioApi.__starts).toHaveLength(0);
-      expect(Tts.speak).toHaveBeenCalled();
-      cleanup?.();
-      cleanup = null;
-      Tts.speak.mockClear();
-    }
+  it('un idioma SIN recorte para esa palabra degrada a la voz del sistema', async () => {
+    // Degradación declarada y honesta: un idioma completo nunca reproduce el
+    // recorte castellano en su lugar, porque sería otro estímulo.
+    const adapter = await install();
+    adapter.playWord('inexistente', 'ogi', 65, 'gl');
+    await flush();
+    expect(audioApi.__starts).toHaveLength(0);
+    expect(Tts.speak).toHaveBeenCalled();
   });
 
   it('si el recorte no decodifica, la palabra cae a la voz del sistema', async () => {

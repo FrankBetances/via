@@ -57,11 +57,16 @@ export const VERBAL_BANK_PROVISIONAL: readonly VerbalLang[] = ['eu'];
  * validar: las listas son las firmadas, pero el ESTÍMULO no es el definitivo,
  * así que el nivel es aún menos comparable y conviene advertirlo.
  *
- * `gl` sale de aquí cuando el hito M4 del plan Nós sintetice el banco con la
- * voz Celtia y se firme la escucha (T4.4); `eu`, cuando se decida la voz vasca
- * (ver `tools/nos/voices.json`) y se sintetice su banco.
+ * VACÍO: los cuatro idiomas tienen ya su banco locutado con voz neural —`es` y
+ * `es-DO` con Piper, `gl` con Celtia (Proxecto Nós) y `eu` con Maider
+ * (AhoTTS · HiTZ/Aholab)—. Sigue siendo síntesis provisional: la producción
+ * clínica final es locutor profesional, archivo a archivo con la misma clave.
+ *
+ * Esta lista la vigila `scripts/check-verbal-coverage.js --strict`, que bloquea
+ * el empaquetado del APK si deja de coincidir con los recortes que hay en
+ * disco, en los dos sentidos.
  */
-export const VERBAL_AUDIO_PENDING: readonly VerbalLang[] = ['gl', 'eu'];
+export const VERBAL_AUDIO_PENDING: readonly VerbalLang[] = [];
 
 /** Banco de estímulos del idioma/variante indicado. */
 export const getVerbalBands = (lang: string): VerbalBandDef[] => {

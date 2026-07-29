@@ -76,13 +76,33 @@ describe('getVerbalBands · registro por idioma', () => {
     expect(VERBAL_BANK_PROVISIONAL).not.toContain('gl');
   });
 
-  it('el audio gl SÍ sigue pendiente: la firma del banco no arrastra la del audio', () => {
-    // Distinción importante: las listas están validadas, pero las locuciones
-    // gallegas no existen (hito M4). Marcar el idioma como «todo aprobado»
-    // ocultaría al profesional que el estímulo que oye no es el definitivo.
-    expect(VERBAL_AUDIO_PENDING).toContain('gl');
+  it('el audio gl ya NO está pendiente: el pipeline neural lo sintetizó', () => {
+    // Distinción que sigue importando: la firma del BANCO (listas, ACOPROS) y
+    // la del AUDIO son cosas distintas. Lo que cambió es el hecho material —
+    // el gallego ya tiene sus locuciones propias con la voz Celtia, así que el
+    // aviso de «se dicta con la voz del dispositivo» sería falso.
+    expect(VERBAL_AUDIO_PENDING).not.toContain('gl');
+    expect(VERBAL_AUDIO_PENDING).not.toContain('eu');
     expect(VERBAL_AUDIO_PENDING).not.toContain('es');
     expect(VERBAL_AUDIO_PENDING).not.toContain('es-DO');
+  });
+
+  it('todo idioma registrado con recortes propios es alcanzable desde la app', () => {
+    // Que la lista esté vacía tiene que corresponderse con recortes REALES en
+    // disco: si alguien la vacía sin sintetizar, la pantalla deja de advertir
+    // que se dicta con la voz del sistema y el profesional no se entera.
+    for (const lang of VERBAL_BANK_LANGS) {
+      if (VERBAL_AUDIO_PENDING.includes(lang)) continue;
+      const dir = path.join(
+        ROOT, 'assets', 'audio', 'verbal', ...(lang === 'es' ? [] : [lang]),
+      );
+      const keys = new Set<string>();
+      for (const band of getVerbalBands(lang)) {
+        for (const item of band.items) keys.add(item.audio);
+      }
+      const missing = [...keys].filter(k => !fs.existsSync(path.join(dir, `${k}.m4a`)));
+      expect({ lang, missing }).toEqual({ lang, missing: [] });
+    }
   });
 
   it('un idioma sin banco registrado falla explícitamente', () => {

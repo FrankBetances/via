@@ -2,6 +2,8 @@ import { ImageSourcePropType } from 'react-native';
 
 import { verbalAudioBase64, verbalAudioSource, verbalImageSource } from './verbalAssets';
 import { VERBAL_AUDIO_BASE64_ES_DO } from './verbalAudioClips.es-DO';
+import { VERBAL_AUDIO_BASE64_EU } from './verbalAudioClips.eu';
+import { VERBAL_AUDIO_BASE64_GL } from './verbalAudioClips.gl';
 import { VERBAL_GLYPHS } from './verbalAudiometryGlyphs';
 import { VERBAL_GLYPHS_EU } from './verbalAudiometryLists.eu';
 import { VERBAL_GLYPHS_GL } from './verbalAudiometryLists.gl';
@@ -26,26 +28,41 @@ import { VERBAL_GLYPHS_GL } from './verbalAudiometryLists.gl';
 /* -------------------------------------------------------------------------- */
 
 /**
- * Idiomas COMPLETOS (no variantes del castellano) sin locuciones propias
- * todavía. No degradan a los recortes castellanos: reproducir «mahai» con el
- * recorte de «mesa» sería un estímulo distinto del que se puntúa. Devuelven
- * `null` y el adaptador degrada a la voz del sistema, que es la degradación
- * honesta (y la pantalla lo advierte).
+ * Recortes propios de cada IDIOMA COMPLETO (los que no son variantes del
+ * castellano). Un idioma completo NUNCA degrada a los recortes castellanos:
+ * reproducir «mahai» con el recorte de «mesa» sería un estímulo distinto del
+ * que se puntúa. Si no tiene el suyo, devuelve `null` y el adaptador degrada a
+ * la voz del sistema, que es la degradación honesta (y la pantalla lo advierte).
+ *
+ * Este mapa estaba antes como una lista de idiomas «sin recortes» que devolvía
+ * `null` a secas. Cuando el pipeline neural sintetizó el gallego y el euskera,
+ * sus locuciones quedaron empaquetadas pero INACCESIBLES: la app las tenía en
+ * el bundle y seguía dictando con la voz del sistema. Resolviendo por mapa, un
+ * idioma pasa a sonar en cuanto su módulo de recortes existe.
  */
-const LANGS_WITHOUT_CLIPS = ['gl', 'eu'];
+const OWN_CLIPS: Record<string, Record<string, string>> = {
+  gl: VERBAL_AUDIO_BASE64_GL,
+  eu: VERBAL_AUDIO_BASE64_EU,
+};
+
+/** ¿Es un idioma completo (no una variante que hereda del castellano)? */
+const isCompleteLang = (lang?: string): lang is string => !!lang && lang in OWN_CLIPS;
 
 /** Recorte base64 de la palabra en la voz del idioma indicado. */
 export const verbalAudioBase64ForLang = (audioKey: string, lang?: string): string | null => {
   if (lang === 'es-DO') {
     return VERBAL_AUDIO_BASE64_ES_DO[audioKey] ?? verbalAudioBase64(audioKey);
   }
-  if (lang && LANGS_WITHOUT_CLIPS.includes(lang)) return null;
+  if (isCompleteLang(lang)) return OWN_CLIPS[lang][audioKey] ?? null;
   return verbalAudioBase64(audioKey);
 };
 
 /** Ruta local del recorte (vía secundaria; ver nota de degradación arriba). */
 export const verbalAudioSourceForLang = (audioKey: string, lang?: string): string | null => {
-  if (lang && LANGS_WITHOUT_CLIPS.includes(lang)) return null;
+  // Los idiomas completos se sirven por base64 (vía primaria en memoria); su
+  // ruta de asset no está registrada en `verbalAssets.ts`, que es del banco
+  // castellano, así que devolverla apuntaría al recorte equivocado.
+  if (isCompleteLang(lang)) return null;
   return verbalAudioSource(audioKey);
 };
 

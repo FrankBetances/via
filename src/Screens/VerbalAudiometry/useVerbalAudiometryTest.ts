@@ -36,6 +36,9 @@ import { getVerbalAudioAdapter } from './verbalAudiometryAudio';
 /** Duración estimada del recorte hablado (corte del estado `playing`). */
 const WORD_MS = 1800;
 
+/** Retardo de la auto-presentación al entrar en una lámina nueva. */
+export const AUTOPLAY_DELAY_MS = 900;
+
 export function useVerbalAudiometryTest(initialBand: AgeBand = 'A', initialLang: VerbalLang = 'es') {
   const [band, setBandState] = useState<AgeBand>(initialBand);
   // Idioma/variante de la sesión (T1.6/Q1.3): decide el banco de estímulos y
@@ -55,6 +58,9 @@ export function useVerbalAudiometryTest(initialBand: AgeBand = 'A', initialLang:
   const [chosen, setChosen] = useState<string | null>(null);
 
   const stopTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  /** Presentación del estímulo vigente, para que el efecto de
+   *  auto-presentación no dependa de la identidad de la función (ver abajo). */
+  const playStimulusRef = useRef<() => void>(() => {});
 
   /* ------------------------------ lámina actual --------------------------- */
 
@@ -108,6 +114,12 @@ export function useVerbalAudiometryTest(initialBand: AgeBand = 'A', initialLang:
     getVerbalAudioAdapter()?.prime?.(item.audio, lang);
   }, [item, lang]);
 
+  /**
+   * ¿Está la prueba en marcha? Lo declara la pantalla al entrar en la fase de
+   * juego. Gobierna la AUTO-PRESENTACIÓN del estímulo.
+   */
+  const [running, setRunning] = useState(false);
+
   const stop = useCallback(() => {
     if (stopTimer.current) {
       clearTimeout(stopTimer.current);
@@ -131,6 +143,34 @@ export function useVerbalAudiometryTest(initialBand: AgeBand = 'A', initialLang:
     setPlayed(true);
     emit();
   }, [item, answered, emit]);
+  playStimulusRef.current = playStimulus;
+
+  /* --------------------------- auto-presentación -------------------------- */
+
+  /**
+   * La palabra SUENA SOLA al entrar en cada lámina: el niño no tiene que pulsar
+   * nada para oír el estímulo, y las tarjetas se habilitan al sonar.
+   *
+   * Vive AQUÍ y no en la pantalla por dos razones, ambas aprendidas a base de
+   * fallos de campo:
+   *
+   *  · La regla es clínica, no de presentación: quién oye qué y cuándo es parte
+   *    del protocolo de la prueba, igual que `played` o `repeats`.
+   *  · En la pantalla dependía de valores que cambian de identidad en cada
+   *    render. Cualquier recálculo —cambio de idioma, de banda, de semilla, o
+   *    simplemente un re-render por telemetría— remontaba el efecto y su
+   *    `clearTimeout` CANCELABA la emisión pendiente. La lámina se quedaba muda
+   *    y había que darle a «repetir», que es exactamente lo reportado.
+   *
+   * `playStimulusRef` rompe esa fragilidad: el efecto depende solo de datos
+   * (clave de lámina, estado de respuesta), nunca de la identidad de una
+   * función, así que no puede volver a cancelarse por un re-render.
+   */
+  useEffect(() => {
+    if (!running || !stimulusKey || played || answered || completedForLevel) return;
+    const t = setTimeout(() => playStimulusRef.current(), AUTOPLAY_DELAY_MS);
+    return () => clearTimeout(t);
+  }, [running, stimulusKey, played, answered, completedForLevel]);
 
   /** Repetición del estímulo (ayuda registrada, máx. MAX_REPEATS). */
   const repeatStimulus = useCallback(() => {
@@ -269,6 +309,8 @@ export function useVerbalAudiometryTest(initialBand: AgeBand = 'A', initialLang:
     // lámina actual
     item,
     stimulusKey,
+    /** La pantalla declara aquí si la fase de juego está activa. */
+    setRunning,
     options,
     isPractice,
     itemIndex,

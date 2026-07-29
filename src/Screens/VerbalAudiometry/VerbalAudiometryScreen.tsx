@@ -67,8 +67,6 @@ const MODE_META: { key: VerbalMode; label: string; hint: string }[] = [
   { key: 'threshold', label: 'Umbral · URV', hint: 'desciende hasta ≈50 %' },
 ];
 
-/** Retardo de la auto-presentación del estímulo al entrar en una lámina. */
-const AUTOPLAY_DELAY_MS = 900;
 /** Tiempo de lectura del feedback antes de auto-avanzar (más si falló, para
  *  que vea la tarjeta correcta resaltada). */
 const ADVANCE_OK_MS = 1300;
@@ -103,20 +101,14 @@ export default function VerbalAudiometryScreen({ navigation }: Props) {
 
   /* ----------------------- autonomía de la fase de juego -------------------- */
 
-  // La palabra SUENA SOLA al entrar en cada lámina (el niño no tiene que
-  // pulsar nada para oír el estímulo; las tarjetas se habilitan al sonar).
-  //
-  // La dependencia es `stimulusKey` (id de ítem + nivel), NO el objeto
-  // `v.item`: al recalcularse la presentación —cambio de idioma, de banda o de
-  // semilla— el objeto cambiaba de identidad, el efecto se remontaba y su
-  // `clearTimeout` cancelaba la emisión pendiente. La lámina se quedaba muda y
-  // había que pulsar «repetir», que es exactamente lo reportado en campo.
+  // La auto-presentación del estímulo la gobierna el HOOK (regla clínica, no de
+  // presentación). Aquí solo se le dice si la fase de juego está activa: cuando
+  // el temporizador vivía en esta pantalla, cualquier re-render remontaba el
+  // efecto y cancelaba la emisión pendiente, dejando la lámina muda.
   useEffect(() => {
-    if (phase !== 'play' || !v.stimulusKey || v.played || v.completedForLevel) return;
-    const t = setTimeout(() => v.playStimulus(), AUTOPLAY_DELAY_MS);
-    return () => clearTimeout(t);
+    v.setRunning(phase === 'play');
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [phase, v.stimulusKey, v.played, v.completedForLevel]);
+  }, [phase]);
 
   // Tras responder, la pantalla avanza sola después del feedback.
   useEffect(() => {
