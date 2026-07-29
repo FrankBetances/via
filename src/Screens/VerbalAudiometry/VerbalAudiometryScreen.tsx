@@ -105,12 +105,18 @@ export default function VerbalAudiometryScreen({ navigation }: Props) {
 
   // La palabra SUENA SOLA al entrar en cada lámina (el niño no tiene que
   // pulsar nada para oír el estímulo; las tarjetas se habilitan al sonar).
+  //
+  // La dependencia es `stimulusKey` (id de ítem + nivel), NO el objeto
+  // `v.item`: al recalcularse la presentación —cambio de idioma, de banda o de
+  // semilla— el objeto cambiaba de identidad, el efecto se remontaba y su
+  // `clearTimeout` cancelaba la emisión pendiente. La lámina se quedaba muda y
+  // había que pulsar «repetir», que es exactamente lo reportado en campo.
   useEffect(() => {
-    if (phase !== 'play' || !v.item || v.played || v.completedForLevel) return;
+    if (phase !== 'play' || !v.stimulusKey || v.played || v.completedForLevel) return;
     const t = setTimeout(() => v.playStimulus(), AUTOPLAY_DELAY_MS);
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [phase, v.item, v.played, v.completedForLevel]);
+  }, [phase, v.stimulusKey, v.played, v.completedForLevel]);
 
   // Tras responder, la pantalla avanza sola después del feedback.
   useEffect(() => {

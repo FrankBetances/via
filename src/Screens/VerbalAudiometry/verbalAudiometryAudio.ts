@@ -84,6 +84,14 @@ export interface VerbalAudioAdapter {
    */
   playWord: (audioKey: string, word: string, levelDb: number, lang?: string) => void;
   /**
+   * Decodifica y cachea el recorte de una palabra SIN reproducirlo, para que
+   * la presentación siguiente suene de inmediato. La pantalla lo llama al
+   * mostrar cada lámina: sin esto, la primera emisión llegaba después de
+   * decodificar (base64 → PCM) y el estímulo se percibía como «no ha sonado».
+   * Opcional para no romper adaptadores de prueba ya registrados.
+   */
+  prime?: (audioKey: string, lang?: string) => void;
+  /**
    * Dicta un TEXTO arbitrario (consignas de otros módulos, p. ej. los
    * mini-juegos de funciones ejecutivas) con la voz VERIFICADA de `lang`, a
    * volumen pleno. Silencioso si el dispositivo no tiene voz utilizable: es
@@ -583,6 +591,19 @@ export function installVerbalAudioAdapter(opts: VerbalAudioAdapterOptions = {}):
       .catch(() => onFail?.());
   };
 
+  /**
+   * Precarga el recorte en la caché de buffers. Silencioso: si no hay recorte
+   * (gl/eu) o no decodifica, no pasa nada — `playWord` degradará igual.
+   */
+  const prime = (audioKey: string, lang?: string) => {
+    if (!ctx) return;
+    const cacheKey = `${lang ?? 'es'}:${audioKey}`;
+    if (bufferCache.has(cacheKey)) return;
+    decodeClip(audioKey, lang)
+      .then(buffer => bufferCache.set(cacheKey, buffer))
+      .catch(() => { /* sin recorte: la degradación la resuelve playWord */ });
+  };
+
   const playWord = (audioKey: string, word: string, levelDb: number, lang?: string) => {
     stop();
     const sessionLang = lang ?? 'es';
@@ -654,6 +675,7 @@ export function installVerbalAudioAdapter(opts: VerbalAudioAdapterOptions = {}):
 
   setVerbalAudioAdapter({
     playWord,
+    prime,
     speakText,
     ttsReady: () => ttsSpanishReady,
     ttsStatus,

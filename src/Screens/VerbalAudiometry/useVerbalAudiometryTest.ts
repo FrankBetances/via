@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import {
   AgeBand,
@@ -90,6 +90,23 @@ export function useVerbalAudiometryTest(initialBand: AgeBand = 'A', initialLang:
     practiceDone && presentation.length > 0 && itemIndex >= presentation.length;
 
   /* -------------------------------- estímulo ------------------------------ */
+
+  /**
+   * Identidad ESTABLE de la lámina en curso (id de ítem + nivel). La pantalla
+   * dispara la auto-presentación con esta clave y no con el objeto `item`:
+   * cualquier recálculo de `presentation` (cambio de idioma, de banda o de
+   * semilla) creaba un objeto nuevo, el efecto de auto-presentación se volvía
+   * a montar y CANCELABA su temporizador pendiente — la lámina se quedaba sin
+   * sonar y había que darle a «repetir».
+   */
+  const stimulusKey = item ? `${item.id}@${level}` : null;
+
+  // Precarga del recorte de la lámina en cuanto se muestra, para que la
+  // emisión no tenga que esperar a decodificar el audio.
+  useEffect(() => {
+    if (!item) return;
+    getVerbalAudioAdapter()?.prime?.(item.audio, lang);
+  }, [item, lang]);
 
   const stop = useCallback(() => {
     if (stopTimer.current) {
@@ -251,6 +268,7 @@ export function useVerbalAudiometryTest(initialBand: AgeBand = 'A', initialLang:
     setLevel,
     // lámina actual
     item,
+    stimulusKey,
     options,
     isPractice,
     itemIndex,

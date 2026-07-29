@@ -59,6 +59,37 @@ const CAPTURE_SR = SAMPLE_RATE * DECIMATE; // 48000
  *  entrega por el emisor de eventos (ver `stopRecording`). */
 const TAIL_DRAIN_MS = 120;
 
+/* -------------------------------------------------------------------------- */
+/*  CICLO DE VIDA DEL RECORDER (bug «el micrófono no captura»)                 */
+/*                                                                            */
+/*  `AudioRecorder` de react-native-audio-api 0.8 NO tiene `close()`: el       */
+/*  stream nativo se abre en el CONSTRUCTOR (AndroidAudioRecorder abre el      */
+/*  stream de entrada de Oboe con `SharingMode::Exclusive` en su constructor,  */
+/*  ver android/src/main/cpp/.../AndroidAudioRecorder.cpp) y solo se cierra    */
+/*  cuando el objeto se destruye, es decir, cuando el recolector de basura de  */
+/*  JS libera el host object. `stop()` únicamente hace `requestStop()`.        */
+/*                                                                            */
+/*  El adaptador construía un `AudioRecorder` NUEVO en cada grabación. Cada    */
+/*  toma dejaba, por tanto, un stream de entrada abierto a la espera del GC;   */
+/*  a partir de la segunda o tercera, abrir uno más falla —y falla EN          */
+/*  SILENCIO, porque el constructor nativo ignora el `Result` de `openStream`  */
+/*  y `start()` sobre un stream nulo no hace nada ni lanza—. El resultado es   */
+/*  exactamente lo reportado: el micrófono deja de capturar y no se genera     */
+/*  nada, sin ningún error.                                                    */
+/*                                                                            */
+/*  Además, cada `onAudioReady()` registra una suscripción nueva en el emisor  */
+/*  de eventos y solo la última queda conectada al nativo: las anteriores      */
+/*  quedaban vivas para siempre.                                               */
+/*                                                                            */
+/*  Solución: UN ÚNICO recorder por registro del adaptador, creado de forma    */
+/*  perezosa, con UNA sola suscripción `onAudioReady` que despacha al          */
+/*  consumidor vigente. `start`/`stop` reutilizan la misma instancia, que es   */
+/*  el ciclo que la librería contempla.                                        */
+/* -------------------------------------------------------------------------- */
+
+/** Sin bloques en este plazo tras arrancar, el stream está mudo. */
+const CAPTURE_WATCHDOG_MS = 1200;
+
 /* ------------------------------- permisos --------------------------------- */
 
 async function ensureMicPermission(): Promise<boolean> {
@@ -91,7 +122,17 @@ let disposeCurrent: (() => void) | null = null;
 export function registerVoiceMicAdapter(): boolean {
   if (registered) return true;
 
+  /** Recorder ÚNICO del adaptador (ver la nota de ciclo de vida de arriba). */
   let recorder: AudioRecorder | null = null;
+  /** ¿Está el stream nativo entregando bloques ahora mismo? */
+  let capturing = false;
+  /** Vigilante de «stream abierto pero mudo» de la toma en curso. */
+  let watchdog: ReturnType<typeof setTimeout> | null = null;
+
+  const clearWatchdog = () => {
+    if (watchdog) clearTimeout(watchdog);
+    watchdog = null;
+  };
   let chunks: Float32Array[] = [];
   let decimate: ((raw: Float32Array) => Float32Array) | null = null;
   /** Pasa-alto de acondicionado del feedback EN VIVO (la toma se guarda cruda
@@ -132,6 +173,53 @@ export function registerVoiceMicAdapter(): boolean {
     }
   };
 
+  /** Consumidor de feedback en vivo de la grabación en curso. */
+  let liveListener: ((frame: VoiceLiveFrame) => void) | null = null;
+
+  /**
+   * Devuelve el recorder del adaptador, creándolo (y suscribiéndose) UNA sola
+   * vez. Nunca se construye uno por grabación: ver la nota de ciclo de vida.
+   */
+  const ensureRecorder = (): AudioRecorder => {
+    if (recorder) return recorder;
+
+    const created = new AudioRecorder({
+      sampleRate: CAPTURE_SR,
+      bufferLengthInSamples: Math.round(CAPTURE_SR * 0.1), // ~100 ms
+    });
+
+    // Suscripción ÚNICA: despacha al estado de la grabación vigente.
+    created.onAudioReady(({ buffer }) => {
+      if (!capturing) return; // stream vivo pero fuera de una toma
+      try {
+        const raw = buffer.getChannelData(0) as Float32Array;
+        // Decimación ×3 con anti-alias → 16 kHz efectivos para el análisis.
+        const ds = decimate ? decimate(raw) : new Float32Array(0);
+        if (!ds.length) return;
+        blocksReceived += 1;
+        // La toma se guarda CRUDA (para que la reproducción suene como se
+        // grabó); el acondicionado se aplica al analizar.
+        chunks.push(ds);
+
+        if (liveListener) {
+          // El feedback en vivo sí se acondiciona aquí, con estado continuo.
+          const clean = liveHighpass.process(ds);
+          const win = clean.length >= FRAME ? clean.subarray(clean.length - FRAME) : clean;
+          let sum = 0;
+          for (let i = 0; i < win.length; i++) sum += win[i] * win[i];
+          const rms = Math.sqrt(sum / (win.length || 1));
+          const frame = win.length >= FRAME ? analyseFrame(win as Float32Array) : null;
+          liveListener({ f0: frame ? frame.f0 : null, rms });
+        }
+      } catch {
+        /* un bloque corrupto no debe tumbar la captura */
+      }
+    });
+
+    recorder = created;
+    return created;
+  };
+
   const adapter: VoiceMicAdapter = {
     sampleRate: SAMPLE_RATE,
 
@@ -147,38 +235,29 @@ export function registerVoiceMicAdapter(): boolean {
       blocksReceived = 0;
       decimate = createDecimator3();
       liveHighpass.reset();
-      recorder = new AudioRecorder({
-        sampleRate: CAPTURE_SR,
-        bufferLengthInSamples: Math.round(CAPTURE_SR * 0.1), // ~100 ms
-      });
+      liveListener = onLive ?? null;
 
-      recorder.onAudioReady(({ buffer }) => {
-        try {
-          const raw = buffer.getChannelData(0) as Float32Array;
-          // Decimación ×3 con anti-alias → 16 kHz efectivos para el análisis.
-          const ds = decimate ? decimate(raw) : new Float32Array(0);
-          if (!ds.length) return;
-          blocksReceived += 1;
-          // La toma se guarda CRUDA (para que la reproducción suene como se
-          // grabó); el acondicionado se aplica al analizar.
-          chunks.push(ds);
+      // El permiso puede acabar de concederse: el stream nativo se abre en el
+      // CONSTRUCTOR, así que crearlo aquí (y no antes) garantiza que se abre
+      // con el permiso ya vigente.
+      const active = ensureRecorder();
+      capturing = true;
+      active.start();
 
-          if (onLive) {
-            // El feedback en vivo sí se acondiciona aquí, con estado continuo.
-            const clean = liveHighpass.process(ds);
-            const win = clean.length >= FRAME ? clean.subarray(clean.length - FRAME) : clean;
-            let sum = 0;
-            for (let i = 0; i < win.length; i++) sum += win[i] * win[i];
-            const rms = Math.sqrt(sum / (win.length || 1));
-            const frame = win.length >= FRAME ? analyseFrame(win as Float32Array) : null;
-            onLive({ f0: frame ? frame.f0 : null, rms });
-          }
-        } catch {
-          /* un bloque corrupto no debe tumbar la captura */
+      // El motor nativo no informa de que el stream no se abrió: `start()`
+      // sobre un stream nulo no hace nada ni lanza. Si en este plazo no ha
+      // llegado ningún bloque, se avisa en vez de dejar la pantalla grabando
+      // un silencio que nunca existió.
+      clearWatchdog();
+      watchdog = setTimeout(() => {
+        watchdog = null;
+        if (capturing && blocksReceived === 0) {
+          console.warn(
+            'VIA+: el micrófono no entregó ningún bloque tras arrancar la captura ' +
+              '(¿ocupado por otra aplicación o silenciado por el sistema?)',
+          );
         }
-      });
-
-      recorder.start();
+      }, CAPTURE_WATCHDOG_MS);
     },
 
     stopRecording: async (): Promise<Float32Array> => {
@@ -187,7 +266,11 @@ export function registerVoiceMicAdapter(): boolean {
       } catch {
         /* noop */
       }
-      recorder = null;
+      // El recorder se CONSERVA (su stream nativo se reutiliza en la toma
+      // siguiente); solo se cierra al desregistrar el adaptador.
+      capturing = false;
+      clearWatchdog();
+      liveListener = null;
       decimate = null;
       endRecordingSession();
 
@@ -264,11 +347,17 @@ export function registerVoiceMicAdapter(): boolean {
   disposeCurrent = () => {
     stopPlayback();
     endRecordingSession();
+    capturing = false;
+    clearWatchdog();
+    liveListener = null;
     try {
       recorder?.stop();
     } catch {
       /* noop */
     }
+    // Única soltada de la referencia: el stream nativo se cierra cuando el GC
+    // libera el host object. Por eso hay UN recorder por adaptador y no uno
+    // por grabación (ver la nota de ciclo de vida).
     recorder = null;
     if (playbackCtx) {
       playbackCtx = null;

@@ -14,7 +14,7 @@ on:
       lang:
         description: "Idioma a sintetizar"
         type: choice
-        options: ["all", "es", "gl", "es-DO"]
+        options: ["all", "es", "gl", "eu", "es-DO"]
         default: "all"
       engine:
         description: "Motor de voz (neural = calidad; espeak = degradación sin pesos, no cubre gl)"

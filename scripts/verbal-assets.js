@@ -3,7 +3,7 @@
 /**
  * Pipeline de assets de la Audiometría Verbal (herramienta de desarrollo).
  *
- *   node scripts/verbal-assets.js manifest [--lang es|gl|es-DO]  → estado del banco + manifiesto
+ *   node scripts/verbal-assets.js manifest [--lang es|gl|eu|es-DO]  → estado del banco + manifiesto
  *   node scripts/verbal-assets.js images   [--lang …]         → ilustraciones PROVISIONALES (Chromium headless)
  *   node scripts/verbal-assets.js audio    [--lang …]         → locuciones PROVISIONALES (espeak-ng o motor neural)
  *   node scripts/verbal-assets.js registry                    → regenera src/Screens/VerbalAudiometry/verbalAssets.ts
@@ -242,7 +242,16 @@ function resolveFfmpeg() {
   throw new Error('ffmpeg no disponible (FFMPEG_BIN o en PATH)');
 }
 
-/** Voz espeak-ng por idioma (degradación clásica): es-419 = español LatAm. */
+/**
+ * Voz espeak-ng por idioma (degradación clásica, para entornos sin acceso a
+ * los pesos neuronales). `es-419` = español LatAm.
+ *
+ * espeak-ng SÍ trae voces gallega y vasca, pero NO se registran aquí a
+ * propósito: su calidad no da para un estímulo clínico y tenerlas disponibles
+ * invitaría a empaquetar un banco que suena peor que la voz del propio
+ * dispositivo. `gl` y `eu` se sintetizan con el motor neural o no se
+ * sintetizan (ver `tools/nos/voices.json`).
+ */
 const ESPEAK_VOICES = { es: 'es', 'es-DO': 'es-419' };
 
 /** WAVs provisionales con espeak-ng (voz clásica, ritmo de palabra aislada). */
@@ -254,7 +263,8 @@ function synthEspeak(entries, tmp, lang) {
   }
 }
 
-/** WAVs con el motor de voz neural (tools/nos/tts.py: Piper es/es-DO, Celtia gl). */
+/** WAVs con el motor de voz neural (tools/nos/tts.py: Piper es/es-DO, Celtia gl,
+ *  voz vasca pendiente de ADR — el script falla con un mensaje claro si no la hay). */
 function synthNeural(entries, tmp, lang) {
   const python = process.env.NOS_PYTHON
     || (fs.existsSync(path.join(ROOT, 'tools', 'nos', '.venv', 'bin', 'python'))
@@ -487,7 +497,7 @@ async function main() {
   const langIdx = args.indexOf('--lang');
   const lang = langIdx >= 0 ? args[langIdx + 1] : 'es';
   if (langIdx >= 0) args.splice(langIdx, 2);
-  if (!lang) throw new Error('--lang requiere un valor (es | gl | es-DO)');
+  if (!lang) throw new Error('--lang requiere un valor (es | gl | eu | es-DO)');
   const cmd = args[0] || 'manifest';
 
   const mods = loadVerbalModules(lang); // valida el idioma contra el registro de bancos

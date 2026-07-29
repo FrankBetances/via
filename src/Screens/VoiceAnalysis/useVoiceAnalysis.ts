@@ -71,6 +71,10 @@ export const setVoiceMicAdapter = (adapter: VoiceMicAdapter | null) => {
   micListeners.forEach(listener => listener());
 };
 
+/** Adaptador registrado (simétrico del registro; lo usan las pruebas del
+ *  adaptador y el diagnóstico). `null` si no hay ninguno. */
+export const getVoiceMicAdapter = (): VoiceMicAdapter | null => micAdapter;
+
 /* -------------------------------------------------------------------------- */
 /*  Tipos de estado de la captura                                              */
 /* -------------------------------------------------------------------------- */

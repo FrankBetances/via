@@ -111,15 +111,91 @@ export function registerNoiseMicAdapter(): boolean {
   const chain = createNoiseWeightingChain(CAPTURE_SR);
   let releaseSession: (() => void) | null = null;
 
-  const teardownNative = () => {
+  /** ¿Está la medición activa? (el stream vive entre mediciones). */
+  let capturing = false;
+
+  /** Detiene la medición conservando el recorder para la siguiente. */
+  const pauseCapture = () => {
+    capturing = false;
     try {
       recorder?.stop();
     } catch {
       /* noop */
     }
-    recorder = null;
     releaseSession?.();
     releaseSession = null;
+  };
+
+  /** Cierra del todo (solo al desregistrar el adaptador). */
+  const teardownNative = () => {
+    pauseCapture();
+    recorder = null;
+  };
+
+  /**
+   * Recorder ÚNICO del adaptador, creado y suscrito una sola vez.
+   *
+   * `AudioRecorder` de react-native-audio-api 0.8 abre el stream nativo en el
+   * CONSTRUCTOR y no expone `close()`: solo se cierra cuando el GC libera el
+   * host object. Construir uno por medición dejaba streams de entrada abiertos
+   * a la espera del recolector y, cuando la apertura del siguiente fallaba, el
+   * constructor nativo se lo tragaba (ignora el `Result` de `openStream`) y
+   * `start()` no hacía nada ni lanzaba: el sonómetro se quedaba mudo sin ningún
+   * error. Además cada `onAudioReady()` deja una suscripción viva y solo la
+   * última queda conectada.
+   */
+  const ensureRecorder = (): AudioRecorder => {
+    if (recorder) return recorder;
+
+    const created = new AudioRecorder({
+      sampleRate: CAPTURE_SR,
+      bufferLengthInSamples: BUFFER_SAMPLES,
+    });
+
+    created.onAudioReady(({ buffer }) => {
+      if (!capturing) return; // stream vivo pero sin medición en curso
+      try {
+        const pcm = buffer.getChannelData(0) as Float32Array;
+        if (!pcm.length) return;
+        blocks += 1;
+
+        // El filtro SÍ consume el bloque de calentamiento (necesita esas
+        // muestras para asentarse), pero su salida no se mide.
+        const weighted = chain.process(pcm);
+        if (blocks <= WARMUP_BLOCKS) return;
+
+        // Bloque saturado: nivel real desconocido, no entra en la medición.
+        if (isBlockClipped(pcm)) {
+          clipped += 1;
+          return;
+        }
+
+        // Nivel: promedio ENERGÉTICO entre bloques (Leq) sobre la señal
+        // PONDERADA A → dB(A) estable, en vez del RMS sin ponderar de un
+        // único bloque de 100 ms (que salta varios dB por frame y además
+        // sobreestima por el retumbe de baja frecuencia).
+        const blockMs = meanSquare(weighted);
+        leqMs = updateLeqMeanSquare(leqMs, blockMs, LEQ_ALPHA);
+        lastDb = meanSquareToSpl(leqMs);
+
+        // Nivel SIN suavizar del bloque, para la estadística de la medición
+        // (LAeq y percentiles): un percentil sobre la señal ya promediada
+        // no distingue el fondo de la sala de sus picos.
+        pendingBlockDb.push(meanSquareToSpl(blockMs));
+        if (pendingBlockDb.length > MAX_BLOCK_HISTORY) {
+          pendingBlockDb.splice(0, pendingBlockDb.length - MAX_BLOCK_HISTORY);
+        }
+
+        // Espectro: FFT real por bandas log de frecuencia, suavizado.
+        bandsEma = smoothBands(bandsEma, spectrumBands(pcm, CAPTURE_SR), SPECTRUM_ALPHA);
+        lastLevels = bandsEma;
+      } catch {
+        /* un bloque corrupto no debe tumbar la medición */
+      }
+    });
+
+    recorder = created;
+    return created;
   };
 
   const adapter: NoiseMicAdapter = {
@@ -127,10 +203,9 @@ export function registerNoiseMicAdapter(): boolean {
       const granted = await ensureMicPermission();
       if (!granted) throw new Error('Permiso de micrófono denegado');
 
-      // Un arranque nuevo no debe heredar el recorder de una medición previa
-      // que quedase a medias: era la vía por la que el sonómetro se quedaba
-      // «pillado» sin entregar bloques al reabrir la pantalla.
-      teardownNative();
+      // Una medición nueva no arrastra el estado de la anterior; el stream
+      // nativo SÍ se reutiliza (ver `ensureRecorder`).
+      pauseCapture();
 
       // Estado limpio en cada arranque (no arrastrar energía de una medición previa).
       leqMs = null;
@@ -147,53 +222,11 @@ export function registerNoiseMicAdapter(): boolean {
       releaseSession = acquireRecordingSession();
 
       try {
-        recorder = new AudioRecorder({
-          sampleRate: CAPTURE_SR,
-          bufferLengthInSamples: BUFFER_SAMPLES,
-        });
-
-        recorder.onAudioReady(({ buffer }) => {
-          try {
-            const pcm = buffer.getChannelData(0) as Float32Array;
-            if (!pcm.length) return;
-            blocks += 1;
-
-            // El filtro SÍ consume el bloque de calentamiento (necesita esas
-            // muestras para asentarse), pero su salida no se mide.
-            const weighted = chain.process(pcm);
-            if (blocks <= WARMUP_BLOCKS) return;
-
-            // Bloque saturado: nivel real desconocido, no entra en la medición.
-            if (isBlockClipped(pcm)) {
-              clipped += 1;
-              return;
-            }
-
-            // Nivel: promedio ENERGÉTICO entre bloques (Leq) sobre la señal
-            // PONDERADA A → dB(A) estable, en vez del RMS sin ponderar de un
-            // único bloque de 100 ms (que salta varios dB por frame y además
-            // sobreestima por el retumbe de baja frecuencia).
-            const blockMs = meanSquare(weighted);
-            leqMs = updateLeqMeanSquare(leqMs, blockMs, LEQ_ALPHA);
-            lastDb = meanSquareToSpl(leqMs);
-
-            // Nivel SIN suavizar del bloque, para la estadística de la medición
-            // (LAeq y percentiles): un percentil sobre la señal ya promediada
-            // no distingue el fondo de la sala de sus picos.
-            pendingBlockDb.push(meanSquareToSpl(blockMs));
-            if (pendingBlockDb.length > MAX_BLOCK_HISTORY) {
-              pendingBlockDb.splice(0, pendingBlockDb.length - MAX_BLOCK_HISTORY);
-            }
-
-            // Espectro: FFT real por bandas log de frecuencia, suavizado.
-            bandsEma = smoothBands(bandsEma, spectrumBands(pcm, CAPTURE_SR), SPECTRUM_ALPHA);
-            lastLevels = bandsEma;
-          } catch {
-            /* un bloque corrupto no debe tumbar la medición */
-          }
-        });
-
-        recorder.start();
+        // Se crea con el permiso ya concedido: el stream se abre en el
+        // constructor del recorder.
+        const active = ensureRecorder();
+        capturing = true;
+        active.start();
       } catch (e) {
         // El motor nativo no pudo abrir la entrada: se informa en vez de dejar
         // la pantalla midiendo un stream que nunca entregará muestras.
@@ -204,7 +237,7 @@ export function registerNoiseMicAdapter(): boolean {
       }
     },
     stop: () => {
-      teardownNative();
+      pauseCapture();
       lastDb = null;
       lastLevels = null;
       leqMs = null;

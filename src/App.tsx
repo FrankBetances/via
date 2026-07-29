@@ -34,20 +34,27 @@ function AppShell() {
 
   // Motor de palabras de la audiometría verbal (campo libre).
   //
-  // Vía PRIMARIA: el TTS NEURAL del dispositivo (`preferTts`, por defecto) con
-  // la MEJOR voz española instalada (la es-ES neural de Google/Apple suena
-  // natural, muy por encima de los recortes provisionales de espeak-ng). Solo
-  // se usa si hay una voz española VERIFICADA — sin verificar, Android dictaba
-  // en inglés (bug de campo ya corregido).
+  // Vía PRIMARIA: los RECORTES pre-sintetizados incrustados en base64
+  // (`verbalAudioBase64`), decodificados en memoria sobre el AudioContext de
+  // la app. Es la cadena de degradación del blueprint de Valeria+
+  // (docs/design/arquitectura-corpus-voz.md §6): asset neuronal de la lengua →
+  // asset base → voz del sistema → silencio.
   //
-  // RESPALDO garantizado: los recortes es-ES INCRUSTADOS en base64
-  // (`verbalAudioBase64`), decodificados en memoria (funcionan offline y sin
-  // depender de la ruta del asset, que no sonaba en desarrollo). La ruta del
-  // asset (`verbalAudioSource`) queda como último recurso.
+  // `preferTts` estuvo en `true` y ESO era el fallo de campo «las voces no
+  // suenan»: con el TTS del dispositivo como vía primaria, el estímulo clínico
+  // dependía de un motor que resuelve `speak()` al ENCOLAR, así que una
+  // locución que el motor descarta (la primera tras arrancar, una voz de red
+  // sin cobertura) se daba por emitida y el recorte de respaldo no llegaba a
+  // sonar. Además imponía la voz y el acento del dispositivo sobre un
+  // estímulo que está validado clínicamente recorte a recorte.
+  //
+  // Con los recortes como vía primaria la emisión es determinista y idéntica
+  // en todos los equipos; el TTS queda donde le corresponde, como degradación
+  // para las lenguas que aún no tienen banco de locuciones (gl, eu).
   useEffect(
     () =>
       installVerbalAudioAdapter({
-        preferTts: true,
+        preferTts: false,
         // Accesores POR IDIOMA (Quisqueya Habla): la sesión es-DO reproduce sus
         // recortes propios como vía primaria (el TTS del dispositivo impondría
         // otro acento); es mantiene el comportamiento histórico.
