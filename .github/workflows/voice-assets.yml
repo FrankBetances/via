@@ -71,8 +71,41 @@ jobs:
       - name: Install JS dependencies
         run: npm ci --legacy-peer-deps
 
-      - name: Install audio tooling (ffmpeg + espeak-ng)
-        run: sudo apt-get update && sudo apt-get install -y ffmpeg espeak-ng
+      # ffmpeg es imprescindible (post-proceso de sonoridad); espeak-ng SOLO
+      # hace falta con el motor de degradación. Se instala únicamente lo que
+      # falte: los runners de GitHub ya traen ffmpeg en la imagen, así que en
+      # el caso normal este paso no toca apt.
+      #
+      # Cuando sí hay que instalar, se hace de forma no interactiva y ESPERANDO
+      # el lock de dpkg de manera acotada: un run se quedó 18 minutos colgado
+      # aquí porque `unattended-upgrades` tenía el lock tomado y `apt-get` se
+      # queda esperando indefinidamente, sin salida ni aviso. Con `timeout` el
+      # paso falla rápido y con un mensaje, en vez de agotar el job entero.
+      - name: Install audio tooling (ffmpeg, y espeak-ng si se usa)
+        env:
+          DEBIAN_FRONTEND: noninteractive
+        run: |
+          NEED=""
+          command -v ffmpeg >/dev/null || NEED="$NEED ffmpeg"
+          if [ "${{ github.event.inputs.engine || 'neural' }}" = "espeak" ]; then
+            command -v espeak-ng >/dev/null || NEED="$NEED espeak-ng"
+          fi
+          if [ -z "$NEED" ]; then
+            echo "Nada que instalar (ffmpeg $(ffmpeg -version 2>/dev/null | head -1))."
+            exit 0
+          fi
+
+          echo "Instalando:$NEED"
+          # Espera acotada a que se suelte el lock de apt/dpkg.
+          for i in $(seq 1 30); do
+            if ! sudo fuser /var/lib/dpkg/lock-frontend >/dev/null 2>&1; then break; fi
+            echo "  dpkg bloqueado por otro proceso (intento $i/30)…"; sleep 10
+          done
+          timeout 300 sudo -E apt-get update -qq \
+            || { echo "::error::apt-get update no terminó en 5 min"; exit 1; }
+          # shellcheck disable=SC2086
+          timeout 600 sudo -E apt-get install -y --no-install-recommends $NEED \
+            || { echo "::error::apt-get install no terminó en 10 min"; exit 1; }
 
       - name: Resolve target languages
         id: langs
