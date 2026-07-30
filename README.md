@@ -8,7 +8,8 @@
 [![Regulatory Status](https://img.shields.io/badge/SaMD-Class%20IIa%20MDR-blue?style=flat-square)](https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32017R0745)
 [![IEC 62304](https://img.shields.io/badge/IEC%2062304-Class%20B-yellow?style=flat-square)](#normativas-aplicables)
 [![ISO 14971](https://img.shields.io/badge/ISO%2014971-Risk%20Management-orange?style=flat-square)](#normativas-aplicables)
-[![GDPR](https://img.shields.io/badge/GDPR%2FLOPDGDD-Compliant-green?style=flat-square)](#privacidad-y-datos)
+[![GDPR](https://img.shields.io/badge/GDPR%2FLOPDGDD-Privacy%20by%20Design-green?style=flat-square)](#privacidad-y-datos)
+[![Idiomas](https://img.shields.io/badge/Idiomas-es%20gl%20eu%20es--DO-purple?style=flat-square)](#idiomas-y-voz-neuronal)
 [![License](https://img.shields.io/badge/License-Proprietary-red?style=flat-square)](./LICENSE)
 
 *Parte del ecosistema [Earlify Health](https://futureforkids.eu) · Detección temprana en salud pediátrica*
@@ -33,14 +34,20 @@
 - [Marco Regulatorio](#marco-regulatorio)
 - [Arquitectura del Sistema](#arquitectura-del-sistema)
 - [Flujo Clínico](#flujo-clínico)
+- [Idiomas y Voz Neuronal](#idiomas-y-voz-neuronal)
 - [Privacidad y Datos](#privacidad-y-datos)
 - [Telemetría de Usabilidad (Zero-PHI)](#telemetría-de-usabilidad-zero-phi)
 - [Stack Tecnológico](#stack-tecnológico)
 - [Instalación y Configuración](#instalación-y-configuración)
 - [Módulos de la Aplicación](#módulos-de-la-aplicación)
+- [Herramientas de Build-Time](#herramientas-de-build-time)
+- [Automatización (CI/CD)](#automatización-cicd)
+- [Distribución y Sitio Público](#distribución-y-sitio-público)
+- [Documentación del Repositorio](#documentación-del-repositorio)
 - [Gestión de Riesgos](#gestión-de-riesgos)
 - [Contribución al Proyecto](#contribución-al-proyecto)
 - [Ecosistema Earlify Health](#ecosistema-earlify-health)
+- [Estado del Proyecto](#estado-del-proyecto)
 - [Licencia](#licencia)
 - [Contacto](#contacto)
 
@@ -74,13 +81,16 @@ La aplicación opera sobre **tablets iOS/Android** en entornos clínicos bajo su
 
 - 🎮 **Baterías gamificadas** — 11 módulos de evaluación adaptados al paciente pediátrico
 - 🔇 **Offline-first** — Operación completa sin conexión; los datos clínicos del paciente residen solo en el dispositivo
-- 🔐 **Seguridad robusta** — AES-256 en reposo · TLS 1.3 en tránsito · Seudonimización
+- 🌐 **Cuatro lenguas de sesión** — Castellano · Galego · Euskara · Español dominicano, con [banco de estímulos y voz propios](#idiomas-y-voz-neuronal)
+- 🧠 **Cero IA en el dispositivo** — Los modelos neuronales solo corren en **build-time**; la app reproduce audio ya empaquetado
+- 🔐 **Privacidad por diseño** — Datos clínicos locales · TLS 1.3 en tránsito · seudonimización del NHC ([estado real de los controles](#controles-de-seguridad))
 - 📋 **Consentimiento informado digital** — Gestión legal obligatoria para tutores legales
 - 🏥 **Pre-screening clínico** — Certificado de Aptitud para la Prueba (CAP) integrado
 - 📄 **Informes PDF** — Generación automática de informes clínicos estructurados
 - 🔑 **Identidad del profesional** — Firebase Authentication (email/contraseña) + sincronización del perfil en Firestore
-- 🎙️ **Captura de audio estéreo** — Canales L/R independientes con calibración acústica
+- 🎙️ **Audio clínico medido** — Sonómetro en **dB(A)** (IEC 61672) con calibración de campo persistida y análisis acústico [validado contra Praat](#herramientas-de-build-time)
 - 👁️ **UX dual** — Modo Profesional analítico y Modo Niño lúdico en un único dispositivo
+- 🗂️ **Historial longitudinal** — Resultados de la sesión y sesiones anteriores del paciente accesibles desde el hub
 - 📊 **Telemetría de usabilidad Zero-PHI** — Fricción de uso + percepción del clínico (Likert), exportadas en un QR anónimo (IEC 62366-1), sin tocar la base de datos clínica
 
 ---
@@ -116,49 +126,63 @@ Ruta de conformidad: Organismo Notificado (ON) requerido para marcado CE
 
 ## Arquitectura del Sistema
 
+Estructura real del repositorio (React Native + TypeScript, `@/` → `src/`):
+
 ```
-VIA+ App
+via/
+├── src/
+│   ├── Screens/                 # Una carpeta por pantalla (22 rutas en RootStackParamList)
+│   │   ├── Splash · Bienvenida · Creditos            # Arranque, acceso e identidad del proyecto
+│   │   ├── SeleccionProfesional · RegistroProfesional
+│   │   ├── Pacientes · RegistroPaciente · Consentimiento
+│   │   ├── ClinicalAssessment · AutismScreening · RoomNoiseCheck
+│   │   ├── Audiometry · AudiometryConditioned · VerbalAudiometry
+│   │   ├── VoiceAnalysis · Articulation · DysphagiaTest
+│   │   ├── SahsScreening · ExecutiveFunctions
+│   │   ├── SeleccionEjercicios                       # Hub de la batería + idioma de sesión
+│   │   └── ResultadosPreliminares · ResultadosFinal · HistorialPaciente
+│   │
+│   ├── Voice/                   # Capa de voz neuronal multi-idioma (es · gl · eu · es-DO)
+│   │   ├── voiceCorpusId        # Contrato de id por hash de contenido (PURO, build+runtime)
+│   │   ├── viaVoiceCorpus       # Enumeración del corpus (consignas + bancos locutables)
+│   │   ├── viaVoiceAssets       # GENERADO: mapa id → asset empaquetado
+│   │   ├── viaVoice             # speak(): cadena de degradación elegante (asset → TTS → silencio)
+│   │   └── viaVoicePlayback     # Reproducción del recorte (react-native-audio-api)
+│   │
+│   ├── Audio/                   # AudioContext compartido (48 kHz) para toda la app
+│   ├── Telemetry/               # Telemetría de usabilidad Zero-PHI (singleton + hook useRef)
+│   │   ├── telemetryStore       # Estado efímero fuera del árbol React
+│   │   ├── useTelemetryTracker  # Hook silencioso: solo useRef → cero re-render
+│   │   └── buildTelemetryPayload# JSON estricto {s,b,l,d,f} + compresión LZString
+│   │
+│   ├── Models/                  # Entidades TypeORM (Patient, Evaluation, *Test…)
+│   ├── Repositories/            # Repositorios singleton por entidad
+│   ├── Database/                # DataSource + driver nitro-sqlite + migraciones
+│   ├── Services/
+│   │   ├── firebase/            # Auth (email/contraseña) + perfil professionals/{uid}
+│   │   └── local/               # Servicios locales core + por módulo
+│   ├── PDF/                     # Plantillas y bloques de los informes clínicos
+│   ├── Store/                   # Redux Toolkit (auth · theme · locale · patient…)
+│   ├── Navigators/              # Native Stack + finishModule (salida de módulo)
+│   ├── Components/              # Common · Survey · Themed
+│   ├── I18n/                    # Catálogos i18next (es · en · es-DO) — preparado
+│   ├── Theme/                   # Tokens de diseño Gluestack
+│   └── Helpers/
 │
-├── /core
-│   ├── auth/              # Firebase Authentication (email/contraseña) + authSlice (Redux)
-│   ├── consent/           # Módulo de Consentimiento Informado (BLOQUEANTE)
-│   ├── prescreening/      # Pre-screening clínico + Certificado de Aptitud (CAP)
-│   ├── sync/              # Firestore: perfil del profesional (professionals/{uid})
-│   └── security/          # Cifrado, seudonimización, gestión de claves
+├── assets/
+│   ├── audio/verbal/<lang>/     # Recortes de estímulo de la audiometría verbal
+│   ├── voice/<id>.m4a           # Corpus general de consignas locutadas
+│   ├── img/verbal/              # Ilustraciones de las láminas
+│   └── verbal-approval.*.json   # Actas de aprobación clínica por idioma
 │
-├── /patient
-│   ├── registration/      # Alta y búsqueda de pacientes
-│   └── profile/           # Perfil clínico del paciente
+├── scripts/                     # Pipeline de voz (corpus, síntesis, mapa de assets)
+├── tools/
+│   ├── nos/                     # Motor de voz neuronal (ILENIA · Proxecto Nós · AhoTTS · Piper)
+│   └── acoustics/               # Banco de validación del DSP contra Praat
 │
-├── /evaluation
-│   ├── session/           # Gestión de sesión de evaluación
-│   ├── modules/
-│   │   ├── clinical-assessment/    # Evaluación Clínica Previa (anamnesis + firma)
-│   │   ├── autism-mchat/           # Cuestionario de Autismo M-CHAT-R (cribado TEA)
-│   │   ├── room-noise-check/       # Sonómetro Ambiental (gate de sala, sin persistencia)
-│   │   ├── audiometry/             # Audiometría Infantil (tonal liminar, Hughson-Westlake)
-│   │   ├── audiometry-conditioned/ # Audiometría Condicionada — El Tren del Sonido (CRA)
-│   │   ├── verbal-audiometry/      # Audiometría Verbal (logoaudiometría en campo libre)
-│   │   ├── voice-analysis/         # Análisis Acústico de Voz (F0, jitter, shimmer, HNR)
-│   │   ├── dysphagia-test/         # Test de Disfagia MECV-V (pulsioximetría BLE)
-│   │   ├── sahs-screening/         # Cribado SAHS Infantil (PSQ de Chervin)
-│   │   ├── articulation-tar/       # Articulación · T.A.R. (repetición + SODA)
-│   │   └── executive-functions/    # Exploración lúdica de Funciones Ejecutivas (5 mini-juegos)
-│   └── audio/             # AudioEngineProvider + PermissionsProvider (captura, síntesis, calibración)
-│
-├── /results
-│   ├── viewer/            # Visualización de resultados por test
-│   ├── report/            # Generación de informe PDF + QR de telemetría (Likert → QR)
-│   └── archive/           # Archivo de evaluaciones pasadas
-│
-├── /telemetry            # Telemetría de usabilidad Zero-PHI (singleton + hook useRef)
-│   ├── telemetryStore     # Estado efímero fuera del árbol React (sobrevive a la navegación)
-│   ├── useTelemetryTracker# Hook silencioso: solo useRef, cero useState → cero re-render
-│   └── buildTelemetryPayload  # JSON estricto {s,b,l,d,f} + compresión LZString
-│
-└── /professional
-    ├── profile/           # Perfil del profesional sanitario
-    └── settings/          # Configuración del centro y del dispositivo
+├── android/ · ios-native/       # App Android (RN) y port nativo SwiftUI (parcial)
+├── site/                        # Sitio público + política de privacidad (GitHub Pages)
+└── docs/                        # Diseño, manual de usuario, capturas, gobernanza
 ```
 
 ### Modelo de Datos (Entidades Principales)
@@ -194,17 +218,23 @@ El siguiente flujo es **obligatorio** y no puede omitirse. Cada fase es un prere
       │  Checklist médico: capacidad visual, motora, auditiva y cognitiva
       │  → CAP NO APTO: bloqueo + sugerencia de metodologías alternativas
       ▼
-[4] BATERÍA DE EVALUACIÓN GAMIFICADA
+[4] HUB DE LA BATERÍA (SeleccionEjercicios)
+      │  Idioma de la sesión (es · gl · eu · es-DO) → consignas y banco de estímulos
+      │  Selección y orden de los módulos · estado del motor de voz (con reintento)
+      ▼
+[5] BATERÍA DE EVALUACIÓN GAMIFICADA
       │  11 módulos adaptados al perfil del paciente (clínicos + gamificados)
       │  Modo Niño: interfaz lúdica sin elementos clínicos visibles
+      │  Al guardar cada módulo, `finishModule` lleva a los resultados de la sesión
       ▼
-[5] GENERACIÓN DE RESULTADOS
+[6] GENERACIÓN DE RESULTADOS
       │  Informe PDF estructurado para el profesional
-      │  Datos clínicos persistidos localmente (SQLite cifrado)
+      │  Datos clínicos persistidos localmente (SQLite del dispositivo)
       │  Telemetría de usabilidad: Likert del clínico → QR anónimo (Zero-PHI)
       ▼
-[6] ARCHIVO Y SEGUIMIENTO
-         Historial de evaluaciones del paciente
+[7] ARCHIVO Y SEGUIMIENTO
+         Historial de sesiones anteriores del paciente (HistorialPaciente),
+         accesible desde la lista de pacientes y desde el hub
 ```
 
 ### Pre-Screening — Checklist CAP
@@ -220,42 +250,137 @@ El profesional debe confirmar las siguientes capacidades **antes** de iniciar la
 
 ---
 
+## Idiomas y Voz Neuronal
+
+VIA+ se aplica en **cuatro lenguas o variantes de sesión**. El idioma se elige en el hub de la
+batería (`SeleccionEjercicios`), se **persiste** en `state.locale.language` (whitelist de
+`redux-persist`) y determina dos cosas distintas: el **banco de estímulos** (contenido clínico) y
+la **voz** que locuta (consignas y modelos hablados).
+
+| Lengua | Banco verbal | Locuciones del estímulo | Consignas locutadas | Estado clínico |
+|---|---|---|---|---|
+| **es** — Español (España) | Base: 38 láminas, bandas A–D | ✅ empaquetadas | ✅ 91 recortes | 🟢 Validado |
+| **gl** — Galego | Banco propio, 38 láminas (Proxecto Nós) | ✅ voz Celtia | ⬜ voz del sistema | 🟢 Banco aprobado por **ACOPROS** (2026-07-28) |
+| **eu** — Euskara | Banco propio, 37 láminas (sibilantes, vibrante múltiple, diptongos decrecientes) | ✅ voz AhoTTS Maider | ⬜ voz del sistema | 🟡 **Provisional** — falta firma de logopeda euskaldun |
+| **es-DO** — Español dominicano · *Quisqueya Habla* | Hereda el banco `es` con auditoría fonética caribeña (hoy **0 sustituciones firmadas**) | ✅ 37/37 aprobadas (2026-07-19) | ✅ 86 recortes | 🟢 Audio aprobado para los archivos actuales |
+
+> El aviso de «banco provisional» y el de «estímulo no definitivo» se muestran **en la pantalla
+> donde se elige el idioma**, no enterrados en la documentación. La audiometría verbal además
+> **sanea** el idioma recibido (`resolveVerbalLang`): un valor persistido de una versión anterior
+> degrada a castellano en vez de tumbar la pantalla.
+
+### Principio rector: cero IA en el dispositivo
+
+Los modelos neuronales de síntesis **solo se ejecutan en build-time** (`tools/nos/`). En runtime la
+app únicamente **reproduce ficheros ya empaquetados** o cae a la voz del sistema operativo. VIA+
+sigue siendo offline-first y no incorpora inferencia de IA como parte del dispositivo médico.
+
+| Lengua | Motor (build-time) | Voz | Proyecto |
+|---|---|---|---|
+| `es` | Piper (VITS/ONNX) | `es_ES-davefx-medium` (`lengthScale` 1.35) | rhasspy/piper-voices |
+| `gl` | Coqui TTS (VITS grafemas) | **Celtia** | **Proxecto Nós / ILENIA** |
+| `eu` | **AhoTTS** (VITS + frontend vasco) | **Maider** (respaldo Antton) | **HiTZ/Aholab · UPV/EHU** (ILENIA / NEL-GAITU) |
+| `es-DO` | Piper (VITS/ONNX) | `es_MX-claude-high` (neutra LatAm, provisional) | rhasspy/piper-voices |
+
+> La voz **neural es la vía por defecto de todos los idiomas**, castellano incluido.
+> `VERBAL_TTS=espeak` queda solo como degradación explícita para entornos sin acceso a los pesos
+> (y no cubre `gl` ni `eu`). Las voces están declaradas en `tools/nos/voices.json`; los `lengthScale`
+> son parámetros **de la voz**, no del banco (davefx locutaba demasiado deprisa para una prueba de
+> reconocimiento de palabra, y por eso lleva 1.35).
+
+### Contrato del corpus de voz
+
+```
+id = [${lang}_]${style}_${fnv1a32(normalize(text))}_${len}
+```
+
+- **`style`** ∈ `tutor | child | clinical | slow` — la prosodia se **hornea** en el audio.
+- **`lang`** ∈ `es | gl | eu | es-DO` — la base `es` no lleva prefijo (retro-compat de assets).
+- La **misma función** calcula el id en build y en runtime (`src/Voice/voiceCorpusId.ts`, módulo
+  puro). Si un literal cambia en el código, cambia su id, el mapa deja de resolver y la locución
+  **cae limpiamente a la voz del sistema**: la deriva degrada calidad, nunca rompe.
+
+**Cadena de degradación de `speak()`:** asset neuronal de la lengua → asset neuronal base `es` →
+voz del sistema con la mejor voz verificada de esa lengua → silencio (el clínico lee la consigna).
+
+### Corpus general y pipeline
+
+El corpus enumerable actual tiene **177 entradas** (`es` 91 · `es-DO` 86): las 5 consignas de
+Funciones Ejecutivas (solo `es` mientras el revisor lingüístico no firme el delta) y los 86 modelos
+hablados del T.A.R. en sus dos variantes. El inventario del T.A.R. se **deriva de
+`buildArticulationItems()`** —la misma función que dicta la pantalla—, así que corpus e inventario
+no pueden divergir. `gl` y `eu` no tienen entradas propias todavía: sus consignas caen a la voz del
+sistema y el T.A.R. reutiliza el recorte base `es` (la palabra evaluada sigue siendo la castellana).
+
+```bash
+node scripts/export-voice-corpus.js      # corpus puro → voice-corpus.json (valida colisiones)
+node scripts/synthesize-voice-corpus.js  # síntesis incremental → assets/voice/<id>.m4a
+node scripts/build-voice-asset-map.js    # assets presentes → src/Voice/viaVoiceAssets.ts
+node scripts/verbal-assets.js            # recortes de la audiometría verbal por idioma
+node scripts/check-verbal-coverage.js    # puerta de cobertura de locuciones (usada en release)
+```
+
+Documentos de diseño: [`arquitectura-corpus-voz.md`](./docs/design/arquitectura-corpus-voz.md) ·
+[`integracion-proxecto-nos.md`](./docs/design/integracion-proxecto-nos.md) (gallego) ·
+[`integracion-quisqueya-habla.md`](./docs/design/integracion-quisqueya-habla.md) (dominicano) ·
+[`validacion-clinica-verbal.md`](./docs/design/validacion-clinica-verbal.md).
+
+---
+
 ## Privacidad y Datos
 
 VIA+ implementa un modelo de **privacidad por diseño** (Privacy by Design, GDPR Art. 25):
 
-### Seudonimización
+### Dónde vive cada dato
 
-Los datos personales del paciente se almacenan **separados** de los datos clínicos:
-
-```sql
--- Tabla de identidad (acceso restringido, cifrado adicional)
-patients_identity:
-  id_hash     TEXT   -- HMAC-SHA256(NHC, device_key)
-  name_enc    BLOB   -- AES-256-GCM(nombre_completo)
-  dob_enc     BLOB   -- AES-256-GCM(fecha_nacimiento)
-
--- Tabla clínica (seudonimizada, sin PII directa)
-clinical_sessions:
-  session_id  TEXT   -- UUID v4
-  patient_ref TEXT   -- Referencia al id_hash, nunca al NHC directo
-```
+| Dato | Ubicación | Sale del dispositivo |
+|---|---|---|
+| Evaluaciones, umbrales, puntuaciones | SQLite local (`viaplus.db`) | ❌ Nunca |
+| Grabaciones y capturas de audio/vídeo | Almacenamiento local del dispositivo | ❌ Nunca |
+| Informes PDF | Generados en el dispositivo | Solo si el clínico los comparte |
+| Identidad del profesional (correo, ficha) | Firebase Auth + `professionals/{uid}` | ✅ Sí (única sincronización) |
+| Telemetría de usabilidad | Memoria (singleton efímero) | Solo si el clínico exporta el QR |
 
 > **Alcance de la nube (Firestore):** solo se sincroniza el **perfil del profesional
 > autenticado** (`professionals/{uid}`). Los datos clínicos del paciente (evaluaciones,
 > capturas de audio, informes) **permanecen locales al dispositivo y nunca llegan a
 > Firestore** — así lo imponen las reglas de seguridad de Firestore (`firestore.rules`).
 
+La política de privacidad publicada (obligatoria para la ficha de Google Play) es la
+**declaración pública** de todo esto: [`site/privacidad.html`](./site/privacidad.html).
+
+### Seudonimización
+
+El esquema de `Patient` separa la **referencia seudonimizada** del dato clínico: `idHash`
+(referencia derivada del NHC) y columnas `nameEnc` / `dobEnc` para los identificadores directos.
+Las sesiones y los resultados apuntan a la fila del paciente, no al NHC.
+
+> ⚠️ **Estado real de la implementación.** El esquema está modelado, pero la **capa de seguridad
+> que aplica el HMAC-SHA256 y el AES-256-GCM aún no está implementada**: hoy el nombre y la fecha
+> de nacimiento se guardan **en claro** en las columnas `*Enc` (ver la nota en
+> `src/Models/Patient/Patient.ts` y en `RegistroPacienteScreen.tsx`). Mientras eso sea así, la
+> garantía de confidencialidad la aporta el **cifrado del propio dispositivo**, que el centro debe
+> activar. No se afirma cifrado en reposo en la política publicada precisamente por esto.
+
 ### Controles de Seguridad
 
-| Control | Estándar | Implementación |
-|---|---|---|
-| Cifrado en reposo | AES-256-GCM | SQLCipher (base de datos local) |
-| Cifrado en tránsito | TLS 1.3 | Toda comunicación con backend |
-| Seudonimización | GDPR Art. 4(5) | HMAC-SHA256 sobre NHC con clave de dispositivo |
-| Control de acceso | RBAC | Roles: Médico, Logopeda, Psicopedagogo, Enfermero |
-| Auditoría | IEC 62304 | Log inmutable de eventos clínicos y de acceso |
-| Borrado seguro | LOPDGDD | Eliminación verificable de datos al revocar consentimiento |
+| Control | Estándar | Implementación | Estado |
+|---|---|---|---|
+| Datos clínicos sin salida a la nube | GDPR Art. 25 | Reglas de Firestore + persistencia local | 🟢 Implementado |
+| Cifrado en tránsito | TLS 1.3 | Firebase Auth/Firestore (único tráfico) | 🟢 Implementado |
+| Aislamiento de la telemetría | IEC 62366-1 | Singleton en memoria, Zero-PHI | 🟢 Implementado |
+| Consentimiento informado bloqueante | GDPR / LOPDGDD | Firma del tutor previa a la evaluación | 🟢 Implementado |
+| Cifrado en reposo | AES-256-GCM (SQLCipher) | Pendiente: hoy SQLite sin cifrar | 🔴 Pendiente |
+| Seudonimización efectiva | GDPR Art. 4(5) | Esquema listo; HMAC/AES sin cablear | 🔴 Pendiente |
+| Control de acceso | RBAC | Roles: Médico, Logopeda, Psicopedagogo, Enfermero | 🟡 Parcial |
+| Auditoría | IEC 62304 | Log inmutable de eventos clínicos y de acceso | 🔴 Pendiente |
+| Borrado seguro | LOPDGDD | Eliminación verificable al revocar consentimiento | 🔴 Pendiente |
+
+> **Permisos que conviene no maquillar.** El permiso de **ubicación** existe únicamente para poder
+> escanear el pulsioxímetro BLE en Android ≤ 11 (`maxSdkVersion=30`, y en Android 12+ el escaneo va
+> con `BLUETOOTH_SCAN … neverForLocation`): VIA+ **no geolocaliza**. El **reconocimiento de voz** del
+> T.A.R. lo realiza el motor del sistema operativo, que según el dispositivo puede procesar el audio
+> en la nube de su proveedor; la prueba puede aplicarse sin él (SODA manual).
 
 ---
 
@@ -340,13 +465,15 @@ Cada módulo emite eventos con su granularidad natural (tiempo = respuesta; 2.ª
 |---|---|---|
 | **Frontend / App** | React Native 0.80.1 · TypeScript 5.4 | Multiplataforma iOS/Android (prioritario); optimizado para tablet |
 | **UI / Design system** | Gluestack UI v1 + `lucide-react-native` | Sistema de diseño consistente, tokens propios (`Theme/gluestack-ui.config.ts`) |
-| **Estado** | Redux Toolkit + redux-persist | Estado global offline-first (whitelist `theme`) |
-| **Persistencia local** | TypeORM 0.3.27 + `react-native-nitro-sqlite` (SQLite) | Offline-first; `synchronize: true`; repositorios singleton |
+| **Estado** | Redux Toolkit + redux-persist | Estado global offline-first (whitelist `theme`, `locale`) |
+| **Persistencia local** | TypeORM 0.3.x + `react-native-nitro-sqlite` (SQLite) | Offline-first; `synchronize: true`; driver propio síncrono; repositorios singleton |
+| **Preferencias del dispositivo** | `@react-native-async-storage/async-storage` | Calibración de campo del sonómetro (propiedad del terminal, no de la sesión) |
 | **Navegación** | React Navigation v7 (Native Stack + Bottom Tabs) | Flujo Home → Paciente → Evaluación → Módulo → Resultado |
 | **Formularios** | react-hook-form + Yup | Validación de cuestionarios y formularios clínicos |
-| **Síntesis de tono + DSP de audio** | `react-native-audio-api` (Software Mansion, sobre Oboe en Android) | Tonos puros (audiometrías) y captura/análisis PCM (voz y sonómetro) |
-| **Captura de nivel sonoro** | `react-native-audio-api` (`AudioRecorder`) | Sonómetro Ambiental (RMS → dBFS → dB) |
-| **Grabación/reproducción + voz** | `react-native-audio-recorder-player` · `@react-native-voice/voice` · `react-native-tts` | Articulación T.A.R. (modelo hablado, repetición, auto-evaluación) |
+| **Síntesis de tono + DSP de audio** | `react-native-audio-api` (Software Mansion, sobre Oboe en Android) | Tonos puros (audiometrías) y captura/análisis PCM (voz y sonómetro), sobre un **único `AudioContext` compartido a 48 kHz** (`src/Audio`) |
+| **Captura de nivel sonoro** | `react-native-audio-api` (`AudioRecorder`) | Sonómetro Ambiental: ponderación **A con estado** (IEC 61672) → **LAeq** + percentiles L10/L90 |
+| **Capa de voz de la app** | `src/Voice` sobre `react-native-tts` + assets `.m4a` | Un solo motor de voz para toda la app: recorte neuronal → recorte base `es` → voz del sistema → silencio |
+| **Grabación/reproducción + voz** | `react-native-audio-recorder-player` · `@react-native-voice/voice` | Articulación T.A.R. (repetición y auto-evaluación); el reconocedor arranca con la etiqueta de la lengua y reintenta con la base |
 | **Permisos runtime** | `react-native-permissions` | Micrófono, Bluetooth, cámara, unificados Android/iOS |
 | **Pulsioximetría BLE** | `react-native-ble-plx` (perfil Pulse Oximeter 0x1822) | Test de Disfagia MECV-V |
 | **Firma digital** | `react-native-signature-canvas` | Consentimiento informado en Evaluación Clínica |
@@ -355,10 +482,11 @@ Cada módulo emite eventos con su granularidad natural (tiempo = respuesta; 2.ª
 | **Telemetría de usabilidad** | `lz-string` · `react-native-qrcode-svg` (sobre `react-native-svg`) | Compresión extrema del payload Zero-PHI + código QR de cierre de batería |
 | **Identidad y backend** | Firebase (`@react-native-firebase` app/auth/firestore) | Autenticación email/contraseña + perfil del profesional en Firestore (`professionals/{uid}`) |
 | **Cifrado en tránsito** | TLS 1.3 | Obligatorio por GDPR para datos sanitarios |
-| **Cifrado en reposo** | AES-256-GCM | Obligatorio por LOPDGDD |
+| **Cifrado en reposo** | AES-256-GCM (SQLCipher) | Exigido por LOPDGDD — **pendiente de implementar**, ver [Controles de Seguridad](#controles-de-seguridad) |
 | **Autenticación** | Firebase Authentication + `authSlice` (Redux, en memoria) | Verificación de credenciales y `uid` que ancla el perfil del profesional |
 | **Sincronización HCE** | HL7 FHIR R4 REST API | Interoperabilidad con sistemas hospitalarios *(roadmap)* |
-| **i18n / Errores** | i18next (es) · Sentry React Native | Localización y monitorización de errores en producción |
+| **Voz neuronal (build-time)** | Piper · Coqui TTS (Celtia) · AhoTTS (Maider) + ffmpeg | Síntesis de los recortes fuera del dispositivo; ver [Idiomas y Voz Neuronal](#idiomas-y-voz-neuronal) |
+| **i18n / Errores** | i18next (catálogos es · en · es-DO, preparados) · Sentry React Native | La app es hoy monolingüe en pantalla con literales; el contenido clínico sí es multi-idioma |
 
 ---
 
@@ -369,20 +497,21 @@ Cada módulo emite eventos con su granularidad natural (tiempo = respuesta; 2.ª
 ### Prerrequisitos
 
 ```
-Node.js >= 18.x
+Node.js >= 18.x            (20.x en CI)
 npm >= 9.x  o  yarn >= 1.22.x
 React Native 0.80.x (CLI @react-native-community/cli)
 Xcode >= 15 (para iOS)
-Android Studio >= 2023.x (para Android)
+Android Studio >= 2023.x (para Android) · AGP 8 (namespace en build.gradle)
 Proyecto Firebase con Authentication (email/contraseña) y Firestore habilitados
+Python 3.11 + ffmpeg      (solo para las herramientas de build-time: voz y acústica)
 ```
 
 ### Instalación de dependencias
 
 ```bash
 # Clonar el repositorio (requiere acceso autorizado)
-git clone https://github.com/earlify-health/via-plus.git
-cd via-plus
+git clone https://github.com/FrankBetances/via.git
+cd via
 
 # Instalar dependencias
 npm install
@@ -408,27 +537,23 @@ esperada, sustituyendo los placeholders por los valores de tu proyecto.
 
 > 🔐 **NUNCA versiones los archivos de configuración de Firebase ni ningún `.env` con datos
 > reales.** Están incluidos en `.gitignore`.
+>
+> ⚠️ **Identificador del paquete.** Firebase resuelve la configuración por `package_name`: la app
+> Android debe estar registrada como **`eu.futureforkids.via`** (el identificador exigido por Play
+> Console). Un `google-services.json` generado para el identificador anterior no funciona.
 
-### Variables de entorno
+### Configuración de la aplicación
 
-Crear un archivo `.env` a partir de la plantilla `.env.example`:
+La app **no lee variables de entorno**: no hay `.env` ni `react-native-config` en el proyecto. Los
+parámetros técnicos son constantes en el código, documentadas en su módulo:
 
-```bash
-cp .env.example .env
-```
-
-```env
-# Configuración del entorno
-APP_ENV=development              # development | staging | production
-
-# Seguridad
-DEVICE_KEY_SALT=                 # Rellenar con valor provisto por Earlify Health
-
-# Análisis de audio
-AUDIO_SAMPLE_RATE=44100
-AUDIO_CHANNELS=2                 # Estéreo (L/R)
-AUDIO_BIT_DEPTH=16
-```
+| Parámetro | Dónde se define | Valor |
+|---|---|---|
+| Frecuencia de muestreo de audio | `src/Audio/sharedAudioContext.ts` | 48 000 Hz (`AUDIO_SAMPLE_RATE`) |
+| Umbral de ruido de sala | `src/Screens/RoomNoiseCheck/` | 45 dB(A) por defecto |
+| Referencia dBFS → dB SPL | `src/Screens/RoomNoiseCheck/noiseDsp.ts` | 105 dB(A) SPL a fondo de escala |
+| Calibración de campo del sonómetro | AsyncStorage (`via.noise.calibrationOffsetDb`) | La fija el clínico contra un sonómetro patrón |
+| Idioma de la sesión | Redux `state.locale.language` (persistido) | `es` por defecto |
 
 ### Ejecución en desarrollo
 
@@ -484,9 +609,11 @@ npm run tsc
 ### 3 — Sonómetro Ambiental 🎙️ (`RoomNoiseCheck`)
 
 - **Dominio:** Gate de prerrequisito de sala
-- **Objetivo:** Medir ruido de fondo y solo permitir continuar si está bajo umbral (45 dB por defecto) y la checklist está completa
+- **Objetivo:** Medir ruido de fondo y solo permitir continuar si está bajo umbral (45 dB(A) por defecto) y la checklist está completa
 - **Nativo:** captura real de micrófono (`react-native-audio-api`: `AudioRecorder`); sin micrófono/permiso muestra error explícito (sin datos simulados)
-- **Datos:** no persiste — navega directamente a `GameMenu`
+- **Medición:** **ponderación A (IEC 61672) con estado conservado entre bloques** + bloqueo de DC, 400 ms de calentamiento descartados y descarte de bloques saturados (golpes al equipo). El veredicto es **LAeq + percentiles** (L90 de fondo, L10 de picos): un roce aislado ya no decide el resultado como hacía el máximo absoluto
+- **Calibración:** offset de campo ajustable teclando la lectura de un sonómetro patrón, **persistido en el dispositivo** (es una propiedad del micrófono, no de la sesión)
+- **Datos:** no persiste resultados clínicos — navega directamente al hub de la batería
 
 ### 4 — Audiometría Infantil 🔊 (`Audiometry`) · *paquete base*
 
@@ -506,7 +633,8 @@ npm run tsc
 
 - **Dominio:** Biomarcadores vocales infantiles
 - **Objetivo:** F0, jitter, shimmer y HNR de voz sostenida (/a/), con formantes F1–F3 vía LPC
-- **Nativo:** captura PCM real (`react-native-audio-api`) + módulo nativo de DSP (fallback JS: `pitchfinder` + `fft.js`)
+- **Nativo:** captura PCM real (`react-native-audio-api`) + DSP propio (`voiceDsp.ts`, módulo puro)
+- **Validación:** contrastado contra **Praat** ([`tools/acoustics`](./tools/acoustics/README.md)) sobre señales sintéticas deterministas — F0 coincide al decimal; **orden LPC 20** (con 14 F3 se quedaba sin polos); pasa-alto de acondicionado a 55 Hz; techo del HNR documentado (~30 dB); **F3 ya no se fabrica** cuando no es estimable
 - **Datos:** entidad `VoiceAnalysis` · informe PDF `VoiceAnalysisDetail`
 
 ### 7 — Test de Disfagia MECV-V 📶 (`DysphagiaTest`)
@@ -527,14 +655,16 @@ npm run tsc
 
 - **Dominio:** Logopedia — registro descriptivo SODA por fonema
 - **Objetivo:** El niño repite el modelo hablado; clasificación Correcto/Sustitución/Omisión/Distorsión/Adición por ítem, con % de acierto y fonemas a intervenir
-- **Nativo:** modelo hablado (`react-native-tts`) + grabación (`react-native-audio-recorder-player`) + reconocimiento de voz es-ES (`@react-native-voice/voice`) que auto-evalúa la repetición; degrada a SODA manual sin hardware/permiso
+- **Nativo:** modelo hablado servido por la capa `@/Voice` (recorte neuronal → recorte base `es` → mejor voz verificada del sistema), grabación (`react-native-audio-recorder-player`) y reconocimiento de voz (`@react-native-voice/voice`) que auto-evalúa la repetición; degrada a SODA manual sin hardware/permiso
+- **Idioma:** la preparación del registro tiene **selector de idioma**, que escribe en el mismo `state.locale.language` que el hub. El **inventario fonético es del español**: lo que cambia es la voz (y la etiqueta del reconocedor: es-ES, es-DO, gl-ES, eu-ES, con reintento en la lengua base), no las palabras
 - **Datos:** entidad `ArticulationTest` · informe PDF `ArticulationDetail`
 
 ### 10 — Audiometría Verbal 🔊🗣️ (`VerbalAudiometry`)
 
 - **Dominio:** Logoaudiometría en campo libre (altavoz del dispositivo, sin audífonos)
 - **Objetivo:** Reconocimiento de conjunto cerrado por selección de tarjetas (`WordCard`), con listas de estímulos por franja de edad (A–D); modos discriminación y umbral (URV/SRT estimado)
-- **Nativo:** voz humana neural del dispositivo (`react-native-tts`) presentada por el altavoz binaural; degrada con placeholders si falta imagen
+- **Idiomas:** un banco de estímulos por lengua — `es` · `gl` (banco propio del Proxecto Nós, aprobado por ACOPROS) · `eu` (banco propio, provisional) · `es-DO` (*Quisqueya Habla*, banco `es` auditado + locución propia); ver [Idiomas y Voz Neuronal](#idiomas-y-voz-neuronal)
+- **Nativo:** **recortes de locución pre-sintetizados** como vía primaria (empaquetados por idioma), con la voz del sistema como degradación; presentados por el altavoz binaural. Degrada con placeholders si falta imagen
 - **Datos:** entidad `VerbalAudiometryTest` (tabla `verbal_audiometry_test`) · informe PDF
 
 ### 11 — Funciones Ejecutivas 🟢🗣️ (`ExecutiveFunctions`)
@@ -546,20 +676,120 @@ npm run tsc
 
 ---
 
+## Herramientas de Build-Time
+
+Dos cadenas de herramientas corren **fuera del dispositivo**. Ninguna librería de IA ni de análisis
+fonético entra en el APK: la app mide y reproduce en local, offline.
+
+### `tools/nos/` — motor de voz neuronal
+
+Síntesis de las locuciones con voces abiertas (Piper · Celtia del Proxecto Nós · AhoTTS Maider) y
+post-proceso homogéneo con ffmpeg (`loudnorm I=-20:TP=-3:LRA=7`, m4a mono 44,1 kHz) para que todos
+los idiomas tengan la **misma sonoridad**. Registro declarativo en `tools/nos/voices.json`;
+glosario dominicano revisado en `tools/nos/glosario-es-do.csv`.
+
+### `tools/acoustics/` — validación del DSP contra Praat
+
+Banco de referencia que compara el DSP que **de verdad** corre en la app
+(`src/Screens/VoiceAnalysis/voiceDsp.ts`) con **Praat**, el estándar de facto en fonética clínica,
+sobre vocales sintéticas deterministas.
+
+```bash
+node tools/acoustics/fixtures.js                  # WAVs + medidas de VIA+
+pip install -r tools/acoustics/requirements.txt
+python3 tools/acoustics/validate.py               # mide con Praat y compara (sale ≠0 si se desvía)
+```
+
+Hallazgos de la primera pasada: orden LPC insuficiente (F3 no estimable en 10 de 11 casos), techo
+del HNR no declarado, y un caso de prueba mal construido. Detalle en
+[`tools/acoustics/README.md`](./tools/acoustics/README.md).
+
+---
+
+## Automatización (CI/CD)
+
+| Workflow | Disparo | Qué hace |
+|---|---|---|
+| `voice-assets.yml` | Manual · push a `claude/**` que toque el corpus o `tools/nos` | Sintetiza consignas y/o recortes verbales de los cuatro idiomas y los commitea a la rama (nunca a `main`). Tolerante: una voz que falle no tira el lote |
+| `android-release.yml` | Manual · push a `main` (android, src, assets/audio) | **Puerta de locuciones** → keystore → APK + AAB firmados → verificación de firma → artefactos |
+| `acoustic-validation.yml` | PR/push que toque `VoiceAnalysis` o `tools/acoustics` | Contrasta el DSP con Praat y falla si un parámetro se desvía de su tolerancia |
+| `codeql.yml` | Push/PR a `main` + semanal | Análisis estático de seguridad |
+| `markdown-lint.yml` | Cambios en `**/*.md` | `markdownlint-cli2` con la configuración de `.markdownlint.yaml` |
+| `pages.yml` | Push a `main` que toque `site/` | Publica el sitio público (política de privacidad) en GitHub Pages |
+
+> **La puerta de locuciones no exige «todos los idiomas al 100 %»**, sino **coherencia** con
+> `VERBAL_AUDIO_PENDING` — la declaración revisada de qué idiomas se sabe que no tienen locuciones
+> propias, la misma que usa la pantalla para advertir al profesional. Falla en los dos sentidos: si
+> a un idioma no declarado pendiente le faltan recortes (la app prometería un estímulo que no
+> existe) y si un idioma declarado pendiente ya los tiene todos (el aviso ha pasado a ser falso).
+
+La gobernanza del repositorio —CODEOWNERS, política de divulgación, Dependabot en modo solo
+seguridad, protección de rama y *secret scanning*— está documentada en
+[`docs/SECURITY-GOBERNANZA.md`](./docs/SECURITY-GOBERNANZA.md), que distingue los controles ya
+versionados de los que hay que **activar en la interfaz de GitHub** para que surtan efecto.
+
+---
+
+## Distribución y Sitio Público
+
+| Elemento | Valor / ubicación |
+|---|---|
+| Identificador del paquete Android | **`eu.futureforkids.via`** (`namespace` y `applicationId`) |
+| Artefactos de release | APK + AAB firmados por `android-release.yml` |
+| Icono de la app | [`docs/capturas/`](./docs/capturas/README.md) (512 × 512 para la ficha + icono de lanzador) |
+| Política de privacidad | [`site/privacidad.html`](./site/privacidad.html), publicada con GitHub Pages |
+| Port nativo iOS | [`ios-native/`](./ios-native/README.md) — SwiftUI, parcial: acceso y créditos, profesionales, pacientes, consentimiento, evaluación clínica (CAP), sonómetro de sala y hub de módulos |
+
+> ⚠️ **Capturas de pantalla.** Las imágenes de `docs/capturas/` son **reconstrucciones fieles a
+> partir del código**, no capturas de dispositivo (el entorno donde se generaron no tiene emulador).
+> Sirven para documentación; **para la ficha de Google Play hay que sustituirlas por capturas reales**,
+> como exige la política de la tienda. El README de la carpeta enumera las diferencias conocidas.
+
+---
+
+## Documentación del Repositorio
+
+```
+docs/
+├── manual/                     # Manual de Usuario (HTML fuente + PDF + DOCX generados)
+├── capturas/                   # Icono de la app y capturas de pantalla
+├── SECURITY-GOBERNANZA.md      # Controles de seguridad del repositorio en GitHub
+└── design/
+    ├── arquitectura-corpus-voz.md        # Capa de voz neuronal multi-idioma
+    ├── arquitectura-audio.md             # AudioContext compartido y cadenas de audio
+    ├── audiometria-verbal.md             # Diseño del módulo (+ variantes gl · eu · es-DO)
+    ├── validacion-clinica-verbal.md      # Trazabilidad de la aprobación clínica
+    ├── integracion-proxecto-nos.md       # Plan de integración del gallego (ILENIA)
+    └── integracion-quisqueya-habla.md    # Plan de integración de la variante dominicana
+```
+
+El **manual de usuario** con casos de uso clínicos de principio a fin se genera desde
+[`docs/manual/manual.html`](./docs/manual/manual.html):
+
+```bash
+node docs/manual/build-pdf.js       # PDF A4 (requiere Playwright + Chromium)
+python3 docs/manual/build-docx.py   # DOCX (rasteriza cada página; requiere python-docx)
+```
+
+---
+
 ## Gestión de Riesgos
 
 La gestión de riesgos de VIA+ sigue la norma **ISO 14971:2019** a lo largo de todo el ciclo de vida del software. Todos los cambios de arquitectura, nuevas funcionalidades y modificaciones de flujo deben incluir una **evaluación de impacto en seguridad del paciente** antes de su implementación.
 
-Los principales riesgos identificados y sus controles se documentan en:
+El expediente formal de gestión de riesgos (tabla FMEA, registro de riesgos activos y controles
+implementados) está **pendiente de constituir** en `docs/risk-management/`; hasta entonces, los
+riesgos identificados viven en los documentos de diseño y en las justificaciones de cada PR.
 
 ```
-docs/risk-management/
-├── FMEA-table.md          # Tabla FMEA completa
-├── risk-register.md       # Registro de riesgos activos
-└── risk-controls.md       # Controles implementados
+docs/risk-management/          (🔴 pendiente)
+├── FMEA-table.md              # Tabla FMEA completa
+├── risk-register.md           # Registro de riesgos activos
+└── risk-controls.md           # Controles implementados
 ```
 
-Para reportar un incidente de seguridad: **safety@earlify.com**
+Para reportar un incidente de seguridad: **safety@earlify.com** · para vulnerabilidades del código,
+la política de divulgación responsable está en [`.github/SECURITY.md`](./.github/SECURITY.md).
 
 ---
 
@@ -570,12 +800,11 @@ VIA+ es software propietario. Las contribuciones están restringidas al equipo d
 ### Convenciones de desarrollo
 
 ```
-Branching strategy:  Git Flow
-  main         → Producción (protegida, requiere PR + revisión)
-  develop      → Integración continua
+Branching:
+  main         → Producción (protegida: PR + revisión de Code Owners)
+  claude/xxx   → Ramas de trabajo (disparan la síntesis de assets de voz en CI)
   feature/xxx  → Nuevas funcionalidades
   fix/xxx      → Correcciones de bugs
-  release/x.x  → Preparación de versiones
 
 Commits:  Convención Conventional Commits
   feat:     Nueva funcionalidad
@@ -588,13 +817,15 @@ Commits:  Convención Conventional Commits
 
 ### Pull Requests
 
-Cada PR debe incluir obligatoriamente:
+La plantilla de [`.github/pull_request_template.md`](./.github/pull_request_template.md) recoge el
+checklist obligatorio. Cada PR debe incluir:
 
 - [ ] Descripción del cambio y justificación clínica/técnica
 - [ ] Evaluación de impacto en seguridad del paciente (ISO 14971)
+- [ ] Verificación de seguridad y privacidad (¿toca datos clínicos, permisos o la nube?)
 - [ ] Tests añadidos o actualizados (cobertura mantenida ≥ 80%)
 - [ ] Documentación actualizada
-- [ ] Revisión por al menos 1 ingeniero senior y 1 responsable clínico
+- [ ] Revisión de los **Code Owners** de las rutas sensibles (Firestore, auth, Database, telemetría, CI)
 
 ---
 
@@ -623,12 +854,21 @@ Earlify Health
 
 | Componente | Estado |
 |---|---|
-| Módulo de Consentimiento Informado | 🟡 En diseño |
-| Pre-screening clínico (CAP) | 🟡 En diseño |
+| Módulo de Consentimiento Informado | 🟢 Integrado (bloqueante) |
+| Pre-screening clínico (CAP) | 🟢 Integrado (bloqueante) |
 | Autenticación profesional (Firebase Auth) | 🟢 Integrado |
 | Sincronización del perfil (Firestore) | 🟢 Integrado |
-| Identificación de paciente | 🟢 Documentado |
-| Generación de informes PDF | 🟢 Documentado |
+| Identificación de paciente | 🟢 Integrado |
+| Generación de informes PDF | 🟢 Integrado |
+| Resultados de sesión e historial del paciente | 🟢 Integrado |
+| Telemetría de usabilidad Zero-PHI (Likert → QR) | 🟢 Integrado |
+| Capa de voz neuronal multi-idioma (es · gl · eu · es-DO) | 🟢 Integrada (consignas `gl`/`eu` con voz del sistema) |
+| Validación del análisis acústico contra Praat | 🟢 En CI |
+| Sitio público y política de privacidad (Pages) | 🟢 Publicable |
+| Release firmada de Android (APK + AAB) | 🟢 En CI, con puerta de locuciones |
+| Port nativo iOS (SwiftUI) | 🟡 Parcial (acceso, paciente, consentimiento, CAP, sonómetro) |
+| Cifrado en reposo y seudonimización efectiva | 🔴 Pendiente ([detalle](#controles-de-seguridad)) |
+| Expediente de gestión de riesgos (ISO 14971) | 🔴 Pendiente |
 | Sincronización clínica HL7-FHIR | 🔴 Pendiente (roadmap) |
 | Certificación MDR Clase IIa | 🔴 En proceso |
 
@@ -638,19 +878,19 @@ Earlify Health
 |---|---|---|---|---|
 | 1 | Evaluación Clínica Previa | 🟢 Construido | 🟢 OK | 🟢 ninguno |
 | 2 | Autismo M-CHAT-R | 🟢 Construido | 🟢 OK (`screenings`) | 🟢 ninguno |
-| 3 | Sonómetro Ambiental | 🟢 Construido | — (sin persistencia) | 🟢 micrófono real integrado |
+| 3 | Sonómetro Ambiental | 🟢 Construido | — (sin persistencia clínica) | 🟢 micrófono real · dB(A) calibrable |
 | 4 | Audiometría Infantil | 🟢 Construido | 🟢 OK (`audiometry`) | 🟢 síntesis de tono (`audio-api`) |
 | 5 | Audiometría Condicionada | 🟢 Construido | 🟢 Reutiliza `audiometry` | 🟢 síntesis de tono + reanimated |
-| 6 | Análisis Acústico de Voz | 🟢 Construido | 🟢 OK (`voiceAnalysis`) | 🟢 mic + DSP (LPC nativo/fallback JS) |
+| 6 | Análisis Acústico de Voz | 🟢 Construido | 🟢 OK (`voiceAnalysis`) | 🟢 mic + DSP (LPC orden 20, validado vs. Praat) |
 | 7 | Test de Disfagia MECV-V | 🟢 Construido | 🟢 OK (`dysphagiaTest`) | 🟢 BLE pulsioxímetro (`ble-plx`) |
 | 8 | Cribado SAHS Infantil | 🟢 Construido | 🟢 OK (`sahsScreenings`) | 🟢 ninguno |
-| 9 | Articulación · T.A.R. | 🟢 Construido | 🟢 OK (`articulationTests`) | 🟢 mic + voz + TTS (degrada a SODA manual) |
-| 10 | Audiometría Verbal | 🟢 Construido | 🟢 OK (`verbalAudiometry`) | 🟢 TTS neural (campo libre) |
-| 11 | Funciones Ejecutivas | 🟢 Construido | 🟢 OK (`executiveFunctions`) | 🟢 TTS (dictado de consignas) |
+| 9 | Articulación · T.A.R. | 🟢 Construido | 🟢 OK (`articulationTests`) | 🟢 mic + reconocedor + `@/Voice` (degrada a SODA manual) |
+| 10 | Audiometría Verbal | 🟢 Construido | 🟢 OK (`verbalAudiometry`) | 🟢 recortes neuronales en 4 idiomas (campo libre) |
+| 11 | Funciones Ejecutivas | 🟢 Construido | 🟢 OK (`executiveFunctions`) | 🟢 consignas locutadas (`@/Voice`) |
 
 > Los 11 módulos están construidos (pantalla + `integration/`) con su servicio local y
 > migración TypeORM propia. Las 11 rutas están registradas en `RootStackParamList` y la
-> batería completa persiste en SQLite cifrado del dispositivo.
+> batería completa persiste en la base SQLite local del dispositivo.
 
 ---
 
