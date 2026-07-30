@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
-import { canSpeak, speak, stopSpeaking } from '@/Voice';
+import { canSpeak, onVoiceStatusChange, speak, stopSpeaking } from '@/Voice';
 
 /* -------------------------------------------------------------------------- */
 /*  Adaptador de audio del T.A.R.                                              */
@@ -169,8 +169,27 @@ export function useArticulationAudio(lang: string = 'es'): ArticulationAudio {
   /** Salvaguarda del indicador «hablando» (el asset/TTS no siempre avisa). */
   const speakTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  /* Disponibilidad de las librerías nativas. Va en ESTADO, no solo en refs: se
+   * resuelve dentro del `useEffect` de montaje, o sea DESPUÉS del primer
+   * render, y mutar una ref no repinta. Con las banderas solo en refs, la
+   * pantalla se pintaba una única vez con `available = recognitionAvailable =
+   * false` y los controles de grabación y reconocimiento —que la pantalla
+   * condiciona a `audio.available || audio.recognitionAvailable`— NO LLEGABAN A
+   * APARECER nunca, aunque las dos librerías estuvieran perfectamente
+   * instaladas. Es el «el reconocimiento de voz no funciona» del T.A.R.
+   *
+   * Se conservan las refs porque los callbacks (`startRecognition`,
+   * `ensureMic`) las leen sin recrearse en cada render; el estado es solo el
+   * espejo que hace repintar. */
   const availableRef = useRef<boolean>(false);      // grabación
   const recognitionRef = useRef<boolean>(false);    // reconocimiento
+  const [available, setAvailable] = useState(false);
+  const [recognitionAvailable, setRecognitionAvailable] = useState(false);
+  /* Misma historia con la voz del modelo: el motor del sistema tarda un par de
+   * segundos en arrancar, así que `canSpeak()` evaluado en el render podía
+   * quedarse congelado en el «no» del arranque y dejar puesto para siempre el
+   * aviso de «sin voz disponible». Se suscribe a los cambios de estado. */
+  const [modelVoiceAvailable, setModelVoiceAvailable] = useState(canSpeak);
 
   /* ---------------------------- init libs ----------------------------- */
   useEffect(() => {
@@ -181,8 +200,10 @@ export function useArticulationAudio(lang: string = 'es'): ArticulationAudio {
       try {
         recorderRef.current = typeof RecorderPlayer === 'function' ? new RecorderPlayer() : RecorderPlayer;
         availableRef.current = true;
+        setAvailable(true);
       } catch (_e) {
         availableRef.current = false;
+        setAvailable(false);
       }
     }
 
@@ -192,6 +213,7 @@ export function useArticulationAudio(lang: string = 'es'): ArticulationAudio {
     if (Voice) {
       voiceRef.current = Voice;
       recognitionRef.current = true;
+      setRecognitionAvailable(true);
       Voice.onSpeechStart = () => setRecognizing(true);
       const handleResults = (e: any) => {
         const text: string = (e?.value && e.value[0]) || '';
@@ -224,6 +246,13 @@ export function useArticulationAudio(lang: string = 'es'): ArticulationAudio {
         /* noop */
       }
     };
+  }, []);
+
+  /* El motor de voz del sistema se inicializa de forma asíncrona: sin esta
+   * suscripción la pantalla no se entera de que ya está listo. */
+  useEffect(() => {
+    setModelVoiceAvailable(canSpeak());
+    return onVoiceStatusChange(() => setModelVoiceAvailable(canSpeak()));
   }, []);
 
   /* --------------------------- permiso mic ---------------------------- */
@@ -389,9 +418,9 @@ export function useArticulationAudio(lang: string = 'es'): ArticulationAudio {
   }, []);
 
   return {
-    available: availableRef.current,
-    recognitionAvailable: recognitionRef.current,
-    modelVoiceAvailable: canSpeak(),
+    available,
+    recognitionAvailable,
+    modelVoiceAvailable,
     micGranted,
     speaking,
     recStatus,

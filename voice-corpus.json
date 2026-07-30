@@ -1,15 +1,15 @@
 {
   "schema": "via-plus/voice-corpus@1",
-  "entries": 177,
+  "entries": 182,
   "byLang": {
     "es": 91,
-    "es-DO": 86
+    "es-DO": 91
   },
   "byStyle": {
-    "tutor": 177
+    "tutor": 182
   },
   "bySource": {
-    "executiveFunctions": 5,
+    "executiveFunctions": 10,
     "articulation": 172
   },
   "corpus": [
@@ -133,6 +133,13 @@
       "source": "articulation"
     },
     {
+      "id": "es-DO_tutor_21853718_99",
+      "lang": "es-DO",
+      "style": "tutor",
+      "text": "No despiertes al lobo. Toca cada animal que aparezca… ¡pero NUNCA toques al lobo, que está dormido!",
+      "source": "executiveFunctions"
+    },
+    {
       "id": "es-DO_tutor_271e170c_4",
       "lang": "es-DO",
       "style": "tutor",
@@ -166,6 +173,13 @@
       "style": "tutor",
       "text": "Apto",
       "source": "articulation"
+    },
+    {
+      "id": "es-DO_tutor_387fbf0e_78",
+      "lang": "es-DO",
+      "style": "tutor",
+      "text": "Busca y encuentra. Toca TODOS los gatitos que veas, ¡lo más rápido que puedas!",
+      "source": "executiveFunctions"
     },
     {
       "id": "es-DO_tutor_3a0654eb_6",
@@ -399,6 +413,13 @@
       "source": "articulation"
     },
     {
+      "id": "es-DO_tutor_95399f2d_99",
+      "lang": "es-DO",
+      "style": "tutor",
+      "text": "Ordena la historia. Estas tarjetas están desordenadas: tócalas en el orden correcto de la historia.",
+      "source": "executiveFunctions"
+    },
+    {
       "id": "es-DO_tutor_9606bd35_4",
       "lang": "es-DO",
       "style": "tutor",
@@ -439,6 +460,13 @@
       "style": "tutor",
       "text": "Noche",
       "source": "articulation"
+    },
+    {
+      "id": "es-DO_tutor_a8c07bce_104",
+      "lang": "es-DO",
+      "style": "tutor",
+      "text": "El juego de las normas. Mira la tarjeta y tócala donde toque según la norma. ¡Atención, la norma cambia!",
+      "source": "executiveFunctions"
     },
     {
       "id": "es-DO_tutor_aa144ed0_32",
@@ -530,6 +558,13 @@
       "style": "tutor",
       "text": "Poroto",
       "source": "articulation"
+    },
+    {
+      "id": "es-DO_tutor_d21e608b_101",
+      "lang": "es-DO",
+      "style": "tutor",
+      "text": "El loro repetidor. Mira qué tarjetas se encienden y repite la secuencia tocándolas en el mismo orden.",
+      "source": "executiveFunctions"
     },
     {
       "id": "es-DO_tutor_d30ce533_5",

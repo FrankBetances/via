@@ -39,6 +39,8 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 
+const { m4aDurationSeconds, MIN_CLIP_MS } = require('./voice-clip-tempo');
+
 const ROOT = path.resolve(__dirname, '..');
 
 function loadBanks() {
@@ -73,7 +75,15 @@ function main() {
     const keys = audioKeys(banks.getVerbalBands(lang));
     const dir = audioDir(lang);
     const missing = keys.filter(k => !fs.existsSync(path.join(dir, `${k}.m4a`)));
-    rows.push({ lang, total: keys.length, missing, declaredPending: pending.has(lang) });
+    // Ritmo: un recorte presente pero atropellado es peor que uno ausente —el
+    // ausente al menos degrada a la voz del sistema, y este se presenta como
+    // estímulo válido. El banco castellano viajó así hasta producción.
+    const tooShort = keys
+      .filter(k => !missing.includes(k))
+      .map(k => ({ key: k, seconds: m4aDurationSeconds(path.join(dir, `${k}.m4a`)) }))
+      .filter(m => m.seconds != null && MIN_CLIP_MS > 0 && m.seconds * 1000 < MIN_CLIP_MS)
+      .sort((a, b) => a.seconds - b.seconds);
+    rows.push({ lang, total: keys.length, missing, tooShort, declaredPending: pending.has(lang) });
   }
 
   console.log('Cobertura de locuciones del banco verbal\n');
@@ -88,6 +98,14 @@ function main() {
       const shown = missing.slice(0, 8).join(' ');
       const rest = missing.length > 8 ? ` … (+${missing.length - 8})` : '';
       console.log(`      faltan: ${shown}${rest}`);
+    }
+    const short = rows.find(r => r.lang === lang).tooShort;
+    if (short.length) {
+      console.log(
+        `      atropelladas (< ${MIN_CLIP_MS} ms): ` +
+        short.slice(0, 6).map(m => `${m.key} ${(m.seconds * 1000).toFixed(0)} ms`).join(' · ') +
+        (short.length > 6 ? ` … (+${short.length - 6})` : ''),
+      );
     }
   }
 
@@ -108,6 +126,16 @@ function main() {
   /* ----------------------- coherencia con la declaración ------------------- */
 
   const problems = [];
+  for (const { lang, tooShort } of rows) {
+    if (tooShort.length) {
+      problems.push(
+        `'${lang}': ${tooShort.length} locución(es) por debajo de ${MIN_CLIP_MS} ms ` +
+        `(la más corta, ${tooShort[0].key}, ${(tooShort[0].seconds * 1000).toFixed(0)} ms). ` +
+        'Un estímulo atropellado no mide reconocimiento de palabra: regenere el banco con el ' +
+        'workflow de voz, que ya realentiza recorte a recorte.',
+      );
+    }
+  }
   for (const { lang, missing, declaredPending, total } of rows) {
     if (missing.length && !declaredPending) {
       problems.push(

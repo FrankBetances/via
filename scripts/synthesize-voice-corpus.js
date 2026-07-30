@@ -32,6 +32,8 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 
+const { enforceClipTempo, m4aDurationSeconds, MIN_CLIP_MS } = require('./voice-clip-tempo');
+
 const ROOT = path.resolve(__dirname, '..');
 const CORPUS = path.join(ROOT, 'voice-corpus.json');
 const VOICE_DIR = path.join(ROOT, 'assets', 'voice');
@@ -79,6 +81,20 @@ function synthNeural(entries, tmp, lang) {
   });
 }
 
+/**
+ * Re-sintetiza UNA locución con un `lengthScale` propio. Carga el modelo otra
+ * vez, así que solo se usa para las pocas que salen por debajo del suelo de
+ * duración; el lote normal sigue yendo en un único proceso.
+ */
+function synthNeuralOne(entry, tmp, lang, lengthScale) {
+  execFileSync(
+    pythonBin(),
+    [NOS_TTS, '--lang', lang, '--text', entry.text, '--out', path.join(tmp, `${entry.id}.wav`),
+      '--length-scale', String(lengthScale)],
+    { stdio: 'inherit' },
+  );
+}
+
 /** WAVs con espeak-ng (degradación clásica; no cubre gl). */
 function synthEspeak(entries, tmp, lang) {
   const voice = ESPEAK_VOICES[lang];
@@ -99,9 +115,18 @@ function synthesizeLang(corpus, lang, force) {
     console.log(`· ${lang}: sin entradas en el corpus (nada que sintetizar)`);
     return 0;
   }
+  // Incremental, pero NO ciego: además de las que faltan, entran las que ya
+  // están pero salieron por debajo del suelo de duración. Sin esta segunda
+  // condición un recorte defectuoso ya commiteado era inmortal —existe, luego
+  // se salta— y ni cambiar la voz ni subir el lengthScale lo tocaban jamás.
+  const tooShort = e => {
+    if (MIN_CLIP_MS <= 0) return false;
+    const s = m4aDurationSeconds(path.join(VOICE_DIR, `${e.id}.m4a`));
+    return s != null && s * 1000 < MIN_CLIP_MS;
+  };
   const pending = force
     ? all
-    : all.filter(e => !fs.existsSync(path.join(VOICE_DIR, `${e.id}.m4a`)));
+    : all.filter(e => !fs.existsSync(path.join(VOICE_DIR, `${e.id}.m4a`)) || tooShort(e));
   if (!pending.length) {
     console.log(`· ${lang}: ${all.length} locuciones ya sintetizadas (incremental, nada que hacer)`);
     return 0;
@@ -115,21 +140,38 @@ function synthesizeLang(corpus, lang, force) {
   if (espeak) synthEspeak(pending, tmp, lang);
   else synthNeural(pending, tmp, lang);
 
-  for (const e of pending) {
+  // m4a AAC mono 44.1k con sonoridad normalizada (loudnorm): MISMO objetivo
+  // LUFS que la audiometría verbal, para sonoridad homogénea entre idiomas.
+  const encode = e => {
     const wav = path.join(tmp, `${e.id}.wav`);
     if (!fs.existsSync(wav)) throw new Error(`Síntesis incompleta: falta ${e.id}.wav`);
-    // m4a AAC mono 44.1k con sonoridad normalizada (loudnorm): MISMO objetivo
-    // LUFS que la audiometría verbal, para sonoridad homogénea entre idiomas.
     execFileSync(ffmpeg, [
       '-y', '-loglevel', 'error', '-i', wav,
       '-af', 'loudnorm=I=-20:TP=-3:LRA=7,silenceremove=start_periods=1:start_threshold=-45dB',
       '-ar', '44100', '-ac', '1', '-c:a', 'aac', '-b:a', '96k',
       path.join(VOICE_DIR, `${e.id}.m4a`),
     ]);
+  };
+  for (const e of pending) {
+    encode(e);
     process.stdout.write('.');
   }
+  console.log('');
+
+  // Mismo suelo de duración que la audiometría verbal, y por el mismo motivo:
+  // por aquí pasan los MODELOS HABLADOS del T.A.R., que son palabras sueltas
+  // para repetir. Sin esta puerta se colaron locuciones como «Tapa» en 140 ms
+  // o «Apto» en 163 ms —un chasquido, no una palabra— y el módulo parecía no
+  // tener voz neuronal cuando lo que tenía era una inservible.
+  enforceClipTempo({
+    items: pending,
+    fileFor: e => path.join(VOICE_DIR, `${e.id}.m4a`),
+    labelFor: e => e.text,
+    lang,
+    resynth: espeak ? null : (e, scale) => { synthNeuralOne(e, tmp, lang, scale); encode(e); },
+  });
   console.log(
-    `\n✓ ${lang}: ${pending.length} locuciones (${espeak ? 'espeak-ng' : 'voz neural'}) → ${path.relative(ROOT, VOICE_DIR)}`,
+    `✓ ${lang}: ${pending.length} locuciones (${espeak ? 'espeak-ng' : 'voz neural'}) → ${path.relative(ROOT, VOICE_DIR)}`,
   );
   return pending.length;
 }

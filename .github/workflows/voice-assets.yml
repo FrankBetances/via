@@ -36,6 +36,8 @@ on:
       - "scripts/export-voice-corpus.js"
       - "scripts/synthesize-voice-corpus.js"
       - "scripts/build-voice-asset-map.js"
+      - "scripts/verbal-assets.js"
+      - "scripts/voice-clip-tempo.js"
       - "tools/nos/**"
       - ".github/workflows/voice-assets.yml"
 

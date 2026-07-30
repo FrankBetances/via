@@ -57,13 +57,26 @@ export const EF_CONSIGNA_L10N: Partial<
   // …
 };
 
-/** Banco de consignas de la batería (hoy: los 5 mini-juegos de FE). */
+/** Banco de consignas de la batería (hoy: los 5 mini-juegos de FE).
+ *
+ * `es-DO` se enumera SIEMPRE, con el texto castellano si el revisor dominicano
+ * aún no ha firmado un delta. No es un atajo de traducción: es la misma lengua
+ * y lo que cambia es la VOZ, igual que en `TAR_MODELS`. Sin esta entrada, una
+ * sesión dominicana resolvía al recorte base `es` y los mini-juegos se
+ * explicaban con acento peninsular mientras el resto de la batería ya sonaba
+ * en dominicano — reportado en campo como «funciones ejecutivas no tiene las
+ * voces neuronales». Cuando el delta se firme, `EF_CONSIGNA_L10N` lo sustituye
+ * y el id cambia solo para esa consigna.
+ *
+ * El gallego y el euskera NO se enumeran por defecto: ahí el texto sí es otro
+ * idioma y meterlo sin revisión humana sería traducción automática encubierta
+ * (P6). Sin delta firmado, esas sesiones degradan al recorte castellano. */
 export const CONSIGNAS: ConsignaSpec[] = EF_DOMAIN_ORDER.map(domain => {
   const meta = EF_DOMAIN_META[domain];
   const l10n = EF_CONSIGNA_L10N[domain] ?? {};
-  const text: ConsignaText = { es: efConsignaText(meta.game, meta.instruction) };
+  const es = efConsignaText(meta.game, meta.instruction);
+  const text: ConsignaText = { es, 'es-DO': l10n['es-DO'] ?? es };
   if (l10n.gl) text.gl = l10n.gl;
-  if (l10n['es-DO']) text['es-DO'] = l10n['es-DO'];
   return { key: `ef.${domain}`, source: 'executiveFunctions', style: 'tutor', text };
 });
 
