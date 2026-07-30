@@ -74,6 +74,14 @@ jobs:
           cd android
           ./gradlew assembleRelease bundleRelease --no-daemon
 
+      # Puerta de permisos. Se ejecuta sobre el manifiesto FUSIONADO, que es el
+      # que viaja dentro del AAB: la duplicación que rechaza Play Console no la
+      # produce nuestro manifiesto sino el merge con las dependencias, así que
+      # revisar `src/main` no sirve de nada. Va antes de subir los artefactos
+      # para que un bundle que la tienda va a rechazar no llegue a descargarse.
+      - name: Verify merged manifest permissions
+        run: node scripts/check-android-permissions.js
+
       - name: Verify AAB signature
         run: |
           jarsigner -verify android/app/build/outputs/bundle/release/app-release.aab
