@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  VIA+ — Exportación en modo DESARROLLO.
+
+  ✅ Es la ÚNICA de las tres que funciona con una cuenta de Apple GRATUITA.
+
+  El .ipa resultante se instala en dispositivos registrados en tu equipo y
+  CADUCA A LOS 7 DÍAS si la firma es de cuenta gratuita: pasado ese plazo la
+  app deja de abrirse y hay que reinstalarla desde Xcode. Si necesitas dejar
+  un iPad en manos de una logopeda más de una semana, hace falta el Apple
+  Developer Program.
+
+  Uso:  ./scripts/archive.sh dev [número-de-build]
+
+  `teamID` no figura aquí a propósito: lo inyecta archive.sh sobre una copia
+  temporal de este archivo, resolviéndolo de la misma cadena que la firma
+  (ver Config/Signing.xcconfig). Así este plist no contiene identidad.
+-->
+<plist version="1.0">
+<dict>
+	<key>method</key>
+	<string>development</string>
+
+	<key>signingStyle</key>
+	<string>automatic</string>
+
+	<!-- Sin distribución no hay backend de símbolos al que subirlos. -->
+	<key>uploadSymbols</key>
+	<false/>
+
+	<key>compileBitcode</key>
+	<false/>
+
+	<key>stripSwiftSymbols</key>
+	<true/>
+
+	<key>destination</key>
+	<string>export</string>
+
+	<!-- Reduce el .ipa a las arquitecturas del dispositivo de destino. -->
+	<key>thinning</key>
+	<string>&lt;thin-for-all-variants&gt;</string>
+</dict>
+</plist>

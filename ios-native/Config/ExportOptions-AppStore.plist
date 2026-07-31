@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  VIA+ — Exportación a APP STORE CONNECT (TestFlight y tienda).
+
+  ⛔ REQUIERE Apple Developer Program. Con cuenta gratuita falla siempre.
+
+  ⚠️ ANTES DE SUBIR NADA, LEE ESTO:
+
+  VIA+ es un producto sanitario software (SaMD, Clase IIa bajo MDR
+  2017/745). Publicar el PORT NATIVO en la ficha de App Store del producto
+  significaría distribuir como VIA+ un demostrador de navegación cuya lógica
+  clínica está portada solo en parte. La ficha de la tienda le pertenece a la
+  app React Native, que es la validada.
+
+  Si algún día se distribuye el port nativo en paralelo, necesita ficha
+  propia y, por tanto, identificador propio ANTES de la primera subida: dos
+  binarios distintos no pueden compartir ficha en App Store Connect. Hoy el
+  port usa com.earlify.viaplus y la app de Play está registrada como
+  eu.futureforkids.via, así que la colisión no existe todavía — pero la
+  decisión sigue pendiente y hay que tomarla antes de subir, no después.
+
+  Uso:  ./scripts/archive.sh appstore [número-de-build]
+
+  Cada envío necesita un número de build NUEVO para la misma versión de
+  marketing, o App Store Connect lo rechaza. Se inyecta en el comando
+  (segundo argumento de archive.sh); nunca se escribe a mano en el Info.plist.
+-->
+<plist version="1.0">
+<dict>
+	<key>method</key>
+	<string>app-store</string>
+
+	<key>signingStyle</key>
+	<string>automatic</string>
+
+	<!-- Imprescindible para que Crashlytics simbolice las caídas de la tienda. -->
+	<key>uploadSymbols</key>
+	<true/>
+
+	<key>compileBitcode</key>
+	<false/>
+
+	<key>stripSwiftSymbols</key>
+	<true/>
+
+	<key>destination</key>
+	<string>export</string>
+
+	<!-- App Store Connect exige el binario completo, sin adelgazar. -->
+	<key>manageAppVersionAndBuildNumber</key>
+	<false/>
+</dict>
+</plist>

@@ -25,11 +25,39 @@ build/
 *.xcuserstate
 *.xccheckout
 *.moved-aside
+*.xcscmblueprint
 xcuserdata/
+**/xcuserdata/
+**/*.xcodeproj/xcuserdata/
+**/*.xcworkspace/xcuserdata/
 DerivedData/
-project.xcworkspace
 ios/.xcode.env.local
 ios/build/
+
+# ⚠️ NO ignorar `project.xcworkspace` entero.
+#
+# El .xcworkspace que Xcode crea DENTRO de un .xcodeproj no es un workspace
+# de CocoaPods: guarda la resolución de Swift Package Manager, y dentro vive
+# `xcshareddata/swiftpm/Package.resolved`, que SÍ debe versionarse para que
+# todo el mundo compile contra las mismas versiones del SDK de Firebase.
+# Ignorar la carpeta entera se lo lleva por delante sin que se note hasta que
+# dos Macs compilan contra dependencias distintas.
+# Del workspace solo sobra el estado por-usuario, ya cubierto arriba.
+
+# --- Firma de iOS — la identidad de Apple NUNCA se versiona ---
+**/Config/Signing.local.xcconfig
+*.mobileprovision
+*.p8
+*.p12
+*.cer
+*.certSigningRequest
+
+# --- Artefactos de distribución iOS ---
+*.ipa
+*.xcarchive
+*.dSYM/
+*.dSYM.zip
+*.hmap
 
 # --- CocoaPods ---
 ios/Pods/

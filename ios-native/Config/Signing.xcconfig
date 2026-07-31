@@ -1,0 +1,74 @@
+// ==========================================================================
+// VIA+ — Configuración base de firma (VERSIONADA, SIN VALORES DE IDENTIDAD)
+// ==========================================================================
+//
+// Este archivo es el `baseConfigurationReference` de las configuraciones
+// Debug y Release del target VIAPlus. Su razón de ser es que el repositorio
+// NO contenga identidad de firma: ni Team ID, ni certificados, ni perfiles.
+//
+// El Team ID no es un secreto, pero tampoco es un dato del repositorio: cada
+// persona que compila puede tener el suyo (cuenta personal, de Earlify
+// Health, de un centro clínico). Escribirlo aquí obligaría a todo el mundo a
+// firmar con la misma cuenta y generaría un diff espurio en cada clon.
+//
+// CADENA DE RESOLUCIÓN DEL EQUIPO (de mayor a menor prioridad):
+//
+//   1. VIAPLUS_DEVELOPMENT_TEAM pasado a xcodebuild como ajuste de build.
+//      Es la vía de CI y de scripts, donde no hay archivo local:
+//        xcodebuild ... VIAPLUS_DEVELOPMENT_TEAM=ABCDE12345
+//
+//   2. Config/Signing.local.xcconfig — copia local SIN versionar, incluida
+//      al final de este archivo. Es la vía cómoda para trabajar desde Xcode:
+//      se escribe una vez y el botón Archive ya funciona.
+//        ./scripts/team-id.sh --write
+//
+//   3. Ninguna de las dos: DEVELOPMENT_TEAM queda vacío. El simulador SIGUE
+//      COMPILANDO y el archivado falla con un error explícito:
+//        «Signing for "VIAPlus" requires a development team»
+//      Ese fallo ruidoso es el comportamiento deseado. Es preferible a un
+//      archivo firmado con la cuenta equivocada, que se descubre tarde y
+//      obliga a repetir el envío.
+//
+// ⛔ NO elijas el equipo en la pestaña Signing & Capabilities de Xcode:
+//    Xcode lo escribe dentro de project.pbxproj y deja un cambio accidental
+//    en el repositorio. Si `git status` marca el .pbxproj tras firmar, la
+//    identidad se está escribiendo donde no debe.
+//
+// ==========================================================================
+
+// --- Valores por defecto (los sobrescribe el archivo local o xcodebuild) ---
+
+// Vacío a propósito. Ver la cadena de resolución de arriba.
+VIAPLUS_DEVELOPMENT_TEAM =
+
+// Identificador de PRODUCCIÓN del port nativo.
+//
+// Un identificador solo puede registrarlo UN equipo de Apple. Si este ya
+// está registrado por la cuenta de Earlify Health, una cuenta personal
+// recibirá «cannot be registered to your development team because it is not
+// available» al intentar firmar. La solución NO es cambiar este valor, sino
+// sobrescribir VIAPLUS_BUNDLE_ID en Signing.local.xcconfig con uno propio
+// (p. ej. com.earlify.viaplus.tuiniciales).
+VIAPLUS_BUNDLE_ID = com.earlify.viaplus
+
+// --- Ajustes reales del target, derivados de las variables anteriores ---
+//
+// La sustitución de $(...) es perezosa: se resuelve al evaluar el ajuste, no
+// al leer esta línea. Por eso el archivo local incluido AL FINAL sí afecta a
+// estas tres asignaciones.
+
+DEVELOPMENT_TEAM = $(VIAPLUS_DEVELOPMENT_TEAM)
+PRODUCT_BUNDLE_IDENTIFIER = $(VIAPLUS_BUNDLE_ID)
+CODE_SIGN_STYLE = Automatic
+
+// --- Sobrescritura local (sin versionar) ---
+//
+// El `#include?` va AL FINAL: en un .xcconfig gana la ÚLTIMA asignación.
+// Ponerlo arriba haría que el archivo local no tuviera ningún efecto, y ese
+// fallo no rompe la compilación: aparece tarde, al archivar, disfrazado de
+// «falta el equipo de firma».
+//
+// La interrogación de `#include?` hace que la ausencia del archivo no sea un
+// error: un clon recién hecho compila para simulador sin tener que crearlo.
+
+#include? "Signing.local.xcconfig"

@@ -16,10 +16,37 @@
 	<string>$(PRODUCT_NAME)</string>
 	<key>CFBundlePackageType</key>
 	<string>$(PRODUCT_BUNDLE_PACKAGE_TYPE)</string>
+	<!--
+	  Numeración por variables de build, NUNCA a mano.
+
+	  Los valores viven en los ajustes del target (MARKETING_VERSION y
+	  CURRENT_PROJECT_VERSION en project.pbxproj). Escribir los números aquí
+	  crearía dos fuentes de verdad que divergen: el .ipa se sube con un
+	  número y el proyecto dice otro, y App Store Connect rechaza por build
+	  repetido sin que se vea por qué.
+
+	  Un envío nuevo no toca ningún archivo:
+	    ./scripts/archive.sh appstore 7
+	-->
 	<key>CFBundleShortVersionString</key>
-	<string>0.1.0</string>
+	<string>$(MARKETING_VERSION)</string>
 	<key>CFBundleVersion</key>
-	<string>1</string>
+	<string>$(CURRENT_PROJECT_VERSION)</string>
+
+	<!--
+	  Cumplimiento de exportación de cifrado.
+
+	  Sin esta clave, CADA subida a App Store Connect se queda parada
+	  preguntándolo y hay que contestarlo a mano en la web.
+
+	  `false` porque VIA+ solo usa HTTPS a través de las API del sistema
+	  (Firebase), que es la excepción prevista por Apple. El procesamiento de
+	  audio es local y no cifra nada. ⚠️ Si algún día se añade cifrado propio
+	  —por ejemplo para exportar informes clínicos—, hay que volver a mirarla.
+	-->
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
+
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>NSMicrophoneUsageDescription</key>

@@ -64,6 +64,11 @@
 		2B3C4D5E0000000000000125 /* RoomNoiseCheckView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoomNoiseCheckView.swift; sourceTree = "<group>"; };
 		1A2B3C4D0000000000000032 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		1A2B3C4D0000000000000033 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		3C4D5E6F0000000000000200 /* Signing.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Signing.xcconfig; sourceTree = "<group>"; };
+		3C4D5E6F0000000000000201 /* Signing.local.xcconfig.example */ = {isa = PBXFileReference; lastKnownFileType = text; path = Signing.local.xcconfig.example; sourceTree = "<group>"; };
+		3C4D5E6F0000000000000202 /* ExportOptions-Development.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "ExportOptions-Development.plist"; sourceTree = "<group>"; };
+		3C4D5E6F0000000000000203 /* ExportOptions-AdHoc.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "ExportOptions-AdHoc.plist"; sourceTree = "<group>"; };
+		3C4D5E6F0000000000000204 /* ExportOptions-AppStore.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "ExportOptions-AppStore.plist"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -82,9 +87,22 @@
 		1A2B3C4D0000000000000002 = {
 			isa = PBXGroup;
 			children = (
+				3C4D5E6F0000000000000210 /* Config */,
 				1A2B3C4D0000000000000004 /* VIAPlus */,
 				1A2B3C4D0000000000000003 /* Products */,
 			);
+			sourceTree = "<group>";
+		};
+		3C4D5E6F0000000000000210 /* Config */ = {
+			isa = PBXGroup;
+			children = (
+				3C4D5E6F0000000000000200 /* Signing.xcconfig */,
+				3C4D5E6F0000000000000201 /* Signing.local.xcconfig.example */,
+				3C4D5E6F0000000000000202 /* ExportOptions-Development.plist */,
+				3C4D5E6F0000000000000203 /* ExportOptions-AdHoc.plist */,
+				3C4D5E6F0000000000000204 /* ExportOptions-AppStore.plist */,
+			);
+			path = Config;
 			sourceTree = "<group>";
 		};
 		1A2B3C4D0000000000000003 /* Products */ = {
@@ -401,10 +419,10 @@
 		};
 		1A2B3C4D0000000000000024 /* Debug */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = 3C4D5E6F0000000000000200 /* Signing.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_ASSET_PATHS = "";
 				ENABLE_PREVIEWS = YES;
@@ -416,7 +434,6 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 0.1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.earlify.viaplus;
 				PRODUCT_NAME = "VIA+";
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
@@ -426,10 +443,10 @@
 		};
 		1A2B3C4D0000000000000025 /* Release */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = 3C4D5E6F0000000000000200 /* Signing.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_ASSET_PATHS = "";
 				ENABLE_PREVIEWS = YES;
@@ -441,7 +458,6 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 0.1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.earlify.viaplus;
 				PRODUCT_NAME = "VIA+";
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;

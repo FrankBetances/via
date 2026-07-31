@@ -4,6 +4,38 @@ Port nativo enfocado en **iteración visual rápida** y validación de usabilida
 en dispositivos físicos vía **Firebase App Distribution**. La arquitectura
 profunda no es el objetivo de esta fase.
 
+> ⚠️ Este port es un **demostrador de navegación y estética**. La app clínica
+> real —la validada— es la de React Native (`src/`). El port tiene la lógica
+> clínica portada solo en parte. Ver
+> [`docs/design/arquitectura-exportacion-ios.md`](../docs/design/arquitectura-exportacion-ios.md).
+
+## Empezar aquí (clon nuevo)
+
+```bash
+cd ios-native
+./scripts/preflight.sh        # ¿le falta algo a este clon? Responde en segundos
+open VIAPlus.xcodeproj        # ← ESTO, no un .xcworkspace
+```
+
+**Qué se abre: `VIAPlus.xcodeproj`. Qué NO: ningún `.xcworkspace`.** Este
+proyecto usa Swift Package Manager, **no CocoaPods**: no hay `Podfile`, ni
+`Pods/`, ni `pod install` que ejecutar. Si buscas un workspace es porque vienes
+del flujo de la app React Native, que es otra cosa.
+
+El `project.xcworkspace` que Xcode crea **dentro** del `.xcodeproj` guarda la
+resolución de SPM y no es un workspace de CocoaPods. Confundirlos lleva a
+buscar un `pod install` que no existe.
+
+**La primera apertura tarda y necesita conexión.** Xcode descarga y resuelve el
+SDK de Firebase: pueden ser varios minutos, y mientras tanto el editor marca
+errores falsos de *«No such module FirebaseCore»*. Espera a que termine la
+barra de *Package Dependencies*. Si se atasca: *File ▸ Packages ▸ Reset Package
+Caches*.
+
+`preflight.sh` no necesita cuenta de Apple ni credenciales: está pensado para
+ejecutarse **antes** de abrir el IDE, y cada aviso incluye el comando que lo
+resuelve. Sale con código 1 solo si hay algo que impide compilar.
+
 ## Estructura
 
 ```
@@ -11,7 +43,18 @@ ios-native/
 ├── .gitignore                     # Estricto para el ecosistema Apple
 ├── VIAPlus.xcodeproj/             # Proyecto Xcode (SPM + Firebase)
 │   ├── project.pbxproj
+│   ├── project.xcworkspace/       # Resolución de SPM (NO es un workspace de Pods)
 │   └── xcshareddata/xcschemes/    # Esquema compartido "VIAPlus"
+├── Config/                        # Firma y opciones de exportación
+│   ├── Signing.xcconfig                # Base versionada, SIN identidad
+│   ├── Signing.local.xcconfig.example  # Plantilla del Team ID local
+│   ├── ExportOptions-Development.plist # La única válida con cuenta gratuita
+│   ├── ExportOptions-AdHoc.plist       # App Distribution (cuenta de pago)
+│   └── ExportOptions-AppStore.plist    # TestFlight y tienda (cuenta de pago)
+├── scripts/
+│   ├── preflight.sh               # ¿le falta algo a este clon para compilar?
+│   ├── team-id.sh                 # Averigua el Team ID y escribe la firma local
+│   └── archive.sh                 # archive + export del .ipa en tres modos
 └── VIAPlus/
     ├── VIAPlusApp.swift           # @main + arranque de Firebase
     ├── ContentView.swift          # Host del router (splash + auth flow)
@@ -137,6 +180,89 @@ Firebase se inyecta como paquete remoto SPM directamente en `project.pbxproj`:
 Al abrir el proyecto, Xcode resolverá los paquetes automáticamente
 (*File ▸ Packages ▸ Resolve Package Versions* si hiciera falta).
 
+`Package.resolved` (dentro de `project.xcworkspace/xcshareddata/swiftpm/`)
+**sí se versiona**: fija las versiones exactas del SDK y evita que cada persona
+compile contra «la última que hubiera ese día». Solo lo puede generar Xcode al
+resolver los paquetes, así que todavía no está en el repositorio; commitéalo la
+primera vez que abras el proyecto en un Mac.
+
+## Firma: por qué no está en el repositorio
+
+Ni el Team ID, ni certificados, ni perfiles. `Config/Signing.xcconfig` es la
+configuración base del target y declara los ajustes en función de variables que
+resuelve, por este orden:
+
+1. `VIAPLUS_DEVELOPMENT_TEAM` pasado a `xcodebuild` (vía de CI y de scripts).
+2. `Config/Signing.local.xcconfig` — copia local **sin versionar**.
+3. Ninguna de las dos → el simulador compila igual; el **archivado falla** con
+   *«Signing for "VIAPlus" requires a development team»*. Eso es el diseño
+   funcionando: mejor un error claro que un archivo firmado con la cuenta
+   equivocada.
+
+Para dejarlo resuelto:
+
+```bash
+./scripts/team-id.sh            # ¿cuál es mi Team ID? (lo lee del llavero)
+./scripts/team-id.sh --write    # lo escribe en Config/Signing.local.xcconfig
+```
+
+> ⛔ **No elijas el equipo en la pestaña *Signing & Capabilities*.** Xcode lo
+> escribe dentro de `project.pbxproj` y deja un cambio accidental en el
+> repositorio. Si `git status` marca el `.pbxproj` después de firmar, es esto.
+>
+> ⚠️ El certificado se llama *«Apple Development: correo (XXXXXXXXXX)»* y ese
+> código entre paréntesis **no** es el Team ID, es el del propio certificado.
+> `team-id.sh` lee el campo **OU** del subject precisamente por eso.
+
+Si al firmar recibes *«…cannot be registered to your development team because
+it is not available»*, el identificador `com.earlify.viaplus` ya lo registró
+otro equipo: solo puede pertenecer a uno. Dale uno propio **en tu archivo
+local**, sin tocar el que se publica:
+
+```
+VIAPLUS_BUNDLE_ID = com.earlify.viaplus.tuiniciales
+```
+
+## Exportación del `.ipa`
+
+```bash
+./scripts/archive.sh dev             # desarrollo — único modo con cuenta gratuita
+./scripts/archive.sh adhoc 12        # App Distribution, build 12 (cuenta de pago)
+./scripts/archive.sh appstore 12     # App Store Connect, build 12 (cuenta de pago)
+```
+
+El segundo argumento inyecta `CURRENT_PROJECT_VERSION` **en el comando**: el
+número de build no se escribe a mano en el `Info.plist`, que lo lee como
+`$(CURRENT_PROJECT_VERSION)`. Un envío nuevo no toca ningún archivo del
+repositorio.
+
+Cuando algo falla, el script traduce el error de `xcodebuild` a una frase que
+dice qué hacer: los mensajes de firma de Apple son crípticos, y la causa
+habitual de que fallen `adhoc` y `appstore` no es el proyecto sino la cuenta.
+
+## Qué se puede hacer con una cuenta gratuita
+
+| Capacidad | Gratuita | De pago (99 €/año) |
+|---|:---:|:---:|
+| Simulador | ✅ | ✅ |
+| Instalar en tu propio iPhone/iPad | ✅ | ✅ |
+| Exportar `.ipa` de desarrollo | ✅ | ✅ |
+| Firebase App Distribution / TestFlight | ❌ | ✅ |
+| App Store | ❌ | ✅ |
+
+Con cuenta gratuita, **la firma caduca a los 7 días**: pasado ese plazo la app
+deja de abrirse y hay que reinstalarla desde Xcode. Es el límite que más
+molesta si quieres dejar un iPad en manos de una logopeda una semana larga.
+También hay tope de 10 App IDs nuevos cada 7 días y de 3 apps instaladas a la
+vez en un dispositivo.
+
+Esto se sostiene porque el port **no usa capacidades de pago**: no hay ningún
+archivo `.entitlements` (sin push, sin App Groups, sin dominios asociados), así
+que una cuenta gratuita compila el proyecto entero.
+
+En la primera instalación el dispositivo pedirá confiar en el certificado:
+*Ajustes ▸ General ▸ VPN y gestión de dispositivos ▸ tu Apple ID ▸ Confiar*.
+
 ## Configuración de Firebase (paso manual)
 
 1. Descarga `GoogleService-Info.plist` desde la consola de Firebase
@@ -162,3 +288,17 @@ secciones correspondientes:
 | Eliminar                   | Retirar el objeto de **todas** las secciones anteriores        |
 
 Omitir este registro deja el archivo fuera del target y **corrompe el build**.
+Un `.swift` en disco pero no en la fase Sources no da un error de sintaxis: da
+un «símbolo no encontrado» a mitad de la compilación, que despista muchísimo
+más. Por eso `./scripts/preflight.sh` compara el disco con el `pbxproj`
+**antes** de compilar, y por eso el proyecto usa grupos explícitos en vez de
+carpetas sincronizadas.
+
+---
+
+## Documento de referencia
+
+La arquitectura completa de exportación a iOS —las dos vías del repositorio,
+la cadena de resolución de la firma, el checklist del primer envío a App Store
+y el catálogo de errores frecuentes— está en
+[`docs/design/arquitectura-exportacion-ios.md`](../docs/design/arquitectura-exportacion-ios.md).

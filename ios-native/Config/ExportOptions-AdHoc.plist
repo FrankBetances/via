@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  VIA+ — Exportación AD-HOC (distribución interna).
+
+  ⛔ REQUIERE Apple Developer Program (99 €/año): necesita un certificado de
+  distribución, que la cuenta gratuita no puede emitir. Con cuenta gratuita
+  este modo falla siempre, y el error de xcodebuild no lo dice con claridad
+  (archive.sh sí lo traduce).
+
+  Es el modo para repartir el port nativo por Firebase App Distribution a las
+  logopedas evaluadoras. Cada dispositivo debe estar REGISTRADO en el equipo
+  de Apple antes de exportar, o la app no se instalará en él.
+
+  Uso:  ./scripts/archive.sh adhoc [número-de-build]
+
+  Nota sobre símbolos de caída: el proyecto enlaza Firebase pero no tiene
+  fase de subida de dSYM (ver docs/ARQUITECTURA-EXPORTACION-IOS.md). En los
+  .ipa ad-hoc, los informes de caída llegan como direcciones de memoria.
+-->
+<plist version="1.0">
+<dict>
+	<key>method</key>
+	<string>ad-hoc</string>
+
+	<key>signingStyle</key>
+	<string>automatic</string>
+
+	<key>uploadSymbols</key>
+	<true/>
+
+	<key>compileBitcode</key>
+	<false/>
+
+	<key>stripSwiftSymbols</key>
+	<true/>
+
+	<key>destination</key>
+	<string>export</string>
+
+	<key>thinning</key>
+	<string>&lt;thin-for-all-variants&gt;</string>
+</dict>
+</plist>

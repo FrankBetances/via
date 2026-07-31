@@ -1,0 +1,50 @@
+// ==========================================================================
+// VIA+ — Plantilla de la firma LOCAL (este .example SÍ se versiona)
+// ==========================================================================
+//
+// USO
+//
+//   cp Config/Signing.local.xcconfig.example Config/Signing.local.xcconfig
+//   # y sustituye el Team ID de abajo por el tuyo
+//
+// o, más rápido, que lo escriba el script leyéndolo de tu llavero:
+//
+//   ./scripts/team-id.sh --write
+//
+// El archivo resultante (Signing.local.xcconfig, SIN .example) está en
+// .gitignore y NUNCA debe versionarse.
+//
+// ==========================================================================
+//
+// CÓMO ENCONTRAR TU TEAM ID
+//
+//   · Con cuenta de pago: developer.apple.com → Membership details.
+//   · Con cuenta GRATUITA no aparece en la web. Sale del certificado del
+//     llavero, en el campo OU del subject:
+//
+//       security find-certificate -c "Apple Development" -p \
+//         | openssl x509 -noout -subject
+//
+//     Busca `OU = ABCDE12345`. Eso es el Team ID: 10 caracteres.
+//
+// ⚠️ TRAMPA HABITUAL: el certificado se llama
+//    «Apple Development: tu@correo.com (XXXXXXXXXX)» y ESE código entre
+//    paréntesis NO es el Team ID — es el identificador del propio
+//    certificado. Copiarlo da errores de firma que cuesta relacionar con la
+//    causa. Lee siempre el campo OU.
+//
+// ==========================================================================
+
+// Tu Team ID de Apple (10 caracteres). Sustituye el placeholder.
+VIAPLUS_DEVELOPMENT_TEAM = ABCDE12345
+
+// --- Opcional: identificador propio para pruebas -------------------------
+//
+// Descomenta SOLO si al firmar recibes «Failed to register bundle identifier
+// … cannot be registered to your development team because it is not
+// available»: significa que com.earlify.viaplus ya lo registró otro equipo.
+//
+// Esto cambia el identificador con el que TÚ compilas, no el que se publica
+// (ese vive en Config/Signing.xcconfig y no se toca).
+//
+// VIAPLUS_BUNDLE_ID = com.earlify.viaplus.tuiniciales

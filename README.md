@@ -530,8 +530,8 @@ que descargas de tu proyecto de Firebase (`.firebaserc` apunta al proyecto por d
 # Android
 android/app/google-services.json
 
-# iOS
-ios/GoogleService-Info.plist
+# iOS — port nativo SwiftUI (la app RN todavía no tiene proyecto iOS, ver abajo)
+ios-native/VIAPlus/GoogleService-Info.plist
 ```
 
 Puedes usar `android/app/google-services.json.example` como plantilla de la estructura
@@ -563,12 +563,16 @@ parámetros técnicos son constantes en el código, documentadas en su módulo:
 # Servidor Metro
 npm start
 
-# iOS
-npm run ios
-
 # Android
 npm run android
 ```
+
+> ⚠️ **iOS.** `npm run ios` **no funciona todavía**: la app React Native usa flujo *bare* y la
+> carpeta `ios/` aún no está generada en el repositorio, así que no hay proyecto Xcode que
+> compilar. Hoy el único camino a un dispositivo iOS es el **port nativo SwiftUI** de
+> [`ios-native/`](./ios-native/README.md). Qué haría falta para cerrar esa brecha —permisos,
+> módulos nativos por validar y firma— está detallado en
+> [`docs/design/arquitectura-exportacion-ios.md`](./docs/design/arquitectura-exportacion-ios.md).
 
 ### Verificación (tests · lint · tipos)
 
@@ -741,6 +745,7 @@ versionados de los que hay que **activar en la interfaz de GitHub** para que sur
 | Icono de la app | [`docs/capturas/`](./docs/capturas/README.md) (512 × 512 para la ficha + icono de lanzador) |
 | Política de privacidad | [`site/privacidad.html`](./site/privacidad.html), publicada con GitHub Pages |
 | Port nativo iOS | [`ios-native/`](./ios-native/README.md) — SwiftUI, parcial: acceso y créditos, profesionales, pacientes, consentimiento, evaluación clínica (CAP), sonómetro de sala y hub de módulos |
+| Exportación a iOS | [`docs/design/arquitectura-exportacion-ios.md`](./docs/design/arquitectura-exportacion-ios.md) — firma fuera del repositorio, `.ipa` en tres modos y límites de la cuenta gratuita de Apple |
 
 > ⚠️ **Capturas de pantalla.** Las imágenes de `docs/capturas/` son **reconstrucciones fieles a
 > partir del código**, no capturas de dispositivo (el entorno donde se generaron no tiene emulador).
@@ -759,6 +764,7 @@ docs/
 └── design/
     ├── arquitectura-corpus-voz.md        # Capa de voz neuronal multi-idioma
     ├── arquitectura-audio.md             # AudioContext compartido y cadenas de audio
+    ├── arquitectura-exportacion-ios.md   # Las dos vías de iOS, firma y exportación del .ipa
     ├── audiometria-verbal.md             # Diseño del módulo (+ variantes gl · eu · es-DO)
     ├── validacion-clinica-verbal.md      # Trazabilidad de la aprobación clínica
     ├── integracion-proxecto-nos.md       # Plan de integración del gallego (ILENIA)

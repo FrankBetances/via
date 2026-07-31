@@ -41,8 +41,34 @@ xcuserdata/
 .swiftpm/
 **/.swiftpm/xcode/package.xcworkspace/xcuserdata/
 Packages/
-Package.resolved
-*.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/
+Package.pins
+
+# ⚠️ EXCEPCIÓN DELIBERADA: Package.resolved SÍ se versiona.
+#
+# Es el archivo que fija las versiones exactas del SDK de Firebase. Sin él,
+# cada persona compila contra «la última que hubiera ese día» y un fallo
+# reproducible en un Mac deja de serlo en otro. Vive en xcshareddata (no en
+# xcuserdata), así que no es estado local de nadie.
+#
+# Solo lo puede generar Xcode al resolver los paquetes: si todavía no
+# aparece en git, ábrelo una vez en un Mac y commitéalo.
+!*.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved
+
+# --- Firma local — la identidad de Apple NUNCA se versiona ---
+Config/Signing.local.xcconfig
+*.mobileprovision
+*.p8
+*.p12
+*.cer
+*.certSigningRequest
+
+# --- Salidas de archivado y exportación (scripts/archive.sh) ---
+# (build/ ya está arriba: ahí caen los .xcarchive, los .ipa y los registros)
+*.xcarchive
+*.ipa
+*.dSYM/
+*.dSYM.zip
+*.hmap
 
 # --- Secretos de Firebase — el config real NUNCA se versiona ---
 GoogleService-Info.plist
@@ -57,9 +83,6 @@ fastlane/report.xml
 fastlane/Preview.html
 fastlane/screenshots/**/*.png
 fastlane/test_output
-*.mobileprovision
-*.p12
-*.cer
 
 # --- Sistema operativo ---
 .DS_Store
