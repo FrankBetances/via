@@ -1,8 +1,33 @@
 {
-  "generatedAt": "2026-07-31T00:01:49.947Z",
+  "generatedAt": "2026-07-31T00:12:07.046Z",
   "lang": "eu",
   "baseLang": "es",
   "provisional": true,
+  "audioProvisional": false,
+  "audioApproval": {
+    "scope": "audio",
+    "status": "aprobado-produccion",
+    "appliesTo": "voice",
+    "date": "2026-07-31",
+    "approvedBy": "Ulertuz",
+    "communicatedBy": "F. A. Betances (responsable del proyecto)",
+    "voice": "AhoTTS «Maider» (HiTZ/Aholab, UPV/EHU · ILENIA/NEL-GAITU) · 32/32 locuciones",
+    "recipe": {
+      "engine": "ahotts",
+      "model": "maider",
+      "lengthScale": 1,
+      "postprocess": "loudnorm I=-20:TP=-3:LRA=7 · silenceremove start_threshold=-45dB · m4a AAC mono 44.1k",
+      "minClipMs": 350
+    },
+    "covers": [
+      "locuciones eu (audio)"
+    ],
+    "excludes": [
+      "banco de estímulos eu (verbalAudiometryLists.eu.ts): sigue PROVISIONAL a la espera de la firma clínica de las listas por logopeda euskaldun — familiaridad, imaginabilidad y adecuación al batua",
+      "ilustraciones propias eu (hoy heredadas de es por coincidencia de clave, o pictograma/inicial)"
+    ],
+    "notes": "Aprobación para producción de la voz neuronal VASCA (Maider) por Ulertuz, comunicada por el responsable del proyecto. Alcance: SOLO el audio. La validación clínica de las LISTAS vascas es otra firma y sigue pendiente, así que el banco eu continúa etiquetado como provisional en pantalla. Adjuntar al expediente el acta de la sesión de revisión y la checklist de escucha firmada. `appliesTo: \"voice\"` significa que lo aprobado es la PRODUCCIÓN de esta voz con esta receta (modelo + parámetros + post-proceso): regenerar el banco con la misma receta conserva la aprobación; cambiar de modelo, de parámetros o de post-proceso la invalida y exige nueva firma."
+  },
   "note": "Orden de producción de assets de la audiometría verbal. Locuciones e ilustraciones actuales son PROVISIONALES (síntesis espeak-ng/neural y pictogramas); la producción clínica final sustituye cada archivo conservando su clave.",
   "audio": [
     {
