@@ -140,6 +140,14 @@ function synthesizeLang(corpus, lang, force) {
   if (espeak) synthEspeak(pending, tmp, lang);
   else synthNeural(pending, tmp, lang);
 
+  // Se codifica a un directorio temporal y solo se publica si pasa el suelo de
+  // duración, igual que hace `verbal-assets.js` con su banco. Escribiendo
+  // directamente sobre `assets/voice`, una corrida que no converge deja en el
+  // árbol locuciones PEORES que las que ya había —y el workflow las commitea
+  // antes de evaluar el resultado—: así es como «Tapa» pasó de 244 ms a los
+  // 163 ms que hoy están en la rama. Si esto falla, el árbol se queda como
+  // estaba y el aviso del workflow es lo único que cambia.
+  const staging = fs.mkdtempSync(path.join(os.tmpdir(), 'voice-m4a-'));
   // m4a AAC mono 44.1k con sonoridad normalizada (loudnorm): MISMO objetivo
   // LUFS que la audiometría verbal, para sonoridad homogénea entre idiomas.
   const encode = e => {
@@ -149,7 +157,7 @@ function synthesizeLang(corpus, lang, force) {
       '-y', '-loglevel', 'error', '-i', wav,
       '-af', 'loudnorm=I=-20:TP=-3:LRA=7,silenceremove=start_periods=1:start_threshold=-45dB',
       '-ar', '44100', '-ac', '1', '-c:a', 'aac', '-b:a', '96k',
-      path.join(VOICE_DIR, `${e.id}.m4a`),
+      path.join(staging, `${e.id}.m4a`),
     ]);
   };
   for (const e of pending) {
@@ -165,11 +173,15 @@ function synthesizeLang(corpus, lang, force) {
   // tener voz neuronal cuando lo que tenía era una inservible.
   enforceClipTempo({
     items: pending,
-    fileFor: e => path.join(VOICE_DIR, `${e.id}.m4a`),
+    fileFor: e => path.join(staging, `${e.id}.m4a`),
     labelFor: e => e.text,
     lang,
     resynth: espeak ? null : (e, scale) => { synthNeuralOne(e, tmp, lang, scale); encode(e); },
   });
+
+  for (const e of pending) {
+    fs.copyFileSync(path.join(staging, `${e.id}.m4a`), path.join(VOICE_DIR, `${e.id}.m4a`));
+  }
   console.log(
     `✓ ${lang}: ${pending.length} locuciones (${espeak ? 'espeak-ng' : 'voz neural'}) → ${path.relative(ROOT, VOICE_DIR)}`,
   );

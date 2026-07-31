@@ -243,12 +243,33 @@ sirvió, y merece la pena entender por qué, porque el fallo se repitió entero:
    justo para alcanzarlo (regla de tres sobre la duración medida, con techo en
    `VERBAL_MAX_LENGTH_SCALE`). El resto del banco conserva su ritmo. Solo falla
    si el techo no basta, y entonces el problema no es el ritmo sino la voz.
-3. El suelo son **350 ms**, tomados del banco es-DO de Quisqueya Habla, que es
+3. **La síntesis es reproducible en las cuatro voces.** Esa regla de tres solo
+   converge si re-sintetizar con más `lengthScale` da de verdad una locución más
+   larga, y con Piper no lo daba: un VITS exportado a ONNX sortea su ruido
+   **dentro del grafo** (`RandomNormalLike`), así que cada inferencia era un
+   sorteo nuevo —y con él la duración, porque el predictor de duración del VITS
+   también es estocástico—. Se llegó a medir «ven» en 430 ms y, en la corrida
+   siguiente y con **más** `lengthScale`, en 256 ms. Ni `numpy.random.seed` ni
+   `torch.manual_seed` tocan ese generador: lo fija `onnxruntime.set_seed`, que
+   es lo que hace ahora `PiperEngine` con la misma semilla por texto que Celtia
+   (`tools/nos/tts.py`). Con el sorteo fijo la duración es proporcional al
+   `lengthScale` y **una pasada basta**.
+4. **Un reintento nunca publica algo peor de lo que ya había.** El realentizado
+   sobrescribe el `.m4a` en cada pasada; mientras el sorteo era libre, un
+   intento podía salir por debajo del anterior y quedarse. Así acabó «Tapa»
+   commiteada en 163 ms *después* de haber alcanzado 244 ms. `voice-clip-tempo`
+   conserva ahora el mejor intento y restaura si el siguiente empeora.
+5. **El corpus general publica por staging**, como ya hacía la audiometría
+   verbal: codifica a un temporal y solo copia a `assets/voice` si pasa el
+   suelo. Escribiendo directo, una corrida que no convergía dejaba en el árbol
+   locuciones peores que las anteriores —y el workflow las commitea antes de
+   evaluar el resultado—. Si falla, el árbol se queda como estaba.
+6. El suelo son **350 ms**, tomados del banco es-DO de Quisqueya Habla, que es
    el que suena bien en campo: su recorte más corto son 376 ms.
-4. La síntesis incremental deja de ser ciega: un recorte ya commiteado que esté
+7. La síntesis incremental deja de ser ciega: un recorte ya commiteado que esté
    por debajo del suelo entra en la lista de pendientes. Antes «existe, luego se
    salta» hacía inmortal a un recorte defectuoso.
-5. `scripts/check-verbal-coverage.js --strict` —la puerta del empaquetado— ya no
+8. `scripts/check-verbal-coverage.js --strict` —la puerta del empaquetado— ya no
    solo comprueba que las locuciones *estén*: comprueba que **no estén
    atropelladas**. Un recorte presente pero de 151 ms es peor que uno ausente,
    porque el ausente al menos degrada a la voz del sistema y este se presenta

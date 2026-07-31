@@ -100,6 +100,15 @@ function m4aDurationSeconds(file) {
   return duration / timescale;
 }
 
+/** Contenido de un archivo, o `null` si aún no existe o no se puede leer. */
+function readOrNull(file) {
+  try {
+    return fs.readFileSync(file);
+  } catch {
+    return null;
+  }
+}
+
 /** `lengthScale` declarado para la voz de `lang` en voices.json (1 si no lo declara). */
 function baseLengthScale(lang) {
   try {
@@ -151,57 +160,75 @@ function enforceClipTempo({ items, fileFor, labelFor, lang, resynth }) {
 
   let short = measured.filter(m => m.seconds * 1000 < MIN_CLIP_MS);
   const base = baseLengthScale(lang);
-  /* lengthScale REALMENTE aplicado a cada locución. Es lo que hace converger el
-   * bucle: la regla de tres tiene que partir de la escala que produjo la
-   * duración que se acaba de medir, no de la escala base. Calculándola siempre
-   * desde `base`, el segundo intento leía una duración obtenida con una escala
-   * mayor y deducía una escala MENOR — el recorte volvía a acelerarse y el
-   * bucle oscilaba hasta agotar los intentos. Con el techo por medio, eso es
-   * exactamente lo que pasaba con las locuciones más cortas del castellano. */
-  const applied = new Map();
-  /** lengthScale que cada locución PEDÍA, aunque el techo lo recortase. */
-  const needed = new Map();
+  /* Último intento REALMENTE hecho por locución: { scale, seconds }. Es lo que
+   * hace converger el bucle: la regla de tres tiene que partir de la escala que
+   * produjo la duración que se acaba de medir, no de la escala base.
+   * Calculándola siempre desde `base`, el segundo intento leía una duración
+   * obtenida con una escala mayor y deducía una escala MENOR — el recorte
+   * volvía a acelerarse y el bucle oscilaba hasta agotar los intentos. */
+  const lastTry = new Map();
+  /* Mejor intento CONSERVADO por locución: { seconds, scale, bytes }. El realentizado
+   * sobrescribe el .m4a en cada pasada, así que sin esto un intento peor que el
+   * anterior se queda tal cual. No es hipotético: «Tapa» llegó a 244 ms, el
+   * intento siguiente salió en 163 ms y ese —el peor— es el que acabó
+   * commiteado. Aquí el archivo guarda siempre el mejor intento; la regla de
+   * tres sigue razonando sobre el último, que es su linealización válida. */
+  const best = new Map();
+  /** lengthScale que le haría falta a `seconds` viniendo de la escala `from`. */
+  const demanded = (from, seconds) => from * (MIN_CLIP_MS / 1000 / seconds) * 1.12;
 
+  let slowed = false;
   for (let attempt = 1; attempt <= SLOWDOWN_ATTEMPTS && short.length && resynth; attempt += 1) {
     let retried = 0;
     for (const m of short) {
-      const from = applied.get(m.item) ?? base;
+      const last = lastTry.get(m.item);
+      const from = last ? last.scale : base;
+      const seen = last ? last.seconds : m.seconds;
       // Regla de tres sobre la duración medida, con un 12 % de margen: en un
-      // VITS la duración es prácticamente lineal en el lengthScale, así que una
-      // pasada suele bastar; los intentos restantes cubren los casos en que el
+      // VITS con la semilla fija la duración es proporcional al lengthScale, así
+      // que una pasada basta; los intentos restantes cubren los casos en que el
       // post-proceso recorta algo más de lo previsto.
-      const wanted = from * (MIN_CLIP_MS / 1000 / m.seconds) * 1.12;
+      const wanted = demanded(from, seen);
       const scale = Math.min(MAX_LENGTH_SCALE, wanted);
       // Ya estaba en el techo y sigue corta: insistir solo gasta síntesis y, si
       // el techo se alcanzó por redondeo, reintroduce la oscilación.
-      if (scale <= from + 1e-6) {
-        needed.set(m.item, wanted);
-        continue;
-      }
+      if (scale <= from + 1e-6) continue;
       console.log(
-        `  ${lang}: «${labelFor(m.item)}» ${(m.seconds * 1000).toFixed(0)} ms → lengthScale ${scale.toFixed(2)}`
+        `  ${lang}: «${labelFor(m.item)}» ${(seen * 1000).toFixed(0)} ms → lengthScale ${scale.toFixed(2)}`
           + (scale < wanted ? ` (pedía ${wanted.toFixed(2)}, techo ${MAX_LENGTH_SCALE})` : ''),
       );
+      const file = fileFor(m.item);
+      if (!best.has(m.item)) best.set(m.item, { seconds: m.seconds, scale: base, bytes: readOrNull(file) });
       resynth(m.item, scale);
-      applied.set(m.item, scale);
-      needed.set(m.item, wanted);
+      const got = m4aDurationSeconds(file);
+      lastTry.set(m.item, { scale, seconds: got ?? seen });
+      const kept = best.get(m.item);
+      if (got != null && got > kept.seconds) best.set(m.item, { seconds: got, scale, bytes: readOrNull(file) });
+      else if (kept.bytes) fs.writeFileSync(file, kept.bytes);
       retried += 1;
     }
     if (!retried) break;
+    slowed = true;
     measured = measure(items, fileFor);
     short = measured.filter(m => m.seconds * 1000 < MIN_CLIP_MS);
   }
 
   if (!short.length) {
-    if (resynth) report(measure(items, fileFor));
+    // Solo si se ha tocado algo: repetir la misma línea cuando no hubo
+    // realentizado no informaba de nada y hacía leer dos veces el log.
+    if (slowed) report(measured);
     return;
   }
 
+  // El lengthScale que pedía se deduce del recorte QUE HA QUEDADO y de la
+  // escala que lo produjo, no del último intento: si ese último salió peor se
+  // descartó, y citarlo daría una cifra que no cuadra con la duración de al
+  // lado —el que lea el error se pondría a buscar una incoherencia que no hay.
   const detail = short
     .map(m => {
-      const want = needed.get(m.item);
+      const from = best.get(m.item)?.scale ?? base;
       return `«${labelFor(m.item)}» (${(m.seconds * 1000).toFixed(0)} ms`
-        + (want ? `, pedía lengthScale ${want.toFixed(2)}` : '')
+        + (resynth ? `, pedía lengthScale ${demanded(from, m.seconds).toFixed(2)}` : '')
         + ')';
     })
     .join(', ');

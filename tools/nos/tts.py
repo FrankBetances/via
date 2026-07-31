@@ -21,7 +21,9 @@ Principios (docs/design/integracion-proxecto-nos.md · integracion-quisqueya-hab
   · Parámetros de síntesis fijados en voices.json y semilla derivada del texto:
     misma entrada → misma locución (reproducible entre ejecuciones en la misma
     máquina/versión de modelo; el determinismo bit a bit puede variar entre
-    backends numéricos).
+    backends numéricos). Cada motor tiene su mando para eso y hay que usar el
+    suyo: Celtia sortea el ruido en PyTorch (`torch.manual_seed`) y Piper lo
+    sortea dentro del grafo ONNX (`onnxruntime.set_seed`).
   · El post-proceso de sonoridad (loudnorm/ffmpeg) NO vive aquí: lo aplica
     `scripts/verbal-assets.js` de forma idéntica para todas las voces.
 
@@ -74,7 +76,8 @@ class PiperEngine:
 
     def __init__(self, voice_cfg: dict, base: Path):
         try:
-            from piper import PiperVoice  # noqa: PLC0415 — import perezoso
+            import onnxruntime  # noqa: PLC0415 — import perezoso
+            from piper import PiperVoice  # noqa: PLC0415
         except ImportError as exc:  # pragma: no cover
             raise SystemExit(
                 "piper-tts no instalado: pip install -r tools/nos/requirements.txt"
@@ -86,10 +89,30 @@ class PiperEngine:
                 raise SystemExit(
                     f"Modelo no encontrado: {f}\nDescárguelo con tools/nos/fetch-models.sh"
                 )
+        self._ort = onnxruntime
         self.voice = PiperVoice.load(str(onnx), config_path=str(config))
         self.params = voice_cfg.get("params", {})
 
     def synthesize(self, text: str, out_wav: Path) -> None:
+        # Semilla por texto, igual que Celtia — pero el mando NO es el mismo. Un
+        # VITS exportado a ONNX muestrea su ruido DENTRO DEL GRAFO (nodos
+        # RandomNormalLike), no en Python: piper 1.2.0 se limita a pasar
+        # `scales` y a llamar a `session.run`, así que ni `numpy.random.seed` ni
+        # `torch.manual_seed` tocan nada. Quien fija ese generador es
+        # `onnxruntime.set_seed`.
+        #
+        # Sin esto, cada inferencia era un sorteo distinto y la DURACIÓN de la
+        # locución con ella, porque el predictor de duración del VITS también es
+        # estocástico (noiseW). Las consecuencias eran dos, y las dos se veían en
+        # el pipeline: la reproducibilidad que promete este módulo no existía
+        # para Piper, y el realentizado por recorte de `voice-clip-tempo.js` no
+        # podía converger — medía una duración, deducía por regla de tres el
+        # lengthScale que la llevaría al suelo y, al re-sintetizar, le tocaba
+        # otro sorteo. Se llegó a medir «ven» en 430 ms y, en la corrida
+        # siguiente y con MÁS lengthScale, en 256 ms. Con la semilla fija el
+        # sorteo del predictor de duración es el mismo, y entonces sí: la
+        # duración es proporcional al lengthScale y una pasada basta.
+        self._ort.set_seed(seed_for(text))
         kwargs = {}
         if "lengthScale" in self.params:
             kwargs["length_scale"] = self.params["lengthScale"]
