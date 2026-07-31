@@ -268,15 +268,40 @@ describe('aprobación clínica · el código no puede adelantarse al registro', 
     }
   });
 
-  it('gl: la firma es del BANCO y excluye explícitamente el audio', () => {
+  it('gl: banco y audio son DOS firmas, y la del banco excluye el audio', () => {
     const approvals = approvalsOf('gl');
-    expect(approvals.map(scopeOf)).toEqual(['bank']);
-    const [bank] = approvals;
+    // La firma del banco (28/07, listas) es anterior a la del audio (31/07,
+    // voz Celtia). Que ahora convivan las dos no borra la distinción: cada
+    // artefacto se firma por separado y en su momento.
+    expect(approvals.map(scopeOf).sort()).toEqual(['audio', 'bank']);
+    const bank = approvals.find(a => scopeOf(a) === 'bank');
     expect(bank.approvedBy).toBe('ACOPROS');
-    // El registro debe decir qué NO cubre: sin esto, un lector futuro podría
-    // dar por aprobadas unas locuciones que ni siquiera se han generado.
+    // El registro del banco debe decir qué NO cubre: se firmó cuando las
+    // locuciones ni siquiera existían, y sin ese `excludes` un lector futuro
+    // podría darlas por aprobadas de rebote.
     expect(Array.isArray(bank.excludes)).toBe(true);
     expect(bank.excludes.join(' ')).toMatch(/locuciones/i);
+  });
+
+  it('las cuatro lenguas tienen firma de AUDIO, con la receta de la voz', () => {
+    // Lo aprobado no es un lote de bytes sino la voz CON SU RECETA: sin el
+    // modelo y los parámetros escritos, regenerar con otra voz heredaría la
+    // firma en silencio.
+    for (const lang of VERBAL_BANK_LANGS) {
+      const audio = approvalsOf(lang).filter(a => scopeOf(a) === 'audio');
+      expect({ lang, firmas: audio.length }).toEqual({ lang, firmas: 1 });
+      expect(audio[0].status).toBe('aprobado-produccion');
+      expect(audio[0].appliesTo).toBe('voice');
+      expect(audio[0].recipe?.model?.trim()).toBeTruthy();
+      expect(typeof audio[0].recipe?.lengthScale).toBe('number');
+    }
+  });
+
+  it('eu ya NO es provisional: la logopeda euskaldun de Ulertuz firmó el banco', () => {
+    expect(VERBAL_BANK_PROVISIONAL).not.toContain('eu');
+    const bank = approvalsOf('eu').filter(a => scopeOf(a) === 'bank');
+    expect(bank).toHaveLength(1);
+    expect(bank[0].approvedBy).toMatch(/Ulertuz/);
   });
 
   it('un idioma con audio pendiente NO tiene registro de aprobación de audio', () => {
@@ -289,7 +314,7 @@ describe('aprobación clínica · el código no puede adelantarse al registro', 
   it('el banco firmado coincide en tamaño con el que se compila (la firma no queda huérfana)', () => {
     const items = getVerbalBands('gl').flatMap(b => b.items);
     const scored = items.filter(i => !i.practice);
-    const [bank] = approvalsOf('gl');
+    const bank = approvalsOf('gl').find(a => scopeOf(a) === 'bank');
     expect(bank.bank).toContain(`${items.length} láminas`);
     expect(bank.bank).toContain(`${scored.length} puntuables`);
   });

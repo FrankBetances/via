@@ -44,12 +44,18 @@ export const VERBAL_BANK_BASE: Record<VerbalLang, VerbalLang | null> = {
  * (registro en `assets/verbal-approval.gl.json`, contenido en
  * `docs/design/audiometria-verbal-gl.md`).
  *
- * `eu` es PROVISIONAL: el banco cumple los invariantes estructurales que
- * verifica la CI, pero no lo ha revisado todavía ningún logopeda euskaldun.
- * Sale de esta lista con su acta de aprobación en
- * `assets/verbal-approval.eu.json`, igual que se hizo con el gallego.
+ * `eu` lo firmó la logopeda euskaldun de Ulertuz (31/07/2026), que es la
+ * revisión que la CI no puede hacer: familiaridad, imaginabilidad y adecuación
+ * al euskara batua frente a los dialectos. Los invariantes estructurales
+ * —unicidad de objetivos, distractores a ±1 sílaba, vecindad fonética en C/D—
+ * ya los verificaba la CI. Registro en `assets/verbal-approval.eu.json`,
+ * mismo camino que siguió el gallego.
+ *
+ * VACÍO: los cuatro bancos están firmados, así que la pantalla ya no advierte
+ * de listas sin validar en ningún idioma. Un banco nuevo entra aquí hasta que
+ * tenga su acta.
  */
-export const VERBAL_BANK_PROVISIONAL: readonly VerbalLang[] = ['eu'];
+export const VERBAL_BANK_PROVISIONAL: readonly VerbalLang[] = [];
 
 /**
  * Idiomas SIN locuciones propias empaquetadas: sus palabras se dictan con la
