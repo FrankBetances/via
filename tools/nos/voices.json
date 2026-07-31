@@ -9,6 +9,7 @@
     "es": {
       "engine": "piper",
       "model": "es_ES-sharvard-medium",
+      "origin": "Valeria+ · voz castellana de referencia (indicada por el responsable del proyecto, 31/07/2026). SUSTITUYE a es_ES-davefx-medium, que se eligió para VIA+ sin contrastar con Valeria y resultó inservible para palabras aisladas.",
       "files": {
         "onnx": "piper/es_ES-sharvard-medium.onnx",
         "config": "piper/es_ES-sharvard-medium.onnx.json"
@@ -20,7 +21,7 @@
         "noiseScale": 0.333,
         "noiseW": 0.333
       },
-      "notes": "Voz de las locuciones castellanas de la audiometría verbal y del corpus de consignas. SUSTITUYE a es_ES-davefx-medium, que no servía para este banco: davefx desploma los monosílabos. Medido en CI sobre la síntesis SIN post-procesar (el post-proceso no recorta: pierde 0 ms), davefx daba «pan» 116 ms, «Tapa» 151 ms y «Apto» 163 ms, con una media de banco de 538 ms. El realentizado recorte a recorte tampoco lo salvaba: al techo de lengthScale 3.6 «pan» solo llegaba a 221 ms y habría hecho falta ~6.4, porque la duración NO es proporcional al lengthScale (estirar 2,7 veces alarga 1,9). La misma palabra con es_MX-claude-high sale a 386 ms, así que nunca fue el ritmo ni ffmpeg: era el modelo. sharvard es la voz castellana de referencia de Valeria+, el proyecto del que se portó todo este pipeline y cuyo corpus —bastante mayor que este— funciona con ella. Nótese que gl (Celtia), eu (Maider) y es-DO (es_MX-claude-high) vinieron de ese registro y pasan el suelo sin tocar nada; la castellana era la única elegida aquí por su cuenta, y era la única que fallaba. PARÁMETROS: lengthScale 1.1 igual que es-DO (davefx necesitaba 1.35 para compensar su prisa; sharvard no arrastra esa corrección). Si el plan de implementación de Valeria declara otros valores, mandan los suyos. El suelo de duración (350 ms) lo sigue garantizando scripts/voice-clip-tempo.js, que mide cada recorte y realentiza SOLO los que quedan por debajo. La referencia del suelo es el banco es-DO de Quisqueya Habla, que es el que suena bien en campo: su recorte más corto son 376 ms. La producción clínica final sigue siendo locutor profesional (validacion-clinica-verbal.md).",
+      "notes": "Voz de las locuciones castellanas de la audiometría verbal y del corpus de consignas. SUSTITUYE a es_ES-davefx-medium, que no servía para este banco: davefx desploma los monosílabos. Medido en CI sobre la síntesis SIN post-procesar (el post-proceso no recorta: pierde 0 ms), davefx daba «pan» 116 ms, «Tapa» 151 ms y «Apto» 163 ms, con una media de banco de 538 ms. El realentizado recorte a recorte tampoco lo salvaba: al techo de lengthScale 3.6 «pan» solo llegaba a 221 ms y habría hecho falta ~6.4, porque la duración NO es proporcional al lengthScale (estirar 2,7 veces alarga 1,9). La misma palabra con es_MX-claude-high sale a 386 ms, así que nunca fue el ritmo ni ffmpeg: era el modelo. sharvard es la voz castellana de referencia de Valeria+, el proyecto del que se portó esta cadena de síntesis y cuyo corpus —bastante mayor que este— funciona con ella. La lección no es «todas las voces vienen de Valeria» (no es cierto: gl es de Proxecto Nós y es-DO de Quisqueya Habla, elegidas aquí y ambas cumplen el suelo), sino que la castellana se eligió SIN contrastarla con la referencia y sin medir los monosílabos contra el suelo, que es la comprobación que la habría descartado el primer día. Por eso cada voz declara ahora su `origin`. PARÁMETROS: lengthScale 1.1 igual que es-DO (davefx necesitaba 1.35 para compensar su prisa; sharvard no arrastra esa corrección). Si el plan de implementación de Valeria declara otros valores, mandan los suyos. El suelo de duración (350 ms) lo sigue garantizando scripts/voice-clip-tempo.js, que mide cada recorte y realentiza SOLO los que quedan por debajo. La referencia del suelo es el banco es-DO de Quisqueya Habla, que es el que suena bien en campo: su recorte más corto son 376 ms. La producción clínica final sigue siendo locutor profesional (validacion-clinica-verbal.md).",
       "clinicalApproval": {
         "status": "pendiente-regeneracion",
         "approvedBy": "ACOPROS",
@@ -33,6 +34,7 @@
     "es-DO": {
       "engine": "piper",
       "model": "es_MX-claude-high",
+      "origin": "VIA+ · Quisqueya Habla (Q4.1). Elegida en este proyecto, no importada de Valeria+: no existe voz abierta es-DO y se usa la neutra LatAm. Cumple el suelo de duración sin realentizado.",
       "files": {
         "onnx": "piper/es_MX-claude-high.onnx",
         "config": "piper/es_MX-claude-high.onnx.json"
@@ -56,6 +58,7 @@
     "eu": {
       "engine": "ahotts",
       "model": "maider",
+      "origin": "Valeria+ · portada de su registro (documentado en docs/design/audiometria-verbal-eu.md).",
       "files": {
         "dir": "ahotts/voices/eu/maider"
       },
@@ -81,6 +84,7 @@
     "gl": {
       "engine": "coqui-vits",
       "model": "proxectonos/Nos_TTS-celtia-vits-graphemes",
+      "origin": "VIA+ · Proxecto Nós / ILENIA (T4.1). Elegida en este proyecto; de Valeria+ se portó la CADENA de síntesis, no esta voz.",
       "files": {
         "dir": "celtia"
       },

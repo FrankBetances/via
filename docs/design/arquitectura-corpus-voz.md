@@ -266,12 +266,18 @@ sirvió, y merece la pena entender por qué, porque el fallo se repitió entero:
    cadena, así que nunca fue ffmpeg ni el ritmo: **`es_ES-davefx-medium` desploma
    los monosílabos** y no sirve para un banco de palabras aisladas.
 
-   La pista definitiva estaba en el origen de cada voz. `gl` (Celtia), `eu`
-   (Maider) y `es-DO` (es_MX) vinieron del registro de Valeria+ y pasan el suelo
-   sin tocar nada; la castellana era la única elegida aquí por su cuenta —y
-   marcada «provisional» en la tabla de §5— y era la única que fallaba. El
-   castellano pasa a **`es_ES-sharvard-medium`**, la voz de referencia de
-   Valeria+, cuyo corpus, bastante mayor que este, funciona con ella.
+   El castellano pasa a **`es_ES-sharvard-medium`**, la voz de referencia de
+   Valeria+, cuyo corpus —bastante mayor que este— funciona con ella.
+
+   Conviene no sacar de aquí la moraleja fácil. **No** es que «todas las voces
+   vengan de Valeria»: solo el euskera (Maider) está documentado como portado de
+   su registro; el gallego es de Proxecto Nós y el dominicano de Quisqueya
+   Habla, elegidos en este proyecto, y los dos cumplen el suelo. Lo que falló
+   con la castellana es que se eligió **sin contrastarla con la referencia y sin
+   medir sus monosílabos contra el suelo**, que es la comprobación que la habría
+   descartado el primer día. Por eso cada voz declara ahora su procedencia en
+   el campo `origin` de `tools/nos/voices.json`: para que elegir una voz nueva
+   obligue a decir de dónde sale.
 
    Sobre la semilla de Piper: `onnxruntime.set_seed` se sembraba **después** de
    `PiperVoice.load()`, y el kernel de ORT construye su generador al inicializar
