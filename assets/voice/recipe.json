@@ -1,0 +1,20 @@
+{
+  "es": {
+    "engine": "piper",
+    "model": "es_ES-sharvard-medium",
+    "params": {
+      "lengthScale": 1.1,
+      "noiseScale": 0.333,
+      "noiseW": 0.333
+    }
+  },
+  "es-DO": {
+    "engine": "piper",
+    "model": "es_MX-claude-high",
+    "params": {
+      "lengthScale": 1.1,
+      "noiseScale": 0.333,
+      "noiseW": 0.333
+    }
+  }
+}
