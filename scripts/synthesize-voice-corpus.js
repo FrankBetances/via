@@ -176,6 +176,7 @@ function synthesizeLang(corpus, lang, force) {
     fileFor: e => path.join(staging, `${e.id}.m4a`),
     labelFor: e => e.text,
     lang,
+    sourceFor: e => path.join(tmp, `${e.id}.wav`),
     resynth: espeak ? null : (e, scale) => { synthNeuralOne(e, tmp, lang, scale); encode(e); },
   });
 

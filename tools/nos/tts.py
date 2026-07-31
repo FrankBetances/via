@@ -24,11 +24,10 @@ Principios (docs/design/integracion-proxecto-nos.md · integracion-quisqueya-hab
     tiene su mando y hay que usar el suyo: Celtia siembra PyTorch por texto
     (`torch.manual_seed`), AhoTTS es un binario determinista y Piper sortea
     dentro del grafo ONNX (`onnxruntime.set_seed`, ANTES de crear la sesión).
-    La granularidad de Piper NO es la misma en los dos modos, y conviene
-    saberlo: en `--batch` la semilla es del lote —el lote entero se reproduce,
-    pero una locución concreta depende de qué más lleve el lote y en qué
-    orden—, y en `--text` es del texto, así que una misma palabra sale igual
-    invocación tras invocación aunque cambie el `--length-scale`.
+    En Piper la semilla es del lote en `--batch` y del texto en `--text`, PERO
+    el determinismo de Piper NO está comprobado: medido en CI, el mismo lote da
+    duraciones distintas entre corridas. Trátelo como pendiente, no como
+    garantía (ver el comentario de PiperEngine).
   · El post-proceso de sonoridad (loudnorm/ffmpeg) NO vive aquí: lo aplica
     `scripts/verbal-assets.js` de forma idéntica para todas las voces.
 
@@ -108,15 +107,17 @@ class PiperEngine:
         # Consecuencia del mismo detalle: dentro de un proceso el generador
         # AVANZA en cada inferencia, así que la semilla no puede ser por texto
         # sin recrear la sesión. Se reparte así:
-        #   · lote  → semilla del contenido del lote. El lote entero es
-        #             reproducible; cada locución depende de su posición en él.
-        #   · unidad → semilla del texto. Cada invocación es un proceso nuevo, o
-        #             sea una sesión nueva, o sea el MISMO sorteo para la misma
-        #             palabra pase el lengthScale que pase. Es justo lo que
-        #             necesita el realentizado por recorte de
-        #             `voice-clip-tempo.js` para converger: sin ello medía una
-        #             duración, deducía por regla de tres la escala que la
-        #             llevaría al suelo y al re-sintetizar le tocaba otro sorteo.
+        #   · lote  → semilla del contenido del lote.
+        #   · unidad → semilla del texto (cada invocación es un proceso nuevo, o
+        #             sea una sesión nueva).
+        #
+        # OJO, no lo dé por resuelto: esta colocación es la correcta —la de
+        # antes, después de `load()`, era demostrablemente inútil— pero MEDIDO
+        # en CI el determinismo sigue sin verse. Con el mismo lote y el mismo
+        # commit, «pan» salió en 175 ms una corrida y en 117 ms la siguiente.
+        # O el kernel de esta compilación de ORT no lee la semilla global, o el
+        # ruido no es lo único que se mueve. Mientras no haya dos corridas
+        # idénticas medidas, aquí no hay reproducibilidad que prometer.
         onnxruntime.set_seed(seed)
         self.voice = PiperVoice.load(str(onnx), config_path=str(config))
         self.params = voice_cfg.get("params", {})

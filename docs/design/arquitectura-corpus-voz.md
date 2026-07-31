@@ -243,17 +243,30 @@ sirvió, y merece la pena entender por qué, porque el fallo se repitió entero:
    justo para alcanzarlo (regla de tres sobre la duración medida, con techo en
    `VERBAL_MAX_LENGTH_SCALE`). El resto del banco conserva su ritmo. Solo falla
    si el techo no basta, y entonces el problema no es el ritmo sino la voz.
-3. **La síntesis es reproducible en las cuatro voces.** Esa regla de tres solo
-   converge si re-sintetizar con más `lengthScale` da de verdad una locución más
-   larga, y con Piper no lo daba: un VITS exportado a ONNX sortea su ruido
-   **dentro del grafo** (`RandomNormalLike`), así que cada inferencia era un
-   sorteo nuevo —y con él la duración, porque el predictor de duración del VITS
-   también es estocástico—. Se llegó a medir «ven» en 430 ms y, en la corrida
-   siguiente y con **más** `lengthScale`, en 256 ms. Ni `numpy.random.seed` ni
-   `torch.manual_seed` tocan ese generador: lo fija `onnxruntime.set_seed`, que
-   es lo que hace ahora `PiperEngine` con la misma semilla por texto que Celtia
-   (`tools/nos/tts.py`). Con el sorteo fijo la duración es proporcional al
-   `lengthScale` y **una pasada basta**.
+3. **ABIERTO — el castellano no llega al suelo y el realentizado no lo salva.**
+   La regla de tres presupone que estirar el `lengthScale` alarga la locución en
+   proporción. No lo hace. Medido en CI (corrida 13, con la semilla de ONNX ya
+   sembrada antes de crear la sesión): «pan» sale de la síntesis en 117 ms y con
+   `lengthScale` 3.6 —el techo— se queda en 221 ms; «Apto» 163 → 256 ms; «Tapa»
+   151 → 209 ms. Estirar 2,7 veces alarga 1,9. Para alcanzar los 350 ms harían
+   falta escalas de 5 a 8, que es justo lo que el techo existe para no hacer.
+
+   Y la sospecha de fondo es otra: **una palabra CVC no se pronuncia en 117 ms**.
+   Eso no es una voz rápida, es audio recortado. El sospechoso es el
+   post-proceso —`silenceremove` sobre la salida de un `loudnorm` de pasada
+   única, que con entradas de menos de tres segundos no tiene material para
+   estimar la sonoridad—, no el ritmo de davefx. Por eso el pipeline registra
+   ahora, para toda locución bajo el suelo, la duración del **WAV recién
+   sintetizado** junto a la del `.m4a` ya post-procesado: si las dos cifras se
+   separan, quien acorta el estímulo es la cadena de ffmpeg y subir el
+   `lengthScale` es perseguir el problema equivocado.
+
+   Nótese que la semilla de Piper **tampoco está dando reproducibilidad medible**
+   (mismo lote y mismo commit: «pan» 175 ms una corrida, 117 ms la siguiente).
+   La colocación actual es la correcta —sembrar después de `PiperVoice.load()`
+   era demostrablemente inútil, porque el kernel de ORT construye su generador al
+   inicializar la sesión—, pero mientras no haya dos corridas idénticas medidas,
+   aquí no hay determinismo que dar por bueno.
 4. **Un reintento nunca publica algo peor de lo que ya había.** El realentizado
    sobrescribe el `.m4a` en cada pasada; mientras el sorteo era libre, un
    intento podía salir por debajo del anterior y quedarse. Así acabó «Tapa»

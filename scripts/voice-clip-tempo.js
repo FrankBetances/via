@@ -100,6 +100,33 @@ function m4aDurationSeconds(file) {
   return duration / timescale;
 }
 
+/**
+ * Duración (segundos) de un WAV PCM leyendo su cabecera RIFF. Sirve para
+ * comparar la locución RECIÉN SINTETIZADA con el .m4a ya post-procesado: si las
+ * dos cifras se separan, lo que acorta el estímulo no es el ritmo de la voz
+ * sino el post-proceso (loudnorm/silenceremove), y estirar el lengthScale es
+ * perseguir el problema equivocado. Devuelve `null` si no es un WAV legible.
+ */
+function wavDurationSeconds(file) {
+  let buf;
+  try {
+    buf = fs.readFileSync(file);
+  } catch {
+    return null;
+  }
+  if (buf.length < 12 || buf.toString('latin1', 0, 4) !== 'RIFF') return null;
+  let pos = 12;
+  let byteRate = 0;
+  while (pos + 8 <= buf.length) {
+    const id = buf.toString('latin1', pos, pos + 4);
+    const size = buf.readUInt32LE(pos + 4);
+    if (id === 'fmt ') byteRate = buf.readUInt32LE(pos + 16);
+    if (id === 'data') return byteRate ? size / byteRate : null;
+    pos += 8 + size + (size % 2);
+  }
+  return null;
+}
+
 /** Contenido de un archivo, o `null` si aún no existe o no se puede leer. */
 function readOrNull(file) {
   try {
@@ -142,8 +169,13 @@ function measure(items, fileFor) {
  *                               esa locución. `null` desactiva el realentizado
  *                               (motores sin control de ritmo, p. ej. espeak):
  *                               entonces esto es solo una comprobación.
+ * @param {Function} [o.sourceFor] item → ruta del WAV recién sintetizado, ANTES
+ *                               del post-proceso. Opcional y solo informativo:
+ *                               permite ver, cuando una locución no llega al
+ *                               suelo, si salió corta de la voz o si la acortó
+ *                               el post-proceso.
  */
-function enforceClipTempo({ items, fileFor, labelFor, lang, resynth }) {
+function enforceClipTempo({ items, fileFor, labelFor, lang, resynth, sourceFor }) {
   const report = measured => {
     if (!measured.length) return;
     const mean = measured.reduce((a, m) => a + m.seconds, 0) / measured.length;
@@ -159,6 +191,21 @@ function enforceClipTempo({ items, fileFor, labelFor, lang, resynth }) {
   if (MIN_CLIP_MS <= 0) return;
 
   let short = measured.filter(m => m.seconds * 1000 < MIN_CLIP_MS);
+  // Antes de tocar el ritmo, deje dicho de dónde viene el recorte corto. Una
+  // palabra CVC no se pronuncia en 117 ms: si el WAV recién sintetizado ya dura
+  // bastante más que el .m4a, quien acorta el estímulo es el post-proceso y
+  // subir el lengthScale no lo va a arreglar.
+  if (short.length && sourceFor) {
+    for (const m of short) {
+      const wav = wavDurationSeconds(sourceFor(m.item));
+      if (wav == null) continue;
+      console.log(
+        `  ${lang}: «${labelFor(m.item)}» síntesis ${(wav * 1000).toFixed(0)} ms`
+          + ` → tras post-proceso ${(m.seconds * 1000).toFixed(0)} ms`
+          + ` (se pierde ${((wav - m.seconds) * 1000).toFixed(0)} ms)`,
+      );
+    }
+  }
   const base = baseLengthScale(lang);
   /* Último intento REALMENTE hecho por locución: { scale, seconds }. Es lo que
    * hace converger el bucle: la regla de tres tiene que partir de la escala que
@@ -247,6 +294,7 @@ module.exports = {
   MAX_LENGTH_SCALE,
   SLOWDOWN_ATTEMPTS,
   m4aDurationSeconds,
+  wavDurationSeconds,
   baseLengthScale,
   measure,
   enforceClipTempo,

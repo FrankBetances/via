@@ -370,6 +370,7 @@ function cmdAudio({ bands }, lang) {
     fileFor: e => path.join(staging, `${e.key}.m4a`),
     labelFor: e => e.word,
     lang,
+    sourceFor: e => path.join(tmp, `${e.key}.wav`),
     resynth: neural
       ? (e, scale) => { synthNeuralOne(e, tmp, lang, scale); encode(e.key); }
       : null,
