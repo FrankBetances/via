@@ -108,11 +108,24 @@ Consideraciones que el validador debe confirmar o corregir:
 Inventario generado por `node scripts/verbal-assets.js manifest`
 (`assets/verbal-manifest.json`, `provisional: true`):
 
-| Asset | Ahora (provisional) | Producción clínica |
+| Asset | Estado | Firma |
 |---|---|---|
-| Dictado (motor por defecto) | **TTS nativo de Android** (voz es-ES del dispositivo, nivel relativo por volumen de síntesis) | Confirmar voz/motor por dispositivo, o pasar a recortes de locutor (`engine: 'assets'`) |
-| 37 locuciones `assets/audio/verbal/*.m4a` | espeak-ng (es), loudnorm −20 LUFS — **no usadas en runtime** (respaldo cableado del motor 'assets') | Locutor profesional, estudio, misma normalización, misma clave de archivo |
-| 97 ilustraciones `assets/img/verbal/*.png` | Pictograma emoji o tile de inicial | Ilustrador, estilo homogéneo, validadas con niños, misma clave |
+| Dictado (motor por defecto) | **Recortes empaquetados** (`engine: 'assets'`, `preferTts: false`): emisión determinista e idéntica en todos los equipos. El TTS del dispositivo queda como degradación | — |
+| Locuciones `assets/audio/verbal/**` (es 37 · gl 37 · eu 32 · es-DO 37) | **Voz neuronal APROBADA PARA PRODUCCIÓN**, loudnorm −20 LUFS, suelo de duración 350 ms | ACOPROS (es · gl · es-DO) y Ulertuz (eu), 31/07/2026 — `assets/verbal-approval.<lang>.json` |
+| 97 ilustraciones `assets/img/verbal/*.png` | Pictograma emoji o tile de inicial — **provisionales** | Ilustrador, estilo homogéneo, validadas con niños, misma clave |
+
+Lo aprobado es la voz **con su receta** (modelo + parámetros + post-proceso),
+no un lote de bytes: regenerar un banco con la misma receta conserva la firma;
+cambiar de modelo, de `lengthScale` base o de post-proceso la invalida. Las
+locuciones que el suelo de duración corrige con un `lengthScale` propio sí son
+estímulos nuevos y necesitan reescucha — hoy, tres del castellano: «pan», «ven»
+e «higo».
+
+El **banco de estímulos** es una firma distinta de la del audio: el gallego lo
+tiene desde el 28/07; el castellano y el dominicano lo heredan del inventario
+castellano; el **vasco sigue pendiente** de validación clínica de las listas por
+logopeda euskaldun, y por eso la pantalla lo etiqueta como provisional aunque su
+audio esté firmado.
 
 La sustitución es archivo a archivo (misma clave = mismo nombre): no requiere
 tocar código. Tras sustituir, ejecutar `node scripts/verbal-assets.js manifest`

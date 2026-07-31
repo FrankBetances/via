@@ -164,11 +164,18 @@ function cmdManifest({ bands, inventory }, lang) {
   //     implicar la del audio).
   // El flag `provisional` global se mantiene mientras CUALQUIER contenido
   // (p. ej. ilustraciones heredadas provisionales) siga sin producción clínica.
+  //
+  // El castellano ESTABA excluido (`lang !== 'es'`) por herencia: era el idioma
+  // base, el único que existía, y su estado provisional se daba por supuesto.
+  // Con las cuatro voces neuronales firmadas —ACOPROS para es, gl y es-DO;
+  // Ulertuz para eu— esa exclusión dejaba al castellano como el único banco sin
+  // forma de registrar su aprobación: el manifiesto lo seguía declarando
+  // provisional aunque estuviera firmado. Ahora todos los idiomas admiten
+  // registro.
   const approvalPath = path.join(ROOT, 'assets', `verbal-approval.${lang}.json`);
-  const approvals =
-    lang !== 'es' && fs.existsSync(approvalPath)
-      ? [JSON.parse(fs.readFileSync(approvalPath, 'utf8'))].flat()
-      : [];
+  const approvals = fs.existsSync(approvalPath)
+    ? [JSON.parse(fs.readFileSync(approvalPath, 'utf8'))].flat()
+    : [];
   const approvalOf = scope => approvals.find(a => (a.scope ?? 'audio') === scope) ?? null;
   const audioApproval = approvalOf('audio');
   const bankApproval = approvalOf('bank');

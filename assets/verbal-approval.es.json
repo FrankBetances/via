@@ -1,0 +1,19 @@
+[
+  {
+    "scope": "audio",
+    "status": "aprobado-produccion",
+    "appliesTo": "voice",
+    "date": "2026-07-31",
+    "approvedBy": "ACOPROS",
+    "communicatedBy": "F. A. Betances (responsable del proyecto)",
+    "voice": "Piper es_ES-davefx-medium (castellano) · 37/37 locuciones",
+    "recipe": {
+      "engine": "piper",
+      "model": "es_ES-davefx-medium",
+      "lengthScale": 1.35,
+      "postprocess": "loudnorm I=-20:TP=-3:LRA=7 · silenceremove start_threshold=-45dB · m4a AAC mono 44.1k",
+      "minClipMs": 350
+    },
+    "notes": "Aprobación para producción de la voz neuronal CASTELLANA por ACOPROS, comunicada por el responsable del proyecto. REQUIERE REESCUCHA de las locuciones que el suelo de duración corrige: «pan», «ven» e «higo» salían de la síntesis por debajo de 350 ms (151, 175 y 326 ms) y se re-sintetizan con un lengthScale propio, así que el estímulo que suena en esas tres palabras NO es el que se escuchó en la revisión. El resto del banco conserva su ritmo. Adjuntar al expediente el acta de la sesión de revisión y la checklist de escucha firmada. `appliesTo: \"voice\"` significa que lo aprobado es la PRODUCCIÓN de esta voz con esta receta (modelo + parámetros + post-proceso): regenerar el banco con la misma receta conserva la aprobación; cambiar de modelo, de parámetros o de post-proceso la invalida y exige nueva firma."
+  }
+]
