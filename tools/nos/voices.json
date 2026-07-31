@@ -1,5 +1,5 @@
 {
-  "note": "Registro declarativo del motor de voz neural (ILENIA / Proxecto Nós + Piper). Una voz por idioma/variante de la batería VIA+. Los modelos se ejecutan SOLO en build-time (tools/nos/tts.py + scripts/verbal-assets.js); la app no incorpora IA en runtime y sigue siendo offline-first. ESTADO: las cuatro voces están APROBADAS PARA PRODUCCIÓN — castellano, gallego y dominicano por ACOPROS; euskera por Ulertuz —, así que ya no son provisionales. Lo aprobado es la voz CON SU RECETA (modelo + params + post-proceso): tocar cualquiera de los tres invalida la firma y exige nueva escucha. El registro firmado de cada lengua vive en assets/verbal-approval.<lang>.json, que es lo que lee el manifiesto; este archivo solo lo refleja.",
+  "note": "Registro declarativo del motor de voz neural (ILENIA / Proxecto Nós + Piper). Una voz por idioma/variante de la batería VIA+. Los modelos se ejecutan SOLO en build-time (tools/nos/tts.py + scripts/verbal-assets.js); la app no incorpora IA en runtime y sigue siendo offline-first. ESTADO: gallego y dominicano (ACOPROS) y euskera (Ulertuz) están APROBADOS PARA PRODUCCIÓN. El CASTELLANO no: su voz ha cambiado de es_ES-davefx-medium a es_ES-sharvard-medium porque davefx desplomaba los monosílabos por debajo del suelo de 350 ms, y al cambiar el modelo cambia la receta. Queda pendiente de regenerar el banco y de anotar la firma sobre la receta nueva. Lo aprobado es la voz CON SU RECETA (modelo + params + post-proceso): tocar cualquiera de los tres invalida la firma y exige nueva escucha. El registro firmado de cada lengua vive en assets/verbal-approval.<lang>.json, que es lo que lee el manifiesto; este archivo solo lo refleja.",
   "modelsDir": "tools/nos/models",
   "postprocess": {
     "note": "El post-proceso (loudnorm, recorte de silencios, m4a 44.1k mono) NO es del motor: lo aplica scripts/verbal-assets.js con ffmpeg, idéntico para todas las voces, para garantizar sonoridad homogénea entre idiomas (mismo objetivo LUFS). El SUELO DE DURACIÓN (350 ms por locución) también se aplica aquí, después de codificar: ver scripts/voice-clip-tempo.js.",
@@ -8,25 +8,26 @@
   "voices": {
     "es": {
       "engine": "piper",
-      "model": "es_ES-davefx-medium",
+      "model": "es_ES-sharvard-medium",
       "files": {
-        "onnx": "piper/es_ES-davefx-medium.onnx",
-        "config": "piper/es_ES-davefx-medium.onnx.json"
+        "onnx": "piper/es_ES-sharvard-medium.onnx",
+        "config": "piper/es_ES-sharvard-medium.onnx.json"
       },
-      "source": "https://huggingface.co/rhasspy/piper-voices/tree/main/es/es_ES/davefx/medium",
+      "source": "https://huggingface.co/rhasspy/piper-voices/tree/main/es/es_ES/sharvard/medium",
       "license": "ver ficha del modelo en Hugging Face (auditoría T0.2 pendiente de firma)",
       "params": {
-        "lengthScale": 1.35,
+        "lengthScale": 1.1,
         "noiseScale": 0.333,
         "noiseW": 0.333
       },
-      "notes": "Voz de las locuciones castellanas de la audiometría verbal y del corpus de consignas. RITMO: davefx habla más rápido que la voz es-DO (es_MX-claude-high) con el MISMO lengthScale, y no lo hace de forma uniforme: mantiene las polisílabas en un ritmo razonable y desploma las cortas. Medido sobre los 37 recortes comunes de la audiometría verbal (lengthScale=1.1): media es 0,454 s frente a 0,507 s en es-DO, pero «pan» 0,151 s frente a 0,386 s (2,6 veces más rápido) y «ven» 0,175 s frente a 0,352 s. En el corpus general pasó lo mismo con los modelos hablados del T.A.R.: «Tapa» 0,140 s, «Apto» 0,163 s. En una prueba de RECONOCIMIENTO o de REPETICIÓN eso no es «rápido», es un estímulo que el paciente no llega a resolver. Por eso el lengthScale de aquí NO es la corrección: subirlo lo bastante para rescatar «pan» dejaría el resto del banco arrastrándose. El 1.35 es el ritmo base; el suelo de duración lo garantiza `scripts/voice-clip-tempo.js`, que mide cada recorte y REALENTIZA SOLO los que quedan por debajo, recorte a recorte y con techo. AVISO: ese realentizado NO está consiguiendo levantar las palabras más cortas del castellano. Medido en CI con la semilla de ONNX ya colocada antes de crear la sesión, «pan» sale de la síntesis en 117 ms y con lengthScale 3.6 (el techo) se queda en 221 ms; «Apto» 163→256 ms; «Tapa» 151→209 ms. Estirar 2,7 veces solo alarga 1,9: la duración NO es proporcional al lengthScale, y para alcanzar los 350 ms harían falta escalas de 5 a 8. Está sin decidir si la causa es la voz o el post-proceso (una palabra CVC no se pronuncia en 117 ms, lo que apunta a que el recorte de silencios se está comiendo el estímulo). Hasta que se resuelva, el castellano NO se regenera y en el árbol siguen los recortes anteriores. La referencia del suelo (350 ms) es el banco es-DO de Quisqueya Habla, que es el que suena bien en campo: su recorte más corto son 376 ms. Sustituye definitivamente a espeak-ng: la síntesis neural es la vía por defecto del pipeline (`VERBAL_TTS=espeak` queda solo como degradación explícita para entornos sin acceso a los pesos). La producción clínica final sigue siendo locutor profesional (validacion-clinica-verbal.md).",
+      "notes": "Voz de las locuciones castellanas de la audiometría verbal y del corpus de consignas. SUSTITUYE a es_ES-davefx-medium, que no servía para este banco: davefx desploma los monosílabos. Medido en CI sobre la síntesis SIN post-procesar (el post-proceso no recorta: pierde 0 ms), davefx daba «pan» 116 ms, «Tapa» 151 ms y «Apto» 163 ms, con una media de banco de 538 ms. El realentizado recorte a recorte tampoco lo salvaba: al techo de lengthScale 3.6 «pan» solo llegaba a 221 ms y habría hecho falta ~6.4, porque la duración NO es proporcional al lengthScale (estirar 2,7 veces alarga 1,9). La misma palabra con es_MX-claude-high sale a 386 ms, así que nunca fue el ritmo ni ffmpeg: era el modelo. sharvard es la voz castellana de referencia de Valeria+, el proyecto del que se portó todo este pipeline y cuyo corpus —bastante mayor que este— funciona con ella. Nótese que gl (Celtia), eu (Maider) y es-DO (es_MX-claude-high) vinieron de ese registro y pasan el suelo sin tocar nada; la castellana era la única elegida aquí por su cuenta, y era la única que fallaba. PARÁMETROS: lengthScale 1.1 igual que es-DO (davefx necesitaba 1.35 para compensar su prisa; sharvard no arrastra esa corrección). Si el plan de implementación de Valeria declara otros valores, mandan los suyos. El suelo de duración (350 ms) lo sigue garantizando scripts/voice-clip-tempo.js, que mide cada recorte y realentiza SOLO los que quedan por debajo. La referencia del suelo es el banco es-DO de Quisqueya Habla, que es el que suena bien en campo: su recorte más corto son 376 ms. La producción clínica final sigue siendo locutor profesional (validacion-clinica-verbal.md).",
       "clinicalApproval": {
-        "status": "aprobado-produccion",
+        "status": "pendiente-regeneracion",
         "approvedBy": "ACOPROS",
         "date": "2026-07-31",
         "scope": "audio",
-        "record": "assets/verbal-approval.es.json"
+        "record": "assets/verbal-approval.es.json",
+        "note": "La firma de ACOPROS del 31/07 cubría la receta con es_ES-davefx-medium. Al cambiar de modelo cambia la receta, así que esa firma no se arrastra sola. El responsable del proyecto ha comunicado la aprobación de los bancos regenerados; queda anotarla en el registro EN CUANTO el banco castellano se regenere de verdad y pase el suelo, no antes — dar por aprobado un audio que todavía no existe es exactamente el fallo que trajo el castellano atropellado a producción."
       }
     },
     "es-DO": {

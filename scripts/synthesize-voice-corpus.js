@@ -42,6 +42,42 @@ const NOS_TTS = path.join(ROOT, 'tools', 'nos', 'tts.py');
 /** Voz espeak-ng por idioma (degradación clásica); gl no tiene fallback. */
 const ESPEAK_VOICES = { es: 'es', 'es-DO': 'es-419' };
 
+/**
+ * Receta (modelo + params) con la que se locutó cada idioma. Se guarda JUNTO a
+ * los assets porque el criterio incremental es «existe el .m4a, luego se salta»,
+ * y eso da por buena una locución hecha con OTRA voz: al pasar el castellano de
+ * davefx a sharvard, las 91 consignas ya sintetizadas se habrían quedado como
+ * estaban y el banco habría acabado mezclando dos voces sin que nadie lo viera.
+ * Si la receta declarada en voices.json no coincide con la anotada aquí, ese
+ * idioma se regenera ENTERO.
+ */
+const RECIPE_FILE = path.join(VOICE_DIR, 'recipe.json');
+
+function declaredRecipe(lang) {
+  try {
+    const reg = JSON.parse(fs.readFileSync(path.join(ROOT, 'tools', 'nos', 'voices.json'), 'utf8'));
+    const v = reg.voices?.[lang];
+    if (!v) return null;
+    return JSON.stringify({ engine: v.engine, model: v.model, params: v.params ?? {} });
+  } catch {
+    return null;
+  }
+}
+
+function readRecipes() {
+  try {
+    return JSON.parse(fs.readFileSync(RECIPE_FILE, 'utf8'));
+  } catch {
+    return {};
+  }
+}
+
+function writeRecipe(lang, recipe) {
+  const all = readRecipes();
+  all[lang] = JSON.parse(recipe);
+  fs.writeFileSync(RECIPE_FILE, `${JSON.stringify(all, null, 2)}\n`);
+}
+
 function parseArgs(argv) {
   const args = { lang: null, force: false };
   for (let i = 0; i < argv.length; i += 1) {
@@ -124,7 +160,19 @@ function synthesizeLang(corpus, lang, force) {
     const s = m4aDurationSeconds(path.join(VOICE_DIR, `${e.id}.m4a`));
     return s != null && s * 1000 < MIN_CLIP_MS;
   };
-  const pending = force
+  // Cambiar de voz (o de sus params) invalida TODO lo locutado con la anterior:
+  // mezclarlas en un mismo banco es peor que no tener banco, porque el paciente
+  // oye dos locutores distintos en la misma prueba y nada lo delata en el diff.
+  const recipe = declaredRecipe(lang);
+  const recipeChanged = recipe != null && JSON.stringify(readRecipes()[lang] ?? null) !== recipe;
+  if (recipeChanged) {
+    const prev = readRecipes()[lang];
+    console.log(
+      `· ${lang}: la receta ha cambiado (${prev ? prev.model : 'sin anotar'} → ${JSON.parse(recipe).model})`
+        + ' — se regenera el banco entero, no solo lo que falta.',
+    );
+  }
+  const pending = force || recipeChanged
     ? all
     : all.filter(e => !fs.existsSync(path.join(VOICE_DIR, `${e.id}.m4a`)) || tooShort(e));
   if (!pending.length) {
@@ -183,6 +231,10 @@ function synthesizeLang(corpus, lang, force) {
   for (const e of pending) {
     fs.copyFileSync(path.join(staging, `${e.id}.m4a`), path.join(VOICE_DIR, `${e.id}.m4a`));
   }
+  // Solo tras publicar: si la síntesis falla, la receta anotada sigue siendo la
+  // del banco que de verdad está en el árbol, y la próxima corrida vuelve a
+  // intentar la regeneración completa en lugar de darla por hecha.
+  if (recipe && !espeak) writeRecipe(lang, recipe);
   console.log(
     `✓ ${lang}: ${pending.length} locuciones (${espeak ? 'espeak-ng' : 'voz neural'}) → ${path.relative(ROOT, VOICE_DIR)}`,
   );

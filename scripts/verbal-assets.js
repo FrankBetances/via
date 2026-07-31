@@ -332,7 +332,7 @@ function cmdAudio({ bands }, lang) {
   // para TODOS los idiomas, castellano incluido. El castellano usaba espeak-ng
   // por defecto por herencia histórica, de modo que un `audio --lang es` en
   // local sustituía sin avisar los recortes neurales por los clásicos; la voz
-  // castellana ya está decidida (Piper es_ES-davefx-medium) y es la de por
+  // castellana ya está decidida (Piper es_ES-sharvard-medium) y es la de por
   // defecto. `VERBAL_TTS=espeak` sigue disponible como degradación EXPLÍCITA
   // para entornos sin acceso a los pesos, y no cubre gl ni eu.
   const neural = process.env.VERBAL_TTS !== 'espeak';

@@ -39,9 +39,9 @@ fetch() { # fetch <url> <destino>
   checksum "$dest"
 }
 
-# --- Voces Piper (es provisional + es-DO Quisqueya Habla, Q4.1) --------------
-fetch "$PIPER_BASE/es/es_ES/davefx/medium/es_ES-davefx-medium.onnx"       "$MODELS/piper/es_ES-davefx-medium.onnx"
-fetch "$PIPER_BASE/es/es_ES/davefx/medium/es_ES-davefx-medium.onnx.json"  "$MODELS/piper/es_ES-davefx-medium.onnx.json"
+# --- Voces Piper (es sharvard, referencia de Valeria+ · es-DO Quisqueya Habla) ---
+fetch "$PIPER_BASE/es/es_ES/sharvard/medium/es_ES-sharvard-medium.onnx"      "$MODELS/piper/es_ES-sharvard-medium.onnx"
+fetch "$PIPER_BASE/es/es_ES/sharvard/medium/es_ES-sharvard-medium.onnx.json" "$MODELS/piper/es_ES-sharvard-medium.onnx.json"
 fetch "$PIPER_BASE/es/es_MX/claude/high/es_MX-claude-high.onnx"           "$MODELS/piper/es_MX-claude-high.onnx"
 fetch "$PIPER_BASE/es/es_MX/claude/high/es_MX-claude-high.onnx.json"      "$MODELS/piper/es_MX-claude-high.onnx.json"
 

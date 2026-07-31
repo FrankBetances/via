@@ -87,7 +87,7 @@ SOLO en build-time; ver `tools/nos/README.md`):
 
 | Lengua | Motor | Voz | Proyecto | Estado |
 |---|---|---|---|---|
-| `es` | Piper (VITS/ONNX) | `es_ES-davefx-medium` | rhasspy/piper-voices | Provisional |
+| `es` | Piper (VITS/ONNX) | `es_ES-sharvard-medium` | rhasspy/piper-voices | Referencia de Valeria+ |
 | `gl` | Coqui (VITS grafemas) | **Celtia** | **Proxecto Nós / ILENIA** | Provisional |
 | `eu` | **AhoTTS** (VITS + frontend vasco) | **Maider** (respaldo Antton) | **HiTZ/Aholab · UPV/EHU (ILENIA / NEL-GAITU)** | Provisional |
 | `es-DO` | Piper (VITS/ONNX) | `es_MX` (neutra LatAm) | rhasspy/piper-voices | Provisional (ADR Q4.3) |
@@ -206,7 +206,7 @@ audiometría verbal, generados todos con el mismo post-proceso y el mismo
 
 | Banco | Voz | Duración media | Monosílabos |
 |---|---|---|---|
-| `es` | Piper `es_ES-davefx-medium` | 0,454 s | «pan» 0,151 s · «ven» 0,175 s |
+| `es` (retirada) | Piper `es_ES-davefx-medium` | 0,454 s | «pan» 0,151 s · «ven» 0,175 s |
 | `es-DO` | Piper `es_MX-claude-high` | 0,507 s | «pan» 0,386 s · «ven» 0,352 s |
 
 El castellano era un 17 % más rápido de media y hasta 2,5 veces más rápido en
@@ -243,30 +243,42 @@ sirvió, y merece la pena entender por qué, porque el fallo se repitió entero:
    justo para alcanzarlo (regla de tres sobre la duración medida, con techo en
    `VERBAL_MAX_LENGTH_SCALE`). El resto del banco conserva su ritmo. Solo falla
    si el techo no basta, y entonces el problema no es el ritmo sino la voz.
-3. **ABIERTO — el castellano no llega al suelo y el realentizado no lo salva.**
-   La regla de tres presupone que estirar el `lengthScale` alarga la locución en
-   proporción. No lo hace. Medido en CI (corrida 13, con la semilla de ONNX ya
-   sembrada antes de crear la sesión): «pan» sale de la síntesis en 117 ms y con
-   `lengthScale` 3.6 —el techo— se queda en 221 ms; «Apto» 163 → 256 ms; «Tapa»
-   151 → 209 ms. Estirar 2,7 veces alarga 1,9. Para alcanzar los 350 ms harían
-   falta escalas de 5 a 8, que es justo lo que el techo existe para no hacer.
+3. **RESUELTO — no era el ritmo, era el modelo. Se cambia la voz castellana.**
+   El realentizado por recorte presupone que estirar el `lengthScale` alarga la
+   locución en proporción, y con davefx no lo hacía: al techo de 3.6 «pan» solo
+   llegaba a 221 ms desde 116 (estirar 2,7 veces alargaba 1,9), y para tocar los
+   350 ms harían falta escalas de 5 a 8 — justo lo que el techo existe para
+   impedir.
 
-   Y la sospecha de fondo es otra: **una palabra CVC no se pronuncia en 117 ms**.
-   Eso no es una voz rápida, es audio recortado. El sospechoso es el
-   post-proceso —`silenceremove` sobre la salida de un `loudnorm` de pasada
-   única, que con entradas de menos de tres segundos no tiene material para
-   estimar la sonoridad—, no el ritmo de davefx. Por eso el pipeline registra
-   ahora, para toda locución bajo el suelo, la duración del **WAV recién
-   sintetizado** junto a la del `.m4a` ya post-procesado: si las dos cifras se
-   separan, quien acorta el estímulo es la cadena de ffmpeg y subir el
-   `lengthScale` es perseguir el problema equivocado.
+   Se persiguieron dos causas equivocadas antes de medir: el sorteo de ruido de
+   Piper y el post-proceso de ffmpeg. La segunda quedó descartada con el dato
+   que ahora registra el pipeline —la duración del WAV **antes** de post-procesar
+   junto a la del `.m4a`—:
 
-   Nótese que la semilla de Piper **tampoco está dando reproducibilidad medible**
-   (mismo lote y mismo commit: «pan» 175 ms una corrida, 117 ms la siguiente).
-   La colocación actual es la correcta —sembrar después de `PiperVoice.load()`
-   era demostrablemente inútil, porque el kernel de ORT construye su generador al
-   inicializar la sesión—, pero mientras no haya dos corridas idénticas medidas,
-   aquí no hay determinismo que dar por bueno.
+   ```
+   es: «Apto» síntesis 163 ms → tras post-proceso 163 ms (se pierde -0 ms)
+   es: «Tapa» síntesis 151 ms → tras post-proceso 151 ms (se pierde -0 ms)
+   es: «pan»  síntesis 116 ms → tras post-proceso 117 ms (se pierde -1 ms)
+   ```
+
+   `loudnorm` y `silenceremove` no recortan nada. El WAV que sale de Piper ya son
+   116 ms. La misma palabra con `es_MX-claude-high` sale a 386 ms por la misma
+   cadena, así que nunca fue ffmpeg ni el ritmo: **`es_ES-davefx-medium` desploma
+   los monosílabos** y no sirve para un banco de palabras aisladas.
+
+   La pista definitiva estaba en el origen de cada voz. `gl` (Celtia), `eu`
+   (Maider) y `es-DO` (es_MX) vinieron del registro de Valeria+ y pasan el suelo
+   sin tocar nada; la castellana era la única elegida aquí por su cuenta —y
+   marcada «provisional» en la tabla de §5— y era la única que fallaba. El
+   castellano pasa a **`es_ES-sharvard-medium`**, la voz de referencia de
+   Valeria+, cuyo corpus, bastante mayor que este, funciona con ella.
+
+   Sobre la semilla de Piper: `onnxruntime.set_seed` se sembraba **después** de
+   `PiperVoice.load()`, y el kernel de ORT construye su generador al inicializar
+   la sesión, así que no sembraba nada. Ya está en su sitio, pero **no dé el
+   determinismo por comprobado**: con el mismo lote y el mismo commit se midió
+   «pan» en 175 ms y en 117 ms. Queda pendiente de dos corridas idénticas.
+
 4. **Un reintento nunca publica algo peor de lo que ya había.** El realentizado
    sobrescribe el `.m4a` en cada pasada; mientras el sorteo era libre, un
    intento podía salir por debajo del anterior y quedarse. Así acabó «Tapa»

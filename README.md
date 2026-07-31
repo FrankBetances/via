@@ -277,7 +277,7 @@ sigue siendo offline-first y no incorpora inferencia de IA como parte del dispos
 
 | Lengua | Motor (build-time) | Voz | Proyecto |
 |---|---|---|---|
-| `es` | Piper (VITS/ONNX) | `es_ES-davefx-medium` (`lengthScale` 1.35) | rhasspy/piper-voices |
+| `es` | Piper (VITS/ONNX) | `es_ES-sharvard-medium` (`lengthScale` 1.1) | rhasspy/piper-voices |
 | `gl` | Coqui TTS (VITS grafemas) | **Celtia** | **Proxecto Nós / ILENIA** |
 | `eu` | **AhoTTS** (VITS + frontend vasco) | **Maider** (respaldo Antton) | **HiTZ/Aholab · UPV/EHU** (ILENIA / NEL-GAITU) |
 | `es-DO` | Piper (VITS/ONNX) | `es_MX-claude-high` (neutra LatAm, provisional) | rhasspy/piper-voices |
@@ -285,8 +285,10 @@ sigue siendo offline-first y no incorpora inferencia de IA como parte del dispos
 > La voz **neural es la vía por defecto de todos los idiomas**, castellano incluido.
 > `VERBAL_TTS=espeak` queda solo como degradación explícita para entornos sin acceso a los pesos
 > (y no cubre `gl` ni `eu`). Las voces están declaradas en `tools/nos/voices.json`; los `lengthScale`
-> son parámetros **de la voz**, no del banco (davefx locutaba demasiado deprisa para una prueba de
-> reconocimiento de palabra, y por eso lleva 1.35).
+> son parámetros **de la voz**, no del banco. El castellano usó `es_ES-davefx-medium` y hubo que
+> retirarlo: desplomaba los monosílabos («pan» 116 ms frente a los 386 ms de es-DO) y ni realentizarlo
+> recorte a recorte lo levantaba hasta el suelo de 350 ms. Ahora usa **sharvard**, la voz castellana de
+> referencia de Valeria+, de donde ya venían las otras tres.
 
 ### Contrato del corpus de voz
 

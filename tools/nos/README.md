@@ -14,7 +14,7 @@ con voces neuronales abiertas. Implementa T0.1/T4.1 del plan gallego
 
 | Idioma | Motor | Modelo | Estado |
 |---|---|---|---|
-| `es` | Piper (VITS/ONNX) | `es_ES-davefx-medium` | Provisional (alternativa neural a espeak-ng) |
+| `es` | Piper (VITS/ONNX) | `es_ES-sharvard-medium` | Voz castellana de referencia de Valeria+ (sustituye a davefx, que desplomaba los monosílabos) |
 | `es-DO` | Piper (VITS/ONNX) | `es_MX-claude-high` | Provisional Quisqueya Habla — no existe voz abierta es-DO; la definitiva se decide en el ADR Q4.3 |
 | `gl` | Coqui TTS (VITS grafemas) | `proxectonos/Nos_TTS-celtia-vits-graphemes` (Celtia) | Provisional Proxecto Nós / ILENIA |
 

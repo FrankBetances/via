@@ -20,13 +20,17 @@
  * el banco es-DO (Quisqueya Habla), que es el que suena bien en campo — su
  * recorte más corto son 376 ms.
  *
- * La corrección NO es subir el `lengthScale` global de la voz. La velocidad de
- * `es_ES-davefx-medium` no se desvía de forma uniforme: mantiene las
- * polisílabas en un ritmo razonable y desploma las cortas («pan» 151 ms frente
- * a los 386 ms del es-DO, 2,6 veces más rápido), así que el lengthScale que
- * rescataría a «pan» dejaría el resto del banco arrastrándose. Se realentiza
- * RECORTE A RECORTE: solo se vuelven a sintetizar los cortos, con el
+ * La corrección NO es subir el `lengthScale` global de la voz: una voz que se
+ * desvía solo en las cortas dejaría el resto del banco arrastrándose. Se
+ * realentiza RECORTE A RECORTE: solo se vuelven a sintetizar los cortos, con el
  * lengthScale justo para alcanzar el suelo.
+ *
+ * Ese realentizado tiene un límite y conviene conocerlo: la duración NO es
+ * proporcional al lengthScale. Con `es_ES-davefx-medium` —retirada por esto—
+ * «pan» pasaba de 116 ms a 221 ms al estirar del 1,35 al techo de 3,6: 2,7
+ * veces de escala para 1,9 de duración. Cuando hace falta más que el techo, el
+ * problema ya no es el ritmo sino el modelo, y `sourceFor` está para
+ * distinguirlo: si el WAV recién sintetizado ya viene corto, es la voz.
  */
 
 const fs = require('fs');
