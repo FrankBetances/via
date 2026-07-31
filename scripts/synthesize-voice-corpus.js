@@ -53,12 +53,36 @@ const ESPEAK_VOICES = { es: 'es', 'es-DO': 'es-419' };
  */
 const RECIPE_FILE = path.join(VOICE_DIR, 'recipe.json');
 
+/**
+ * `length_scale` de un estilo — REGLA DE VALERIA+ (`LENGTH_SCALE` en su
+ * `scripts/generate-voice-assets.py`). El estilo viaja en el id de cada entrada
+ * y decide el ritmo con el que se sintetiza; VIA+ lo ignoraba y locutaba todo
+ * al mismo ritmo, de modo que una consigna marcada `slow` sonaba igual que las
+ * demás. Si el estilo no está en la tabla, manda el lengthScale base de la voz.
+ */
+function styleLengthScale(lang, style) {
+  try {
+    const reg = JSON.parse(fs.readFileSync(path.join(ROOT, 'tools', 'nos', 'voices.json'), 'utf8'));
+    const table = reg.styleLengthScale ?? {};
+    const v = Number(table[style]);
+    if (Number.isFinite(v) && v > 0) return v;
+    return Number(reg.voices?.[lang]?.params?.lengthScale) || 1;
+  } catch {
+    return 1;
+  }
+}
+
 function declaredRecipe(lang) {
   try {
     const reg = JSON.parse(fs.readFileSync(path.join(ROOT, 'tools', 'nos', 'voices.json'), 'utf8'));
     const v = reg.voices?.[lang];
     if (!v) return null;
-    return JSON.stringify({ engine: v.engine, model: v.model, params: v.params ?? {} });
+    // La tabla de estilos entra en la receta: cambiar el ritmo de un estilo
+    // cambia el audio igual que cambiar de modelo, y debe regenerar el banco.
+    return JSON.stringify({
+      engine: v.engine, model: v.model, params: v.params ?? {},
+      styleLengthScale: reg.styleLengthScale ?? {},
+    });
   } catch {
     return null;
   }
@@ -110,11 +134,25 @@ function pythonBin() {
 
 /** WAVs con el motor neural (un proceso por lote: el modelo se carga una vez). */
 function synthNeural(entries, tmp, lang) {
-  const batch = path.join(tmp, '_batch.json');
-  fs.writeFileSync(batch, JSON.stringify(Object.fromEntries(entries.map(e => [e.id, e.text]))));
-  execFileSync(pythonBin(), [NOS_TTS, '--lang', lang, '--batch', batch, '--out-dir', tmp], {
-    stdio: 'inherit',
-  });
+  // Un lote POR ESTILO: el ritmo se hornea en la síntesis con el length_scale
+  // del estilo, nunca con atempo posterior (que estiraría también los silencios
+  // y añadiría artefactos de resampleo — el defecto que Valeria ya corrigió).
+  const byStyle = new Map();
+  for (const e of entries) {
+    const st = e.style ?? 'tutor';
+    if (!byStyle.has(st)) byStyle.set(st, []);
+    byStyle.get(st).push(e);
+  }
+  for (const [style, group] of [...byStyle.entries()].sort()) {
+    const scale = styleLengthScale(lang, style);
+    const batch = path.join(tmp, `_batch_${style}.json`);
+    fs.writeFileSync(batch, JSON.stringify(Object.fromEntries(group.map(e => [e.id, e.text]))));
+    console.log(`  · estilo «${style}»: ${group.length} locuciones · lengthScale ${scale}`);
+    execFileSync(pythonBin(), [
+      NOS_TTS, '--lang', lang, '--batch', batch, '--out-dir', tmp,
+      '--length-scale', String(scale),
+    ], { stdio: 'inherit' });
+  }
 }
 
 /**
@@ -225,6 +263,9 @@ function synthesizeLang(corpus, lang, force) {
     labelFor: e => e.text,
     lang,
     sourceFor: e => path.join(tmp, `${e.id}.wav`),
+    // La regla de tres tiene que partir de la escala con la que se sintetizó
+    // ESTA locución, que ahora es la de su estilo y no la base de la voz.
+    baseScaleFor: e => styleLengthScale(lang, e.style ?? 'tutor'),
     resynth: espeak ? null : (e, scale) => { synthNeuralOne(e, tmp, lang, scale); encode(e); },
   });
 

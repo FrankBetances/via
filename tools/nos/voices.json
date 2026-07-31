@@ -5,6 +5,13 @@
     "note": "El post-proceso (loudnorm, recorte de silencios, m4a 44.1k mono) NO es del motor: lo aplica scripts/verbal-assets.js con ffmpeg, idéntico para todas las voces, para garantizar sonoridad homogénea entre idiomas (mismo objetivo LUFS). El SUELO DE DURACIÓN (350 ms por locución) también se aplica aquí, después de codificar: ver scripts/voice-clip-tempo.js.",
     "loudnorm": "I=-20:TP=-3:LRA=7"
   },
+  "styleLengthScale": {
+    "note": "RITMO POR ESTILO — regla de Valeria+ (scripts/generate-voice-assets.py, constante LENGTH_SCALE). El estilo viaja en el id de cada entrada del corpus (`${style}_${hash}_${len}`) y determina el length_scale NATIVO del VITS con el que se sintetiza. Se hornea en la síntesis, NUNCA con atempo posterior: estirar el audio ya renderizado alarga también los silencios y añade artefactos de resampleo. VIA+ ignoraba el estilo y aplicaba un único lengthScale por voz, de modo que las consignas marcadas `slow` sonaban igual que las demás. Estos valores son los de Valeria y están fijados por prueba (scripts/__tests__/voiceArchitecture.test.js): cambiarlos exige cambiar también la prueba, a conciencia. NOTA: esta tabla rige el CORPUS de consignas. El banco de audiometría verbal no tiene estilos —son palabras aisladas— y sigue usando el lengthScale base de la voz.",
+    "tutor": 1.0,
+    "child": 1.05,
+    "clinical": 1.15,
+    "slow": 1.6
+  },
   "voices": {
     "es": {
       "engine": "piper",

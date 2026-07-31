@@ -108,24 +108,44 @@ palabra aislada.
 | Suelo de duración | no existe | 350 ms + realentizado por recorte con techo 3,6 | Los modelos hablados del T.A.R. y los estímulos verbales son **palabras aisladas para repetir o reconocer**. Por debajo de ese umbral el estímulo no mide lo que dice medir. Es un requisito clínico de VIA+ que Valeria no tiene por qué cumplir. |
 | Registro de voces | dict en el script | `voices.json` declarativo + firma clínica por lengua | VIA+ es SaMD Clase IIa: la receta aprobada debe ser un artefacto versionado y firmable, no una constante en el código. |
 
-### 4.2 Deuda pendiente (divergencias sin justificación)
+### 4.2 Adoptadas (deuda ya cerrada)
 
-1. **`length_scale` por estilo — NO IMPLEMENTADO.** VIA+ aplica un único
-   `lengthScale` por voz y **ignora el `style` de la entrada**, aunque el estilo
-   viaja en el id. Valeria usa `tutor 1.0 · child 1.05 · clinical 1.15 · slow 1.6`.
-   Consecuencia hoy: todas las consignas castellanas se locutan al mismo ritmo,
-   y las que el corpus marca como `slow` —pensadas para ir claramente más
-   despacio— suenan igual que las demás. Es la divergencia de fondo que queda
-   por cerrar.
-2. **Selección de hablante femenina** en voces Piper multi-hablante: Valeria la
-   hace, VIA+ no. Hoy no muerde porque sharvard es de hablante única, pero
-   cualquier voz multi-hablante futura entraría por la 0 sin decidirlo.
-3. **Versión de piper-tts.** Valeria usa la API `SynthesisConfig` +
+1. **`length_scale` POR ESTILO — implementado.** El estilo viaja en el id de
+   cada entrada y ahora decide el ritmo: `tutor 1.0 · child 1.05 · clinical 1.15
+   · slow 1.6`, los valores exactos de Valeria, declarados en
+   `tools/nos/voices.json` → `styleLengthScale`. La síntesis del corpus agrupa
+   las entradas por estilo y lanza **un lote por estilo** con su
+   `--length-scale`, de modo que el ritmo se **hornea en la síntesis** y nunca
+   se aplica con `atempo` posterior. Antes VIA+ usaba un único `lengthScale` por
+   voz e ignoraba el estilo, así que una consigna marcada `slow` sonaba igual
+   que las demás.
+   La tabla entra además en la **receta**: cambiar el ritmo de un estilo
+   regenera el banco de ese idioma, igual que cambiar de modelo.
+   *Alcance:* rige el CORPUS de consignas. El banco de audiometría verbal no
+   tiene estilos —son palabras aisladas— y conserva el `lengthScale` base de la
+   voz.
+2. **Selección de hablante femenina** en voces Piper multi-hablante:
+   implementada en `PiperEngine` (`num_speakers > 1` → primera clave del
+   `speaker_id_map` que empiece por `f`/`female`/`muller`/`mujer`). Hoy no muerde
+   porque sharvard es de hablante única; deja de ser una bomba de relojería para
+   la próxima voz que no lo sea.
+3. **Guarda anti-basura:** `_reject_if_empty` rechaza una síntesis vacía (0
+   muestras) o muda (pico por debajo de ~−60 dBFS) en vez de dejar que se
+   codifique a `.m4a` y la app «locute» silencio.
+
+### 4.3 Deuda que queda
+
+1. **Versión de piper-tts.** Valeria usa la API `SynthesisConfig` +
    `synthesize_wav` (piper-tts ≥ 1.3); VIA+ fija `piper-tts==1.2.0` y llama a
    `synthesize(**kwargs)`. Funciona, pero son dos ramas de API distintas.
-4. **Guarda anti-basura.** Valeria descarta y reintenta al siguiente run los
-   ítems con salida NaN/silencio o duración implausible. VIA+ no comprueba
-   NaN/silencio.
+2. **Guarda de duración implausible.** Valeria descarta el ítem cuando la
+   duración se sale de `0,12·palabras … 3,0·palabras + 1,0`. En VIA+ ese papel
+   lo cubre en parte el suelo de 350 ms, que es más estricto por abajo pero no
+   vigila el extremo largo.
+3. **Determinismo de Piper.** `onnxruntime.set_seed` ya se siembra antes de
+   crear la sesión (que es lo correcto), pero medido en CI el mismo lote sigue
+   dando duraciones distintas entre corridas. Pendiente de dos corridas
+   idénticas medidas antes de darlo por bueno.
 
 ## 5. Reglas que se derivan de todo esto
 
@@ -137,7 +157,14 @@ palabra aislada.
    `.m4a`, que es lo que distingue «la voz viene corta» de «el post-proceso la
    recorta».
 3. **Cambiar de receta regenera el idioma entero.** `assets/voice/recipe.json`
-   anota motor + modelo + params por idioma; si no coincide con lo declarado, se
-   regenera todo. Sin esto, cambiar de voz dejaba un banco con dos locutores
+   anota motor + modelo + params + tabla de estilos por idioma; si no coincide
+   con lo declarado, se regenera todo. Sin esto, cambiar de voz dejaba un banco con dos locutores
    mezclados y nada lo delataba en el diff.
 4. **La firma clínica se anota DESPUÉS de comprobar el banco**, nunca antes.
+5. **Y todo esto está fijado por prueba.** `scripts/__tests__/voiceArchitecture.test.js`
+   comprueba los valores exactos de la tabla de ritmos, que el castellano sea
+   sharvard, que davefx no vuelva por ninguna puerta, que toda voz declare su
+   `origin`, que `fetch-models.sh` baje lo que el registro declara, que el suelo
+   siga en 350 ms y que este documento exista y siga nombrando las divergencias
+   deliberadas. No es decoración: es lo que impide que la arquitectura se borre
+   otra vez en silencio.

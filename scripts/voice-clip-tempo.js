@@ -173,13 +173,17 @@ function measure(items, fileFor) {
  *                               esa locución. `null` desactiva el realentizado
  *                               (motores sin control de ritmo, p. ej. espeak):
  *                               entonces esto es solo una comprobación.
+ * @param {Function} [o.baseScaleFor] item → lengthScale con el que se sintetizó
+ *                               ESA locución. Por defecto, el declarado para la
+ *                               voz; el corpus pasa el de su ESTILO, que es la
+ *                               escala real de partida para la regla de tres.
  * @param {Function} [o.sourceFor] item → ruta del WAV recién sintetizado, ANTES
  *                               del post-proceso. Opcional y solo informativo:
  *                               permite ver, cuando una locución no llega al
  *                               suelo, si salió corta de la voz o si la acortó
  *                               el post-proceso.
  */
-function enforceClipTempo({ items, fileFor, labelFor, lang, resynth, sourceFor }) {
+function enforceClipTempo({ items, fileFor, labelFor, lang, resynth, sourceFor, baseScaleFor }) {
   const report = measured => {
     if (!measured.length) return;
     const mean = measured.reduce((a, m) => a + m.seconds, 0) / measured.length;
@@ -210,7 +214,11 @@ function enforceClipTempo({ items, fileFor, labelFor, lang, resynth, sourceFor }
       );
     }
   }
-  const base = baseLengthScale(lang);
+  const voiceBase = baseLengthScale(lang);
+  const baseFor = item => {
+    const v = baseScaleFor ? Number(baseScaleFor(item)) : NaN;
+    return Number.isFinite(v) && v > 0 ? v : voiceBase;
+  };
   /* Último intento REALMENTE hecho por locución: { scale, seconds }. Es lo que
    * hace converger el bucle: la regla de tres tiene que partir de la escala que
    * produjo la duración que se acaba de medir, no de la escala base.
@@ -233,7 +241,7 @@ function enforceClipTempo({ items, fileFor, labelFor, lang, resynth, sourceFor }
     let retried = 0;
     for (const m of short) {
       const last = lastTry.get(m.item);
-      const from = last ? last.scale : base;
+      const from = last ? last.scale : baseFor(m.item);
       const seen = last ? last.seconds : m.seconds;
       // Regla de tres sobre la duración medida, con un 12 % de margen: en un
       // VITS con la semilla fija la duración es proporcional al lengthScale, así
@@ -249,7 +257,7 @@ function enforceClipTempo({ items, fileFor, labelFor, lang, resynth, sourceFor }
           + (scale < wanted ? ` (pedía ${wanted.toFixed(2)}, techo ${MAX_LENGTH_SCALE})` : ''),
       );
       const file = fileFor(m.item);
-      if (!best.has(m.item)) best.set(m.item, { seconds: m.seconds, scale: base, bytes: readOrNull(file) });
+      if (!best.has(m.item)) best.set(m.item, { seconds: m.seconds, scale: baseFor(m.item), bytes: readOrNull(file) });
       resynth(m.item, scale);
       const got = m4aDurationSeconds(file);
       lastTry.set(m.item, { scale, seconds: got ?? seen });
@@ -277,7 +285,7 @@ function enforceClipTempo({ items, fileFor, labelFor, lang, resynth, sourceFor }
   // lado —el que lea el error se pondría a buscar una incoherencia que no hay.
   const detail = short
     .map(m => {
-      const from = best.get(m.item)?.scale ?? base;
+      const from = best.get(m.item)?.scale ?? baseFor(m.item);
       return `«${labelFor(m.item)}» (${(m.seconds * 1000).toFixed(0)} ms`
         + (resynth ? `, pedía lengthScale ${demanded(from, m.seconds).toFixed(2)}` : '')
         + ')';

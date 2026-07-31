@@ -38,6 +38,7 @@ con `tools/nos/fetch-models.sh` (o NOS_MODELS_DIR apuntando a una caché).
 from __future__ import annotations
 
 import argparse
+import audioop
 import hashlib
 import json
 import os
@@ -68,6 +69,26 @@ def models_dir(registry: dict) -> Path:
 def seed_for(text: str) -> int:
     """Semilla determinista por texto (reproducibilidad de la síntesis)."""
     return int.from_bytes(hashlib.sha256(text.encode("utf-8")).digest()[:4], "big")
+
+
+def _reject_if_empty(out_wav: Path, text: str) -> None:
+    """Rechaza una locución vacía o muda — guarda anti-basura de Valeria+.
+
+    Un WAV de cero muestras, o cuyo pico es prácticamente silencio, es una
+    síntesis fallida que el resto del pipeline daría por buena: se codificaría a
+    .m4a, entraría en el mapa de assets y la app «locutaría» silencio. Vale más
+    fallar aquí y que la corrida siguiente lo reintente.
+    """
+    try:
+        with wave.open(str(out_wav), "rb") as r:
+            frames = r.readframes(r.getnframes())
+            width = r.getsampwidth()
+    except Exception as exc:  # noqa: BLE001
+        raise RuntimeError(f"WAV ilegible para {text!r}: {exc}") from exc
+    if not frames:
+        raise RuntimeError(f"síntesis vacía (0 muestras) para: {text!r}")
+    if audioop.max(frames, width) < 32:  # ~-60 dBFS en s16: silencio
+        raise RuntimeError(f"síntesis muda (solo silencio) para: {text!r}")
 
 
 # --------------------------------------------------------------------------- #
@@ -122,6 +143,26 @@ class PiperEngine:
         self.voice = PiperVoice.load(str(onnx), config_path=str(config))
         self.params = voice_cfg.get("params", {})
 
+        # HABLANTE FEMENINA en voces multi-hablante — regla de Valeria+
+        # (make_piper_synth). Sin esto, una voz con varias hablantes entra por
+        # la 0, que es la que el modelo traiga primero: la elección la haría el
+        # orden del `speaker_id_map`, no nosotros. Hoy no muerde porque sharvard
+        # es de hablante única, pero deja de ser una bomba de relojería para la
+        # próxima voz que no lo sea.
+        self.speaker_id = None
+        try:
+            cfg = json.loads(Path(config).read_text(encoding="utf-8"))
+        except Exception:  # noqa: BLE001 — la config ya se validó al cargar
+            cfg = {}
+        if int(cfg.get("num_speakers", 1)) > 1:
+            id_map = cfg.get("speaker_id_map") or {}
+            self.speaker_id = next(
+                (int(v) for k, v in id_map.items()
+                 if k.lower().startswith(("f", "female", "muller", "mujer"))),
+                0,
+            )
+            print(f"Voz multi-hablante: se usa hablante={self.speaker_id}")
+
     def synthesize(self, text: str, out_wav: Path) -> None:
         kwargs = {}
         if "lengthScale" in self.params:
@@ -130,8 +171,11 @@ class PiperEngine:
             kwargs["noise_scale"] = self.params["noiseScale"]
         if "noiseW" in self.params:
             kwargs["noise_w"] = self.params["noiseW"]
+        if self.speaker_id is not None:
+            kwargs["speaker_id"] = self.speaker_id
         with wave.open(str(out_wav), "wb") as wav_file:
             self.voice.synthesize(text, wav_file, **kwargs)
+        _reject_if_empty(out_wav, text)
 
 
 class CoquiVitsEngine:
