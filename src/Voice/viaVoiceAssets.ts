@@ -9,7 +9,7 @@
 /* -------------------------------------------------------------------------- */
 
 /** Versión del paquete de assets (nº de locuciones + hash de sus ids). */
-export const VOICE_ASSETS_VERSION = "built-182-1c804ca1";
+export const VOICE_ASSETS_VERSION = "built-190-d8fcfe5f";
 
 /** id de locución → módulo del asset (`require(...)`). Poblado por el pipeline. */
 export const VOICE_ASSETS: Record<string, number> = {
@@ -20,6 +20,7 @@ export const VOICE_ASSETS: Record<string, number> = {
   "es-DO_tutor_075a20e8_48": require('../../assets/voice/es-DO_tutor_075a20e8_48.m4a'),
   "es-DO_tutor_097855b3_6": require('../../assets/voice/es-DO_tutor_097855b3_6.m4a'),
   "es-DO_tutor_09e129d9_11": require('../../assets/voice/es-DO_tutor_09e129d9_11.m4a'),
+  "es-DO_tutor_0b70c6c9_19": require('../../assets/voice/es-DO_tutor_0b70c6c9_19.m4a'),
   "es-DO_tutor_0e6614b7_3": require('../../assets/voice/es-DO_tutor_0e6614b7_3.m4a'),
   "es-DO_tutor_11397b83_15": require('../../assets/voice/es-DO_tutor_11397b83_15.m4a'),
   "es-DO_tutor_11fc45fa_5": require('../../assets/voice/es-DO_tutor_11fc45fa_5.m4a'),
@@ -41,9 +42,11 @@ export const VOICE_ASSETS: Record<string, number> = {
   "es-DO_tutor_3b8dd689_5": require('../../assets/voice/es-DO_tutor_3b8dd689_5.m4a'),
   "es-DO_tutor_4b08850b_5": require('../../assets/voice/es-DO_tutor_4b08850b_5.m4a'),
   "es-DO_tutor_4b12236a_7": require('../../assets/voice/es-DO_tutor_4b12236a_7.m4a'),
+  "es-DO_tutor_4ea29598_58": require('../../assets/voice/es-DO_tutor_4ea29598_58.m4a'),
   "es-DO_tutor_532b2a94_9": require('../../assets/voice/es-DO_tutor_532b2a94_9.m4a'),
   "es-DO_tutor_538a9ce0_4": require('../../assets/voice/es-DO_tutor_538a9ce0_4.m4a'),
   "es-DO_tutor_566320a1_4": require('../../assets/voice/es-DO_tutor_566320a1_4.m4a'),
+  "es-DO_tutor_597a4f43_19": require('../../assets/voice/es-DO_tutor_597a4f43_19.m4a'),
   "es-DO_tutor_5b033c7a_6": require('../../assets/voice/es-DO_tutor_5b033c7a_6.m4a'),
   "es-DO_tutor_5c69ceb4_4": require('../../assets/voice/es-DO_tutor_5c69ceb4_4.m4a'),
   "es-DO_tutor_5fb04fe8_7": require('../../assets/voice/es-DO_tutor_5fb04fe8_7.m4a'),
@@ -66,6 +69,7 @@ export const VOICE_ASSETS: Record<string, number> = {
   "es-DO_tutor_7e287e95_5": require('../../assets/voice/es-DO_tutor_7e287e95_5.m4a'),
   "es-DO_tutor_852f89a7_4": require('../../assets/voice/es-DO_tutor_852f89a7_4.m4a'),
   "es-DO_tutor_8a4f5101_9": require('../../assets/voice/es-DO_tutor_8a4f5101_9.m4a'),
+  "es-DO_tutor_8bd794d6_58": require('../../assets/voice/es-DO_tutor_8bd794d6_58.m4a'),
   "es-DO_tutor_8c353864_5": require('../../assets/voice/es-DO_tutor_8c353864_5.m4a'),
   "es-DO_tutor_8f0dd300_10": require('../../assets/voice/es-DO_tutor_8f0dd300_10.m4a'),
   "es-DO_tutor_92c6c730_4": require('../../assets/voice/es-DO_tutor_92c6c730_4.m4a'),
@@ -111,6 +115,7 @@ export const VOICE_ASSETS: Record<string, number> = {
   "tutor_075a20e8_48": require('../../assets/voice/tutor_075a20e8_48.m4a'),
   "tutor_097855b3_6": require('../../assets/voice/tutor_097855b3_6.m4a'),
   "tutor_09e129d9_11": require('../../assets/voice/tutor_09e129d9_11.m4a'),
+  "tutor_0b70c6c9_19": require('../../assets/voice/tutor_0b70c6c9_19.m4a'),
   "tutor_0e6614b7_3": require('../../assets/voice/tutor_0e6614b7_3.m4a'),
   "tutor_11397b83_15": require('../../assets/voice/tutor_11397b83_15.m4a'),
   "tutor_11fc45fa_5": require('../../assets/voice/tutor_11fc45fa_5.m4a'),
@@ -132,9 +137,11 @@ export const VOICE_ASSETS: Record<string, number> = {
   "tutor_3b8dd689_5": require('../../assets/voice/tutor_3b8dd689_5.m4a'),
   "tutor_4b08850b_5": require('../../assets/voice/tutor_4b08850b_5.m4a'),
   "tutor_4b12236a_7": require('../../assets/voice/tutor_4b12236a_7.m4a'),
+  "tutor_4ea29598_58": require('../../assets/voice/tutor_4ea29598_58.m4a'),
   "tutor_532b2a94_9": require('../../assets/voice/tutor_532b2a94_9.m4a'),
   "tutor_538a9ce0_4": require('../../assets/voice/tutor_538a9ce0_4.m4a'),
   "tutor_566320a1_4": require('../../assets/voice/tutor_566320a1_4.m4a'),
+  "tutor_597a4f43_19": require('../../assets/voice/tutor_597a4f43_19.m4a'),
   "tutor_5b033c7a_6": require('../../assets/voice/tutor_5b033c7a_6.m4a'),
   "tutor_5c69ceb4_4": require('../../assets/voice/tutor_5c69ceb4_4.m4a'),
   "tutor_5fb04fe8_7": require('../../assets/voice/tutor_5fb04fe8_7.m4a'),
@@ -157,6 +164,7 @@ export const VOICE_ASSETS: Record<string, number> = {
   "tutor_7e287e95_5": require('../../assets/voice/tutor_7e287e95_5.m4a'),
   "tutor_852f89a7_4": require('../../assets/voice/tutor_852f89a7_4.m4a'),
   "tutor_8a4f5101_9": require('../../assets/voice/tutor_8a4f5101_9.m4a'),
+  "tutor_8bd794d6_58": require('../../assets/voice/tutor_8bd794d6_58.m4a'),
   "tutor_8c353864_5": require('../../assets/voice/tutor_8c353864_5.m4a'),
   "tutor_8f0dd300_10": require('../../assets/voice/tutor_8f0dd300_10.m4a'),
   "tutor_92c6c730_4": require('../../assets/voice/tutor_92c6c730_4.m4a'),
