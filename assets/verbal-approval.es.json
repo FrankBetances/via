@@ -1,7 +1,7 @@
 [
   {
     "scope": "audio",
-    "status": "aprobado-produccion",
+    "status": "superseded",
     "appliesTo": "voice",
     "date": "2026-07-31",
     "approvedBy": "ACOPROS",
@@ -14,6 +14,35 @@
       "postprocess": "loudnorm I=-20:TP=-3:LRA=7 · silenceremove start_threshold=-45dB · m4a AAC mono 44.1k",
       "minClipMs": 350
     },
-    "notes": "Aprobación para producción de la voz neuronal CASTELLANA por ACOPROS, comunicada por el responsable del proyecto. REQUIERE REESCUCHA de las locuciones que el suelo de duración corrige: «pan», «ven» e «higo» salían de la síntesis por debajo de 350 ms (151, 175 y 326 ms) y se re-sintetizan con un lengthScale propio, así que el estímulo que suena en esas tres palabras NO es el que se escuchó en la revisión. El resto del banco conserva su ritmo. Adjuntar al expediente el acta de la sesión de revisión y la checklist de escucha firmada. `appliesTo: \"voice\"` significa que lo aprobado es la PRODUCCIÓN de esta voz con esta receta (modelo + parámetros + post-proceso): regenerar el banco con la misma receta conserva la aprobación; cambiar de modelo, de parámetros o de post-proceso la invalida y exige nueva firma."
+    "notes": "Aprobación para producción de la voz neuronal CASTELLANA por ACOPROS, comunicada por el responsable del proyecto. REQUIERE REESCUCHA de las locuciones que el suelo de duración corrige: «pan», «ven» e «higo» salían de la síntesis por debajo de 350 ms (151, 175 y 326 ms) y se re-sintetizan con un lengthScale propio, así que el estímulo que suena en esas tres palabras NO es el que se escuchó en la revisión. El resto del banco conserva su ritmo. Adjuntar al expediente el acta de la sesión de revisión y la checklist de escucha firmada. `appliesTo: \"voice\"` significa que lo aprobado es la PRODUCCIÓN de esta voz con esta receta (modelo + parámetros + post-proceso): regenerar el banco con la misma receta conserva la aprobación; cambiar de modelo, de parámetros o de post-proceso la invalida y exige nueva firma.",
+    "supersededBy": "es_ES-sharvard-medium (31/07/2026)",
+    "supersededReason": "davefx desplomaba los monosílabos por debajo del suelo de 350 ms y el realentizado por recorte no lo levantaba: medido en CI sobre el WAV sin post-procesar, «pan» 116 ms y, al techo de lengthScale 3.6, 221 ms. La receta se retira; esta firma no cubre la voz nueva."
+  },
+  {
+    "scope": "audio",
+    "status": "aprobado-produccion",
+    "appliesTo": "voice",
+    "date": "2026-07-31",
+    "approvedBy": "ACOPROS",
+    "communicatedBy": "F. A. Betances (responsable del proyecto)",
+    "voice": "Piper es_ES-sharvard-medium (castellano) · 37/37 recortes verbales + 91/91 consignas del corpus",
+    "recipe": {
+      "engine": "piper",
+      "model": "es_ES-sharvard-medium",
+      "origin": "Valeria+ · voz castellana de referencia (scripts/generate-voice-assets.py)",
+      "lengthScale": 1.1,
+      "noiseScale": 0.333,
+      "noiseW": 0.333,
+      "postprocess": "loudnorm I=-20:TP=-3:LRA=7 · silenceremove start_threshold=-45dB · m4a AAC mono 44.1k",
+      "minClipMs": 350
+    },
+    "measured": {
+      "verbalMeanSeconds": 0.423,
+      "verbalShortest": "«rosa» 350 ms",
+      "corpusMeanSeconds": 0.849,
+      "corpusShortest": "«Clavo» 356 ms",
+      "run": "Generate Voice Assets #16 · commit 0f7904e"
+    },
+    "notes": "Aprobación para producción de la voz neuronal CASTELLANA por ACOPROS, comunicada por el responsable del proyecto, SOBRE LA RECETA NUEVA: sustituye a es_ES-davefx-medium, cuya firma queda marcada como superseded en este mismo registro. El banco se ha regenerado entero (no es un parche sobre los recortes anteriores) y TODAS las locuciones quedan por encima del suelo de 350 ms, que es lo que davefx no conseguía. El realentizado por recorte sigue actuando sobre las más cortas, con escalas entre 1,24 y 1,85 —muy por debajo del techo de 3,6—, así que esas locuciones suenan algo más lentas que el resto del banco: procede reescucha de las corregidas. `appliesTo: \"voice\"` significa que lo aprobado es la PRODUCCIÓN de esta voz con esta receta (modelo + parámetros + post-proceso): regenerar con la misma receta conserva la aprobación; cambiar cualquiera de los tres la invalida. El cambio de receta lo detecta ahora assets/voice/recipe.json, que fuerza la regeneración completa del idioma en vez de mezclar dos voces en el mismo banco."
   }
 ]

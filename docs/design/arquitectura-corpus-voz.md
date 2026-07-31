@@ -4,7 +4,10 @@
 > replicable de Valeria+ (`arquitectura-corpus-voz-nos-ilenia.json`, Proxecto
 > Nós / ILENIA) y adaptada a la pila de VIA+ (React Native + `react-native-tts`
 > + `react-native-audio-api`). Documentos hermanos: `integracion-proxecto-nos.md`
-> (gallego) e `integracion-quisqueya-habla.md` (dominicano).
+> (gallego), `integracion-quisqueya-habla.md` (dominicano) e
+> **`integracion-valeria.md`** — este último contrasta línea a línea la receta
+> de síntesis de Valeria+ con la de VIA+ y deja escrito qué divergencias son
+> deliberadas y cuáles son deuda; léalo ANTES de tocar una voz.
 > **Principio rector (P1):** ningún modelo de IA corre en el dispositivo. Los
 > modelos solo se ejecutan en BUILD-TIME (`tools/nos/`) para pre-generar audio;
 > en runtime la app solo REPRODUCE ficheros ya empaquetados o cae a la voz del
