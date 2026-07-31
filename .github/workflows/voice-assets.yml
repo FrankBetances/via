@@ -105,9 +105,21 @@ jobs:
           done
           timeout 300 sudo -E apt-get update -qq \
             || { echo "::error::apt-get update no terminó en 5 min"; exit 1; }
+          # Reintento con espera: el fallo real no fue un cuelgue sino un mirror
+          # lento — `ffmpeg` arrastra 87 paquetes (173 MB) y azure.archive venía
+          # a minutos por paquete, así que el corte de 10 min saltó a mitad de
+          # descarga y se llevó el job entero antes de sintetizar nada. apt
+          # conserva lo ya descargado en /var/cache/apt, de modo que el segundo
+          # intento reanuda en vez de empezar de cero.
           # shellcheck disable=SC2086
-          timeout 600 sudo -E apt-get install -y --no-install-recommends $NEED \
-            || { echo "::error::apt-get install no terminó en 10 min"; exit 1; }
+          for i in 1 2 3; do
+            timeout 600 sudo -E apt-get install -y --no-install-recommends $NEED && break
+            if [ "$i" = 3 ]; then
+              echo "::error::apt-get install no terminó tras 3 intentos de 10 min"
+              exit 1
+            fi
+            echo "  descarga lenta o interrumpida (intento $i/3), reintentando…"; sleep $((i * 15))
+          done
 
       - name: Resolve target languages
         id: langs
