@@ -18,12 +18,17 @@ Uso:
 Principios (docs/design/integracion-proxecto-nos.md · integracion-quisqueya-habla.md):
   · Los modelos se ejecutan SOLO aquí, en build-time: la app no incorpora
     ninguna dependencia de IA en runtime y sigue siendo offline-first.
-  · Parámetros de síntesis fijados en voices.json y semilla derivada del texto:
-    misma entrada → misma locución (reproducible entre ejecuciones en la misma
-    máquina/versión de modelo; el determinismo bit a bit puede variar entre
-    backends numéricos). Cada motor tiene su mando para eso y hay que usar el
-    suyo: Celtia sortea el ruido en PyTorch (`torch.manual_seed`) y Piper lo
-    sortea dentro del grafo ONNX (`onnxruntime.set_seed`).
+  · Parámetros de síntesis fijados en voices.json y semilla determinista:
+    misma entrada → misma locución (en la misma máquina/versión de modelo; el
+    determinismo bit a bit puede variar entre backends numéricos). Cada motor
+    tiene su mando y hay que usar el suyo: Celtia siembra PyTorch por texto
+    (`torch.manual_seed`), AhoTTS es un binario determinista y Piper sortea
+    dentro del grafo ONNX (`onnxruntime.set_seed`, ANTES de crear la sesión).
+    La granularidad de Piper NO es la misma en los dos modos, y conviene
+    saberlo: en `--batch` la semilla es del lote —el lote entero se reproduce,
+    pero una locución concreta depende de qué más lleve el lote y en qué
+    orden—, y en `--text` es del texto, así que una misma palabra sale igual
+    invocación tras invocación aunque cambie el `--length-scale`.
   · El post-proceso de sonoridad (loudnorm/ffmpeg) NO vive aquí: lo aplica
     `scripts/verbal-assets.js` de forma idéntica para todas las voces.
 
@@ -74,7 +79,7 @@ def seed_for(text: str) -> int:
 class PiperEngine:
     """Piper (VITS/ONNX). Voz definida por <modelo>.onnx + <modelo>.onnx.json."""
 
-    def __init__(self, voice_cfg: dict, base: Path):
+    def __init__(self, voice_cfg: dict, base: Path, seed: int):
         try:
             import onnxruntime  # noqa: PLC0415 — import perezoso
             from piper import PiperVoice  # noqa: PLC0415
@@ -89,30 +94,34 @@ class PiperEngine:
                 raise SystemExit(
                     f"Modelo no encontrado: {f}\nDescárguelo con tools/nos/fetch-models.sh"
                 )
-        self._ort = onnxruntime
+        # ANTES de crear la sesión, y esto es lo importante. Un VITS exportado a
+        # ONNX muestrea su ruido DENTRO DEL GRAFO (nodos RandomNormalLike): piper
+        # 1.2.0 solo pasa `scales` y llama a `session.run`, así que ni
+        # `numpy.random.seed` ni `torch.manual_seed` tocan nada. Quien manda es
+        # `onnxruntime.set_seed`, PERO el kernel de ORT construye su generador en
+        # el CONSTRUCTOR —es decir, al inicializar la sesión—, leyendo ahí el
+        # valor global. Llamarlo después de `PiperVoice.load()` no hace nada:
+        # así estaba primero y la corrida siguió sorteando duraciones distintas
+        # («pan» dio 337 ms con lengthScale 3.02 y 302 ms con 3.52, que es el
+        # mismo sinsentido de antes).
+        #
+        # Consecuencia del mismo detalle: dentro de un proceso el generador
+        # AVANZA en cada inferencia, así que la semilla no puede ser por texto
+        # sin recrear la sesión. Se reparte así:
+        #   · lote  → semilla del contenido del lote. El lote entero es
+        #             reproducible; cada locución depende de su posición en él.
+        #   · unidad → semilla del texto. Cada invocación es un proceso nuevo, o
+        #             sea una sesión nueva, o sea el MISMO sorteo para la misma
+        #             palabra pase el lengthScale que pase. Es justo lo que
+        #             necesita el realentizado por recorte de
+        #             `voice-clip-tempo.js` para converger: sin ello medía una
+        #             duración, deducía por regla de tres la escala que la
+        #             llevaría al suelo y al re-sintetizar le tocaba otro sorteo.
+        onnxruntime.set_seed(seed)
         self.voice = PiperVoice.load(str(onnx), config_path=str(config))
         self.params = voice_cfg.get("params", {})
 
     def synthesize(self, text: str, out_wav: Path) -> None:
-        # Semilla por texto, igual que Celtia — pero el mando NO es el mismo. Un
-        # VITS exportado a ONNX muestrea su ruido DENTRO DEL GRAFO (nodos
-        # RandomNormalLike), no en Python: piper 1.2.0 se limita a pasar
-        # `scales` y a llamar a `session.run`, así que ni `numpy.random.seed` ni
-        # `torch.manual_seed` tocan nada. Quien fija ese generador es
-        # `onnxruntime.set_seed`.
-        #
-        # Sin esto, cada inferencia era un sorteo distinto y la DURACIÓN de la
-        # locución con ella, porque el predictor de duración del VITS también es
-        # estocástico (noiseW). Las consecuencias eran dos, y las dos se veían en
-        # el pipeline: la reproducibilidad que promete este módulo no existía
-        # para Piper, y el realentizado por recorte de `voice-clip-tempo.js` no
-        # podía converger — medía una duración, deducía por regla de tres el
-        # lengthScale que la llevaría al suelo y, al re-sintetizar, le tocaba
-        # otro sorteo. Se llegó a medir «ven» en 430 ms y, en la corrida
-        # siguiente y con MÁS lengthScale, en 256 ms. Con la semilla fija el
-        # sorteo del predictor de duración es el mismo, y entonces sí: la
-        # duración es proporcional al lengthScale y una pasada basta.
-        self._ort.set_seed(seed_for(text))
         kwargs = {}
         if "lengthScale" in self.params:
             kwargs["length_scale"] = self.params["lengthScale"]
@@ -127,7 +136,9 @@ class PiperEngine:
 class CoquiVitsEngine:
     """Coqui TTS (VITS) — voz Celtia del Proxecto Nós (grafemas, sin fonemizador)."""
 
-    def __init__(self, voice_cfg: dict, base: Path):
+    # `seed` se acepta por uniformidad y se ignora: Celtia siembra por texto en
+    # `synthesize`, que es donde PyTorch sortea el ruido.
+    def __init__(self, voice_cfg: dict, base: Path, seed: int):
         try:
             import torch  # noqa: PLC0415
             from TTS.api import TTS  # noqa: PLC0415 — import perezoso (pesado)
@@ -183,7 +194,9 @@ class AhoTtsEngine:
     pipeline de Valeria+, donde esta misma voz ya está en producción.
     """
 
-    def __init__(self, voice_cfg: dict, base: Path):
+    # `seed` se acepta por uniformidad y se ignora: AhoTTS es un binario
+    # determinista, sin muestreo de ruido que fijar.
+    def __init__(self, voice_cfg: dict, base: Path, seed: int):
         self.aho = Path(os.environ.get("AHOTTS_DIR", str(base / "ahotts")))
         self.model = voice_cfg["model"]
         self.tts_bin = self.aho / "ahotts" / "tts"
@@ -243,7 +256,7 @@ class AhoTtsEngine:
 ENGINES = {"piper": PiperEngine, "coqui-vits": CoquiVitsEngine, "ahotts": AhoTtsEngine}
 
 
-def make_engine(lang: str, registry: dict):
+def make_engine(lang: str, registry: dict, seed: int):
     voices = registry["voices"]
     if lang not in voices:
         known = ", ".join(sorted(voices))
@@ -252,7 +265,7 @@ def make_engine(lang: str, registry: dict):
     engine_cls = ENGINES.get(cfg["engine"])
     if engine_cls is None:
         raise SystemExit(f"Motor desconocido '{cfg['engine']}' para '{lang}'")
-    return engine_cls(cfg, models_dir(registry)), cfg
+    return engine_cls(cfg, models_dir(registry), seed), cfg
 
 
 # --------------------------------------------------------------------------- #
@@ -350,7 +363,21 @@ def main() -> None:
     if batch and not (args.batch and args.out_dir):
         ap.error("el modo lote requiere --batch y --out-dir")
 
-    engine, cfg = make_engine(args.lang, registry)
+    # La semilla se decide ANTES de construir el motor: Piper la necesita para
+    # sembrar el generador de ONNX Runtime antes de crear la sesión (ver
+    # PiperEngine). Por eso el lote se lee aquí y no más abajo.
+    entries = None
+    if unit:
+        seed = seed_for(args.text)
+    else:
+        with open(args.batch, encoding="utf-8") as fh:
+            entries = json.load(fh)
+        if not isinstance(entries, dict):
+            raise SystemExit("--batch debe ser un objeto JSON {clave: texto}")
+        # Del CONTENIDO del lote, no de la hora: el mismo lote da el mismo audio.
+        seed = seed_for("\x00".join(f"{k}={entries[k]}" for k in sorted(entries)))
+
+    engine, cfg = make_engine(args.lang, registry, seed)
     # El override entra por `params`, que es de donde cada motor lee su ritmo
     # (Piper usa length_scale; Coqui lo invierte a `speed`). Así una sola
     # bandera vale para todos los motores sin duplicar la conversión.
@@ -364,10 +391,6 @@ def main() -> None:
         print(f"{args.lang} [{cfg['model']}] → {out}")
         return
 
-    with open(args.batch, encoding="utf-8") as fh:
-        entries = json.load(fh)
-    if not isinstance(entries, dict):
-        raise SystemExit("--batch debe ser un objeto JSON {clave: texto}")
     out_dir = Path(args.out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
     for key, text in sorted(entries.items()):
