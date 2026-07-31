@@ -22,13 +22,30 @@
          desde Android 12 no hace falta porque BLUETOOTH_SCAN va marcado
          `neverForLocation`. De ahí el maxSdkVersion=30.
 
-         react-native-ble-plx declara estos dos permisos SIN maxSdkVersion, así
-         que el merge dejaba dos <uses-permission> del mismo permiso con
-         maxSdkVersion distinto y Play Console rechazaba el bundle.
-         `tools:node="replace"` hace que gane la declaración de la app y quede
-         una sola entrada por permiso. -->
+         Hay DOS fuentes de estos permisos aguas abajo, y cada una necesita su
+         propia directiva porque el manifest merger indexa los nodos por
+         (nombre de elemento, android:name):
+
+         1. react-native-ble-plx los declara como <uses-permission> sin
+            maxSdkVersion → `tools:node="replace"` hace que gane la declaración
+            de la app.
+
+         2. rxandroidble 1.17.2 (dependencia transitiva de ble-plx) los declara
+            como <uses-permission-sdk-23>, que para el merger es un elemento
+            DISTINTO: el `replace` de arriba ni lo mira, y el manifiesto
+            fusionado acababa con las dos formas del mismo permiso, una con
+            maxSdkVersion=30 y otra sin él. Play Console lo lee como una
+            declaración duplicada con maxSdkVersion distinto y rechaza el
+            bundle. `tools:node="remove"` es lo único que las quita.
+
+         Quitarlas no cambia el comportamiento: minSdkVersion es 24, y a partir
+         de API 23 <uses-permission> y <uses-permission-sdk-23> son idénticos
+         (permiso peligroso, se pide en tiempo de ejecución). La distinción solo
+         importaba en API < 23, que la app no soporta. -->
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" android:maxSdkVersion="30" tools:node="replace" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" android:maxSdkVersion="30" tools:node="replace" />
+    <uses-permission-sdk-23 android:name="android.permission.ACCESS_FINE_LOCATION" tools:node="remove" />
+    <uses-permission-sdk-23 android:name="android.permission.ACCESS_COARSE_LOCATION" tools:node="remove" />
 
     <application
       android:name=".MainApplication"

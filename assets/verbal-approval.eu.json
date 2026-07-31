@@ -1,0 +1,44 @@
+[
+  {
+    "scope": "bank",
+    "status": "aprobado-produccion",
+    "date": "2026-07-31",
+    "approvedBy": "Ulertuz (logopeda euskaldun)",
+    "communicatedBy": "F. A. Betances (responsable del proyecto)",
+    "bank": "verbalAudiometryLists.eu.ts · bandas A–D · ids desde EU_ID_BASE (2000+)",
+    "covers": [
+      "listas A",
+      "listas B",
+      "listas C",
+      "listas D"
+    ],
+    "excludes": [
+      "ilustraciones propias eu (hoy se heredan de es por coincidencia de clave, o pictograma/inicial)",
+      "cortes de interpretación (§4 de validacion-clinica-verbal.md, comunes al módulo)"
+    ],
+    "notes": "Aprobación del BANCO DE ESTÍMULOS vasco (contenido de las listas) por la logopeda euskaldun de Ulertuz, comunicada por el responsable del proyecto. Es la firma que faltaba: cubre lo que la CI no puede verificar —familiaridad, imaginabilidad y adecuación al euskara batua frente a los dialectos—, porque los invariantes estructurales (unicidad de objetivos, distractores a ±1 sílaba, vecindad fonética en C/D) ya los comprueba la CI. Con esta firma y la del audio, el euskera sale de VERBAL_BANK_PROVISIONAL y la pantalla deja de advertir al profesional. Adjuntar al expediente el acta de la sesión de revisión. Si se modifica cualquier lámina, esta aprobación deja de aplicar a la lámina modificada."
+  },
+  {
+    "scope": "audio",
+    "status": "aprobado-produccion",
+    "appliesTo": "voice",
+    "date": "2026-07-31",
+    "approvedBy": "Ulertuz",
+    "communicatedBy": "F. A. Betances (responsable del proyecto)",
+    "voice": "AhoTTS «Maider» (HiTZ/Aholab, UPV/EHU · ILENIA/NEL-GAITU) · 32/32 locuciones",
+    "recipe": {
+      "engine": "ahotts",
+      "model": "maider",
+      "lengthScale": 1.0,
+      "postprocess": "loudnorm I=-20:TP=-3:LRA=7 · silenceremove start_threshold=-45dB · m4a AAC mono 44.1k",
+      "minClipMs": 350
+    },
+    "covers": [
+      "locuciones eu (audio)"
+    ],
+    "excludes": [
+      "ilustraciones propias eu (hoy heredadas de es por coincidencia de clave, o pictograma/inicial)"
+    ],
+    "notes": "Aprobación para producción de la voz neuronal VASCA (Maider) por Ulertuz, comunicada por el responsable del proyecto. Alcance: el audio. Las LISTAS llevan firma aparte, también de Ulertuz (ver el registro con scope 'bank'). Adjuntar al expediente el acta de la sesión de revisión y la checklist de escucha firmada. `appliesTo: \"voice\"` significa que lo aprobado es la PRODUCCIÓN de esta voz con esta receta (modelo + parámetros + post-proceso): regenerar el banco con la misma receta conserva la aprobación; cambiar de modelo, de parámetros o de post-proceso la invalida y exige nueva firma."
+  }
+]

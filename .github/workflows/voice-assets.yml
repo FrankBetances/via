@@ -36,6 +36,8 @@ on:
       - "scripts/export-voice-corpus.js"
       - "scripts/synthesize-voice-corpus.js"
       - "scripts/build-voice-asset-map.js"
+      - "scripts/verbal-assets.js"
+      - "scripts/voice-clip-tempo.js"
       - "tools/nos/**"
       - ".github/workflows/voice-assets.yml"
 
@@ -260,6 +262,27 @@ jobs:
           FAILED_COUNT=$(echo "$VERBAL_FAILED $CORPUS_FAILED" | tr ' ' '\n' | sort -u | grep -c . || true)
           if [ "$FAILED_COUNT" -ge "$COUNT" ] && [ "$COUNT" -gt 0 ]; then
             echo "::error::Ningún idioma se sintetizó correctamente."
+            exit 1
+          fi
+
+          # REGRESIÓN vs. idioma sin locutar. La tolerancia por idioma existe
+          # para que una voz que aún no tiene banco no tire el lote de las
+          # demás; NO para tapar que un banco YA COMMITEADO haya dejado de
+          # regenerarse. Ese caso es el que dejó el castellano atropellado en
+          # producción dos veces seguidas: el paso avisaba, el job salía en
+          # verde y en el árbol se quedaban los recortes viejos. Si el idioma
+          # que falla ya tenía assets, el job falla.
+          REGRESION=""
+          for L in $(echo "$VERBAL_FAILED" | tr ' ' '\n' | grep -v '^$' || true); do
+            DIR="assets/audio/verbal"; [ "$L" = "es" ] || DIR="$DIR/$L"
+            if ls "$DIR"/*.m4a >/dev/null 2>&1; then REGRESION="$REGRESION verbal:$L"; fi
+          done
+          for L in $(echo "$CORPUS_FAILED" | tr ' ' '\n' | grep -v '^$' || true); do
+            PREFIX=""; [ "$L" = "es" ] || PREFIX="${L}_"
+            if ls "assets/voice/${PREFIX}"*.m4a >/dev/null 2>&1; then REGRESION="$REGRESION corpus:$L"; fi
+          done
+          if [ -n "$REGRESION" ]; then
+            echo "::error::Regresión de assets:${REGRESION}. Ese banco YA estaba locutado y esta corrida no ha conseguido regenerarlo, así que en el árbol siguen los recortes anteriores. Revise el error del paso de síntesis; no lo dé por bueno."
             exit 1
           fi
           echo "Síntesis completada (idiomas pedidos: $PEDIDOS)."

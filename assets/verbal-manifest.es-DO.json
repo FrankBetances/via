@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-07-30T09:32:28.833Z",
+  "generatedAt": "2026-07-31T00:12:17.313Z",
   "lang": "es-DO",
   "baseLang": "es",
   "provisional": true,
@@ -7,11 +7,25 @@
   "audioApproval": {
     "scope": "audio",
     "status": "aprobado-produccion",
-    "date": "2026-07-19",
-    "approvedBy": "Logopeda del proyecto",
+    "appliesTo": "voice",
+    "date": "2026-07-31",
+    "approvedBy": "ACOPROS",
     "communicatedBy": "F. A. Betances (responsable del proyecto)",
-    "voice": "espeak-ng es-419 (español LatAm) · loudnorm I=-20:TP=-3:LRA=7 · 37/37 locuciones",
-    "notes": "Aprobación para producción de las 37 locuciones es-DO comunicada por el responsable del proyecto. Adjuntar al expediente la checklist de escucha firmada (Q4.4). Si se regeneran los audios con la voz neural Piper es_MX (ADR Q4.3), la nueva locución requiere nueva aprobación: este registro aplica a los archivos actuales."
+    "voice": "Piper es_MX-claude-high (Quisqueya Habla · variante dominicana) · 37/37 locuciones",
+    "recipe": {
+      "engine": "piper",
+      "model": "es_MX-claude-high",
+      "lengthScale": 1.1,
+      "postprocess": "loudnorm I=-20:TP=-3:LRA=7 · silenceremove start_threshold=-45dB · m4a AAC mono 44.1k",
+      "minClipMs": 350
+    },
+    "supersedes": {
+      "date": "2026-07-19",
+      "approvedBy": "Logopeda del proyecto",
+      "voice": "espeak-ng es-419",
+      "why": "aquel registro aplicaba a los archivos de espeak-ng y él mismo exigía nueva aprobación al regenerar con la voz neural Piper es_MX (ADR Q4.3). Los recortes actuales son ya los de Piper."
+    },
+    "notes": "Aprobación para producción de la voz neuronal DOMINICANA por ACOPROS, comunicada por el responsable del proyecto. Sustituye al registro del 19/07/2026, que cubría los recortes de espeak-ng. Este banco es además la REFERENCIA DE RITMO del pipeline: su recorte más corto (376 ms) fija el suelo de duración de todas las lenguas. Adjuntar al expediente el acta de la sesión de revisión y la checklist de escucha firmada. `appliesTo: \"voice\"` significa que lo aprobado es la PRODUCCIÓN de esta voz con esta receta (modelo + parámetros + post-proceso): regenerar el banco con la misma receta conserva la aprobación; cambiar de modelo, de parámetros o de post-proceso la invalida y exige nueva firma."
   },
   "note": "Orden de producción de assets de la audiometría verbal. Locuciones e ilustraciones actuales son PROVISIONALES (síntesis espeak-ng/neural y pictogramas); la producción clínica final sustituye cada archivo conservando su clave.",
   "audio": [

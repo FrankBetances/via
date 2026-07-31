@@ -2,12 +2,14 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Pressable } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { Box, Card, Center, HStack, Icon, Input, InputField, ScrollView, VStack } from '@gluestack-ui/themed';
-import { Check, ChevronLeft, Play, RotateCcw, Save, Volume2, X } from 'lucide-react-native';
+import { useDispatch, useSelector } from 'react-redux';
+import { Check, ChevronLeft, Languages, Play, RotateCcw, Save, Volume2, X } from 'lucide-react-native';
 
 import { Button, Content, Header, Text } from '@/Components/Common';
 import RadialBackground from '@/Components/Themed/RadialBackground';
 import { finishModule, RootStackParamList } from '@/Navigators';
-import { RootState } from '@/Store';
+import { AppDispatch, RootState } from '@/Store';
+import { SESSION_LANGS, SESSION_LANG_LABEL, setSessionLanguage } from '@/Store/slices/localeSlice';
 import { Evaluation } from '@/Models/Evaluation/Evaluation';
 import { ExecutiveFunctionsTest } from '@/Models/ExecutiveFunctions/ExecutiveFunctionsTest';
 import { useClassSelector } from '@/Helpers/ClassTransformer';
@@ -68,6 +70,15 @@ export default function ExecutiveFunctionsScreen({ navigation }: Props) {
   const [createExecutiveFunctions, { isLoading: isSaving }] = useCreateExecutiveFunctionsMutation();
   const tracker = useTelemetryTracker(); // telemetría silenciosa (useRef, sin re-render)
 
+  // Idioma/variante de la sesión: el MISMO estado que fijan el hub, la
+  // audiometría verbal y el T.A.R., así que cambiarlo aquí lo cambia en toda
+  // la batería. Las consignas se dictaban siempre con la voz castellana
+  // (`speakConsigna` sin lengua caía a su valor por defecto), de modo que una
+  // sesión dominicana oía los mini-juegos con acento peninsular y no había
+  // dónde elegir.
+  const dispatch = useDispatch<AppDispatch>();
+  const sessionLanguage = useSelector((state: RootState) => state.locale.language);
+
   const [phase, setPhase] = useState<Phase>('setup');
   const [band, setBand] = useState<EfAgeBand>('A');
   const [gameIndex, setGameIndex] = useState(0);
@@ -95,12 +106,15 @@ export default function ExecutiveFunctionsScreen({ navigation }: Props) {
       return;
     }
     const currentMeta = EF_DOMAIN_META[EF_DOMAIN_ORDER[Math.min(gameIndex, EF_DOMAIN_ORDER.length - 1)]];
-    const t = setTimeout(() => speakConsigna(`${currentMeta.game}. ${currentMeta.instruction}`), 500);
+    const t = setTimeout(
+      () => speakConsigna(`${currentMeta.game}. ${currentMeta.instruction}`, sessionLanguage),
+      500,
+    );
     return () => {
       clearTimeout(t);
       stopConsigna();
     };
-  }, [phase, gameIndex]);
+  }, [phase, gameIndex, sessionLanguage]);
 
   // Los planes se generan al entrar en cada juego (semilla de sesión estable).
   const plans = useMemo(
@@ -278,6 +292,43 @@ export default function ExecutiveFunctionsScreen({ navigation }: Props) {
         </VStack>
       </Card>
 
+      <Card bgColor="$white" borderRadius={24} p="$5">
+        <HStack alignItems="center" space="sm" mb="$1">
+          <Icon as={Languages} size="sm" color="$primary500" />
+          <Text size="sm" weight="bold" color="$textLight800" style={{ textTransform: 'uppercase', letterSpacing: 0.4 }}>
+            Voz de las consignas
+          </Text>
+        </HStack>
+        <Text size="xs" color="$textLight600" mb="$3">
+          Con qué voz se dicta la consigna de cada mini-juego. Es el idioma de la sesión: cambiarlo
+          aquí lo cambia en toda la batería.
+        </Text>
+        <HStack space="sm" flexWrap="wrap" style={{ rowGap: 8 }}>
+          {SESSION_LANGS.map(l => {
+            const on = sessionLanguage === l;
+            return (
+              <Pressable key={l} onPress={() => dispatch(setSessionLanguage(l))}>
+                <Center
+                  px="$3.5"
+                  py="$2"
+                  borderRadius="$full"
+                  bg={on ? '$primary500' : '$white'}
+                  borderWidth={1.5}
+                  borderColor={on ? '$primary500' : '$borderLight200'}>
+                  <Text size="2xs" weight="bold" color={on ? '$white' : '$textLight600'}>
+                    {SESSION_LANG_LABEL[l] ?? l}
+                  </Text>
+                </Center>
+              </Pressable>
+            );
+          })}
+        </HStack>
+        <Text size="2xs" color="$textLight400" mt="$3" style={{ lineHeight: 15 }}>
+          Los juegos son los mismos en todas las lenguas: lo que cambia es la voz que los explica.
+          Sin locución propia para la lengua elegida, la consigna se oye en castellano.
+        </Text>
+      </Card>
+
       <Box bg="$warning50" borderRadius={12} p="$2.5">
         <Text size="2xs" color="$warning800" style={{ lineHeight: 15 }}>
           ⚠️ Cribado orientativo mediante juego: los cortes por dominio son provisionales y no
@@ -335,7 +386,7 @@ export default function ExecutiveFunctionsScreen({ navigation }: Props) {
           <Text size="md" color="$textLight700" mt="$3" style={{ textAlign: 'center', lineHeight: 22 }}>
             {meta.instruction}
           </Text>
-          <Pressable onPress={() => speakConsigna(`${meta.game}. ${meta.instruction}`)}>
+          <Pressable onPress={() => speakConsigna(`${meta.game}. ${meta.instruction}`, sessionLanguage)}>
             <HStack space="xs" alignItems="center" bg="$primary50" borderRadius="$full" px="$4" py="$2" mt="$4">
               <Icon as={Volume2} size="sm" color="$primary600" />
               <Text size="sm" weight="bold" color="$primary600">

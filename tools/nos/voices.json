@@ -1,8 +1,8 @@
 {
-  "note": "Registro declarativo del motor de voz neural (ILENIA / Proxecto Nós + Piper). Una voz por idioma/variante de la batería VIA+. Los modelos se ejecutan SOLO en build-time (tools/nos/tts.py + scripts/verbal-assets.js); la app no incorpora IA en runtime y sigue siendo offline-first. Las voces marcadas provisional=true sirven para desarrollo y pilotos técnicos; la voz de producción clínica se decide en los ADR de los planes (T4/Q4.3).",
+  "note": "Registro declarativo del motor de voz neural (ILENIA / Proxecto Nós + Piper). Una voz por idioma/variante de la batería VIA+. Los modelos se ejecutan SOLO en build-time (tools/nos/tts.py + scripts/verbal-assets.js); la app no incorpora IA en runtime y sigue siendo offline-first. ESTADO: las cuatro voces están APROBADAS PARA PRODUCCIÓN — castellano, gallego y dominicano por ACOPROS; euskera por Ulertuz —, así que ya no son provisionales. Lo aprobado es la voz CON SU RECETA (modelo + params + post-proceso): tocar cualquiera de los tres invalida la firma y exige nueva escucha. El registro firmado de cada lengua vive en assets/verbal-approval.<lang>.json, que es lo que lee el manifiesto; este archivo solo lo refleja.",
   "modelsDir": "tools/nos/models",
   "postprocess": {
-    "note": "El post-proceso (loudnorm, recorte de silencios, m4a 44.1k mono) NO es del motor: lo aplica scripts/verbal-assets.js con ffmpeg, idéntico para todas las voces, para garantizar sonoridad homogénea entre idiomas (mismo objetivo LUFS).",
+    "note": "El post-proceso (loudnorm, recorte de silencios, m4a 44.1k mono) NO es del motor: lo aplica scripts/verbal-assets.js con ffmpeg, idéntico para todas las voces, para garantizar sonoridad homogénea entre idiomas (mismo objetivo LUFS). El SUELO DE DURACIÓN (350 ms por locución) también se aplica aquí, después de codificar: ver scripts/voice-clip-tempo.js.",
     "loudnorm": "I=-20:TP=-3:LRA=7"
   },
   "voices": {
@@ -15,13 +15,19 @@
       },
       "source": "https://huggingface.co/rhasspy/piper-voices/tree/main/es/es_ES/davefx/medium",
       "license": "ver ficha del modelo en Hugging Face (auditoría T0.2 pendiente de firma)",
-      "provisional": true,
       "params": {
         "lengthScale": 1.35,
         "noiseScale": 0.333,
         "noiseW": 0.333
       },
-      "notes": "Voz de las locuciones castellanas de la audiometría verbal y del corpus de consignas. RITMO: davefx habla notablemente más rápido que la voz es-DO (es_MX-claude-high) con el MISMO lengthScale. Medido sobre los 37 recortes comunes de la audiometría verbal generados con lengthScale=1.1: media es 0,454 s frente a 0,507 s en es-DO (ratio 1,17) y monosílabos que se desploman —«pan» 0,151 s frente a 0,386 s, «ven» 0,175 s frente a 0,352 s—. En una prueba de RECONOCIMIENTO de palabra eso no es «rápido», es un estímulo que el paciente no llega a resolver: reportado en campo como «el castellano va demasiado deprisa» (el resto de idiomas, correctos). De ahí el 1.35, que es un parámetro de la VOZ, no del banco. `scripts/verbal-assets.js` verifica la duración mínima de cada recorte al generarlo para que una regresión así no vuelva a pasar inadvertida. Sustituye definitivamente a espeak-ng: la síntesis neural es la vía por defecto del pipeline (`VERBAL_TTS=espeak` queda solo como degradación explícita para entornos sin acceso a los pesos). La producción clínica final sigue siendo locutor profesional (validacion-clinica-verbal.md)."
+      "notes": "Voz de las locuciones castellanas de la audiometría verbal y del corpus de consignas. RITMO: davefx habla más rápido que la voz es-DO (es_MX-claude-high) con el MISMO lengthScale, y no lo hace de forma uniforme: mantiene las polisílabas en un ritmo razonable y desploma las cortas. Medido sobre los 37 recortes comunes de la audiometría verbal (lengthScale=1.1): media es 0,454 s frente a 0,507 s en es-DO, pero «pan» 0,151 s frente a 0,386 s (2,6 veces más rápido) y «ven» 0,175 s frente a 0,352 s. En el corpus general pasó lo mismo con los modelos hablados del T.A.R.: «Tapa» 0,140 s, «Apto» 0,163 s. En una prueba de RECONOCIMIENTO o de REPETICIÓN eso no es «rápido», es un estímulo que el paciente no llega a resolver. Por eso el lengthScale de aquí NO es la corrección: subirlo lo bastante para rescatar «pan» dejaría el resto del banco arrastrándose. El 1.35 es el ritmo base; el suelo de duración lo garantiza `scripts/voice-clip-tempo.js`, que mide cada recorte y REALENTIZA SOLO los que quedan por debajo, recorte a recorte y con techo. La referencia del suelo (350 ms) es el banco es-DO de Quisqueya Habla, que es el que suena bien en campo: su recorte más corto son 376 ms. Sustituye definitivamente a espeak-ng: la síntesis neural es la vía por defecto del pipeline (`VERBAL_TTS=espeak` queda solo como degradación explícita para entornos sin acceso a los pesos). La producción clínica final sigue siendo locutor profesional (validacion-clinica-verbal.md).",
+      "clinicalApproval": {
+        "status": "aprobado-produccion",
+        "approvedBy": "ACOPROS",
+        "date": "2026-07-31",
+        "scope": "audio",
+        "record": "assets/verbal-approval.es.json"
+      }
     },
     "es-DO": {
       "engine": "piper",
@@ -32,13 +38,19 @@
       },
       "source": "https://huggingface.co/rhasspy/piper-voices/tree/main/es/es_MX/claude/high",
       "license": "ver ficha del modelo en Hugging Face (auditoría T0.2 pendiente de firma)",
-      "provisional": true,
       "params": {
         "lengthScale": 1.1,
         "noiseScale": 0.333,
         "noiseW": 0.333
       },
-      "notes": "Quisqueya Habla · Q4.1: no existe voz abierta es-DO, se usa una voz Piper neutra LatAm (es_MX) como provisional. La voz definitiva (locutor dominicano o VITS es-DO propio) se decide en el ADR Q4.3 tras el piloto de Santo Domingo."
+      "notes": "Quisqueya Habla · Q4.1: no existe voz abierta es-DO, se usa la voz Piper neutra LatAm es_MX-claude-high. APROBADA PARA PRODUCCIÓN por ACOPROS (31/07/2026), así que deja de ser una elección provisional a la espera del ADR Q4.3; un locutor dominicano propio sería una mejora posterior, no un requisito pendiente. Este banco es además la REFERENCIA DE RITMO del pipeline: su recorte más corto (376 ms) fija el suelo de duración de todas las lenguas.",
+      "clinicalApproval": {
+        "status": "aprobado-produccion",
+        "approvedBy": "ACOPROS",
+        "date": "2026-07-31",
+        "scope": "audio",
+        "record": "assets/verbal-approval.es-DO.json"
+      }
     },
     "eu": {
       "engine": "ahotts",
@@ -53,11 +65,17 @@
       "source": "https://huggingface.co/HiTZ/TTS-eu_maider",
       "toolchain": "https://github.com/hitz-zentroa/aHoTTS",
       "license": "CC BY 4.0 (ILENIA / NEL-GAITU · HiTZ-Aholab, UPV/EHU)",
-      "provisional": true,
       "params": {
         "lengthScale": 1.0
       },
-      "notes": "Euskera · AhoTTS «Maider» (femenina; respaldo Antton), HiTZ/Aholab (UPV/EHU) — la misma voz que usa Valeria+, portada de su registro. IMPORTANTE: el vits.onnx NO se infiere suelto. AhoTTS lo ejecuta a través de su binario `tts` con el frontend lingüístico vasco y el diccionario eu_dicc, que es quien genera los FONEMAS que el VITS espera; tratarlo como un VITS de grafemas (que es lo que sí es Celtia) produce audio inservible. El binario y los diccionarios vienen del repositorio aHoTTS, que el workflow clona exponiendo AHOTTS_DIR; el vits.onnx se descarga de Hugging Face."
+      "notes": "Euskera · AhoTTS «Maider» (femenina; respaldo Antton), HiTZ/Aholab (UPV/EHU) — la misma voz que usa Valeria+, portada de su registro. APROBADA PARA PRODUCCIÓN por Ulertuz (31/07/2026); la firma cubre el AUDIO, no las listas vascas, que siguen pendientes de validación clínica por logopeda euskaldun. IMPORTANTE: el vits.onnx NO se infiere suelto. AhoTTS lo ejecuta a través de su binario `tts` con el frontend lingüístico vasco y el diccionario eu_dicc, que es quien genera los FONEMAS que el VITS espera; tratarlo como un VITS de grafemas (que es lo que sí es Celtia) produce audio inservible. El binario y los diccionarios vienen del repositorio aHoTTS, que el workflow clona exponiendo AHOTTS_DIR; el vits.onnx se descarga de Hugging Face.",
+      "clinicalApproval": {
+        "status": "aprobado-produccion",
+        "approvedBy": "Ulertuz",
+        "date": "2026-07-31",
+        "scope": "audio",
+        "record": "assets/verbal-approval.eu.json"
+      }
     },
     "gl": {
       "engine": "coqui-vits",
@@ -67,15 +85,21 @@
       },
       "source": "https://huggingface.co/proxectonos/Nos_TTS-celtia-vits-graphemes",
       "license": "ver ficha del modelo en Hugging Face (auditoría T0.2 pendiente de firma)",
-      "provisional": true,
       "params": {
         "lengthScale": 1.0
       },
-      "notes": "Proxecto Nós · T4.1: voz Celtia (VITS sobre grafemas, Coqui TTS). Locuciones provisionales gl para pilotos técnicos; la producción clínica final sustituye archivo a archivo (misma clave).",
+      "notes": "Proxecto Nós · T4.1: voz Celtia (VITS sobre grafemas, Coqui TTS). Las locuciones gallegas están APROBADAS PARA PRODUCCIÓN por ACOPROS (31/07/2026), que ya había firmado el banco de estímulos el 28/07; con las dos firmas el gallego deja de ser provisional en audio y en listas.",
       "hfRepos": [
         "proxectonos/Nos_TTS-celtia-vits-graphemes",
         "proxectonos/nos_tts-celtia-vits-graphemes"
-      ]
+      ],
+      "clinicalApproval": {
+        "status": "aprobado-produccion",
+        "approvedBy": "ACOPROS",
+        "date": "2026-07-31",
+        "scope": "audio",
+        "record": "assets/verbal-approval.gl.json"
+      }
     }
   }
 }

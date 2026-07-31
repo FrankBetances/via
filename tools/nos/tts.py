@@ -294,6 +294,15 @@ def main() -> None:
     ap.add_argument("--out-dir", help="directorio de salida del lote (<clave>.wav)")
     ap.add_argument("--list", action="store_true", help="listar voces registradas y su estado")
     ap.add_argument(
+        "--length-scale",
+        type=float,
+        help=(
+            "sobrescribe el lengthScale de la voz para ESTA invocación. Lo usa el "
+            "pipeline para realentizar clip a clip las locuciones que salen por "
+            "debajo del suelo de duración, sin tocar el ritmo del resto del banco."
+        ),
+    )
+    ap.add_argument(
         "--check",
         action="store_true",
         help="verificar que las librerías de síntesis importan (diagnóstico del entorno)",
@@ -319,6 +328,11 @@ def main() -> None:
         ap.error("el modo lote requiere --batch y --out-dir")
 
     engine, cfg = make_engine(args.lang, registry)
+    # El override entra por `params`, que es de donde cada motor lee su ritmo
+    # (Piper usa length_scale; Coqui lo invierte a `speed`). Así una sola
+    # bandera vale para todos los motores sin duplicar la conversión.
+    if args.length_scale:
+        engine.params = {**getattr(engine, "params", {}), "lengthScale": args.length_scale}
 
     if unit:
         out = Path(args.out)

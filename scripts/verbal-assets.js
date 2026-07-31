@@ -41,6 +41,8 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 
+const { enforceClipTempo } = require('./voice-clip-tempo');
+
 const ROOT = path.resolve(__dirname, '..');
 const AUDIO_ROOT = path.join(ROOT, 'assets', 'audio', 'verbal');
 const IMG_ROOT = path.join(ROOT, 'assets', 'img', 'verbal');
@@ -162,11 +164,18 @@ function cmdManifest({ bands, inventory }, lang) {
   //     implicar la del audio).
   // El flag `provisional` global se mantiene mientras CUALQUIER contenido
   // (p. ej. ilustraciones heredadas provisionales) siga sin producción clínica.
+  //
+  // El castellano ESTABA excluido (`lang !== 'es'`) por herencia: era el idioma
+  // base, el único que existía, y su estado provisional se daba por supuesto.
+  // Con las cuatro voces neuronales firmadas —ACOPROS para es, gl y es-DO;
+  // Ulertuz para eu— esa exclusión dejaba al castellano como el único banco sin
+  // forma de registrar su aprobación: el manifiesto lo seguía declarando
+  // provisional aunque estuviera firmado. Ahora todos los idiomas admiten
+  // registro.
   const approvalPath = path.join(ROOT, 'assets', `verbal-approval.${lang}.json`);
-  const approvals =
-    lang !== 'es' && fs.existsSync(approvalPath)
-      ? [JSON.parse(fs.readFileSync(approvalPath, 'utf8'))].flat()
-      : [];
+  const approvals = fs.existsSync(approvalPath)
+    ? [JSON.parse(fs.readFileSync(approvalPath, 'utf8'))].flat()
+    : [];
   const approvalOf = scope => approvals.find(a => (a.scope ?? 'audio') === scope) ?? null;
   const audioApproval = approvalOf('audio');
   const bankApproval = approvalOf('bank');
@@ -284,93 +293,31 @@ function synthEspeak(entries, tmp, lang) {
 
 /** WAVs con el motor de voz neural (tools/nos/tts.py: Piper es/es-DO, Celtia gl,
  *  voz vasca pendiente de ADR — el script falla con un mensaje claro si no la hay). */
-function synthNeural(entries, tmp, lang) {
-  const python = process.env.NOS_PYTHON
+function nosPython() {
+  return process.env.NOS_PYTHON
     || (fs.existsSync(path.join(ROOT, 'tools', 'nos', '.venv', 'bin', 'python'))
       ? path.join(ROOT, 'tools', 'nos', '.venv', 'bin', 'python')
       : 'python3');
+}
+
+function synthNeural(entries, tmp, lang) {
   const batch = path.join(tmp, '_batch.json');
   fs.writeFileSync(batch, JSON.stringify(Object.fromEntries(entries.map(e => [e.key, e.word]))));
   // Un solo proceso para todo el lote: el modelo se carga una vez.
-  execFileSync(python, [NOS_TTS, '--lang', lang, '--batch', batch, '--out-dir', tmp], { stdio: 'inherit' });
+  execFileSync(nosPython(), [NOS_TTS, '--lang', lang, '--batch', batch, '--out-dir', tmp], { stdio: 'inherit' });
 }
 
 /**
- * Duración (segundos) de un .m4a leyendo el átomo `mvhd` del contenedor MP4.
- * Se hace a mano para no exigir ffprobe: en los runners está ffmpeg pero el
- * binario de respaldo (el de Playwright) viene recortado y ni siquiera
- * demultiplexa MP4. Devuelve `null` si el contenedor no es legible.
+ * Re-sintetiza UNA locución con un `lengthScale` propio. Carga el modelo otra
+ * vez, así que solo se usa para los pocos recortes que salen por debajo del
+ * suelo de duración; el lote normal sigue yendo en un único proceso.
  */
-function m4aDurationSeconds(file) {
-  const buf = fs.readFileSync(file);
-  const findAtom = (start, end, type) => {
-    let pos = start;
-    while (pos + 8 <= end) {
-      let size = buf.readUInt32BE(pos);
-      const name = buf.toString('latin1', pos + 4, pos + 8);
-      let header = 8;
-      if (size === 1) { size = Number(buf.readBigUInt64BE(pos + 8)); header = 16; }
-      if (size < header) return null;
-      if (name === type) return { body: pos + header, end: pos + size };
-      pos += size;
-    }
-    return null;
-  };
-  const moov = findAtom(0, buf.length, 'moov');
-  if (!moov) return null;
-  const mvhd = findAtom(moov.body, moov.end, 'mvhd');
-  if (!mvhd) return null;
-  const version = buf[mvhd.body];
-  const p = mvhd.body + 4; // versión (1) + flags (3)
-  const timescale = version === 1 ? buf.readUInt32BE(p + 16) : buf.readUInt32BE(p + 8);
-  const duration = version === 1
-    ? Number(buf.readBigUInt64BE(p + 20))
-    : buf.readUInt32BE(p + 12);
-  return timescale > 0 ? duration / timescale : null;
-}
-
-/**
- * Duración mínima admisible de un recorte, en milisegundos.
- *
- * Un estímulo de audiometría verbal es una palabra AISLADA que el paciente
- * tiene que reconocer: por debajo de este umbral no está «rápido», está
- * atropellado o truncado, y la respuesta deja de medir audición. El caso que
- * motivó la comprobación fue el banco castellano generado con la voz Piper
- * `es_ES-davefx-medium`, que producía «pan» en 0,151 s y «ven» en 0,175 s
- * mientras el mismo banco en es-DO daba 0,386 s y 0,352 s.
- *
- * Se ajusta con `VERBAL_MIN_CLIP_MS` (0 lo desactiva) para no dejar bloqueada
- * una regeneración legítima; bajarlo debería ser una decisión consciente y
- * anotada, no la vía de salida por defecto.
- */
-const MIN_CLIP_MS = Number(process.env.VERBAL_MIN_CLIP_MS ?? 250);
-
-/**
- * Verifica el ritmo del banco recién generado. La velocidad de la voz es un
- * parámetro del MOTOR (`lengthScale` en tools/nos/voices.json), no del banco,
- * así que un modelo demasiado rápido degrada las 37 locuciones a la vez y en
- * silencio: nada falla, simplemente el estímulo deja de ser reconocible.
- */
-function checkClipDurations(audioDir, entries, lang) {
-  const measured = [];
-  for (const { key } of entries) {
-    const seconds = m4aDurationSeconds(path.join(audioDir, `${key}.m4a`));
-    if (seconds != null) measured.push({ key, seconds });
-  }
-  if (measured.length === 0) return;
-  const mean = measured.reduce((a, m) => a + m.seconds, 0) / measured.length;
-  const sorted = [...measured].sort((a, b) => a.seconds - b.seconds);
-  console.log(
-    `${lang}: duración media ${mean.toFixed(3)} s · más corta ${sorted[0].key} ${sorted[0].seconds.toFixed(3)} s`,
-  );
-  if (MIN_CLIP_MS <= 0) return;
-  const short = sorted.filter(m => m.seconds * 1000 < MIN_CLIP_MS);
-  if (short.length === 0) return;
-  const detail = short.map(m => `${m.key} (${(m.seconds * 1000).toFixed(0)} ms)`).join(', ');
-  throw new Error(
-    `${lang}: ${short.length} locución(es) por debajo de ${MIN_CLIP_MS} ms — ${detail}.\n`
-    + 'Un estímulo así queda atropellado y deja de medir reconocimiento de palabra.\n'
-    + `Suba \`lengthScale\` de la voz "${lang}" en tools/nos/voices.json (o cambie el modelo) y regenere.`,
+function synthNeuralOne(entry, tmp, lang, lengthScale) {
+  execFileSync(
+    nosPython(),
+    [NOS_TTS, '--lang', lang, '--text', entry.word, '--out', path.join(tmp, `${entry.key}.wav`),
+      '--length-scale', String(lengthScale)],
+    { stdio: 'inherit' },
   );
 }
 
@@ -398,22 +345,35 @@ function cmdAudio({ bands }, lang) {
   // el módulo base64 (`verbalAudioClips.<lang>.ts`) todavía apuntando a los
   // viejos: dos versiones distintas del mismo banco en el mismo commit.
   const staging = fs.mkdtempSync(path.join(os.tmpdir(), 'verbal-m4a-'));
-  for (const { key } of entries) {
+  // m4a AAC mono 44.1k con sonoridad normalizada (loudnorm): la escala de
+  // nivel del adaptador presupone recortes a un RMS de referencia común y
+  // el objetivo LUFS es el MISMO para todas las voces e idiomas.
+  const encode = key => {
     const wav = path.join(tmp, `${key}.wav`);
     if (!fs.existsSync(wav)) throw new Error(`Síntesis incompleta: falta ${key}.wav`);
-    // m4a AAC mono 44.1k con sonoridad normalizada (loudnorm): la escala de
-    // nivel del adaptador presupone recortes a un RMS de referencia común y
-    // el objetivo LUFS es el MISMO para todas las voces e idiomas.
     execFileSync(ffmpeg, [
       '-y', '-loglevel', 'error', '-i', wav,
       '-af', 'loudnorm=I=-20:TP=-3:LRA=7,silenceremove=start_periods=1:start_threshold=-45dB',
       '-ar', '44100', '-ac', '1', '-c:a', 'aac', '-b:a', '96k',
       path.join(staging, `${key}.m4a`),
     ]);
+  };
+  for (const { key } of entries) {
+    encode(key);
     process.stdout.write('.');
   }
   console.log('');
-  checkClipDurations(staging, entries, lang);
+  // El realentizado por recorte solo es posible con el motor neural, que
+  // acepta `--length-scale`; con espeak esto queda como simple comprobación.
+  enforceClipTempo({
+    items: entries,
+    fileFor: e => path.join(staging, `${e.key}.m4a`),
+    labelFor: e => e.word,
+    lang,
+    resynth: neural
+      ? (e, scale) => { synthNeuralOne(e, tmp, lang, scale); encode(e.key); }
+      : null,
+  });
 
   for (const { key } of entries) {
     fs.copyFileSync(path.join(staging, `${key}.m4a`), path.join(audioDir, `${key}.m4a`));

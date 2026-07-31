@@ -1,8 +1,26 @@
 {
-  "generatedAt": "2026-07-30T09:31:36.491Z",
+  "generatedAt": "2026-07-31T00:11:24.184Z",
   "lang": "gl",
   "baseLang": "es",
   "provisional": true,
+  "audioProvisional": false,
+  "audioApproval": {
+    "scope": "audio",
+    "status": "aprobado-produccion",
+    "appliesTo": "voice",
+    "date": "2026-07-31",
+    "approvedBy": "ACOPROS",
+    "communicatedBy": "F. A. Betances (responsable del proyecto)",
+    "voice": "Celtia (Proxecto Nós · VITS sobre grafemas) · 37/37 locuciones",
+    "recipe": {
+      "engine": "coqui-vits",
+      "model": "proxectonos/Nos_TTS-celtia-vits-graphemes",
+      "lengthScale": 1,
+      "postprocess": "loudnorm I=-20:TP=-3:LRA=7 · silenceremove start_threshold=-45dB · m4a AAC mono 44.1k",
+      "minClipMs": 350
+    },
+    "notes": "Aprobación para producción de la voz neuronal GALLEGA (Celtia, Proxecto Nós) por ACOPROS, comunicada por el responsable del proyecto. Completa la firma del banco gl del 28/07/2026, que cubría solo las listas A–D y excluía expresamente las locuciones por no existir todavía. Adjuntar al expediente el acta de la sesión de revisión y la checklist de escucha firmada. `appliesTo: \"voice\"` significa que lo aprobado es la PRODUCCIÓN de esta voz con esta receta (modelo + parámetros + post-proceso): regenerar el banco con la misma receta conserva la aprobación; cambiar de modelo, de parámetros o de post-proceso la invalida y exige nueva firma."
+  },
   "bankProvisional": false,
   "bankApproval": {
     "scope": "bank",

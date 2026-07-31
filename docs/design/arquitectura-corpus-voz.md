@@ -214,17 +214,45 @@ los monosílabos, que quedaban directamente atropellados. En una prueba de
 RECONOCIMIENTO de palabra eso invalida el estímulo, y así se reportó desde
 campo: «el castellano va demasiado deprisa; el resto está bien».
 
-Dos consecuencias, ambas ya aplicadas:
+### Por qué el `lengthScale` global no bastaba
+
+El primer intento fue subir el `lengthScale` del castellano de 1.1 a 1.35. No
+sirvió, y merece la pena entender por qué, porque el fallo se repitió entero:
+
+- **La desviación no es uniforme.** davefx mantiene las polisílabas en un ritmo
+  razonable y desploma las cortas. El factor que rescataría a «pan» (×2,3)
+  dejaría el resto del banco arrastrándose.
+- **La puerta descartaba el banco entero.** Con 1.35, «pan» seguía en ~185 ms,
+  por debajo del suelo: la generación fallaba, el workflow lo anotaba como
+  «idioma fallido» con un simple aviso y en el árbol se quedaban **los recortes
+  viejos**, que son justamente los atropellados. El arreglo no llegó nunca a los
+  `.m4a` y el defecto sobrevivió a su propio parche sin que nadie viera un fallo
+  en rojo (run del 29/07: `VERBAL_FAILED="es"`, conclusión *success*).
+- **El corpus general no tenía puerta ninguna.** Por ahí se colaron los modelos
+  hablados del T.A.R.: «Tapa» 0,140 s, «Apto» 0,163 s. El módulo parecía no
+  tener voz neuronal cuando lo que tenía era una inservible.
+
+### Lo que se aplica ahora
 
 1. El `lengthScale` de una voz es un parámetro **por voz**, no un valor que se
    copie entre modelos: cada modelo tiene su tempo natural. El castellano está
-   en 1.35.
-2. `scripts/verbal-assets.js` mide la duración de cada recorte recién
-   codificado y **falla la generación** si alguno baja de `VERBAL_MIN_CLIP_MS`
-   (250 ms por defecto), nombrando las locuciones culpables. La verificación
-   corre sobre un directorio temporal y el banco solo se publica entero si pasa:
-   así no queda un commit con los `.m4a` nuevos y el módulo base64 apuntando a
-   los viejos.
+   en 1.35 como ritmo base.
+2. `scripts/voice-clip-tempo.js` es el criterio **único** de los dos bancos
+   (audiometría verbal y corpus general). Mide cada locución recién codificada
+   y, si baja del suelo, la **re-sintetiza solo a ella** con el `lengthScale`
+   justo para alcanzarlo (regla de tres sobre la duración medida, con techo en
+   `VERBAL_MAX_LENGTH_SCALE`). El resto del banco conserva su ritmo. Solo falla
+   si el techo no basta, y entonces el problema no es el ritmo sino la voz.
+3. El suelo son **350 ms**, tomados del banco es-DO de Quisqueya Habla, que es
+   el que suena bien en campo: su recorte más corto son 376 ms.
+4. La síntesis incremental deja de ser ciega: un recorte ya commiteado que esté
+   por debajo del suelo entra en la lista de pendientes. Antes «existe, luego se
+   salta» hacía inmortal a un recorte defectuoso.
+5. `scripts/check-verbal-coverage.js --strict` —la puerta del empaquetado— ya no
+   solo comprueba que las locuciones *estén*: comprueba que **no estén
+   atropelladas**. Un recorte presente pero de 151 ms es peor que uno ausente,
+   porque el ausente al menos degrada a la voz del sistema y este se presenta
+   como estímulo válido.
 
 ## 8. Créditos y licencias
 
