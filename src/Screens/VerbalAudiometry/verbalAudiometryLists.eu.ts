@@ -22,22 +22,25 @@ import { assetKeyForWord, VerbalBandDef, VerbalItem } from './verbalAudiometryLi
 /*   · la «h», muda en el euskera estándar occidental, que crea vecinos         */
 /*     ortográficos útiles sin cambiar la sílaba (hari, harri, handi, aho).     */
 /*                                                                              */
-/*  ESTADO: PROVISIONAL. Las listas cumplen los invariantes estructurales que   */
-/*  verifica la CI (unicidad de objetivos, distractores a ±1 sílaba, vecindad   */
-/*  fonética en C/D), pero la validación CLÍNICA —familiaridad, imaginabilidad  */
-/*  y adecuación al euskara batua frente a los dialectos— la firma un logopeda  */
-/*  euskaldun, igual que ACOPROS firmó el banco gallego. Hasta entonces la      */
-/*  pantalla lo etiqueta como provisional y no debe usarse para decidir         */
-/*  clínicamente sobre un paciente.                                             */
+/*  ESTADO: APROBADO PARA PRODUCCIÓN. Las listas cumplen los invariantes        */
+/*  estructurales que verifica la CI (unicidad de objetivos, distractores a ±1  */
+/*  sílaba, vecindad fonética en C/D), y la validación CLÍNICA —familiaridad,   */
+/*  imaginabilidad y adecuación al euskara batua frente a los dialectos, que es */
+/*  justo lo que la CI no puede comprobar— la firmó la logopeda euskaldun de    */
+/*  Ulertuz el 31/07/2026, mismo camino que siguió el banco gallego con         */
+/*  ACOPROS. Registro en `assets/verbal-approval.eu.json` (scope 'bank'); el    */
+/*  audio lleva firma aparte, también de Ulertuz (scope 'audio'). Si se         */
+/*  modifica una lámina, la firma deja de aplicar a esa lámina.                 */
 /*                                                                              */
 /*  IDs: espacio propio a partir de `EU_ID_BASE` para no colisionar nunca con   */
 /*  los ids del banco castellano (0..~40) ni con los del gallego (1000..1037).  */
 /*                                                                              */
 /*  ASSETS: las ilustraciones se heredan de `es` cuando la clave coincide y, si */
-/*  no, la tarjeta degrada a pictograma y luego a inicial. El AUDIO nunca se    */
-/*  hereda: cada lengua se locuta con su propia voz; mientras no existan los    */
-/*  recortes vascos, el adaptador degrada a la voz del sistema (`eu-ES` si el   */
-/*  dispositivo la tiene) y la pantalla lo advierte.                            */
+/*  no, la tarjeta degrada a pictograma y luego a inicial — las ilustraciones   */
+/*  siguen siendo PROVISIONALES y el registro de aprobación las excluye         */
+/*  expresamente. El AUDIO nunca se hereda: cada lengua se locuta con su propia */
+/*  voz, y el euskera ya tiene sus 32 recortes con la voz Maider (AhoTTS ·      */
+/*  HiTZ/Aholab), aprobados por Ulertuz.                                        */
 /* -------------------------------------------------------------------------- */
 
 /**
