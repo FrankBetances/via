@@ -1,6 +1,14 @@
 import { buildArticulationItems } from '../Screens/Articulation/articulationResult';
-import { EF_DOMAIN_META, EF_DOMAIN_ORDER } from '../Screens/ExecutiveFunctions/executiveFunctionsGame';
+import {
+  EF_DOMAIN_META,
+  EF_DOMAIN_ORDER,
+  EF_RULES,
+  efRuleChangeText,
+  efRuleIntroText,
+  type EfRule,
+} from '../Screens/ExecutiveFunctions/executiveFunctionsGame';
 
+import { bankLangs } from './viaVoiceLocale';
 import type { VoiceLang, VoiceStyle } from './voiceCorpusId';
 
 /* -------------------------------------------------------------------------- */
@@ -81,6 +89,32 @@ export const CONSIGNAS: ConsignaSpec[] = EF_DOMAIN_ORDER.map(domain => {
 });
 
 /**
+ * Anuncios de norma del juego de flexibilidad (DCCS). Se locutan DENTRO del
+ * juego, no en la antesala, y hasta ahora eran las únicas frases habladas que
+ * no pasaban por ningún banco: el componente las componía al vuelo y llamaba a
+ * `speakConsigna` sin lengua, de modo que siempre salían con la voz castellana
+ * por defecto —en una sesión dominicana el juego cambiaba de acento a mitad de
+ * prueba— y nunca llegaban al pipeline de síntesis neuronal.
+ *
+ * Igual que las consignas de antesala: `es-DO` se enumera con el mismo texto
+ * (misma lengua, otra voz) y las lenguas completas sin delta firmado no se
+ * enumeran (P6).
+ */
+export const EF_RULE_CONSIGNAS: ConsignaSpec[] = EF_RULES.flatMap(rule =>
+  (
+    [
+      [`ef.rule.change.${rule}`, efRuleChangeText(rule)],
+      [`ef.rule.intro.${rule}`, efRuleIntroText(rule)],
+    ] as const
+  ).map(([key, es]) => ({
+    key,
+    source: 'executiveFunctions',
+    style: 'tutor' as VoiceStyle,
+    text: { es, 'es-DO': es } as ConsignaText,
+  })),
+);
+
+/**
  * Modelos hablados del T.A.R. (Test de Articulación a la Repetición).
  *
  * El módulo presenta una palabra o frase para que el niño/a la repita, y esa
@@ -116,4 +150,55 @@ export const TAR_MODELS: ConsignaSpec[] = [
  * recorre en orden; añadir un banco nuevo aquí lo incorpora al corpus, al
  * pipeline de síntesis y a los tests de invariantes sin tocar nada más.
  */
-export const VOICE_CONTENT_BANKS: ConsignaSpec[] = [...CONSIGNAS, ...TAR_MODELS];
+export const VOICE_CONTENT_BANKS: ConsignaSpec[] = [
+  ...CONSIGNAS,
+  ...EF_RULE_CONSIGNAS,
+  ...TAR_MODELS,
+];
+
+/* -------------------------------------------------------------------------- */
+/*  Consulta de los bancos desde las pantallas.                                 */
+/*                                                                             */
+/*  Hasta ahora cada módulo componía la cadena a locutar por su cuenta y se la  */
+/*  pasaba a `speak()` junto con la lengua de SESIÓN, aunque el banco no        */
+/*  tuviera esa lengua. De ahí la falta de correspondencia. Los accesores de    */
+/*  abajo devuelven el texto POR LENGUA para que la pantalla llame a            */
+/*  `speakLocalized`, que resuelve texto y voz a la vez.                        */
+/* -------------------------------------------------------------------------- */
+
+/** Consigna hablada de un mini-juego de FE, por lengua (DERIVA CERO). */
+export const efConsignaByLang = (domain: (typeof EF_DOMAIN_ORDER)[number]): ConsignaText => {
+  const spec = CONSIGNAS.find(c => c.key === `ef.${domain}`);
+  if (spec) return spec.text;
+  // Dominio no registrado (no debería ocurrir): se compone el castellano.
+  const meta = EF_DOMAIN_META[domain];
+  return { es: efConsignaText(meta.game, meta.instruction) };
+};
+
+/** Anuncio de norma del juego de flexibilidad, por lengua (DERIVA CERO). */
+export const efRuleConsignaByLang = (rule: EfRule, changed: boolean): ConsignaText => {
+  const key = `ef.rule.${changed ? 'change' : 'intro'}.${rule}`;
+  const spec = EF_RULE_CONSIGNAS.find(c => c.key === key);
+  if (spec) return spec.text;
+  const es = changed ? efRuleChangeText(rule) : efRuleIntroText(rule);
+  return { es, 'es-DO': es };
+};
+
+/** Modelo hablado del T.A.R. para una palabra, por lengua (DERIVA CERO). */
+export const tarModelByLang = (word: string): ConsignaText => ({ es: word, 'es-DO': word });
+
+/**
+ * Lenguas que cada banco puede ofrecer en su selector SIN mentir: aquellas en
+ * las que tiene texto para todas sus entradas (o lo hereda, si es variante).
+ *
+ * Hoy son `es` y `es-DO` en los dos: el inventario T.A.R. es de fonología
+ * castellana y las consignas de FE aún no tienen delta gallego ni vasco
+ * firmado (`EF_CONSIGNA_L10N` está vacío). Ofrecer gallego o euskera en esas
+ * pantallas era la promesa incumplida: se elegía la lengua y el estímulo
+ * seguía saliendo en castellano. Cuando el delta se firme, estas listas
+ * crecerán solas.
+ */
+export const EF_CONSIGNA_LANGS: VoiceLang[] = bankLangs(
+  [...CONSIGNAS, ...EF_RULE_CONSIGNAS].map(c => c.text),
+);
+export const TAR_MODEL_LANGS: VoiceLang[] = bankLangs(TAR_MODELS.map(c => c.text));

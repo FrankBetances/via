@@ -33,7 +33,9 @@ import { Button, Content, Header, Text } from '@/Components/Common';
 import RadialBackground from '@/Components/Themed/RadialBackground';
 import { finishModule, RootStackParamList } from '@/Navigators';
 import { AppDispatch, RootState } from '@/Store';
-import { SESSION_LANGS, SESSION_LANG_LABEL, setSessionLanguage } from '@/Store/slices/localeSlice';
+import { SESSION_LANG_LABEL, setSessionLanguage } from '@/Store/slices/localeSlice';
+import type { SessionLang } from '@/Store/slices/sessionLangs';
+import { TAR_MODEL_LANGS } from '@/Voice';
 import { Evaluation } from '@/Models/Evaluation/Evaluation';
 import { ArticulationTest } from '@/Models/ArticulationTest/ArticulationTest';
 import { useClassSelector } from '@/Helpers/ClassTransformer';
@@ -364,7 +366,7 @@ export default function ArticulationTestScreen({ navigation }: Props) {
                   batería.
                 </Text>
                 <HStack space="sm" flexWrap="wrap" style={{ rowGap: 8 }}>
-                  {SESSION_LANGS.map(l => {
+                  {TAR_MODEL_LANGS.map(l => {
                     const on = sessionLanguage === l;
                     return (
                       <Pressable key={l} onPress={() => dispatch(setSessionLanguage(l))}>
@@ -384,9 +386,27 @@ export default function ArticulationTestScreen({ navigation }: Props) {
                   })}
                 </HStack>
                 <Text size="2xs" color="$textLight400" mt="$3" style={{ lineHeight: 15 }}>
-                  El inventario fonético es del español: gallego y euskera cambian la voz, no las
-                  palabras.
+                  El inventario fonético es del español (T.A.R.), así que la variante dominicana
+                  cambia el acento de la voz pero no las palabras.
                 </Text>
+
+                {/* El selector solo ofrece las lenguas del banco T.A.R.
+                    (`TAR_MODEL_LANGS`). Si la sesión llega del hub en gallego o
+                    euskera, se dice aquí: el modelo se locuta en castellano y con
+                    VOZ castellana. Ponerle voz gallega a una palabra castellana
+                    —lo que hacía antes— no es «cambiar la voz, no las palabras»:
+                    es leer una lengua con el acento de otra. */}
+                {!TAR_MODEL_LANGS.includes(sessionLanguage as never) ? (
+                  <HStack space="xs" alignItems="flex-start" mt="$3" p="$2.5" borderRadius={12} bg="$warning50">
+                    <Text size="2xs" color="$warning800" style={{ flex: 1, lineHeight: 15 }}>
+                      La sesión está en {SESSION_LANG_LABEL[sessionLanguage as SessionLang] ?? sessionLanguage},
+                      pero el T.A.R. no tiene inventario articulatorio propio en esa lengua: los modelos se
+                      presentan en castellano y con voz castellana. Para explorar la articulación en gallego o
+                      euskera hace falta un inventario propio, no una voz distinta sobre las palabras
+                      españolas.
+                    </Text>
+                  </HStack>
+                ) : null}
               </Card>
 
               {!audio.modelVoiceAvailable ? (

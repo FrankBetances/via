@@ -168,18 +168,54 @@ corren en el dispositivo; `main` está protegida y los assets entran por PR.
 
 ## 6. Runtime y cadena de degradación (P2)
 
-`viaVoice.speak(style, text, lang)` resuelve, en orden:
+### 6.0 La regla que gobierna todo lo demás: la voz es la del TEXTO
 
-1. **asset neuronal de la lengua** (`VOICE_ASSETS[voiceCorpusId(style,text,lang)]`);
-2. **asset neuronal base `es`** (banco compartido) — audio antes que sistema;
+**La lengua de una locución es la lengua del TEXTO que se dice, no la de la
+sesión.** La lengua de sesión solo decide QUÉ texto se elige.
+
+Durante un tiempo esta capa hizo lo contrario: cada pantalla componía su texto
+—casi siempre el castellano, porque es el único que tienen el T.A.R. y las
+consignas de FE— y se lo pasaba a `speak()` junto con la lengua de SESIÓN. Con
+una sesión gallega eso pedía voz gallega para un texto castellano. El resultado
+en campo fue exactamente ese: **acento gallego leyendo castellano**, y tarjetas
+que no se correspondían con lo que sonaba. La audiometría verbal se libraba
+porque resolvía sus recortes por su cuenta (`verbalAssetsByLang.ts`) y ya
+aplicaba la regla correcta.
+
+La resolución vive en `viaVoiceLocale.ts` (módulo puro) y distingue:
+
+| lengua de sesión | sin texto propio en el banco | resultado |
+|---|---|---|
+| `es-DO` (VARIANTE de `es`) | hereda el texto castellano | **voz dominicana** — misma lengua, otro acento |
+| `gl`, `eu` (idiomas COMPLETOS) | no hereda | **texto y voz castellanos**, y la pantalla lo advierte |
+
+`VOICE_LANG_BASE` declara esa relación (`es-DO → es`; `gl`, `eu` → `null`), y es
+la misma que `VERBAL_BANK_BASE` usa en la audiometría verbal.
+
+### 6.1 Cadena
+
+`viaVoice.speakLocalized(style, textoPorLengua, lenguaDeSesión)` es la vía
+recomendada: resuelve texto y voz a la vez con `resolveSpokenText` y delega en
+`speak(style, text, langDelTexto)`, que resuelve en orden:
+
+1. **asset neuronal de esa lengua** (`VOICE_ASSETS[voiceCorpusId(style,text,lang)]`);
+2. **asset de su base, SOLO si es una variante** (`es-DO → es`): mismo idioma,
+   otro acento. Un idioma completo **no** cruza al banco castellano;
 3. **voz del sistema** (`react-native-tts`) vía el adaptador de la audiometría
-   verbal ya registrado (no se duplica el motor ni la selección de voz española);
+   verbal ya registrado (no se duplica el motor ni la selección de voz);
 4. **sin voz utilizable → silencio** (el clínico lee la consigna).
 
 Mientras `VOICE_ASSETS` esté vacío (aún sin síntesis), `speak` cae siempre al
-paso 3/4 → **comportamiento idéntico al actual, sin regresión**. `efSpeech`
-(consignas de Funciones Ejecutivas) ya enruta por esta capa y acepta la lengua
-de sesión.
+paso 3/4 → **comportamiento idéntico al actual, sin regresión**.
+
+### 6.2 Un selector no puede ofrecer lo que el banco no tiene
+
+`bankLangs(entradas)` deriva del CONTENIDO las lenguas que un banco cubre
+enteras, y cada pantalla ofrece solo ésas: hoy `EF_CONSIGNA_LANGS` y
+`TAR_MODEL_LANGS` son `['es', 'es-DO']`. Ofrecer gallego o euskera en pruebas
+sin inventario propio era la promesa incumplida que originaba el desajuste; el
+selector global del hub, que ofrecía las cuatro lenguas para toda la batería, se
+ha retirado por lo mismo. Cuando se firme un delta, la lista crece sola.
 
 ## 7. Invariantes críticas
 
@@ -191,6 +227,14 @@ de sesión.
 + `src/Voice/viaVoiceAssets.ts` es **GENERADO**: no editar a mano.
 + Toda locución sin asset cae limpiamente a la voz del sistema; nunca silencio
   inesperado.
++ **La voz es la del texto (§6.0):** ninguna locución sale con la voz de una
+  lengua distinta de aquella en la que está escrito lo que se dice. Un idioma
+  completo sin recorte propio no se sirve con el recorte castellano. Fijado por
+  `src/Voice/__tests__/viaVoiceLocale.test.ts`.
++ **Ninguna frase hablada se compone fuera de un banco:** si una pantalla arma
+  un texto al vuelo, se queda sin lengua de sesión y sin síntesis neuronal (le
+  pasaba a los anuncios de norma del juego de flexibilidad, ya incorporados como
+  `EF_RULE_CONSIGNAS`).
 + **Traducir no es adaptar (P6):** las consignas `gl`/`es-DO` se localizan con
   revisión humana firmada (Nós M2 / Quisqueya Habla Q2); nada de traducción
   automática entra al corpus sin revisar. El material clínico (pares mínimos de
@@ -222,16 +266,16 @@ campo: «el castellano va demasiado deprisa; el resto está bien».
 El primer intento fue subir el `lengthScale` del castellano de 1.1 a 1.35. No
 sirvió, y merece la pena entender por qué, porque el fallo se repitió entero:
 
-- **La desviación no es uniforme.** davefx mantiene las polisílabas en un ritmo
++ **La desviación no es uniforme.** davefx mantiene las polisílabas en un ritmo
   razonable y desploma las cortas. El factor que rescataría a «pan» (×2,3)
   dejaría el resto del banco arrastrándose.
-- **La puerta descartaba el banco entero.** Con 1.35, «pan» seguía en ~185 ms,
++ **La puerta descartaba el banco entero.** Con 1.35, «pan» seguía en ~185 ms,
   por debajo del suelo: la generación fallaba, el workflow lo anotaba como
   «idioma fallido» con un simple aviso y en el árbol se quedaban **los recortes
   viejos**, que son justamente los atropellados. El arreglo no llegó nunca a los
   `.m4a` y el defecto sobrevivió a su propio parche sin que nadie viera un fallo
   en rojo (run del 29/07: `VERBAL_FAILED="es"`, conclusión *success*).
-- **El corpus general no tenía puerta ninguna.** Por ahí se colaron los modelos
++ **El corpus general no tenía puerta ninguna.** Por ahí se colaron los modelos
   hablados del T.A.R.: «Tapa» 0,140 s, «Apto» 0,163 s. El módulo parecía no
   tener voz neuronal cuando lo que tenía era una inservible.
 

@@ -14,20 +14,35 @@ export {
   VOICE_LANGS,
   VOICE_STYLES,
   VOICE_BASE_LANG,
+  VOICE_LANG_BASE,
 } from './voiceCorpusId';
 export type { VoiceStyle, VoiceLang } from './voiceCorpusId';
 
 export { buildVoiceCorpus, voiceCorpusStats } from './viaVoiceCorpus';
 export type { VoiceCorpusEntry, VoiceCorpusStats } from './viaVoiceCorpus';
 
-export { CONSIGNAS, TAR_MODELS, VOICE_CONTENT_BANKS, efConsignaText } from './viaVoiceConsignas';
+export {
+  CONSIGNAS,
+  EF_RULE_CONSIGNAS,
+  TAR_MODELS,
+  VOICE_CONTENT_BANKS,
+  efConsignaText,
+  efConsignaByLang,
+  efRuleConsignaByLang,
+  tarModelByLang,
+  EF_CONSIGNA_LANGS,
+  TAR_MODEL_LANGS,
+} from './viaVoiceConsignas';
 export type { ConsignaSpec, ConsignaText } from './viaVoiceConsignas';
 
 export { resolveVoiceAsset, toVoiceLang } from './viaVoiceResolve';
+export { resolveSpokenText, isSpokenTextDegraded, bankLangs } from './viaVoiceLocale';
+export type { SpokenText, TextByLang } from './viaVoiceLocale';
 export { VOICE_ASSETS, VOICE_ASSETS_VERSION } from './viaVoiceAssets';
 
 export {
   speak,
+  speakLocalized,
   stopSpeaking,
   canSpeak,
   voiceStatus,

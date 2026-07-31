@@ -69,18 +69,49 @@ describe('resolveVoiceAsset', () => {
     expect(resolveVoiceAsset('tutor', absent, 'gl')).toBeNull();
   });
 
-  it('resuelve el asset de la lengua y, si falta, cae al asset base `es`', () => {
+  it('resuelve el asset propio de la lengua cuando existe', () => {
     const glId = voiceCorpusId('tutor', 'Hola', 'gl');
     const esId = voiceCorpusId('tutor', 'Hola', 'es');
     try {
-      VOICE_ASSETS[esId] = 111; // solo hay asset base
-      expect(resolveVoiceAsset('tutor', 'Hola', 'gl')).toBe(111);
-      VOICE_ASSETS[glId] = 222; // ahora hay asset propio de la lengua
+      VOICE_ASSETS[esId] = 111;
+      VOICE_ASSETS[glId] = 222;
       expect(resolveVoiceAsset('tutor', 'Hola', 'gl')).toBe(222);
       expect(resolveVoiceAsset('tutor', 'Hola', 'es')).toBe(111);
     } finally {
       delete VOICE_ASSETS[glId];
       delete VOICE_ASSETS[esId];
+    }
+  });
+
+  it('un IDIOMA COMPLETO sin asset propio NO cae al recorte castellano', () => {
+    // Éste es el cableado que estaba mal. Con la cadena anterior, una sesión
+    // gallega sin recorte gallego reproducía el recorte CASTELLANO y lo
+    // presentaba como gallego: locución y tarjeta en lenguas distintas. Un
+    // idioma completo o suena en su lengua o no suena en ella; devolver `null`
+    // hace que el runtime dicte con la voz del sistema de ESA lengua.
+    const esId = voiceCorpusId('tutor', 'Hola', 'es');
+    try {
+      VOICE_ASSETS[esId] = 111; // solo hay asset castellano
+      expect(resolveVoiceAsset('tutor', 'Hola', 'gl')).toBeNull();
+      expect(resolveVoiceAsset('tutor', 'Hola', 'eu')).toBeNull();
+    } finally {
+      delete VOICE_ASSETS[esId];
+    }
+  });
+
+  it('una VARIANTE sí hereda el recorte de su base (mismo idioma, otro acento)', () => {
+    // es-DO es español: reproducir el recorte peninsular de una palabra que
+    // todavía no tiene locución dominicana degrada el ACENTO, no el idioma.
+    const esId = voiceCorpusId('tutor', 'Hola', 'es');
+    const doId = voiceCorpusId('tutor', 'Hola', 'es-DO');
+    try {
+      VOICE_ASSETS[esId] = 111;
+      expect(resolveVoiceAsset('tutor', 'Hola', 'es-DO')).toBe(111);
+      VOICE_ASSETS[doId] = 333; // con locución propia, manda la suya
+      expect(resolveVoiceAsset('tutor', 'Hola', 'es-DO')).toBe(333);
+    } finally {
+      delete VOICE_ASSETS[esId];
+      delete VOICE_ASSETS[doId];
     }
   });
 });

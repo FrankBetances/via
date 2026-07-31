@@ -1,6 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
-import { canSpeak, onVoiceStatusChange, speak, stopSpeaking } from '@/Voice';
+import {
+  canSpeak,
+  onVoiceStatusChange,
+  speakLocalized,
+  stopSpeaking,
+  tarModelByLang,
+} from '@/Voice';
 
 /* -------------------------------------------------------------------------- */
 /*  Adaptador de audio del T.A.R.                                              */
@@ -286,11 +292,19 @@ export function useArticulationAudio(lang: string = 'es'): ArticulationAudio {
    * El estilo es `tutor`, el mismo con el que el pipeline sintetiza el resto
    * de locuciones habladas de la app: la palabra tiene asset propio en cuanto
    * el corpus se sintetiza (ver `TAR_MODELS` en `viaVoiceConsignas.ts`).
+   *
+   * LENGUA: se resuelve con `speakLocalized` a partir del banco T.A.R., que es
+   * de fonología CASTELLANA (`es` y su variante `es-DO`). Antes se le pasaba a
+   * `speak()` la lengua de sesión a secas, así que una sesión gallega pedía voz
+   * gallega para una palabra castellana: si el recorte faltaba, el modelo salía
+   * con acento gallego leyendo castellano. Ahora una sesión gl/eu locuta el
+   * modelo castellano CON VOZ CASTELLANA y la pantalla lo advierte; la sesión
+   * dominicana sigue oyéndolo con su voz, que es la misma lengua.
    */
   const speakModel = useCallback((word: string) => {
     try {
       setSpeaking(true);
-      speak('tutor', word, langRef.current);
+      speakLocalized('tutor', tarModelByLang(word), langRef.current);
       // Salvaguarda: ni el reproductor de recortes ni el TTS garantizan un
       // evento de fin, y el indicador no puede quedarse encendido.
       if (speakTimerRef.current) clearTimeout(speakTimerRef.current);

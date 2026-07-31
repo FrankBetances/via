@@ -1,15 +1,15 @@
 {
   "schema": "via-plus/voice-corpus@1",
-  "entries": 182,
+  "entries": 190,
   "byLang": {
-    "es": 91,
-    "es-DO": 91
+    "es": 95,
+    "es-DO": 95
   },
   "byStyle": {
-    "tutor": 182
+    "tutor": 190
   },
   "bySource": {
-    "executiveFunctions": 10,
+    "executiveFunctions": 18,
     "articulation": 172
   },
   "corpus": [
@@ -61,6 +61,13 @@
       "style": "tutor",
       "text": "Helicóptero",
       "source": "articulation"
+    },
+    {
+      "id": "es-DO_tutor_0b70c6c9_19",
+      "lang": "es-DO",
+      "style": "tutor",
+      "text": "Se juega por forma.",
+      "source": "executiveFunctions"
     },
     {
       "id": "es-DO_tutor_0e6614b7_3",
@@ -210,6 +217,13 @@
       "source": "articulation"
     },
     {
+      "id": "es-DO_tutor_4ea29598_58",
+      "lang": "es-DO",
+      "style": "tutor",
+      "text": "¡Atención! La norma ha cambiado: ahora se juega por forma.",
+      "source": "executiveFunctions"
+    },
+    {
       "id": "es-DO_tutor_532b2a94_9",
       "lang": "es-DO",
       "style": "tutor",
@@ -229,6 +243,13 @@
       "style": "tutor",
       "text": "Bote",
       "source": "articulation"
+    },
+    {
+      "id": "es-DO_tutor_597a4f43_19",
+      "lang": "es-DO",
+      "style": "tutor",
+      "text": "Se juega por color.",
+      "source": "executiveFunctions"
     },
     {
       "id": "es-DO_tutor_5b033c7a_6",
@@ -383,6 +404,13 @@
       "style": "tutor",
       "text": "Bicicleta",
       "source": "articulation"
+    },
+    {
+      "id": "es-DO_tutor_8bd794d6_58",
+      "lang": "es-DO",
+      "style": "tutor",
+      "text": "¡Atención! La norma ha cambiado: ahora se juega por color.",
+      "source": "executiveFunctions"
     },
     {
       "id": "es-DO_tutor_8c353864_5",
@@ -700,6 +728,13 @@
       "source": "articulation"
     },
     {
+      "id": "tutor_0b70c6c9_19",
+      "lang": "es",
+      "style": "tutor",
+      "text": "Se juega por forma.",
+      "source": "executiveFunctions"
+    },
+    {
       "id": "tutor_0e6614b7_3",
       "lang": "es",
       "style": "tutor",
@@ -847,6 +882,13 @@
       "source": "articulation"
     },
     {
+      "id": "tutor_4ea29598_58",
+      "lang": "es",
+      "style": "tutor",
+      "text": "¡Atención! La norma ha cambiado: ahora se juega por forma.",
+      "source": "executiveFunctions"
+    },
+    {
       "id": "tutor_532b2a94_9",
       "lang": "es",
       "style": "tutor",
@@ -866,6 +908,13 @@
       "style": "tutor",
       "text": "Bote",
       "source": "articulation"
+    },
+    {
+      "id": "tutor_597a4f43_19",
+      "lang": "es",
+      "style": "tutor",
+      "text": "Se juega por color.",
+      "source": "executiveFunctions"
     },
     {
       "id": "tutor_5b033c7a_6",
@@ -1020,6 +1069,13 @@
       "style": "tutor",
       "text": "Bicicleta",
       "source": "articulation"
+    },
+    {
+      "id": "tutor_8bd794d6_58",
+      "lang": "es",
+      "style": "tutor",
+      "text": "¡Atención! La norma ha cambiado: ahora se juega por color.",
+      "source": "executiveFunctions"
     },
     {
       "id": "tutor_8c353864_5",

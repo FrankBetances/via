@@ -29,7 +29,12 @@ export type RootStackParamList = {
   ExecutiveFunctions: undefined;
 
   // New screen routes appended by later phases (mockup-based hub screens, etc.)
-  SeleccionEjercicios: undefined;
+  /**
+   * `noiseCheckSkipped` lo pone el botón de saltar del sonómetro: el hub sigue
+   * mostrando que la sala NO está verificada en vez de anunciar un certificado
+   * que nadie emitió.
+   */
+  SeleccionEjercicios: { noiseCheckSkipped?: boolean } | undefined;
   ResultadosPreliminares: undefined;
   ResultadosFinal: undefined;
   /** Historial de pruebas de un paciente (sesiones anteriores). */

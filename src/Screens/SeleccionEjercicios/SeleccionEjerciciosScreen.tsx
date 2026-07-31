@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Pressable, ScrollView } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { useDispatch, useSelector } from 'react-redux';
+import { useDispatch } from 'react-redux';
 import { Box, Center, HStack, Icon, VStack } from '@gluestack-ui/themed';
 import {
   AlertTriangle,
@@ -14,7 +14,6 @@ import {
   Ear,
   FileClock,
   Headphones,
-  Languages,
   LogOut,
   Mic,
   MoonStar,
@@ -30,13 +29,11 @@ import RadialBackground from '@/Components/Themed/RadialBackground';
 import { RootStackParamList } from '@/Navigators';
 import { AppDispatch, RootState } from '@/Store';
 import { logout } from '@/Store/slices/authSlice';
-import { SESSION_LANGS, SESSION_LANG_LABEL, setSessionLanguage } from '@/Store/slices/localeSlice';
 import { signOutQuietly } from '@/Services/firebase';
 import { Evaluation } from '@/Models/Evaluation/Evaluation';
 import { useClassSelector } from '@/Helpers/ClassTransformer';
 import { useTelemetryTracker } from '@/Telemetry';
 import { useVoiceEngineStatus } from '@/Voice';
-import { VERBAL_BANK_PROVISIONAL } from '@/Screens/VerbalAudiometry/verbalAudiometryBanks';
 import ModuleCardItem, { ModuleCardData } from './ModuleCardItem';
 
 /* -------------------------------------------------------------------------- */
@@ -62,18 +59,18 @@ const MODULES: ModuleCard[] = [
   { id: 'SahsScreening', title: 'Cribado SAHS Infantil', description: 'PSQ de Chervin + exploración física.', duration: '5–8 min', ages: '2–12 a', icon: MoonStar, tag: 'SUEÑO', color: '#4F46E5', soft: '#E0E7FF' },
 ];
 
-export default function SeleccionEjerciciosScreen({ navigation }: Props) {
+export default function SeleccionEjerciciosScreen({ navigation, route }: Props) {
   const dispatch = useDispatch<AppDispatch>();
   const activeEvaluation = useClassSelector(Evaluation, (state: RootState) => state.activeEvaluation.evaluation);
   const patient = activeEvaluation?.patient;
   const patientName = patient ? `${patient.name} ${patient.lastName}`.trim() : null;
 
-  // Idioma/variante de la sesión (persistido): decide el banco de estímulos y
-  // la voz de los módulos localizados (hoy la audiometría verbal).
-  const sessionLanguage = useSelector((state: RootState) => state.locale.language);
+  // ¿Se llegó aquí saltando el sonómetro? Entonces la sala NO está verificada y
+  // el banner no puede anunciar un certificado que nadie emitió.
+  const noiseCheckSkipped = route.params?.noiseCheckSkipped === true;
 
-  // Estado del motor de voz del sistema: si no va a sonar nada, hay que
-  // decirlo aquí (donde se elige el idioma) y ofrecer reintentar.
+  // Estado del motor de voz del sistema: si no va a sonar nada, conviene
+  // decirlo antes de empezar la batería y ofrecer reintentar.
   const voiceEngine = useVoiceEngineStatus();
 
   // Tracker de telemetría SILENCIOSO (useRef, cero useState → cero re-render).
@@ -143,20 +140,37 @@ export default function SeleccionEjerciciosScreen({ navigation }: Props) {
               ) : null}
             </HStack>
 
-            {/* ----- CAP banner ----- */}
-            <HStack alignItems="center" space="sm" bg="$success50" p="$3.5" borderRadius={16} borderWidth={1} borderColor="$success200">
-              <Center w={32} h={32} borderRadius="$full" bg="$success600">
-                <Icon as={Check} size="xs" color="$white" />
-              </Center>
-              <VStack style={{ flex: 1 }}>
-                <Text size="sm" weight="bold" color="$success800">
-                  Certificado de Aptitud de sala generado
-                </Text>
-                <Text size="2xs" color="$success700" style={{ fontVariant: ['tabular-nums'] }}>
-                  {patient?.nhc ? `CAP-${patient.nhc} · ` : ''}sala apta · todas las pruebas disponibles
-                </Text>
-              </VStack>
-            </HStack>
+            {/* ----- estado de la sala (CAP) ----- */}
+            {noiseCheckSkipped ? (
+              <HStack alignItems="center" space="sm" bg="$warning50" p="$3.5" borderRadius={16} borderWidth={1} borderColor="$warning200">
+                <Center w={32} h={32} borderRadius="$full" bg="$warning600">
+                  <Icon as={AlertTriangle} size="xs" color="$white" />
+                </Center>
+                <VStack style={{ flex: 1 }}>
+                  <Text size="sm" weight="bold" color="$warning800">
+                    Sala sin verificar
+                  </Text>
+                  <Text size="2xs" color="$warning700" style={{ lineHeight: 15 }}>
+                    Se saltó el sonómetro: las audiometrías y la verbal pierden comparabilidad. El resto de
+                    pruebas no dependen del ruido de fondo.
+                  </Text>
+                </VStack>
+              </HStack>
+            ) : (
+              <HStack alignItems="center" space="sm" bg="$success50" p="$3.5" borderRadius={16} borderWidth={1} borderColor="$success200">
+                <Center w={32} h={32} borderRadius="$full" bg="$success600">
+                  <Icon as={Check} size="xs" color="$white" />
+                </Center>
+                <VStack style={{ flex: 1 }}>
+                  <Text size="sm" weight="bold" color="$success800">
+                    Certificado de Aptitud de sala generado
+                  </Text>
+                  <Text size="2xs" color="$success700" style={{ fontVariant: ['tabular-nums'] }}>
+                    {patient?.nhc ? `CAP-${patient.nhc} · ` : ''}sala apta · todas las pruebas disponibles
+                  </Text>
+                </VStack>
+              </HStack>
+            )}
 
             {/* ----- accesos rápidos a los prerrequisitos ----- */}
             <HStack space="sm">
@@ -178,82 +192,40 @@ export default function SeleccionEjerciciosScreen({ navigation }: Props) {
               </Pressable>
             </HStack>
 
-            {/* ----- idioma / variante de la sesión ----- */}
-            <VStack space="sm" bg="$white" p="$3.5" borderRadius={16} borderWidth={1} borderColor="$borderLight200">
-              <HStack alignItems="center" space="xs">
-                <Icon as={Languages} size="xs" color="$primary600" />
-                <Text size="xs" weight="bold" color="$textLight800">
-                  Idioma de la sesión
-                </Text>
-              </HStack>
-              <HStack space="sm">
-                {SESSION_LANGS.map(l => {
-                  const on = sessionLanguage === l;
-                  return (
-                    <Pressable key={l} style={{ flex: 1 }} onPress={() => dispatch(setSessionLanguage(l))}>
-                      <Center
-                        py="$2.5"
-                        px="$2"
-                        borderRadius={12}
-                        bg={on ? '$primary500' : '$white'}
-                        borderWidth={1.5}
-                        borderColor={on ? 'transparent' : '$borderLight200'}>
-                        <Text
-                          size="2xs"
-                          weight="bold"
-                          color={on ? '$white' : '$textLight600'}
-                          style={{ textAlign: 'center' }}>
-                          {SESSION_LANG_LABEL[l] ?? l}
-                        </Text>
-                      </Center>
-                    </Pressable>
-                  );
-                })}
-              </HStack>
-              <Text size="2xs" color="$textLight400">
-                Determina las consignas habladas y el banco de estímulos. Gallego y euskera se
-                dictan con la voz del sistema hasta que existan sus locuciones propias.
-              </Text>
-
-              {/* Banco sin firma clínica: hay que decirlo donde se elige. */}
-              {VERBAL_BANK_PROVISIONAL.includes(sessionLanguage as never) ? (
-                <HStack space="xs" alignItems="flex-start" p="$2.5" borderRadius={12} bg="$warning50">
-                  <Icon as={AlertTriangle} size="2xs" color="$warning700" style={{ marginTop: 2 }} />
-                  <Text size="2xs" color="$warning800" style={{ flex: 1, lineHeight: 15 }}>
-                    Banco de estímulos provisional: pendiente de validación clínica. Úselo solo con fines
-                    de desarrollo o pilotaje.
+            {/* ----- motor de voz caído -----
+                El selector de idioma que vivía aquí se ha retirado: era
+                REDUNDANTE. Cada prueba localizada (audiometría verbal, T.A.R.,
+                funciones ejecutivas) tiene el suyo en su propia pantalla de
+                preparación, ofreciendo SOLO las lenguas en las que esa prueba
+                tiene contenido; el del hub ofrecía las cuatro para toda la
+                batería, incluidas pruebas que no las tienen, y era justamente
+                el que hacía elegir gallego para acabar oyendo castellano.
+                El aviso del motor de voz sí se queda: afecta a toda la sesión. */}
+            {voiceEngine.shouldWarn ? (
+              <VStack space="xs" bg="$error50" p="$3.5" borderRadius={16} borderWidth={1} borderColor="$error200">
+                <HStack space="xs" alignItems="flex-start">
+                  <Icon as={AlertTriangle} size="xs" color="$error600" style={{ marginTop: 2 }} />
+                  <Text size="2xs" color="$error700" style={{ flex: 1, lineHeight: 15 }}>
+                    {voiceEngine.status?.detail}
                   </Text>
                 </HStack>
-              ) : null}
-
-              {/* Motor de voz caído: decir POR QUÉ y ofrecer reintentar, en vez
-                  de dejar que el profesional descubra que nada suena. */}
-              {voiceEngine.shouldWarn ? (
-                <VStack space="xs" p="$2.5" borderRadius={12} bg="$error50">
-                  <HStack space="xs" alignItems="flex-start">
-                    <Icon as={AlertTriangle} size="2xs" color="$error600" style={{ marginTop: 2 }} />
-                    <Text size="2xs" color="$error700" style={{ flex: 1, lineHeight: 15 }}>
-                      {voiceEngine.status?.detail}
+                <Pressable onPress={voiceEngine.retry} disabled={voiceEngine.retrying}>
+                  <Center py="$1.5" borderRadius={10} borderWidth={1} borderColor="$error200" bg="$white">
+                    <Text size="2xs" weight="bold" color="$error600">
+                      {voiceEngine.retrying ? 'Reintentando…' : 'Reintentar la voz del sistema'}
                     </Text>
-                  </HStack>
-                  <Pressable onPress={voiceEngine.retry} disabled={voiceEngine.retrying}>
-                    <Center py="$1.5" borderRadius={10} borderWidth={1} borderColor="$error200" bg="$white">
-                      <Text size="2xs" weight="bold" color="$error600">
-                        {voiceEngine.retrying ? 'Reintentando…' : 'Reintentar la voz del sistema'}
-                      </Text>
-                    </Center>
-                  </Pressable>
-                </VStack>
-              ) : null}
-            </VStack>
+                  </Center>
+                </Pressable>
+              </VStack>
+            ) : null}
 
-            {/* ----- module grid ----- */}
-            <HStack flexWrap="wrap" style={{ gap: 10 }}>
+            {/* ----- lista de módulos ----- */}
+            <VStack style={{ gap: 10 }}>
               {MODULES.map((m, i) => {
                 const idx = selected.indexOf(m.id);
                 return <ModuleCardItem key={m.id} module={m} index={i} order={idx >= 0 ? idx + 1 : null} onToggle={toggle} />;
               })}
-            </HStack>
+            </VStack>
 
             {/* ----- resultados de la sesión ----- */}
             {/* Era un enlace de texto gris de bajo contraste al final de la

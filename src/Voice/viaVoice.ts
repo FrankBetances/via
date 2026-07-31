@@ -4,6 +4,7 @@ import {
 } from '@/Screens/VerbalAudiometry/verbalAudiometryAudio';
 
 import { playVoiceAsset, stopVoiceAsset } from './viaVoicePlayback';
+import { resolveSpokenText, type SpokenText, type TextByLang } from './viaVoiceLocale';
 import { hasVoiceAssets, resolveVoiceAsset, toVoiceLang } from './viaVoiceResolve';
 import { VoiceStyle } from './voiceCorpusId';
 
@@ -38,8 +39,13 @@ const systemVoice = (text: string, lang: string): void => {
 let token = 0;
 
 /**
- * Locuta un texto con la prosodia `style` en la lengua de sesión `lang`
- * (`'es' | 'gl' | 'es-DO'`; cualquier otro valor cae a `es`). Fire-and-forget.
+ * Locuta un texto con la prosodia `style`.
+ *
+ * `lang` es la lengua DEL TEXTO, no la de la sesión: quien llama debe haber
+ * resuelto antes qué texto va a decir y en qué lengua está (`speakLocalized`
+ * lo hace en un paso). Pasar aquí la lengua de sesión con un texto que está en
+ * otra es precisamente lo que producía voz gallega leyendo castellano.
+ * Fire-and-forget.
  */
 export const speak = (style: VoiceStyle, text: string, lang: string = 'es'): void => {
   const l = toVoiceLang(lang);
@@ -54,6 +60,26 @@ export const speak = (style: VoiceStyle, text: string, lang: string = 'es'): voi
     if (mine !== token) return; // otra locución tomó el relevo
     if (!ok) systemVoice(text, l); // el asset no decodificó → voz del sistema
   });
+};
+
+/**
+ * Vía RECOMENDADA para los módulos: recibe el texto de un banco POR LENGUA y
+ * la lengua de sesión, resuelve cuál se dice y con qué voz (`resolveSpokenText`)
+ * y lo locuta. Devuelve la locución elegida para que la pantalla pueda mostrar
+ * el MISMO texto que va a sonar y advertir si no está en la lengua de sesión.
+ *
+ * Con esto la correspondencia tarjeta↔voz deja de depender de que cada
+ * pantalla se acuerde de resolverla por su cuenta.
+ */
+export const speakLocalized = (
+  style: VoiceStyle,
+  byLang: TextByLang,
+  sessionLang: string = 'es',
+): SpokenText | null => {
+  const spoken = resolveSpokenText(byLang, toVoiceLang(sessionLang));
+  if (spoken == null) return null;
+  speak(style, spoken.text, spoken.lang);
+  return spoken;
 };
 
 /** Detiene cualquier locución en curso (asset o voz del sistema). */

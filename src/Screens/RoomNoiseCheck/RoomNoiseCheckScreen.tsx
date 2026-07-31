@@ -3,7 +3,7 @@ import { Pressable, ScrollView } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import Svg, { Circle } from 'react-native-svg';
 import { Box, Card, Center, HStack, Icon, Input, InputField, VStack } from '@gluestack-ui/themed';
-import { AlertTriangle, ArrowRight, Check, Mic, Square } from 'lucide-react-native';
+import { AlertTriangle, ArrowRight, Check, Mic, SkipForward, Square } from 'lucide-react-native';
 
 import { Button, Content, Header, Text } from '@/Components/Common';
 import RadialBackground from '@/Components/Themed/RadialBackground';
@@ -164,6 +164,25 @@ export default function RoomNoiseCheckScreen({ navigation, route }: Props) {
     // El sonómetro es un prerrequisito (gate): no persiste resultado clínico.
     // Si quieres registrar la verificación, ver LEEME.md § "Persistencia (opcional)".
     navigation.navigate('SeleccionEjercicios');
+  };
+
+  /**
+   * Salta la verificación de sala y va directo a las pruebas.
+   *
+   * El sonómetro es un prerrequisito CLÍNICO de las pruebas de discriminación
+   * auditiva, pero no de la batería entera: obligar a medir la sala para llegar
+   * a la exploración de disfagia, al cribado SAHS o a las funciones ejecutivas
+   * —que no dependen del ruido de fondo— convertía un control de calidad en un
+   * peaje. También estorba al probar la app o al retomar una sesión con la sala
+   * ya verificada.
+   *
+   * No falsea nada: no marca la sala como apta, solo deja pasar. La pantalla de
+   * selección lee este mismo estado y sigue mostrando que la verificación está
+   * pendiente, para que el profesional sepa lo que se saltó.
+   */
+  const handleSkip = () => {
+    meter.stop();
+    navigation.navigate('SeleccionEjercicios', { noiseCheckSkipped: true });
   };
 
   return (
@@ -485,6 +504,23 @@ export default function RoomNoiseCheckScreen({ navigation, route }: Props) {
                 <Icon as={ArrowRight} size="sm" color="$white" />
               </HStack>
             </Button>
+
+            {/* Salida sin medir: el sonómetro condiciona las pruebas de
+                discriminación auditiva, no la batería entera. Se ofrece siempre
+                (también con la medición hecha, por si falta alguna condición de
+                la lista) y deja constancia de que la sala no quedó verificada. */}
+            <Pressable onPress={handleSkip} accessibilityRole="button">
+              <HStack space="xs" alignItems="center" justifyContent="center" mt="$3" py="$2.5" borderRadius={14} borderWidth={1.5} borderColor="$borderLight200" bg="$white">
+                <Icon as={SkipForward} size="xs" color="$textLight600" />
+                <Text size="xs" weight="bold" color="$textLight600">
+                  Saltar el sonómetro e ir a las pruebas
+                </Text>
+              </HStack>
+            </Pressable>
+            <Text size="2xs" color="$textLight400" mt="$2" style={{ textAlign: 'center', lineHeight: 15 }}>
+              Sin verificar la sala, las pruebas de discriminación auditiva (audiometrías y verbal) pierden
+              comparabilidad. El resto de la batería no depende del ruido de fondo.
+            </Text>
           </Card>
 
           <Box h="$10" />

@@ -196,15 +196,23 @@ describe('coherencia con el motor de voz neural (tools/nos/voices.json)', () => 
     }
   });
 
-  it('las voces declaran motor conocido, modelo y estado provisional explícito', () => {
+  it('las voces declaran motor conocido, modelo, origen y estado de aprobación', () => {
     for (const [lang, cfg] of Object.entries<any>(registry.voices)) {
       // `ahotts`: el euskera no se infiere como un VITS suelto — su ONNX espera
       // fonemas y los produce el frontend lingüístico vasco de AhoTTS.
       expect({ lang, engine: ['piper', 'coqui-vits', 'ahotts'].includes(cfg.engine) })
         .toEqual({ lang, engine: true });
       expect(typeof cfg.model).toBe('string');
-      expect(typeof cfg.provisional).toBe('boolean');
       expect(typeof cfg.source).toBe('string');
+      // El booleano `provisional` desapareció cuando el registro pasó a declarar
+      // la aprobación clínica completa (quién firma, cuándo y sobre qué acta);
+      // la prueba se quedó comprobando el campo viejo y llevaba roja desde
+      // entonces. El estado vive ahora en `clinicalApproval`.
+      expect({ lang, aprobacion: typeof cfg.clinicalApproval?.status })
+        .toEqual({ lang, aprobacion: 'string' });
+      // Cada voz debe declarar DE DÓNDE sale (portada de Valeria+ o elegida
+      // aquí): es lo que impide volver a dar por buena una voz sin contrastar.
+      expect(typeof cfg.origin).toBe('string');
     }
   });
 
@@ -283,17 +291,29 @@ describe('aprobación clínica · el código no puede adelantarse al registro', 
     expect(bank.excludes.join(' ')).toMatch(/locuciones/i);
   });
 
-  it('las cuatro lenguas tienen firma de AUDIO, con la receta de la voz', () => {
+  it('las cuatro lenguas tienen UNA firma de AUDIO vigente, con la receta de la voz', () => {
     // Lo aprobado no es un lote de bytes sino la voz CON SU RECETA: sin el
     // modelo y los parámetros escritos, regenerar con otra voz heredaría la
     // firma en silencio.
+    //
+    // Las firmas RETIRADAS (`superseded`) se quedan en el registro a propósito
+    // —el castellano conserva la de davefx— para que el expediente cuente por
+    // qué se cambió de voz. La prueba contaba todas y llevaba roja desde que se
+    // retiró davefx: lo que debe haber una y solo una es la firma VIGENTE.
     for (const lang of VERBAL_BANK_LANGS) {
       const audio = approvalsOf(lang).filter(a => scopeOf(a) === 'audio');
-      expect({ lang, firmas: audio.length }).toEqual({ lang, firmas: 1 });
-      expect(audio[0].status).toBe('aprobado-produccion');
-      expect(audio[0].appliesTo).toBe('voice');
-      expect(audio[0].recipe?.model?.trim()).toBeTruthy();
-      expect(typeof audio[0].recipe?.lengthScale).toBe('number');
+      const vigentes = audio.filter(a => a.status !== 'superseded');
+      expect({ lang, firmas: vigentes.length }).toEqual({ lang, firmas: 1 });
+      expect(vigentes[0].status).toBe('aprobado-produccion');
+      expect(vigentes[0].appliesTo).toBe('voice');
+      expect(vigentes[0].recipe?.model?.trim()).toBeTruthy();
+      expect(typeof vigentes[0].recipe?.lengthScale).toBe('number');
+      // Una firma retirada tiene que decir qué la sustituye y por qué, o el
+      // registro deja de ser trazable.
+      for (const retirada of audio.filter(a => a.status === 'superseded')) {
+        expect(retirada.supersededBy?.trim()).toBeTruthy();
+        expect(retirada.supersededReason?.trim()).toBeTruthy();
+      }
     }
   });
 

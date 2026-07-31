@@ -9,7 +9,9 @@ import { Button, Content, Header, Text } from '@/Components/Common';
 import RadialBackground from '@/Components/Themed/RadialBackground';
 import { finishModule, RootStackParamList } from '@/Navigators';
 import { AppDispatch, RootState } from '@/Store';
-import { SESSION_LANGS, SESSION_LANG_LABEL, setSessionLanguage } from '@/Store/slices/localeSlice';
+import { SESSION_LANG_LABEL, setSessionLanguage } from '@/Store/slices/localeSlice';
+import type { SessionLang } from '@/Store/slices/sessionLangs';
+import { EF_CONSIGNA_LANGS } from '@/Voice';
 import { Evaluation } from '@/Models/Evaluation/Evaluation';
 import { ExecutiveFunctionsTest } from '@/Models/ExecutiveFunctions/ExecutiveFunctionsTest';
 import { useClassSelector } from '@/Helpers/ClassTransformer';
@@ -105,11 +107,8 @@ export default function ExecutiveFunctionsScreen({ navigation }: Props) {
       stopConsigna();
       return;
     }
-    const currentMeta = EF_DOMAIN_META[EF_DOMAIN_ORDER[Math.min(gameIndex, EF_DOMAIN_ORDER.length - 1)]];
-    const t = setTimeout(
-      () => speakConsigna(`${currentMeta.game}. ${currentMeta.instruction}`, sessionLanguage),
-      500,
-    );
+    const currentDomain = EF_DOMAIN_ORDER[Math.min(gameIndex, EF_DOMAIN_ORDER.length - 1)];
+    const t = setTimeout(() => speakConsigna(currentDomain, sessionLanguage), 500);
     return () => {
       clearTimeout(t);
       stopConsigna();
@@ -304,7 +303,7 @@ export default function ExecutiveFunctionsScreen({ navigation }: Props) {
           aquí lo cambia en toda la batería.
         </Text>
         <HStack space="sm" flexWrap="wrap" style={{ rowGap: 8 }}>
-          {SESSION_LANGS.map(l => {
+          {EF_CONSIGNA_LANGS.map(l => {
             const on = sessionLanguage === l;
             return (
               <Pressable key={l} onPress={() => dispatch(setSessionLanguage(l))}>
@@ -325,8 +324,21 @@ export default function ExecutiveFunctionsScreen({ navigation }: Props) {
         </HStack>
         <Text size="2xs" color="$textLight400" mt="$3" style={{ lineHeight: 15 }}>
           Los juegos son los mismos en todas las lenguas: lo que cambia es la voz que los explica.
-          Sin locución propia para la lengua elegida, la consigna se oye en castellano.
         </Text>
+
+        {/* El selector solo ofrece las lenguas en las que las consignas EXISTEN
+            (`EF_CONSIGNA_LANGS`, derivado del banco). Si la sesión viene del hub
+            en una lengua que este módulo no tiene, se dice aquí en vez de dictar
+            castellano con acento de otra lengua, que es lo que hacía antes. */}
+        {!EF_CONSIGNA_LANGS.includes(sessionLanguage as never) ? (
+          <HStack space="xs" alignItems="flex-start" mt="$3" p="$2.5" borderRadius={12} bg="$warning50">
+            <Text size="2xs" color="$warning800" style={{ flex: 1, lineHeight: 15 }}>
+              La sesión está en {SESSION_LANG_LABEL[sessionLanguage as SessionLang] ?? sessionLanguage}, pero
+              los mini-juegos aún no tienen consigna revisada en esa lengua: se dictarán en castellano y con
+              voz castellana. Traducirlos sin revisión de un logopeda sería inventar el estímulo.
+            </Text>
+          </HStack>
+        ) : null}
       </Card>
 
       <Box bg="$warning50" borderRadius={12} p="$2.5">
@@ -386,7 +398,7 @@ export default function ExecutiveFunctionsScreen({ navigation }: Props) {
           <Text size="md" color="$textLight700" mt="$3" style={{ textAlign: 'center', lineHeight: 22 }}>
             {meta.instruction}
           </Text>
-          <Pressable onPress={() => speakConsigna(`${meta.game}. ${meta.instruction}`, sessionLanguage)}>
+          <Pressable onPress={() => speakConsigna(domain, sessionLanguage)}>
             <HStack space="xs" alignItems="center" bg="$primary50" borderRadius="$full" px="$4" py="$2" mt="$4">
               <Icon as={Volume2} size="sm" color="$primary600" />
               <Text size="sm" weight="bold" color="$primary600">
@@ -442,6 +454,7 @@ export default function ExecutiveFunctionsScreen({ navigation }: Props) {
         ) : domain === 'flexibility' ? (
           <FlexibilityGame
             plan={plans.flexibility}
+            lang={sessionLanguage}
             onFinish={r => finishGame('flexibility', scoreFlexibility(r), r)}
           />
         ) : domain === 'workingMemory' ? (

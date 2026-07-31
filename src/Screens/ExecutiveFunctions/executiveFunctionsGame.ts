@@ -216,6 +216,31 @@ export type EfShape = 'pez' | 'flor';
 export type EfRule = 'color' | 'forma';
 
 export const EF_SHAPE_GLYPH: Record<EfShape, string> = { pez: '🐟', flor: '🌸' };
+
+/* ---- anuncios hablados de la norma vigente (flexibilidad · DCCS) ----------
+ * Viven aquí, en el módulo PURO del juego, para que el banco de voz
+ * (`viaVoiceConsignas.ts`) los enumere DERIVÁNDOLOS de la misma función que
+ * los dicta en pantalla: si el texto cambia, cambia su id de locución y el
+ * asset se regenera, sin que corpus y juego puedan divergir (P3).
+ * Antes el componente componía estas frases al vuelo y las locutaba sin
+ * lengua, así que en una sesión dominicana el juego cambiaba de acento a
+ * mitad de prueba. */
+
+/** Complemento hablado de cada norma («por color» / «por forma»). */
+export const EF_RULE_PHRASE: Record<EfRule, string> = {
+  color: 'por color',
+  forma: 'por forma',
+};
+
+/** Aviso de CAMBIO de norma (el niño debe enterarse aunque no sepa leer). */
+export const efRuleChangeText = (rule: EfRule): string =>
+  `¡Atención! La norma ha cambiado: ahora se juega ${EF_RULE_PHRASE[rule]}.`;
+
+/** Anuncio de la norma INICIAL (la consigna de la antesala es genérica). */
+export const efRuleIntroText = (rule: EfRule): string => `Se juega ${EF_RULE_PHRASE[rule]}.`;
+
+/** Todas las normas, para que el corpus las enumere sin repetir la lista. */
+export const EF_RULES: readonly EfRule[] = ['color', 'forma'];
 export const EF_COLOR_BG: Record<EfColor, string> = { rojo: '#FECACA', azul: '#BFDBFE' };
 export const EF_COLOR_BORDER: Record<EfColor, string> = { rojo: '#EF4444', azul: '#3B82F6' };
 

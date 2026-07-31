@@ -30,6 +30,28 @@ export const VOICE_LANGS: readonly VoiceLang[] = ['es', 'gl', 'eu', 'es-DO'];
 /** Idioma base sin prefijo de id (retro-compat de assets ya sintetizados). */
 export const VOICE_BASE_LANG: VoiceLang = 'es';
 
+/**
+ * Idioma del que cada entrada HEREDA TEXTO (`null` = idioma completo).
+ *
+ * Distinción central de la capa de voz, y la que faltaba: una VARIANTE (es-DO)
+ * es la MISMA lengua que su base, así que puede locutar el texto castellano
+ * con su propia voz sin mentir —cambia el acento, no el idioma—. Un idioma
+ * COMPLETO (gl, eu) no hereda texto: leer castellano con voz gallega no es una
+ * degradación de acento, es una locución en otra lengua distinta de la que
+ * muestra la tarjeta. Ahí lo correcto es locutar el texto castellano CON VOZ
+ * CASTELLANA, que es lo que hace `resolveSpokenText`.
+ *
+ * Es la misma regla que ya aplicaba la audiometría verbal por su cuenta
+ * (`VERBAL_BANK_BASE` en `verbalAudiometryBanks.ts`); aquí queda unificada para
+ * toda la app.
+ */
+export const VOICE_LANG_BASE: Record<VoiceLang, VoiceLang | null> = {
+  es: null,
+  gl: null,
+  eu: null,
+  'es-DO': 'es',
+};
+
 /** Estilos válidos (para validar corpus y tests). */
 export const VOICE_STYLES: readonly VoiceStyle[] = ['tutor', 'child', 'clinical', 'slow'];
 

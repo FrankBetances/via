@@ -11,7 +11,7 @@ import {
   FlexibilityResult,
   flexibilityAnswerIndex,
 } from '../executiveFunctionsGame';
-import { speakConsigna } from '../efSpeech';
+import { speakRuleConsigna } from '../efSpeech';
 
 /* -------------------------------------------------------------------------- */
 /*  «El juego de las normas» — flexibilidad cognitiva (DCCS).                  */
@@ -26,9 +26,12 @@ const RULE_CHANGE_MS = 1600; // aviso grande de cambio de norma antes del ensayo
 export default function FlexibilityGame({
   plan,
   onFinish,
+  lang = 'es',
 }: {
   plan: FlexibilityPlan;
   onFinish: (result: FlexibilityResult) => void;
+  /** Lengua de sesión: los anuncios de norma se dictaban siempre en castellano. */
+  lang?: string;
 }) {
   const [trialIndex, setTrialIndex] = useState(0);
   const [chosen, setChosen] = useState<0 | 1 | null>(null);
@@ -63,17 +66,16 @@ export default function FlexibilityGame({
       onFinish(counts.current);
       return;
     }
-    const ruleText = trial.rule === 'color' ? 'por color' : 'por forma';
     if (trial.ruleChanged) {
       setShowRuleChange(true);
-      speakConsigna(`¡Atención! La norma ha cambiado: ahora se juega ${ruleText}.`);
+      speakRuleConsigna(trial.rule, true, lang);
       const t = setTimeout(() => setShowRuleChange(false), RULE_CHANGE_MS);
       timers.current.push(t);
       return () => clearTimeout(t);
     }
     if (trialIndex === 0) {
       // Anuncio de la norma inicial (la consigna de la antesala es genérica).
-      speakConsigna(`Se juega ${ruleText}.`);
+      speakRuleConsigna(trial.rule, false, lang);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [trialIndex]);
