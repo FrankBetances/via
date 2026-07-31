@@ -54,7 +54,7 @@ const MIN_CLIP_MS = Number(process.env.VERBAL_MIN_CLIP_MS ?? 350);
  * el ritmo sino la síntesis (texto mal fonemizado, modelo inadecuado), y hay
  * que verlo, no taparlo estirando el audio hasta lo grotesco.
  */
-const MAX_LENGTH_SCALE = Number(process.env.VERBAL_MAX_LENGTH_SCALE ?? 2.8);
+const MAX_LENGTH_SCALE = Number(process.env.VERBAL_MAX_LENGTH_SCALE ?? 3.6);
 
 /** Intentos de realentizado por recorte antes de rendirse. */
 const SLOWDOWN_ATTEMPTS = 3;
@@ -151,20 +151,40 @@ function enforceClipTempo({ items, fileFor, labelFor, lang, resynth }) {
 
   let short = measured.filter(m => m.seconds * 1000 < MIN_CLIP_MS);
   const base = baseLengthScale(lang);
+  /* lengthScale REALMENTE aplicado a cada locución. Es lo que hace converger el
+   * bucle: la regla de tres tiene que partir de la escala que produjo la
+   * duración que se acaba de medir, no de la escala base. Calculándola siempre
+   * desde `base`, el segundo intento leía una duración obtenida con una escala
+   * mayor y deducía una escala MENOR — el recorte volvía a acelerarse y el
+   * bucle oscilaba hasta agotar los intentos. Con el techo por medio, eso es
+   * exactamente lo que pasaba con las locuciones más cortas del castellano. */
+  const applied = new Map();
+  /** lengthScale que cada locución PEDÍA, aunque el techo lo recortase. */
+  const needed = new Map();
 
   for (let attempt = 1; attempt <= SLOWDOWN_ATTEMPTS && short.length && resynth; attempt += 1) {
     let retried = 0;
     for (const m of short) {
+      const from = applied.get(m.item) ?? base;
       // Regla de tres sobre la duración medida, con un 12 % de margen: en un
       // VITS la duración es prácticamente lineal en el lengthScale, así que una
       // pasada suele bastar; los intentos restantes cubren los casos en que el
       // post-proceso recorta algo más de lo previsto.
-      const scale = Math.min(MAX_LENGTH_SCALE, base * (MIN_CLIP_MS / 1000 / m.seconds) * 1.12);
-      if (scale <= base) continue;
+      const wanted = from * (MIN_CLIP_MS / 1000 / m.seconds) * 1.12;
+      const scale = Math.min(MAX_LENGTH_SCALE, wanted);
+      // Ya estaba en el techo y sigue corta: insistir solo gasta síntesis y, si
+      // el techo se alcanzó por redondeo, reintroduce la oscilación.
+      if (scale <= from + 1e-6) {
+        needed.set(m.item, wanted);
+        continue;
+      }
       console.log(
-        `  ${lang}: «${labelFor(m.item)}» ${(m.seconds * 1000).toFixed(0)} ms → lengthScale ${scale.toFixed(2)}`,
+        `  ${lang}: «${labelFor(m.item)}» ${(m.seconds * 1000).toFixed(0)} ms → lengthScale ${scale.toFixed(2)}`
+          + (scale < wanted ? ` (pedía ${wanted.toFixed(2)}, techo ${MAX_LENGTH_SCALE})` : ''),
       );
       resynth(m.item, scale);
+      applied.set(m.item, scale);
+      needed.set(m.item, wanted);
       retried += 1;
     }
     if (!retried) break;
@@ -178,7 +198,12 @@ function enforceClipTempo({ items, fileFor, labelFor, lang, resynth }) {
   }
 
   const detail = short
-    .map(m => `«${labelFor(m.item)}» (${(m.seconds * 1000).toFixed(0)} ms)`)
+    .map(m => {
+      const want = needed.get(m.item);
+      return `«${labelFor(m.item)}» (${(m.seconds * 1000).toFixed(0)} ms`
+        + (want ? `, pedía lengthScale ${want.toFixed(2)}` : '')
+        + ')';
+    })
     .join(', ');
   throw new Error(
     `${lang}: ${short.length} locución(es) por debajo de ${MIN_CLIP_MS} ms${resynth ? ' tras realentizarlas' : ''} — ${detail}.\n`
