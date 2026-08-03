@@ -1,7 +1,18 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 import {
+  acquireAudioContext,
+  acquireRecorder,
+  acquireRecordingSession,
+  releaseAudioContext,
+  resumeAudioContext,
+  type SharedRecorder,
+} from '@/Audio';
+import { createDecimator3, DECIMATION, SAMPLE_RATE } from '@/Screens/VoiceAnalysis/voiceDsp';
+
+import {
   probeRecognitionCaps,
+  type NativeRecognitionProbe,
   recognitionBlockLabel,
   resolveRecognitionMode,
   type RecognitionBlockReason,
@@ -22,8 +33,8 @@ import {
 /*  en `false`, de modo que la UI muestra el chip de «modo limitado».          */
 /*                                                                              */
 /*   1. Modelo hablado               → capa de voz `@/Voice` (ver abajo)        */
-/*   2. Grabación de la repetición   → `react-native-audio-recorder-player`     */
-/*      (Android: MediaRecorder · iOS: AVAudioRecorder · grabación + playback)  */
+/*   2. Grabación de la repetición   → micrófono COMPARTIDO de `@/Audio`        */
+/*      (PCM en memoria, sin fichero: ver A3.2 · Zero-PHI)                      */
 /*   3. Reconocimiento de voz        → `@react-native-voice/voice`              */
 /*      (Android: SpeechRecognizer · iOS: SFSpeechRecognizer)                   */
 /*   ·  Permisos de micrófono        → `react-native-permissions`               */
@@ -44,15 +55,12 @@ import {
  * nombre de variable (`require(name)`) rompe el build de producción aunque la
  * librería esté instalada. Por eso cada caso usa su propio `require` literal. */
 type OptionalLibName =
-  | 'react-native-audio-recorder-player'
   | '@react-native-voice/voice'
   | 'react-native-permissions';
 
 const optionalRequire = (name: OptionalLibName): any => {
   try {
     switch (name) {
-      case 'react-native-audio-recorder-player':
-        return require('react-native-audio-recorder-player');
       case '@react-native-voice/voice':
         return require('@react-native-voice/voice');
       case 'react-native-permissions':
@@ -81,6 +89,11 @@ const RECOGNITION_LOCALE: Record<string, string> = {
 /** Lengua a la que degrada el reconocedor si no hay modelo para la pedida. */
 const RECOGNITION_FALLBACK = 'es-ES';
 
+/** Espera tras detener la captura para recoger los últimos bloques que el motor
+ *  nativo entrega por el emisor de eventos (mismo valor que en los adaptadores
+ *  de voz y prosodia). Sin ella se pierde la cola de la palabra repetida. */
+const TAIL_DRAIN_MS = 120;
+
 /* ───────────────────────────────────────────────────────────────────────────
  * ACTIVAR AUDIO REAL (recomendado para producción)
  * Por defecto se resuelve con `require` opcional (envuelto en try/catch): el
@@ -93,13 +106,10 @@ const RECOGNITION_FALLBACK = 'es-ES';
  * require dinámico podría no incluirlos en el bundle aunque estén instalados).
  * El TTS ya no aparece aquí: el modelo hablado lo sirve `@/Voice`.
  * ─────────────────────────────────────────────────────────────────────────── */
-// import AudioRecorderPlayerLib from 'react-native-audio-recorder-player';
 // import VoiceLib from '@react-native-voice/voice';
 // import * as PermissionsLib from 'react-native-permissions';
-let RN_RECORDER: any = null;
 let RN_VOICE: any = null;
 let RN_PERMISSIONS: any = null;
-// RN_RECORDER = AudioRecorderPlayerLib;
 // RN_VOICE = VoiceLib;
 // RN_PERMISSIONS = PermissionsLib;
 
@@ -122,7 +132,8 @@ export interface ArticulationAudio {
   micGranted: boolean;           // permiso de micrófono concedido
   speaking: boolean;
   recStatus: RecStatus;
-  audioUri: string | null;
+  /** ¿Hay una toma grabada en memoria lista para reproducir? */
+  hasRecording: boolean;
   recognizing: boolean;          // escuchando para transcribir
   transcript: string;            // lo que el motor entendió
   matched: boolean | null;       // ¿coincide con la palabra objetivo? (null = aún sin evaluar)
@@ -131,6 +142,8 @@ export interface ArticulationAudio {
   /** Inicia/detiene grabación + reconocimiento. `targetWord` activa la comparación automática. */
   toggleRecording: (targetWord?: string) => Promise<void>;
   playRecording: () => void;
+  /** Borra el `.wav` de la toma en curso (A3 · Zero-PHI). Idempotente. */
+  purgeRecording: () => Promise<void>;
   reset: () => void;
 }
 
@@ -162,6 +175,65 @@ export const matchesTarget = (target: string, heard: string): boolean => {
 };
 
 /* -------------------------------------------------------------------------- */
+/*  Acceso a las capacidades NATIVAS de reconocimiento local (A2).             */
+/*                                                                            */
+/*  Los dos métodos que se usan aquí NO los expone `@react-native-voice/voice`:*/
+/*  los añade el parche `patches/@react-native-voice+voice+3.2.4.patch`, así   */
+/*  que se accede al módulo nativo directamente en vez de por la API de la     */
+/*  librería. Si el parche no estuviera aplicado, los métodos no existen, el   */
+/*  sondeo devuelve `null` y la puerta se queda cerrada: la ausencia del       */
+/*  parche degrada con seguridad, no abre nada.                                */
+/* -------------------------------------------------------------------------- */
+
+/** Plazo del sondeo nativo. Un callback que no llega no puede dejar la puerta
+ *  colgada: se trata como «no se ha podido confirmar». */
+const PROBE_TIMEOUT_MS = 1500;
+
+const nativeRecognitionProbe = (): NativeRecognitionProbe | null => {
+  let native: any = null;
+  try {
+    native = require('react-native').NativeModules?.Voice ?? null;
+  } catch (_e) {
+    return null;
+  }
+  if (!native) return null;
+
+  const probe: NativeRecognitionProbe = {};
+
+  if (typeof native.isOnDeviceRecognitionAvailable === 'function') {
+    probe.isOnDeviceRecognitionAvailable = (locale: string) =>
+      new Promise<boolean>((resolve, reject) => {
+        const timer = setTimeout(
+          () => reject(new Error('sondeo de reconocimiento local sin respuesta')),
+          PROBE_TIMEOUT_MS,
+        );
+        try {
+          native.isOnDeviceRecognitionAvailable(locale, (available: boolean) => {
+            clearTimeout(timer);
+            resolve(available === true);
+          });
+        } catch (e) {
+          clearTimeout(timer);
+          reject(e);
+        }
+      });
+  }
+
+  // Solo se declara garantizado el modo local si el nativo ACEPTA la orden de
+  // exigirlo; se arma aquí, antes de cualquier arranque.
+  if (typeof native.setRequireOnDeviceRecognition === 'function') {
+    try {
+      native.setRequireOnDeviceRecognition(true);
+      probe.startRequiresOnDevice = true;
+    } catch (_e) {
+      /* sin armar: la puerta se queda cerrada */
+    }
+  }
+
+  return probe;
+};
+
+/* -------------------------------------------------------------------------- */
 /*  Hook                                                                       */
 /* -------------------------------------------------------------------------- */
 
@@ -173,13 +245,31 @@ export const matchesTarget = (target: string, heard: string): boolean => {
 export function useArticulationAudio(lang: string = 'es'): ArticulationAudio {
   const [speaking, setSpeaking] = useState(false);
   const [recStatus, setRecStatus] = useState<RecStatus>('idle');
-  const [audioUri, setAudioUri] = useState<string | null>(null);
+  /* A3.2 · Zero-PHI. La toma vive en MEMORIA, no en disco.
+   *
+   * `react-native-audio-recorder-player` escribía un `.wav` que nadie borraba:
+   * la voz del paciente quedaba en el almacenamiento de la app
+   * indefinidamente. No había forma de retirarlo —el proyecto no arrastra
+   * ninguna librería de ficheros y el recorder no expone borrado—, así que en
+   * vez de limpiar el fichero se elimina el fichero: se captura PCM en memoria
+   * sobre el micrófono compartido, igual que el análisis de voz y el de
+   * prosodia. Zero-PHI por diseño y no por limpieza posterior, y de paso un
+   * solo motor de captura en toda la app. */
+  const [hasRecording, setHasRecording] = useState(false);
+  const takeRef = useRef<Float32Array | null>(null);
   const [micGranted, setMicGranted] = useState(false);
   const [recognizing, setRecognizing] = useState(false);
   const [transcript, setTranscript] = useState('');
   const [matched, setMatched] = useState<boolean | null>(null);
 
-  const recorderRef = useRef<any>(null);
+  /** Reserva del micrófono COMPARTIDO (un solo stream nativo en toda la app). */
+  const recorderRef = useRef<SharedRecorder | null>(null);
+  const unsubscribeRef = useRef<(() => void) | null>(null);
+  const capturingRef = useRef(false);
+  const chunksRef = useRef<Float32Array[]>([]);
+  const decimateRef = useRef<((raw: Float32Array) => Float32Array) | null>(null);
+  const releaseSessionRef = useRef<(() => void) | null>(null);
+  const playbackCtxRef = useRef<ReturnType<typeof acquireAudioContext>>(null);
   const voiceRef = useRef<any>(null);
   const targetRef = useRef<string>('');
   const langRef = useRef<string>(lang);
@@ -215,20 +305,32 @@ export function useArticulationAudio(lang: string = 'es'): ArticulationAudio {
    * aviso de «sin voz disponible». Se suscribe a los cambios de estado. */
   const [modelVoiceAvailable, setModelVoiceAvailable] = useState(canSpeak);
 
+  /* -------------------------- purga de la toma (A3) ------------------------- */
+  /*  Con la captura en memoria, «purgar» es soltar la referencia: no queda      */
+  /*  fichero que borrar ni permiso de disco que pedir, y no hay ventana en la   */
+  /*  que la voz del paciente sobreviva a la prueba.                             */
+  const purgeRecording = useCallback(async () => {
+    takeRef.current = null;
+    setHasRecording(false);
+  }, []);
+
   /* ---------------------------- init libs ----------------------------- */
   useEffect(() => {
-    // 1) Grabación + playback
-    const recMod = resolveLib(RN_RECORDER, 'react-native-audio-recorder-player');
-    const RecorderPlayer = recMod?.default ?? recMod;
-    if (RecorderPlayer) {
-      try {
-        recorderRef.current = typeof RecorderPlayer === 'function' ? new RecorderPlayer() : RecorderPlayer;
-        availableRef.current = true;
-        setAvailable(true);
-      } catch (_e) {
-        availableRef.current = false;
-        setAvailable(false);
-      }
+    // 1) Grabación en memoria sobre el micrófono compartido.
+    const shared = acquireRecorder();
+    if (shared) {
+      recorderRef.current = shared;
+      unsubscribeRef.current = shared.subscribe(raw => {
+        if (!capturingRef.current) return;
+        try {
+          const ds = decimateRef.current ? decimateRef.current(raw) : null;
+          if (ds && ds.length) chunksRef.current.push(ds);
+        } catch (_e) {
+          /* un bloque corrupto no debe tumbar la captura */
+        }
+      });
+      availableRef.current = true;
+      setAvailable(true);
     }
 
     // 2) Reconocimiento de voz
@@ -255,17 +357,26 @@ export function useArticulationAudio(lang: string = 'es'): ArticulationAudio {
     }
 
     return () => {
+      // Al salir de la pantalla la toma deja de hacer falta: se retira.
+      void purgeRecording();
       if (speakTimerRef.current) clearTimeout(speakTimerRef.current);
       try {
         stopSpeaking();
       } catch (_e) {
         /* noop */
       }
-      try {
-        recorderRef.current?.stopRecorder?.();
-        recorderRef.current?.stopPlayer?.();
-      } catch (_e) {
-        /* noop */
+      capturingRef.current = false;
+      chunksRef.current = [];
+      takeRef.current = null;
+      releaseSessionRef.current?.();
+      releaseSessionRef.current = null;
+      unsubscribeRef.current?.();
+      unsubscribeRef.current = null;
+      recorderRef.current?.release();
+      recorderRef.current = null;
+      if (playbackCtxRef.current) {
+        playbackCtxRef.current = null;
+        releaseAudioContext();
       }
       try {
         voiceRef.current?.destroy?.().then?.(() => voiceRef.current?.removeAllListeners?.());
@@ -273,7 +384,7 @@ export function useArticulationAudio(lang: string = 'es'): ArticulationAudio {
         /* noop */
       }
     };
-  }, []);
+  }, [purgeRecording]);
 
   /* A2 · PUERTA DE RECONOCIMIENTO. Se interroga a la capa nativa por sus
    * capacidades y se decide. Depende de la lengua de sesión porque el modelo
@@ -286,7 +397,11 @@ export function useArticulationAudio(lang: string = 'es'): ArticulationAudio {
     let alive = true;
     const locale = RECOGNITION_LOCALE[lang] ?? RECOGNITION_FALLBACK;
     void (async () => {
-      const caps = await probeRecognitionCaps(voiceRef.current, locale);
+      // Se exige TAMBIÉN la librería JS: es la que arranca y entrega los
+      // resultados. Con el módulo nativo presente pero la librería sin cargar,
+      // abrir la puerta prometería una transcripción que nadie puede producir.
+      const probe = voiceRef.current ? nativeRecognitionProbe() : null;
+      const caps = await probeRecognitionCaps(probe, locale);
       const decision = resolveRecognitionMode(caps);
       if (!alive) return;
       recognitionRef.current = decision.mode === 'on-device';
@@ -400,11 +515,27 @@ export function useArticulationAudio(lang: string = 'es'): ArticulationAudio {
       // --- detener ---
       if (recStatus === 'recording') {
         try {
-          const uri = await recorderRef.current?.stopRecorder?.();
-          if (uri) setAudioUri(typeof uri === 'string' ? uri : uri?.uri ?? null);
+          recorderRef.current?.stop();
         } catch (_e) {
           /* noop */
         }
+        capturingRef.current = false;
+        releaseSessionRef.current?.();
+        releaseSessionRef.current = null;
+        // Los bloques llegan por el emisor de eventos, o sea en un turno
+        // posterior del hilo JS: sin esta espera se perdería la cola de la
+        // emisión, que es justo el final de la palabra repetida.
+        await new Promise<void>(resolve => setTimeout(resolve, TAIL_DRAIN_MS));
+        const total = chunksRef.current.reduce((a, c) => a + c.length, 0);
+        const pcm = new Float32Array(total);
+        let off = 0;
+        for (const c of chunksRef.current) {
+          pcm.set(c, off);
+          off += c.length;
+        }
+        chunksRef.current = [];
+        takeRef.current = total > 0 ? pcm : null;
+        setHasRecording(total > 0);
         await stopRecognition();
         setRecStatus(availableRef.current ? 'ready' : 'idle');
         return;
@@ -418,12 +549,20 @@ export function useArticulationAudio(lang: string = 'es'): ArticulationAudio {
       // reconocimiento (no bloqueante)
       startRecognition(targetWord);
 
-      // grabación
+      // grabación en memoria
       if (availableRef.current) {
         try {
-          await recorderRef.current?.startRecorder?.();
+          releaseSessionRef.current?.();
+          releaseSessionRef.current = acquireRecordingSession();
+          chunksRef.current = [];
+          decimateRef.current = createDecimator3();
+          takeRef.current = null;
+          setHasRecording(false);
+          capturingRef.current = true;
+          recorderRef.current?.start();
           setRecStatus('recording');
         } catch (_e) {
+          capturingRef.current = false;
           setRecStatus('idle');
         }
       } else {
@@ -435,23 +574,45 @@ export function useArticulationAudio(lang: string = 'es'): ArticulationAudio {
   );
 
   const playRecording = useCallback(() => {
-    if (!audioUri || !recorderRef.current) return;
+    const pcm = takeRef.current;
+    if (!pcm || !pcm.length) return;
+    // Reproducción sobre el contexto COMPARTIDO: abrir uno propio dejaría mudo
+    // al resto de la app en Android (Oboe exclusivo), que es el fallo que
+    // documenta `docs/design/arquitectura-audio.md`.
+    if (!playbackCtxRef.current) playbackCtxRef.current = acquireAudioContext();
+    const ctx = playbackCtxRef.current;
+    if (!ctx) return;
+    resumeAudioContext();
     try {
-      recorderRef.current.startPlayer?.(audioUri);
-      recorderRef.current.addPlayBackListener?.((e: any) => {
-        if (e?.currentPosition >= e?.duration) {
-          recorderRef.current?.stopPlayer?.();
-          recorderRef.current?.removePlayBackListener?.();
-        }
-      });
+      // Re-expansión ×3 (16 kHz → 48 kHz) por interpolación lineal, para que
+      // suene a la frecuencia del contexto de reproducción.
+      const up = new Float32Array(pcm.length * DECIMATION);
+      for (let i = 0; i < pcm.length; i++) {
+        const a = pcm[i];
+        const b = i + 1 < pcm.length ? pcm[i + 1] : a;
+        const base = i * DECIMATION;
+        up[base] = a;
+        up[base + 1] = a + (b - a) / 3;
+        up[base + 2] = a + (2 * (b - a)) / 3;
+      }
+      const buffer = ctx.createBuffer(1, up.length, SAMPLE_RATE * DECIMATION);
+      try {
+        buffer.copyToChannel(up, 0);
+      } catch (_e) {
+        buffer.getChannelData(0).set(up);
+      }
+      const source = ctx.createBufferSource();
+      source.buffer = buffer;
+      source.connect(ctx.destination);
+      source.start();
     } catch (_e) {
       /* noop */
     }
-  }, [audioUri]);
+  }, []);
 
   const reset = useCallback(() => {
+    void purgeRecording();
     setRecStatus('idle');
-    setAudioUri(null);
     setTranscript('');
     setMatched(null);
     setRecognizing(false);
@@ -463,8 +624,8 @@ export function useArticulationAudio(lang: string = 'es'): ArticulationAudio {
       /* noop */
     }
     try {
-      recorderRef.current?.stopRecorder?.();
-      recorderRef.current?.stopPlayer?.();
+      capturingRef.current = false;
+      recorderRef.current?.stop();
     } catch (_e) {
       /* noop */
     }
@@ -473,7 +634,7 @@ export function useArticulationAudio(lang: string = 'es'): ArticulationAudio {
     } catch (_e) {
       /* noop */
     }
-  }, []);
+  }, [purgeRecording]);
 
   return {
     available,
@@ -485,13 +646,14 @@ export function useArticulationAudio(lang: string = 'es'): ArticulationAudio {
     micGranted,
     speaking,
     recStatus,
-    audioUri,
+    hasRecording,
     recognizing,
     transcript,
     matched,
     speakModel,
     toggleRecording,
     playRecording,
+    purgeRecording,
     reset,
   };
 }

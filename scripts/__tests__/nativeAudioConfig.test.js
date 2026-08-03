@@ -98,6 +98,19 @@ describe('T.A.R. · puerta de reconocimiento en el dispositivo', () => {
     expect(start).not.toContain('start?.(RECOGNITION_FALLBACK)');
   });
 
+  /* El parche nativo es lo único que permite ABRIR la puerta. Su ausencia
+   * degrada con seguridad (la puerta se queda cerrada), pero si desaparece sin
+   * que nadie lo note el T.A.R. pierde el reconocimiento en silencio. */
+  it('el parche que expone el modo local está presente y enganchado', () => {
+    const patch = read('patches/@react-native-voice+voice+3.2.4.patch');
+    expect(patch).toContain('requiresOnDeviceRecognition');
+    expect(patch).toContain('createOnDeviceSpeechRecognizer');
+    expect(patch).toContain('isOnDeviceRecognitionAvailable');
+    const pkg = JSON.parse(read('package.json'));
+    expect(pkg.scripts.postinstall).toContain('patch-package');
+    expect(pkg.devDependencies['patch-package']).toBeTruthy();
+  });
+
   it('el módulo de decisión no admite un modo de servidor', () => {
     const gate = read('src/Screens/Articulation/articulationRecognition.ts');
     expect(gate).toContain("export type RecognitionMode = 'on-device' | 'unavailable'");
@@ -107,6 +120,32 @@ describe('T.A.R. · puerta de reconocimiento en el dispositivo', () => {
       .replace(/\/\*[\s\S]*?\*\//g, '')
       .replace(/^\s*\/\/.*$/gm, '');
     expect(code).not.toMatch(/'server'/);
+  });
+});
+
+/* -------------------------------------------------------------------------- */
+/*  Zero-PHI de la toma del T.A.R. (A3).                                       */
+/* -------------------------------------------------------------------------- */
+describe('T.A.R. · la toma no toca el disco', () => {
+  const audio = read('src/Screens/Articulation/articulationAudio.ts');
+
+  /* REGRESIÓN — `react-native-audio-recorder-player` escribía un `.wav` que
+   * nadie borraba: la voz del paciente quedaba en el almacenamiento de la app
+   * indefinidamente. Ahora se captura PCM en memoria sobre el micrófono
+   * compartido, así que no hay fichero que limpiar. */
+  it('no usa el grabador a fichero', () => {
+    // Solo CÓDIGO: los comentarios nombran la librería retirada para explicar
+    // por qué se retiró.
+    const code = audio.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
+    expect(code).not.toContain('react-native-audio-recorder-player');
+    expect(code).not.toContain('startRecorder');
+    expect(code).not.toContain('audioUri');
+  });
+
+  it('captura sobre el micrófono compartido, en memoria', () => {
+    expect(audio).toContain('acquireRecorder');
+    expect(audio).toContain('createDecimator3');
+    expect(audio).toContain('takeRef');
   });
 });
 

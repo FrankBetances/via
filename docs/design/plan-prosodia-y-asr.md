@@ -158,7 +158,17 @@ degradación construida; se le añade un caso más:
 
 ---
 
-### PR A3 — Purga del audio del TAR 🟠
+### PR A3 — Purga del audio del TAR ✅ *hecho, por la vía A3.2*
+
+> **Resuelto eliminando el fichero, no limpiándolo.** A3.1 (borrar el `.wav`)
+> resultó impracticable: el proyecto no arrastra ninguna librería de sistema de
+> ficheros y `react-native-audio-recorder-player` no expone borrado, así que
+> habría exigido un módulo nativo nuevo para una sola llamada. Se hizo
+> directamente **A3.2**: el T.A.R. captura PCM **en memoria** sobre el
+> micrófono compartido de `@/Audio` y reproduce desde buffer, igual que el
+> análisis de voz y el de prosodia. Zero-PHI **por diseño** y no por limpieza
+> posterior; de paso, un solo motor de captura en toda la app y una dependencia
+> menos. Cubierto por guardia de fuente en `nativeAudioConfig.test.js`.
 
 **Problema.** No hay una sola llamada a `unlink` en `src/`. `toggleRecording()`
 guarda el `audioUri` y `reset()` solo lo pone a `null`: el `.wav` queda en el

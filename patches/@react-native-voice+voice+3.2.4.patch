@@ -1,0 +1,142 @@
+diff --git a/node_modules/@react-native-voice/voice/android/src/main/java/com/wenkesj/voice/VoiceModule.java b/node_modules/@react-native-voice/voice/android/src/main/java/com/wenkesj/voice/VoiceModule.java
+index f22833e..267fe55 100644
+--- a/node_modules/@react-native-voice/voice/android/src/main/java/com/wenkesj/voice/VoiceModule.java
++++ b/node_modules/@react-native-voice/voice/android/src/main/java/com/wenkesj/voice/VoiceModule.java
+@@ -5,6 +5,7 @@ import android.content.ComponentName;
+ import android.content.Intent;
+ import android.content.pm.PackageManager;
+ import android.content.pm.ResolveInfo;
++import android.os.Build;
+ import android.os.Bundle;
+ import android.os.Handler;
+ import android.speech.RecognitionListener;
+@@ -38,6 +39,10 @@ public class VoiceModule extends ReactContextBaseJavaModule implements Recogniti
+ 
+   final ReactApplicationContext reactContext;
+   private SpeechRecognizer speech = null;
++  /* VIA+ (A2 · Zero-PHI): exige reconocimiento EN EL DISPOSITIVO. Sin esto,
++     SpeechRecognizer enruta al proveedor —normalmente la nube— y la voz del
++     paciente sale del equipo. */
++  private boolean viaRequireOnDevice = false;
+   private boolean isRecognizing = false;
+   private String locale = null;
+ 
+@@ -60,7 +65,21 @@ public class VoiceModule extends ReactContextBaseJavaModule implements Recogniti
+       speech = null;
+     }
+     
+-    if(opts.hasKey("RECOGNIZER_ENGINE")) {
++    /* VIA+ (A2 · Zero-PHI). `createOnDeviceSpeechRecognizer` GARANTIZA el modo
++       local; el extra EXTRA_PREFER_OFFLINE solo lo prefiere y el proveedor
++       puede ignorarlo, así que no sirve para sostener una promesa Zero-PHI.
++       Disponible desde API 31 (Android 12). Si no se puede garantizar, NO se
++       cae al reconocedor normal: se aborta, porque la alternativa sería
++       reconocer por red justo cuando se ha pedido no hacerlo. */
++    if (this.viaRequireOnDevice) {
++      if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
++          && SpeechRecognizer.isOnDeviceRecognitionAvailable(this.reactContext)) {
++        speech = SpeechRecognizer.createOnDeviceSpeechRecognizer(this.reactContext);
++      } else {
++        Log.w("VIA+", "Se exigió reconocimiento local y no está disponible: no se arranca.");
++        return;
++      }
++    } else if(opts.hasKey("RECOGNIZER_ENGINE")) {
+       switch (opts.getString("RECOGNIZER_ENGINE")) {
+         case "GOOGLE": {
+           speech = SpeechRecognizer.createSpeechRecognizer(this.reactContext, ComponentName.unflattenFromString("com.google.android.googlequicksearchbox/com.google.android.voicesearch.serviceapi.GoogleRecognitionService"));
+@@ -144,6 +163,30 @@ public class VoiceModule extends ReactContextBaseJavaModule implements Recogniti
+     });
+   }
+ 
++  /* VIA+ (A2 · Zero-PHI) --------------------------------------------------- */
++
++  /** ¿Puede este dispositivo reconocer SIN RED? */
++  @ReactMethod
++  public void isOnDeviceRecognitionAvailable(final String locale, final Callback callback) {
++    boolean available = false;
++    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
++      try {
++        available = SpeechRecognizer.isOnDeviceRecognitionAvailable(this.reactContext);
++      } catch (Exception e) {
++        available = false;
++      }
++    }
++    callback.invoke(available);
++  }
++
++  /** Exige (o deja de exigir) reconocimiento local en los arranques siguientes. */
++  @ReactMethod
++  public void setRequireOnDeviceRecognition(final boolean require) {
++    this.viaRequireOnDevice = require;
++  }
++
++  /* ------------------------------------------------------------------------ */
++
+   @Override
+   public String getName() {
+     return "RCTVoice";
+diff --git a/node_modules/@react-native-voice/voice/ios/Voice/Voice.m b/node_modules/@react-native-voice/voice/ios/Voice/Voice.m
+index fd9dad8..82b1db5 100644
+--- a/node_modules/@react-native-voice/voice/ios/Voice/Voice.m
++++ b/node_modules/@react-native-voice/voice/ios/Voice/Voice.m
+@@ -17,6 +17,10 @@
+ /** Whether speech recognition is finishing.. */
+ @property (nonatomic) BOOL isTearingDown;
+ @property (nonatomic) BOOL continuous;
++/* VIA+ (A2 · Zero-PHI): exige que el reconocimiento ocurra EN EL DISPOSITIVO.
++   Sin esto, SFSpeechAudioBufferRecognitionRequest sale con
++   requiresOnDeviceRecognition = NO y la voz del paciente viaja a Apple. */
++@property (nonatomic) BOOL viaRequireOnDevice;
+ 
+ @property (nonatomic) NSString *sessionId;
+ /** Previous category the user was on prior to starting speech recognition */
+@@ -153,6 +157,11 @@
+     // Configure request so that results are returned before audio recording is finished
+     self.recognitionRequest.shouldReportPartialResults = YES;
+ 
++    // VIA+ (A2 · Zero-PHI): reconocimiento estrictamente local cuando se pide.
++    if (@available(iOS 13.0, *)) {
++        self.recognitionRequest.requiresOnDeviceRecognition = self.viaRequireOnDevice;
++    }
++    
+     if (self.recognitionRequest == nil) {
+         [self sendResult:@{@"code": @"recognition_init"} :nil :nil :nil];
+         [self teardown];
+@@ -368,6 +377,37 @@ RCT_EXPORT_METHOD(isRecognizing:(RCTResponseSenderBlock)callback) {
+     }
+ }
+ 
++/* VIA+ (A2 · Zero-PHI) ---------------------------------------------------- */
++
++/** ¿Tiene este dispositivo modelo LOCAL para ese locale? */
++RCT_EXPORT_METHOD(isOnDeviceRecognitionAvailable:(NSString*)localeStr callback:(RCTResponseSenderBlock)callback) {
++    if (@available(iOS 13.0, *)) {
++        SFSpeechRecognizer* recognizer = nil;
++        if ([localeStr length] > 0) {
++            NSLocale* locale = [NSLocale localeWithLocaleIdentifier:localeStr];
++            recognizer = [[SFSpeechRecognizer alloc] initWithLocale:locale];
++        } else {
++            recognizer = [[SFSpeechRecognizer alloc] init];
++        }
++        if (recognizer == nil) {
++            callback(@[@false]);
++            return;
++        }
++        callback(@[@(recognizer.supportsOnDeviceRecognition)]);
++        return;
++    }
++    // Antes de iOS 13 no existe reconocimiento local: se responde que NO, para
++    // que la puerta de VIA+ cierre en vez de asumir.
++    callback(@[@false]);
++}
++
++/** Exige (o deja de exigir) reconocimiento local en los arranques siguientes. */
++RCT_EXPORT_METHOD(setRequireOnDeviceRecognition:(BOOL)require) {
++    self.viaRequireOnDevice = require;
++}
++
++/* ------------------------------------------------------------------------- */
++
+ RCT_EXPORT_METHOD(startSpeech:(NSString*)localeStr callback:(RCTResponseSenderBlock)callback) {
+     if (self.recognitionTask != nil) {
+         [self sendResult:RCTMakeError(@"Speech recognition already started!", nil, nil) :nil :nil :nil];
