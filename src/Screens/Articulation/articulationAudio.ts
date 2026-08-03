@@ -10,6 +10,7 @@ import {
 } from '@/Audio';
 import { createDecimator3, DECIMATION, SAMPLE_RATE } from '@/Screens/VoiceAnalysis/voiceDsp';
 
+import { proposeSoda, type SodaProposal } from './articulationPhonetics';
 import {
   probeRecognitionCaps,
   type NativeRecognitionProbe,
@@ -137,10 +138,13 @@ export interface ArticulationAudio {
   recognizing: boolean;          // escuchando para transcribir
   transcript: string;            // lo que el motor entendió
   matched: boolean | null;       // ¿coincide con la palabra objetivo? (null = aún sin evaluar)
+  /** Propuesta SODA por fonema a partir de la transcripción (A-bis). `null`
+   *  mientras no haya transcripción. La clasificación la firma el clínico. */
+  sodaProposal: SodaProposal | null;
   /** Reproduce el modelo hablado (palabra/frase objetivo). */
   speakModel: (word: string) => void;
   /** Inicia/detiene grabación + reconocimiento. `targetWord` activa la comparación automática. */
-  toggleRecording: (targetWord?: string) => Promise<void>;
+  toggleRecording: (targetWord?: string, targetPhoneme?: string) => Promise<void>;
   playRecording: () => void;
   /** Borra el `.wav` de la toma en curso (A3 · Zero-PHI). Idempotente. */
   purgeRecording: () => Promise<void>;
@@ -261,6 +265,9 @@ export function useArticulationAudio(lang: string = 'es'): ArticulationAudio {
   const [recognizing, setRecognizing] = useState(false);
   const [transcript, setTranscript] = useState('');
   const [matched, setMatched] = useState<boolean | null>(null);
+  const [sodaProposal, setSodaProposal] = useState<SodaProposal | null>(null);
+  /** Fonema que evalúa el ítem en curso: pondera qué errores son del objetivo. */
+  const targetPhonemeRef = useRef<string>('');
 
   /** Reserva del micrófono COMPARTIDO (un solo stream nativo en toda la app). */
   const recorderRef = useRef<SharedRecorder | null>(null);
@@ -348,7 +355,11 @@ export function useArticulationAudio(lang: string = 'es'): ArticulationAudio {
         const text: string = (e?.value && e.value[0]) || '';
         if (!text) return;
         setTranscript(text);
-        if (targetRef.current) setMatched(matchesTarget(targetRef.current, text));
+        if (targetRef.current) {
+          setMatched(matchesTarget(targetRef.current, text));
+          // A-bis: de «coincide / no coincide» a QUÉ fonema falló y de qué tipo.
+          setSodaProposal(proposeSoda(targetRef.current, text, targetPhonemeRef.current));
+        }
       };
       Voice.onSpeechPartialResults = handleResults;
       Voice.onSpeechResults = handleResults;
@@ -474,11 +485,13 @@ export function useArticulationAudio(lang: string = 'es'): ArticulationAudio {
   }, []);
 
   /* ------------------- grabación + reconocimiento --------------------- */
-  const startRecognition = useCallback(async (targetWord?: string) => {
+  const startRecognition = useCallback(async (targetWord?: string, targetPhoneme?: string) => {
     if (!recognitionRef.current) return;
     targetRef.current = targetWord ?? '';
+    targetPhonemeRef.current = targetPhoneme ?? '';
     setTranscript('');
     setMatched(null);
+    setSodaProposal(null);
     const locale = RECOGNITION_LOCALE[langRef.current] ?? RECOGNITION_FALLBACK;
     try {
       await voiceRef.current?.start?.(locale);
@@ -511,7 +524,7 @@ export function useArticulationAudio(lang: string = 'es'): ArticulationAudio {
   }, []);
 
   const toggleRecording = useCallback(
-    async (targetWord?: string) => {
+    async (targetWord?: string, targetPhoneme?: string) => {
       // --- detener ---
       if (recStatus === 'recording') {
         try {
@@ -547,7 +560,7 @@ export function useArticulationAudio(lang: string = 'es'): ArticulationAudio {
       if (!ok) return;
 
       // reconocimiento (no bloqueante)
-      startRecognition(targetWord);
+      startRecognition(targetWord, targetPhoneme);
 
       // grabación en memoria
       if (availableRef.current) {
@@ -615,6 +628,7 @@ export function useArticulationAudio(lang: string = 'es'): ArticulationAudio {
     setRecStatus('idle');
     setTranscript('');
     setMatched(null);
+    setSodaProposal(null);
     setRecognizing(false);
     setSpeaking(false);
     if (speakTimerRef.current) clearTimeout(speakTimerRef.current);
@@ -650,6 +664,7 @@ export function useArticulationAudio(lang: string = 'es'): ArticulationAudio {
     recognizing,
     transcript,
     matched,
+    sodaProposal,
     speakModel,
     toggleRecording,
     playRecording,

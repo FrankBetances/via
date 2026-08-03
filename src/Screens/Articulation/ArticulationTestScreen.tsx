@@ -553,7 +553,7 @@ export default function ArticulationTestScreen({ navigation }: Props) {
                   </Button>
                   {audio.available || audio.recognitionAvailable ? (
                     <>
-                      <Pressable style={{ flex: 1 }} onPress={() => audio.toggleRecording(cur.word)}>
+                      <Pressable style={{ flex: 1 }} onPress={() => audio.toggleRecording(cur.word, cur.phoneme)}>
                         <Center py="$3" borderRadius={14} bg={audio.recStatus === 'recording' ? '$error50' : '$textLight900'} borderWidth={audio.recStatus === 'recording' ? 1.5 : 0} borderColor="$error500">
                           <HStack space="sm" alignItems="center">
                             <Icon as={audio.recStatus === 'recording' ? Square : Mic} size="sm" color={audio.recStatus === 'recording' ? '$error500' : '$white'} />
@@ -595,17 +595,32 @@ export default function ArticulationTestScreen({ navigation }: Props) {
                         </Box>
                       ) : null}
                     </HStack>
-                    {audio.matched ? (
-                      <Pressable onPress={() => recordCode('C')}>
-                        <Center mt="$3" py="$2.5" borderRadius={12} bg="$success600">
-                          <HStack space="sm" alignItems="center">
-                            <Icon as={Check} size="sm" color="$white" />
-                            <Text size="sm" weight="bold" color="$white">
-                              Marcar como correcto
-                            </Text>
-                          </HStack>
-                        </Center>
-                      </Pressable>
+                    {/* A-bis · propuesta SODA por fonema. La transcripción deja
+                        de ser un semáforo: se alinea con la palabra objetivo y
+                        se dice QUÉ fonema falló y de qué tipo. Es una
+                        PROPUESTA —la firma sigue siendo del clínico— y por eso
+                        el botón dice «aceptar», no «marcar». */}
+                    {audio.sodaProposal?.code ? (
+                      <VStack mt="$3" space="xs">
+                        <Text size="2xs" color="$textLight600">
+                          {audio.sodaProposal.note}
+                        </Text>
+                        {audio.sodaProposal.confidence === 'baja' ? (
+                          <Text size="2xs" color="$warning700">
+                            La transcripción no ve las distorsiones: confírmelo de oído.
+                          </Text>
+                        ) : null}
+                        <Pressable onPress={() => recordCode(audio.sodaProposal!.code as SodaCode)}>
+                          <Center py="$2.5" borderRadius={12} bg={audio.sodaProposal.code === 'C' ? '$success600' : '$warning700'}>
+                            <HStack space="sm" alignItems="center">
+                              <Icon as={Check} size="sm" color="$white" />
+                              <Text size="sm" weight="bold" color="$white">
+                                Aceptar propuesta: {audio.sodaProposal.code}
+                              </Text>
+                            </HStack>
+                          </Center>
+                        </Pressable>
+                      </VStack>
                     ) : null}
                   </Box>
                 ) : null}

@@ -79,7 +79,7 @@ Es un test barato que convierte un fallo de campo silencioso en un fallo de CI.
 
 ---
 
-### PR A2 — Reconocimiento estrictamente *on-device* ✅ *puerta cerrada · capa nativa pendiente*
+### PR A2 — Reconocimiento estrictamente *on-device* ✅ *hecho · pendiente de prueba en dispositivo*
 
 > **Resultado del spike A2.0 (verificado leyendo el código de la librería, no
 > supuesto).** `@react-native-voice/voice@3.2.4` **no permite** garantizar el
@@ -102,12 +102,20 @@ Es un test barato que convierte un fallo de campo silencioso en un fallo de CI.
 > es el objetivo de A2. Se retira además el reintento en la lengua base, porque
 > la garantía de modo local se confirma para un locale concreto.
 >
-> **Lo que falta: la capa nativa** (rutas 2/3 del plan). Contrato declarado en
-> la cabecera de `articulationRecognition.ts`. **No se ha implementado aquí a
-> propósito:** este entorno no tiene SDK de Android ni Xcode —`dl.google.com`
-> está bloqueado por política de red— y un parche nativo que no se puede
-> compilar no debe entrar en `main`. Cuando llegue, la puerta se abre sola sin
-> tocar esta lógica.
+> **La capa nativa (ruta 2): implementada** con `patch-package`. iOS fija
+> `requiresOnDeviceRecognition` y expone `supportsOnDeviceRecognition`; Android
+> usa `createOnDeviceSpeechRecognizer()` desde API 31 y **no**
+> `EXTRA_PREFER_OFFLINE`, porque el extra solo PREFIERE el modo local y el
+> proveedor puede ignorarlo — con una preferencia no se firma una promesa
+> Zero-PHI. Si el parche no estuviera aplicado, los métodos no existen, el
+> sondeo devuelve `null` y la puerta se queda cerrada: su ausencia degrada con
+> seguridad.
+>
+> **Pendiente: prueba en dispositivo real.** Aquí no hay SDK de Android ni
+> Xcode (`dl.google.com` bloqueado), así que no se ha compilado ninguna de las
+> dos plataformas. Sí se ha verificado que `javac` no da ningún error de
+> sintaxis, que `clang` no da ninguno de gramática, y que el parche se aplica
+> limpio desde un `npm ci` en frío.
 
 **Problema.** Los reconocedores del sistema son de servidor por defecto. Hoy la
 voz de un menor puede viajar a Apple o Google desde el módulo TAR.
@@ -205,7 +213,30 @@ Beneficio colateral: unifica el motor de captura de toda la app y elimina
 
 ---
 
-### Línea A-bis — *Scoring* fonético (investigación, sin fecha)
+### Línea A-bis — *Scoring* fonético ⏳ *mitad no acústica hecha · GOP pendiente*
+
+> A-bis tiene **dos mitades**, y solo una estaba bloqueada.
+>
+> **HECHO — alineamiento fonémico y propuesta SODA** (`articulationPhonetics.ts`).
+> La comparación era contención de cadenas: devolvía «coincide» o «no coincide».
+> Ahora las dos cadenas se transcriben a fonemas —la ortografía española es
+> casi biunívoca, así que la conversión es **reglada y auditable**, no
+> estadística—, se alinean por distancia de edición y cada diferencia se
+> traduce a su código: sustitución → S, omisión → O, adición → A. La pantalla
+> propone y el clínico acepta. **Módulo puro: sin modelos, sin red, sin código
+> nativo — el principio «cero IA en el dispositivo» queda intacto.**
+>
+> Cubre el seseo por defecto, porque el T.A.R. se usa en sesión dominicana y sin
+> él cada «zapato» se marcaría como sustitución de un fonema que en esa variedad
+> no existe.
+>
+> **PENDIENTE — la mitad acústica (GOP sobre posteriorgramas).** Es la que
+> detecta la **D (distorsión)**, y no es un detalle: una /s/ interdental o una
+> /r/ mal vibrada producen **exactamente la misma cadena** que la producción
+> correcta. Ninguna cantidad de análisis de texto las ve. Sigue exigiendo lo
+> que ya decía este plan —decisión regulatoria sobre inferencia en el
+> dispositivo y corpus infantil anotado— y además, en este entorno, los pesos
+> no son descargables (Hugging Face bloqueado por política de red).
 
 **No forma parte de este plan de entrega.** Se documenta para que no se
 confunda con A2.
