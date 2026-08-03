@@ -94,10 +94,20 @@ público de VIA+.
 
 ### Dos bandas de edad
 
-| Banda | Tarea | Apoyo |
-|---|---|---|
-| **3–6 años** (prelectores) | Generación de historia sobre lámina secuenciada | Lámina en pantalla + consigna hablada |
-| **7–12 años** | Recuento de historia + narración libre sobre lámina | Lámina en pantalla + consigna hablada |
+| Banda | Tarea | Estímulo implementado | Apoyo |
+|---|---|---|---|
+| **3–6 años** (prelectores) | Narración sobre lámina | `lamina-parque-v1` — escena única, 10 elementos describibles | Lámina en pantalla + consigna hablada |
+| **7–12 años** | Narración sobre lámina **secuenciada** | `lamina-excursion-v1` — 3 viñetas, 8 elementos | Lámina en pantalla + consigna hablada |
+
+> **Precisión sobre la banda de lectores.** Este documento planteaba «recuento de
+> historia» para 7–12 años. Un recuento exige una **historia fuente** que el niño
+> escuche antes, y esa locución no existe en el corpus: etiquetar la toma como
+> `recuento-historia` sin haberla reproducido sería registrar una tarea que no se
+> ha realizado —y la tarea es justamente lo que hace comparables dos tomas entre
+> sí (B0.2)—. Se implementa por tanto **lámina secuenciada de tres viñetas**, que
+> es narración a partir de imagen y obliga igualmente a encadenar con conectores
+> y a producir el contorno entonativo de cierre. El valor `recuento-historia`
+> queda en el esquema para cuando la historia fuente se produzca.
 
 La consigna se locuta con la capa `@/Voice`, como el resto de la app, para que
 sea **idéntica entre exploradores**. Una consigna leída por el clínico varía en

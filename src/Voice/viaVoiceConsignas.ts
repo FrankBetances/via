@@ -1,5 +1,9 @@
 import { buildArticulationItems } from '../Screens/Articulation/articulationResult';
 import {
+  PROSODY_AGE_BANDS,
+  prosodyStimulusFor,
+} from '../Screens/ProsodyAnalysis/prosodyStimuli';
+import {
   EF_DOMAIN_META,
   EF_DOMAIN_ORDER,
   EF_RULES,
@@ -150,10 +154,42 @@ export const TAR_MODELS: ConsignaSpec[] = [
  * recorre en orden; añadir un banco nuevo aquí lo incorpora al corpus, al
  * pipeline de síntesis y a los tests de invariantes sin tocar nada más.
  */
+/**
+ * Consignas del módulo de PROSODIA (una por banda de edad).
+ *
+ * Aquí la locución neuronal no es un lujo estético: es un requisito de la
+ * medida. La consigna la oye el niño justo antes de hablar, y el niño imita el
+ * modelo —velocidad, pausas, entonación—. Si la lee el explorador, cada
+ * exploración parte de un modelo distinto y esa variabilidad entra en la medida
+ * de un módulo que mide exactamente eso. Con recorte pre-sintetizado, la
+ * consigna es idéntica en todas las sesiones.
+ *
+ * Estilo `tutor`, el mismo del resto de consignas de la batería.
+ *
+ * DERIVA CERO (P3): el texto se deriva de `PROSODY_STIMULI` —la MISMA tabla que
+ * pinta la lámina y locuta la pantalla—, así que corpus y estímulo no pueden
+ * divergir. Si la consigna cambia, cambia su id y el recorte cae limpiamente a
+ * la voz del sistema hasta regenerar.
+ *
+ * LENGUAS: `es` y `es-DO` (misma lengua, otra voz), igual que `TAR_MODELS`. El
+ * gallego y el euskera no se enumeran sin delta firmado: traducir una consigna
+ * clínica sin revisión humana sería traducción automática encubierta (P6), y
+ * aquí el texto además condiciona la tarea que se le pide al niño.
+ */
+export const PROSODY_CONSIGNAS: ConsignaSpec[] = PROSODY_AGE_BANDS.map(band => {
+  const stimulus = prosodyStimulusFor(band);
+  const es = stimulus.consigna.es;
+  const text: ConsignaText = { es, 'es-DO': stimulus.consigna['es-DO'] ?? es };
+  if (stimulus.consigna.gl) text.gl = stimulus.consigna.gl;
+  if (stimulus.consigna.eu) text.eu = stimulus.consigna.eu;
+  return { key: `prosody.${band}`, source: 'prosodyAnalysis', style: 'tutor' as VoiceStyle, text };
+});
+
 export const VOICE_CONTENT_BANKS: ConsignaSpec[] = [
   ...CONSIGNAS,
   ...EF_RULE_CONSIGNAS,
   ...TAR_MODELS,
+  ...PROSODY_CONSIGNAS,
 ];
 
 /* -------------------------------------------------------------------------- */
@@ -202,3 +238,14 @@ export const EF_CONSIGNA_LANGS: VoiceLang[] = bankLangs(
   [...CONSIGNAS, ...EF_RULE_CONSIGNAS].map(c => c.text),
 );
 export const TAR_MODEL_LANGS: VoiceLang[] = bankLangs(TAR_MODELS.map(c => c.text));
+
+/** Consigna hablada del módulo de prosodia, por lengua (DERIVA CERO). */
+export const prosodyConsignaTextByLang = (band: 'prelector' | 'lector'): ConsignaText => {
+  const spec = PROSODY_CONSIGNAS.find(c => c.key === `prosody.${band}`);
+  if (spec) return spec.text;
+  const es = prosodyStimulusFor(band).consigna.es;
+  return { es, 'es-DO': es };
+};
+
+/** Lenguas que el selector del módulo de prosodia puede ofrecer sin mentir. */
+export const PROSODY_CONSIGNA_LANGS: VoiceLang[] = bankLangs(PROSODY_CONSIGNAS.map(c => c.text));

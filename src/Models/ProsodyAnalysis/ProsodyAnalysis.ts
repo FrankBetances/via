@@ -9,6 +9,7 @@ import {
 import { Evaluation } from '@/Models/Evaluation/Evaluation';
 import { Exclude, Transform, Type } from 'class-transformer';
 import type { ProsodyReason } from '@/Screens/ProsodyAnalysis/prosodyDsp';
+import type { ProsodyAgeBand, ProsodyTask } from '@/Screens/ProsodyAnalysis/prosodyStimuli';
 
 /* -------------------------------------------------------------------------- */
 /*  Entidad del análisis prosódico.                                            */
@@ -20,20 +21,20 @@ import type { ProsodyReason } from '@/Screens/ProsodyAnalysis/prosodyDsp';
 /* -------------------------------------------------------------------------- */
 
 /**
- * Tarea de habla conectada con la que se obtuvo la muestra (decisión B0.1, ver
- * `docs/design/b0-prosodia-tarea-y-afirmaciones.md`).
+ * La tarea y la banda de edad se definen en `prosodyStimuli` (módulo PURO, que
+ * también alimenta el corpus de voz) y se reexportan aquí para los consumidores
+ * de la entidad. Misma dirección que `ArticulationTest` con `SodaCode`: el
+ * modelo importa el tipo del contenido, no al revés, para que la cadena de
+ * contenido no arrastre TypeORM.
  *
- * SE GUARDA CON CADA TOMA, y no es un adorno documental: la tasa de habla
+ * LA TAREA SE GUARDA CON CADA TOMA, y no es adorno documental: la tasa de habla
  * depende fuertemente de la tarea —el habla automática y la repetición son más
  * rápidas que la imitada, y la generación de historia más lenta que la
  * narración espontánea—, así que dos tomas de tareas distintas NO son
  * comparables. Sin este campo, el seguimiento intrasujeto (la única comparación
  * que B0.2 permite) podría cruzar tareas sin que nadie se diera cuenta.
  */
-export type ProsodyTask = 'narracion-lamina' | 'recuento-historia' | 'lectura';
-
-/** Banda de edad de la tarea. Determina la lámina y la consigna. */
-export type ProsodyAgeBand = 'prelector' | 'lector';
+export type { ProsodyAgeBand, ProsodyTask };
 
 /**
  * Métricas prosódicas persistidas. Reflejo de `ProsodyMetrics` del DSP, con la

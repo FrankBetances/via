@@ -1,16 +1,17 @@
 {
   "schema": "via-plus/voice-corpus@1",
-  "entries": 190,
+  "entries": 194,
   "byLang": {
-    "es": 95,
-    "es-DO": 95
+    "es": 97,
+    "es-DO": 97
   },
   "byStyle": {
-    "tutor": 190
+    "tutor": 194
   },
   "bySource": {
     "executiveFunctions": 18,
-    "articulation": 172
+    "articulation": 172,
+    "prosodyAnalysis": 4
   },
   "corpus": [
     {
@@ -175,6 +176,13 @@
       "source": "articulation"
     },
     {
+      "id": "es-DO_tutor_34eb5f68_98",
+      "lang": "es-DO",
+      "style": "tutor",
+      "text": "Mira las tres viñetas por orden. Cuéntame la historia completa, desde el principio hasta el final.",
+      "source": "prosodyAnalysis"
+    },
+    {
       "id": "es-DO_tutor_37cff43d_4",
       "lang": "es-DO",
       "style": "tutor",
@@ -236,6 +244,13 @@
       "style": "tutor",
       "text": "Coro",
       "source": "articulation"
+    },
+    {
+      "id": "es-DO_tutor_5401177c_75",
+      "lang": "es-DO",
+      "style": "tutor",
+      "text": "Mira bien este dibujo. Cuéntame todo lo que ves y todo lo que está pasando.",
+      "source": "prosodyAnalysis"
     },
     {
       "id": "es-DO_tutor_566320a1_4",
@@ -840,6 +855,13 @@
       "source": "articulation"
     },
     {
+      "id": "tutor_34eb5f68_98",
+      "lang": "es",
+      "style": "tutor",
+      "text": "Mira las tres viñetas por orden. Cuéntame la historia completa, desde el principio hasta el final.",
+      "source": "prosodyAnalysis"
+    },
+    {
       "id": "tutor_37cff43d_4",
       "lang": "es",
       "style": "tutor",
@@ -901,6 +923,13 @@
       "style": "tutor",
       "text": "Coro",
       "source": "articulation"
+    },
+    {
+      "id": "tutor_5401177c_75",
+      "lang": "es",
+      "style": "tutor",
+      "text": "Mira bien este dibujo. Cuéntame todo lo que ves y todo lo que está pasando.",
+      "source": "prosodyAnalysis"
     },
     {
       "id": "tutor_566320a1_4",

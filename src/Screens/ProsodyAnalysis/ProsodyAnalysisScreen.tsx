@@ -11,18 +11,15 @@ import {
   Spinner,
   VStack,
 } from '@gluestack-ui/themed';
-import { AlertTriangle, AudioWaveform, Mic, RotateCcw, Save, Square } from 'lucide-react-native';
+import { AlertTriangle, AudioWaveform, Mic, RotateCcw, Save, Square, Volume2 } from 'lucide-react-native';
 
 import { Button, Content, Header, Text } from '@/Components/Common';
 import RadialBackground from '@/Components/Themed/RadialBackground';
 import { finishModule, RootStackParamList } from '@/Navigators';
 import { RootState } from '@/Store';
 import { Evaluation } from '@/Models/Evaluation/Evaluation';
-import {
-  ProsodyAnalysis,
-  type ProsodyAgeBand,
-  type ProsodyTask,
-} from '@/Models/ProsodyAnalysis/ProsodyAnalysis';
+import { ProsodyAnalysis } from '@/Models/ProsodyAnalysis/ProsodyAnalysis';
+import { canSpeak, prosodyConsignaTextByLang, speakLocalized, stopSpeaking } from '@/Voice';
 import { useClassSelector } from '@/Helpers/ClassTransformer';
 import { useTelemetryTracker } from '@/Telemetry';
 import { useCreateProsodyAnalysisMutation } from '@/Services/local/modules/prosodyAnalysis';
@@ -35,6 +32,13 @@ import {
 import { registerProsodyMicAdapter, unregisterProsodyMicAdapter } from './prosodyMicAdapter';
 import { EMPTY_PROSODY_METRICS, toProsodyMetricsRecord } from './prosodyRecord';
 import { prosodyInterpretation, prosodyReasonLabel, prosodyReportRows } from './prosodyResult';
+import {
+  PROSODY_AGE_BANDS,
+  PROSODY_AGE_BAND_LABEL,
+  prosodyStimulusFor,
+  type ProsodyAgeBand,
+} from './prosodyStimuli';
+import ProsodyStimulusScene from './ProsodyStimulusScene';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'ProsodyAnalysis'>;
 
@@ -47,22 +51,6 @@ type Props = NativeStackScreenProps<RootStackParamList, 'ProsodyAnalysis'>;
 /*  percentiles ni etiquetas de normalidad, porque no hay baremo pediátrico    */
 /*  español que los respalde.                                                  */
 /* -------------------------------------------------------------------------- */
-
-/** Estímulos por banda de edad (B0.1). Trazables por `stimulusId`. */
-const STIMULI: Record<ProsodyAgeBand, { id: string; task: ProsodyTask; title: string; prompt: string }> = {
-  prelector: {
-    id: 'lamina-parque-v1',
-    task: 'narracion-lamina',
-    title: 'Lámina: un día en el parque',
-    prompt: 'Cuéntame todo lo que pasa en este dibujo. Tómate el tiempo que quieras.',
-  },
-  lector: {
-    id: 'recuento-excursion-v1',
-    task: 'recuento-historia',
-    title: 'Recuento: la excursión',
-    prompt: 'Cuéntame la historia con tus palabras, desde el principio hasta el final.',
-  },
-};
 
 const secs = (v: number) => `${v.toFixed(0)} s`;
 
@@ -106,7 +94,35 @@ export default function ProsodyAnalysisScreen({ navigation }: Props) {
     activeEvaluation?.professional?.licenseNumber ?? '',
   );
 
-  const stimulus = STIMULI[ageBand];
+  const stimulus = prosodyStimulusFor(ageBand);
+  const [voiceAvailable, setVoiceAvailable] = useState(canSpeak);
+
+  /* Locuta la consigna con la voz de la app (recorte neuronal → voz del
+   * sistema). Se detiene cualquier locución previa: dos consignas solapadas
+   * serían un modelo prosódico contradictorio. */
+  const speakConsigna = () => {
+    try {
+      stopSpeaking();
+      speakLocalized('tutor', prosodyConsignaTextByLang(ageBand), 'es');
+    } catch {
+      /* sin motor de voz: el explorador lee la consigna (ya se avisa) */
+    }
+  };
+
+  // La voz del sistema tarda en arrancar: sin esto la pantalla podía quedarse
+  // con el «no» del arranque y desactivar el botón para siempre.
+  useEffect(() => {
+    setVoiceAvailable(canSpeak());
+  }, []);
+
+  // Al salir no puede quedar una consigna sonando sobre otra pantalla.
+  useEffect(() => () => {
+    try {
+      stopSpeaking();
+    } catch {
+      /* noop */
+    }
+  }, []);
   const result = prosody.result;
 
   const record = useMemo(
@@ -205,38 +221,71 @@ export default function ProsodyAnalysisScreen({ navigation }: Props) {
               </Card>
             ) : null}
 
-            {/* Banda de edad y estímulo */}
+            {/* Banda de edad, lámina y consigna */}
             <Card p="$4" borderRadius={16}>
               <VStack space="sm">
                 <Text size="sm" weight="bold" color="$textLight800">
                   Tarea
                 </Text>
                 <HStack space="sm">
-                  {(['prelector', 'lector'] as ProsodyAgeBand[]).map(band => (
+                  {PROSODY_AGE_BANDS.map(band => (
                     <Button
                       key={band}
                       flex={1}
                       variant={ageBand === band ? 'solid' : 'outline'}
                       isDisabled={recording || analysing}
                       onPress={() => setAgeBand(band)}>
-                      {band === 'prelector' ? '3–6 años' : '7–12 años'}
+                      {PROSODY_AGE_BAND_LABEL[band]}
                     </Button>
                   ))}
                 </HStack>
+
                 <Text size="sm" weight="bold" color="$textLight900">
                   {stimulus.title}
                 </Text>
-                <Text size="sm" color="$textLight600">
-                  «{stimulus.prompt}»
+
+                {/* La LÁMINA es el estímulo: es lo que el niño mira mientras
+                    habla, y de su riqueza depende que la muestra llegue a los
+                    30 s. Se dibuja en SVG (ver ProsodyStimulusScene). */}
+                <Box
+                  borderRadius={14}
+                  overflow="hidden"
+                  borderWidth={1}
+                  borderColor="$borderLight200"
+                  style={{ aspectRatio: 400 / 240 }}>
+                  <ProsodyStimulusScene ageBand={ageBand} />
+                </Box>
+
+                {/* La consigna la LOCUTA la app, no la lee el explorador: el
+                    niño imita el modelo que oye —velocidad, pausas, entonación—
+                    y una consigna leída por cada explorador metería esa
+                    variabilidad en la medida de un módulo que mide exactamente
+                    eso. Por eso el botón, y por eso está en el corpus de voz. */}
+                <Button
+                  variant="outline"
+                  isDisabled={recording || analysing || !voiceAvailable}
+                  onPress={speakConsigna}>
+                  <Icon as={Volume2} size="sm" />
+                  {'  Reproducir la consigna'}
+                </Button>
+                <Text size="xs" color="$textLight600">
+                  «{stimulus.consigna.es}»
                 </Text>
+                {!voiceAvailable ? (
+                  <Text size="xs" color="$warning800">
+                    Sin voz disponible: lea la consigna en voz alta ANTES de iniciar la toma.
+                  </Text>
+                ) : null}
+
                 {/* B0.1: el explorador no debe hablar durante la toma — su voz
                     entraría en el recuento de sílabas y en las pausas. */}
                 <Box bg="$backgroundLight50" p="$3" borderRadius={12}>
                   <Text size="xs" color="$textLight600">
-                    Lea la consigna ANTES de iniciar la toma y guarde silencio mientras el niño habla:
-                    su voz se sumaría a la medida.
+                    Reproduzca la consigna ANTES de iniciar la toma y guarde silencio mientras el
+                    niño habla: su voz se sumaría a la medida.
                   </Text>
                 </Box>
+
                 {/* El ruido de sala degrada las pausas y el recuento silábico.
                     No se puede comprobar automáticamente: el sonómetro guarda su
                     calibración, no el nivel medido, así que no hay estado que

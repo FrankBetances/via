@@ -101,7 +101,7 @@ describe('prosodia · registro del módulo en la app', () => {
     expect(block).toContain('PDF.PROSODY.DISCLAIMER');
     expect(block).toContain('sin baremo poblacional');
     // Y la tarea, sin la cual las cifras no son comparables con nada.
-    expect(block).toContain('TASK_LABEL');
+    expect(block).toContain('PROSODY_TASK_LABEL');
   });
 });
 

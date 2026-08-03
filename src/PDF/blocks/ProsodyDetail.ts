@@ -1,5 +1,9 @@
 import { ProsodyAnalysis } from '@/Models/ProsodyAnalysis/ProsodyAnalysis';
 import { prosodyReasonLabel, prosodyReportRows } from '@/Screens/ProsodyAnalysis/prosodyResult';
+import {
+  PROSODY_AGE_BAND_LABEL,
+  PROSODY_TASK_LABEL,
+} from '@/Screens/ProsodyAnalysis/prosodyStimuli';
 import { BlockOptions } from './types';
 import { PDF_FONT_SIZES, PDF_MARGINS, PDF_COLORS } from '@/PDF/utils';
 import { Logo } from './Logo';
@@ -7,18 +11,6 @@ import { Logo } from './Logo';
 interface ProsodyDetailProps {
   analysis: ProsodyAnalysis;
 }
-
-/** Etiqueta legible de la tarea de habla con la que se obtuvo la muestra. */
-const TASK_LABEL: Record<string, string> = {
-  'narracion-lamina': 'Narración sobre lámina',
-  'recuento-historia': 'Recuento de historia',
-  lectura: 'Lectura en voz alta',
-};
-
-const AGE_BAND_LABEL: Record<string, string> = {
-  prelector: 'Prelector (3–6 a)',
-  lector: 'Lector (7–12 a)',
-};
 
 /**
  * Página de detalle del análisis prosódico dentro del informe PDF.
@@ -52,7 +44,7 @@ export async function ProsodyDetail(
 
   // Procedencia de la muestra: tarea, banda de edad y estímulo concreto.
   page.drawText(
-    `${TASK_LABEL[analysis.task] ?? analysis.task} · ${AGE_BAND_LABEL[analysis.ageBand] ?? analysis.ageBand}` +
+    `${PROSODY_TASK_LABEL[analysis.task] ?? analysis.task} · ${PROSODY_AGE_BAND_LABEL[analysis.ageBand] ?? analysis.ageBand}` +
       (analysis.stimulusId ? ` · estímulo ${analysis.stimulusId}` : ''),
     {
       x: PDF_MARGINS.left,

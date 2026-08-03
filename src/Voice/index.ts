@@ -32,6 +32,9 @@ export {
   tarModelByLang,
   EF_CONSIGNA_LANGS,
   TAR_MODEL_LANGS,
+  PROSODY_CONSIGNAS,
+  prosodyConsignaTextByLang,
+  PROSODY_CONSIGNA_LANGS,
 } from './viaVoiceConsignas';
 export type { ConsignaSpec, ConsignaText } from './viaVoiceConsignas';
 
