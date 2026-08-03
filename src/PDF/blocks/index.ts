@@ -16,6 +16,7 @@ export { ClinicalAssessmentDetail } from './ClinicalAssessmentDetail';
 export { ScreeningDetail } from './ScreeningDetail';
 export { AudiometryDetail } from './AudiometryDetail';
 export { VoiceAnalysisDetail } from './VoiceAnalysisDetail';
+export { ProsodyDetail } from './ProsodyDetail';
 export { DysphagiaDetail } from './DysphagiaDetail';
 export { SahsScreeningDetail } from './SahsScreeningDetail';
 export { ArticulationDetail } from './ArticulationDetail';
@@ -26,6 +27,7 @@ import { ClinicalAssessmentDetail } from './ClinicalAssessmentDetail';
 import { ScreeningDetail } from './ScreeningDetail';
 import { AudiometryDetail } from './AudiometryDetail';
 import { VoiceAnalysisDetail } from './VoiceAnalysisDetail';
+import { ProsodyDetail } from './ProsodyDetail';
 import { DysphagiaDetail } from './DysphagiaDetail';
 import { SahsScreeningDetail } from './SahsScreeningDetail';
 import { ArticulationDetail } from './ArticulationDetail';
@@ -41,6 +43,7 @@ export const blocks: Record<string, PdfBlock<any>> = {
   ScreeningDetail,
   AudiometryDetail,
   VoiceAnalysisDetail,
+  ProsodyDetail,
   DysphagiaDetail,
   SahsScreeningDetail,
   ArticulationDetail,

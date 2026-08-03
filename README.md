@@ -441,7 +441,7 @@ JSON estricto con **claves de un solo carácter** y **arrays anónimos** para mi
   (1 = «Muy difícil» → 5 = «Muy fácil»), para mitigar la caída de tasa de respuesta por fatiga
   al terminar la evaluación.
 
-### Cobertura de instrumentación (9/9 módulos)
+### Cobertura de instrumentación (10/10 módulos)
 
 Cada módulo emite eventos con su granularidad natural (tiempo = respuesta; 2.ª+ clasificación
 = rectificación):
@@ -455,6 +455,7 @@ Cada módulo emite eventos con su granularidad natural (tiempo = respuesta; 2.ª
 | Análisis de Voz | toma de captura + 5 dimensiones GRBAS | análisis / puntuación GRBAS |
 | Disfagia MECV-V | bolo (viscosidad × volumen) | avance de bolo |
 | Articulación · T.A.R. | ítem (fonema) | clasificación SODA |
+| Análisis Prosódico | toma de habla conectada | análisis de la muestra |
 
 > Los «Sí/No» de las audiometrías son el *bracketing* de Hughson-Westlake (protocolo), **no**
 > fricción; por eso esos módulos miden por umbral confirmado, no por pulsación.
@@ -680,6 +681,15 @@ npm run tsc
 - **Nativo:** dictado por voz de las consignas de los mini-juegos (`react-native-tts`); no requiere hardware adicional para jugar
 - **Datos:** entidad `ExecutiveFunctionsTest` (tabla `executive_functions_test`) · informe PDF
 
+### 12 — Análisis Prosódico 🎙️ (`ProsodyAnalysis`)
+
+- **Dominio:** Logopedia — dinámica del habla (ritmo, pausas y entonación) sobre **habla conectada**
+- **Objetivo:** Registro descriptivo de rango y variabilidad tonal (semitonos), contorno de cierre, pausas, fracción sonora y tasas de habla y articulación, a partir de una muestra de narración provocada
+- **Tarea:** narración sobre lámina (prelectores, 3–6 a) o recuento de historia (lectores, 7–12 a), con consigna locutada por `@/Voice` para que sea idéntica entre exploradores; objetivo de 30–60 s de **habla válida**, descontando pausas
+- **Nativo:** micrófono compartido (`@/Audio/sharedAudioRecorder`) + DSP propio en TypeScript (`prosodyDsp.ts`), reutilizando el acondicionado y la F0 del análisis de voz. Sin modelos ni librerías de análisis en el dispositivo
+- **Afirmaciones:** **descriptivas, nunca normativas** — no hay baremos pediátricos españoles de prosodia y los de otras lenguas no son transferibles ni por lengua ni por tarea. Ver [`docs/design/b0-prosodia-tarea-y-afirmaciones.md`](./docs/design/b0-prosodia-tarea-y-afirmaciones.md)
+- **Datos:** entidad `ProsodyAnalysis` (tabla `prosody_analysis`) · informe PDF `ProsodyDetail`
+
 ---
 
 ## Herramientas de Build-Time
@@ -764,6 +774,10 @@ docs/
 └── design/
     ├── arquitectura-corpus-voz.md        # Capa de voz neuronal multi-idioma
     ├── arquitectura-audio.md             # AudioContext compartido y cadenas de audio
+    ├── evaluacion-prosodia-y-asr.md      # Evaluación de la propuesta de módulo acústico
+    ├── plan-prosodia-y-asr.md            # Plan de trabajo (prosodia + saneamiento del ASR)
+    ├── b0-prosodia-tarea-y-afirmaciones.md # Tarea de habla y política de afirmaciones (ratificada)
+    ├── prosodia-riesgos.md               # Análisis de riesgos del módulo (ISO 14971)
     ├── arquitectura-exportacion-ios.md   # Las dos vías de iOS, firma y exportación del .ipa
     ├── audiometria-verbal.md             # Diseño del módulo (+ variantes gl · eu · es-DO)
     ├── validacion-clinica-verbal.md      # Trazabilidad de la aprobación clínica
@@ -880,7 +894,7 @@ Earlify Health
 | Sincronización clínica HL7-FHIR | 🔴 Pendiente (roadmap) |
 | Certificación MDR Clase IIa | 🔴 En proceso |
 
-### Batería de evaluación — 11 módulos
+### Batería de evaluación — 12 módulos
 
 | # | Módulo | Pantalla + `integration/` | Servicio local | Hardware nativo |
 |---|---|---|---|---|
@@ -895,9 +909,10 @@ Earlify Health
 | 9 | Articulación · T.A.R. | 🟢 Construido | 🟢 OK (`articulationTests`) | 🟢 mic + reconocedor + `@/Voice` (degrada a SODA manual) |
 | 10 | Audiometría Verbal | 🟢 Construido | 🟢 OK (`verbalAudiometry`) | 🟢 recortes neuronales en 4 idiomas (campo libre) |
 | 11 | Funciones Ejecutivas | 🟢 Construido | 🟢 OK (`executiveFunctions`) | 🟢 consignas locutadas (`@/Voice`) |
+| 12 | Análisis Prosódico | 🟢 Construido | 🟢 OK (`prosodyAnalysis`) | 🟢 mic compartido + DSP propio (validado vs. Praat) |
 
-> Los 11 módulos están construidos (pantalla + `integration/`) con su servicio local y
-> migración TypeORM propia. Las 11 rutas están registradas en `RootStackParamList` y la
+> Los 12 módulos están construidos (pantalla + `integration/`) con su servicio local y
+> migración TypeORM propia. Las 12 rutas están registradas en `RootStackParamList` y la
 > batería completa persiste en la base SQLite local del dispositivo.
 
 ---

@@ -87,6 +87,16 @@ export default function ProsodyAnalysisScreen({ navigation }: Props) {
     tracker.enterReactivo('prosodia-toma');
   }, [tracker]);
 
+  /* Cierre del reactivo cuando la toma termina de analizarse —se cierre a mano
+   * o sola por tope de duración—. La primera vez mide el tiempo de respuesta;
+   * repetir la toma cuenta como rectificación, que es justo lo que interesa
+   * saber de un módulo cuya muestra puede salir corta o ruidosa. */
+  useEffect(() => {
+    if (prosody.phase === 'done' || prosody.phase === 'error') {
+      tracker.classifyReactivo('prosodia-toma');
+    }
+  }, [prosody.phase, tracker]);
+
   const [ageBand, setAgeBand] = useState<ProsodyAgeBand>('prelector');
   const [notes, setNotes] = useState('');
   const [evaluatorName, setEvaluatorName] = useState(

@@ -5,8 +5,12 @@
 > puede resolver solo: **qué se le pide al niño** y **qué se afirma con lo
 > medido**.
 >
-> Redactado sobre revisión de literatura (agosto 2026). Requiere ratificación
-> del responsable clínico antes de que B4 llegue a producción.
+> Redactado sobre revisión de literatura (agosto 2026).
+>
+> **Estado: RATIFICADO** por el responsable clínico (agosto 2026). Las dos
+> decisiones que siguen son vinculantes para el módulo; cambiarlas —en
+> particular pasar a afirmación normativa— exige reabrir este documento y el
+> expediente, no es un cambio de interfaz.
 
 ---
 

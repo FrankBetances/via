@@ -6,6 +6,7 @@ import { ClinicalAssessmentRepository } from '@/Repositories/ClinicalAssessmentR
 import { ScreeningRepository } from '@/Repositories/ScreeningRepository';
 import { AudiometryRepository } from '@/Repositories/AudiometryRepository';
 import { VoiceAnalysisRepository } from '@/Repositories/VoiceAnalysisRepository';
+import { ProsodyAnalysisRepository } from '@/Repositories/ProsodyAnalysisRepository';
 import { DysphagiaTestRepository } from '@/Repositories/DysphagiaTestRepository';
 import { SahsScreeningRepository } from '@/Repositories/SahsScreeningRepository';
 import { ArticulationTestRepository } from '@/Repositories/ArticulationTestRepository';
@@ -113,6 +114,14 @@ export async function generateReport({ evaluation }: GenerateReportOptions): Pro
   for (const analysis of voiceAnalyses) {
     const page = pdfDoc.addPage(PAGE_SIZE);
     await blocks.VoiceAnalysisDetail({ analysis }, { page, fonts, t });
+  }
+
+  // Prosodia justo después del análisis de voz: los dos miden sobre la señal
+  // acústica y se leen juntos (calidad de la fonación y dinámica del habla).
+  const prosodyAnalyses = await ProsodyAnalysisRepository.getProsodyAnalysisByEvaluation(evaluation.id);
+  for (const analysis of prosodyAnalyses) {
+    const page = pdfDoc.addPage(PAGE_SIZE);
+    await blocks.ProsodyDetail({ analysis }, { page, fonts, t });
   }
 
   const executiveFunctions = await ExecutiveFunctionsRepository.getExecutiveFunctionsByEvaluation(evaluation.id);

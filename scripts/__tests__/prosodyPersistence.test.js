@@ -84,6 +84,25 @@ describe('prosodia · registro del módulo en la app', () => {
       "id: 'ProsodyAnalysis'",
     );
   });
+
+  /* Un bloque PDF escrito pero no enganchado en la plantilla produce informes a
+   * los que les falta un módulo entero, en silencio. */
+  it('el bloque de informe está registrado y enganchado en la plantilla', () => {
+    expect(read('src/PDF/blocks/index.ts')).toContain('ProsodyDetail');
+    const report = read('src/PDF/templates/Report.ts');
+    expect(report).toContain('ProsodyAnalysisRepository');
+    expect(report).toContain('blocks.ProsodyDetail');
+  });
+
+  it('el informe imprime SIEMPRE la advertencia de que no hay baremo', () => {
+    // B0.2: sin esta línea, una tabla de cifras en un informe clínico se lee
+    // como si tuviera rangos de normalidad detrás, y no los tiene.
+    const block = read('src/PDF/blocks/ProsodyDetail.ts');
+    expect(block).toContain('PDF.PROSODY.DISCLAIMER');
+    expect(block).toContain('sin baremo poblacional');
+    // Y la tarea, sin la cual las cifras no son comparables con nada.
+    expect(block).toContain('TASK_LABEL');
+  });
 });
 
 describe('prosodia · Zero-PHI de la entidad', () => {
