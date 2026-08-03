@@ -187,7 +187,13 @@ con la clasificación SODA firmada por el clínico. Conviene que la UI lo diga.
 
 ## Línea B — Módulo de prosodia
 
-### B0 — Decisión clínica previa (bloquea B3–B5, no B1–B2)
+### B0 — Decisión clínica previa (bloquea B3–B5, no B1–B2) ✅ *cerrada*
+
+> **Resuelta** en [`b0-prosodia-tarea-y-afirmaciones.md`](./b0-prosodia-tarea-y-afirmaciones.md):
+> narración provocada con apoyo visual en dos bandas de edad, guion fijo,
+> objetivo de 30–60 s de habla conectada válida; y afirmaciones **descriptivas,
+> nunca normativas**. Pendiente de ratificación clínica antes de que B4 llegue a
+> producción.
 
 Dos cosas que el software no puede decidir solo:
 

@@ -14,6 +14,7 @@ import { ClinicalAssessment } from '@/Models/ClinicalAssessment/ClinicalAssessme
 import { Screening } from '@/Models/Screening/Screening';
 import { AudiometryTest } from '@/Models/Audiometry/AudiometryTest';
 import { VoiceAnalysis } from '@/Models/VoiceAnalysis/VoiceAnalysis';
+import { ProsodyAnalysis } from '@/Models/ProsodyAnalysis/ProsodyAnalysis';
 import { DysphagiaTest } from '@/Models/DysphagiaTest/DysphagiaTest';
 import { SahsScreening } from '@/Models/SahsScreening/SahsScreening';
 import { ArticulationTest } from '@/Models/ArticulationTest/ArticulationTest';
@@ -61,6 +62,7 @@ export const AppDataSource = new DataSource({
     Screening,
     AudiometryTest,
     VoiceAnalysis,
+    ProsodyAnalysis,
     DysphagiaTest,
     SahsScreening,
     ArticulationTest,
