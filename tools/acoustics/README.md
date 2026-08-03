@@ -2,8 +2,16 @@
 
 Banco de referencia que comprueba que las cifras del análisis acústico de VIA+
 significan lo que el informe clínico dice que significan. Compara el DSP que
-corre **de verdad** en la app (`src/Screens/VoiceAnalysis/voiceDsp.ts`) con
-**Praat**, el estándar de facto en fonética clínica, sobre las mismas señales.
+corre **de verdad** en la app con **Praat**, el estándar de facto en fonética
+clínica, sobre las mismas señales.
+
+Cubre **dos familias**, que son dos preguntas clínicas distintas sobre la misma
+señal:
+
+| Familia | Módulo | Señal | Qué mide |
+|---|---|---|---|
+| **Vocal sostenida** | `src/Screens/VoiceAnalysis/voiceDsp.ts` | /a/ sostenida | Calidad de la fonación: F0, jitter, shimmer, HNR, formantes |
+| **Habla conectada** | `src/Screens/ProsodyAnalysis/prosodyDsp.ts` | cadenas de sílabas con pausas | Dinámica del habla: ritmo, pausas, entonación |
 
 Es una herramienta de **build-time**, igual que `tools/nos/`: los modelos y
 librerías de análisis no entran nunca en el dispositivo. La app sigue midiendo
@@ -34,6 +42,22 @@ encima de su tolerancia, así que sirve tal cual como puerta de CI.
    si el módulo dejara de ser puro fallaría aquí— y vuelca `via-measurements.json`.
 4. `validate.py` mide los mismos WAV con Praat y contrasta.
 
+## Prosodia: dos oráculos, y por qué
+
+En la familia de habla conectada **no todo lo puede arbitrar Praat**, y fingir
+que sí sería peor que no validarlo:
+
++ **Entonación y pausas → Praat.** Tiene estimador de tono propio y detector de
+  silencios propio (`To TextGrid (silences)`), configurado aquí con el mismo
+  criterio que el módulo: umbral a −25 dB del nivel alto y pausa mínima de
+  250 ms. Es un juez genuinamente independiente.
++ **Recuento de sílabas → el guion de la síntesis.** Praat **no trae** detector
+  de núcleos silábicos: el método de De Jong & Wempe que usa VIA+ es un *script*
+  de Praat, no una función suya. Reimplementarlo en el validador sería comparar
+  el módulo contra una segunda implementación nuestra del mismo método —
+  circular y sin valor probatorio—. Como las señales se sintetizan con un número
+  de sílabas conocido, la verdad de campo es mejor juez que Praat.
+
 ## Qué se ha encontrado con él
 
 El banco no es decorativo: se escribió para responder a «el análisis acústico
@@ -46,7 +70,7 @@ no funciona» y encontró cuatro cosas en la primera pasada.
 | **El acondicionado de baja frecuencia es correcto.** Sobre el caso con retumbe de 20 Hz, Praat —que mide el fichero crudo— da F0 = 408 Hz; VIA+, que acondiciona, da los 200 Hz reales. | confirma `HIGHPASS_HZ` |
 | **Un caso de prueba mal construido.** Perturbar el periodo alternando el signo genera doblado de periodo: la F0 real es la mitad. Praat lo detectaba bien y parecía un fallo de VIA+. Corregido a perturbación aleatoria. | `fixtures.js` |
 
-## Estado actual
+## Estado actual — vocal sostenida
 
 + **F0** — coincide con Praat **al decimal** (Δ = 0.0 Hz) en todos los casos.
 + **HNR** — sobre ruido aditivo puro, dentro de **0.5 dB**. Ante perturbación
@@ -60,6 +84,32 @@ no funciona» y encontró cuatro cosas en la primera pasada.
   como fallo: no estimar es preferible a inventar. La prueba clínica usa /a/
   sostenida.
 
+## Estado actual — habla conectada (prosodia)
+
+Ocho casos: cadenas con y sin pausas, habla monótona frente a entonada, cierres
+entonativos ascendente y descendente, y habla lenta.
+
++ **Recuento de sílabas** — **exacto en los ocho casos** (16/16, 12/12, 14/14…)
+  frente al guion de síntesis.
++ **Recuento de pausas** — exacto, y coincidente con Praat en todos los casos.
++ **F0 mediana** — dentro de **0.03 Hz** de Praat.
++ **Rango tonal** — Δ ≤ **0.67 st**, y solo en los casos con glissando final: los
+  dos estimadores muestrean la rampa con pasos distintos y los percentiles caen
+  en puntos algo distintos de ella. En habla sin glissando, Δ = 0.00 st.
++ **SD de F0** — Δ ≤ **0.07 st**.
++ **Separación monótona / entonada** — 0.0 st frente a 7.4 st de rango, sobre
+  unos 170–260 Hz sintetizados (7.35 st nominales).
++ **Tasa de habla** — la señal lenta da 0.52× la tasa de la normal, contra el
+  0.517× que pide el guion.
+
+Sobre la **duración total de las pausas**: sale unos 50 ms más larga por pausa
+que el guion. No es un sesgo del detector. Los flancos de la envolvente de cada
+sílaba cruzan el umbral de silencio antes de que acabe el segmento, así que el
+silencio acústico **real** es más largo que el nominal — y Praat mide esas
+mismas pausas largas (Δ frente a VIA+ ≤ 13 ms). El margen de tolerancia frente
+al guion recoge esa diferencia entre lo que pedía el guion y lo que contiene la
+señal.
+
 ## Lo que este banco NO valida
 
 Señales **sintéticas**. Que VIA+ coincida con Praat sobre ellas dice que el
@@ -67,3 +117,11 @@ cálculo es correcto, no que la medida sea clínicamente válida sobre voz real
 de niño, con su ruido de sala, su micrófono y su distancia. Eso exige un
 contraste con grabaciones reales anotadas por un logopeda, que es parte de la
 validación clínica del módulo y no de esta herramienta.
+
+En prosodia esa advertencia **pesa más**, no menos. Las sílabas sintéticas de
+este banco están perfectamente separadas y tienen todas la misma envolvente; el
+habla infantil real trae coarticulación, disfluencias, alargamientos y ruido de
+sala. El recuento silábico exacto que se ve arriba dice que el algoritmo
+implementa bien el método de De Jong & Wempe, **no** que vaya a contar bien las
+sílabas de un niño de cinco años. Es la medida más frágil del módulo y la
+primera que hay que contrastar contra recuento manual de un logopeda.

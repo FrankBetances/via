@@ -29,7 +29,7 @@ const SRC = path.join(ROOT, 'src');
 
 /* --------------------------- carga del DSP real --------------------------- */
 
-function loadVoiceDsp() {
+function loadDsp() {
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'voicedsp-cjs-'));
   const localTsc = path.join(ROOT, 'node_modules', '.bin', 'tsc');
   const tsc = fs.existsSync(localTsc) ? localTsc : 'tsc';
@@ -62,7 +62,10 @@ function loadVoiceDsp() {
       customConditions: null,
     },
     include: [],
-    files: [path.join(SRC, 'Screens', 'VoiceAnalysis', 'voiceDsp.ts')],
+    files: [
+      path.join(SRC, 'Screens', 'VoiceAnalysis', 'voiceDsp.ts'),
+      path.join(SRC, 'Screens', 'ProsodyAnalysis', 'prosodyDsp.ts'),
+    ],
   }));
 
   // `noEmitOnError: false` hace que tsc EMITA aunque queden errores de tipos.
@@ -75,11 +78,17 @@ function loadVoiceDsp() {
   } catch {
     /* errores de tipos tolerados: lo que importa es que haya emitido */
   }
-  const out = path.join(tmp, 'cjs', 'Screens', 'VoiceAnalysis', 'voiceDsp.js');
-  if (!fs.existsSync(out)) {
-    throw new Error(`tsc no emitió el DSP en ${out} (revise el módulo con \`npm run tsc\`)`);
+  const outVoice = path.join(tmp, 'cjs', 'Screens', 'VoiceAnalysis', 'voiceDsp.js');
+  const outProsody = path.join(tmp, 'cjs', 'Screens', 'ProsodyAnalysis', 'prosodyDsp.js');
+  for (const out of [outVoice, outProsody]) {
+    if (!fs.existsSync(out)) {
+      throw new Error(`tsc no emitió el DSP en ${out} (revise el módulo con \`npm run tsc\`)`);
+    }
   }
-  return require(out);
+  // `prosodyDsp` importa `voiceDsp` por ruta RELATIVA justamente para que este
+  // `require` funcione: con el alias `@/` el JavaScript emitido pediría un
+  // módulo que Node no sabe resolver y el banco no arrancaría.
+  return { voice: require(outVoice), prosody: require(outProsody) };
 }
 
 /* ------------------------------ señales de prueba ------------------------- */
@@ -175,6 +184,146 @@ const CASES = [
   { name: 'vocal-u-200hz', opts: { f0: 200, formants: [350, 800, 2400] } },
 ];
 
+/* ------------------------- señales de habla conectada --------------------- */
+
+/**
+ * Habla conectada sintética: cadena de sílabas separadas por oclusiones
+ * consonánticas y, opcionalmente, por pausas. Determinista, como el resto del
+ * banco.
+ *
+ * La «sílaba» usa el mismo motor armónico + envolvente de formantes que
+ * `vowel()` —es lo que hace que Praat la siga sin dificultad—, modulado por una
+ * envolvente TRAPEZOIDAL con flancos de coseno alzado. El trapecio no es
+ * casual: con una envolvente puramente sinusoidal, los extremos de cada sílaba
+ * pasan tanto tiempo por debajo del umbral de silencio que las pausas medidas
+ * salen sistemáticamente más largas que las sintetizadas y la verdad de campo
+ * deja de serlo. Con flancos cortos y meseta plana, el borde de la sílaba está
+ * donde dice el guion.
+ *
+ * `f0Of(i)` da la F0 de la sílaba `i` (permite habla monótona o entonada) y
+ * `finalGlide` hace que la última sílaba deslice hasta esa frecuencia, para
+ * probar el contorno de cierre.
+ */
+function speech(sampleRate, {
+  syllableCount = 16,
+  sylSec = 0.25,
+  gapSec = 0.06,
+  /** Índices de sílaba TRAS los que se inserta una pausa. */
+  pauseAfter = [],
+  pauseSec = 0.5,
+  f0 = 200,
+  f0Of = null,
+  finalGlide = null,
+  formants = [700, 1200, 2600],
+  edgeSec = 0.04,
+  amp = 0.3,
+  gapAmp = 0.004,
+  noise = 0.0008,
+} = {}) {
+  // Guion de segmentos: la verdad de campo del caso.
+  const segments = [];
+  for (let i = 0; i < syllableCount; i++) {
+    if (i) segments.push({ kind: 'gap', durSec: gapSec });
+    const base = f0Of ? f0Of(i) : f0;
+    const last = i === syllableCount - 1;
+    segments.push({
+      kind: 'syllable',
+      durSec: sylSec,
+      f0: base,
+      f0End: last && finalGlide !== null ? finalGlide : base,
+    });
+    if (pauseAfter.includes(i)) segments.push({ kind: 'pause', durSec: pauseSec });
+  }
+
+  const totalSec = segments.reduce((acc, s) => acc + s.durSec, 0);
+  const n = Math.floor(totalSec * sampleRate);
+  const x = new Float32Array(n);
+
+  let seed = 20260803;
+  const rand = () => {
+    seed = (seed * 1103515245 + 12345) & 0x7fffffff;
+    return seed / 0x7fffffff - 0.5;
+  };
+
+  // Envolvente espectral de los formantes (constante: una sola «vocal»).
+  const envAt = f => {
+    let env = 0.02;
+    for (let k = 0; k < formants.length; k++) {
+      const weight = [1, 0.6, 0.3][k] ?? 0.2;
+      const bw = [120, 160, 220][k] ?? 250;
+      env += weight / (1 + Math.pow((f - formants[k]) / bw, 2));
+    }
+    return env;
+  };
+
+  let cycle = 0; // fase normalizada del ciclo glotal, 0..1
+  let idx = 0;
+  for (const seg of segments) {
+    const len = Math.floor(seg.durSec * sampleRate);
+    const edge = Math.max(1, Math.floor(edgeSec * sampleRate));
+    for (let j = 0; j < len && idx < n; j++, idx++) {
+      if (seg.kind === 'syllable') {
+        const frac = len > 1 ? j / (len - 1) : 0;
+        const f = seg.f0 + (seg.f0End - seg.f0) * frac;
+        cycle += f / sampleRate;
+        if (cycle >= 1) cycle -= 1;
+
+        let s = 0;
+        for (let h = 1; h <= 40; h++) {
+          const fh = f * h;
+          if (fh > sampleRate / 2) break;
+          s += envAt(fh) * Math.sin(2 * Math.PI * h * cycle + h);
+        }
+
+        // Trapecio: subida, meseta, bajada.
+        let env = 1;
+        if (j < edge) env = 0.5 - 0.5 * Math.cos((Math.PI * j) / edge);
+        else if (j > len - 1 - edge) env = 0.5 - 0.5 * Math.cos((Math.PI * (len - 1 - j)) / edge);
+
+        x[idx] = amp * env * s * 0.27 + noise * rand();
+      } else if (seg.kind === 'gap') {
+        x[idx] = gapAmp * rand() * 2 + noise * rand();
+      } else {
+        x[idx] = noise * rand();
+      }
+    }
+  }
+
+  // Verdad de campo del guion, para contrastar sin pasar por Praat.
+  const pauses = segments.filter(s => s.kind === 'pause');
+  return {
+    pcm: x,
+    truth: {
+      syllableCount,
+      pauseCount: pauses.length,
+      pauseTotalSec: pauses.reduce((a, s) => a + s.durSec, 0),
+    },
+  };
+}
+
+/**
+ * Casos de prosodia. A diferencia de las vocales sostenidas, aquí hay DOS
+ * oráculos y cada métrica se contrasta con el que le corresponde (ver
+ * `README.md`): el guion de la síntesis para lo que Praat no mide —recuento de
+ * sílabas— y Praat para la entonación y las pausas.
+ */
+const PROSODY_CASES = [
+  { name: 'habla-16sil-1pausa', opts: { syllableCount: 16, pauseAfter: [7] } },
+  { name: 'habla-12sil-3pausas', opts: { syllableCount: 12, pauseAfter: [2, 5, 8] } },
+  { name: 'habla-16sil-sin-pausas', opts: { syllableCount: 16 } },
+  // Monótona frente a entonada: el rango tonal debe separarlas con claridad.
+  { name: 'habla-monotona-200hz', opts: { syllableCount: 14, f0: 200 } },
+  {
+    name: 'habla-entonada-170-260hz',
+    opts: { syllableCount: 14, f0Of: i => 170 + (i % 5) * 22.5 },
+  },
+  // Cierre entonativo: ascendente (interrogativo) y descendente (enunciativo).
+  { name: 'habla-cierre-ascendente', opts: { syllableCount: 12, finalGlide: 300 } },
+  { name: 'habla-cierre-descendente', opts: { syllableCount: 12, f0: 260, finalGlide: 180 } },
+  // Habla lenta: mismas sílabas, el doble de duración → tasa a la mitad.
+  { name: 'habla-lenta', opts: { syllableCount: 12, sylSec: 0.45, gapSec: 0.15 } },
+];
+
 /* ------------------------------- WAV de 16 bits --------------------------- */
 
 function writeWav(file, pcm, sampleRate) {
@@ -209,7 +358,7 @@ async function main() {
     : path.join(__dirname, 'out');
   fs.mkdirSync(outDir, { recursive: true });
 
-  const dsp = loadVoiceDsp();
+  const { voice: dsp, prosody } = loadDsp();
   const sampleRate = dsp.SAMPLE_RATE;
 
   const measurements = { sampleRate, cases: {} };
@@ -229,6 +378,7 @@ async function main() {
     const r = await dsp.analysePcm(pcm);
     const mean = a => (a.length ? a.reduce((x, y) => x + y, 0) / a.length : null);
     measurements.cases[name] = {
+      kind: 'vowel',
       expected: { f0: opts.f0 ?? 200, jitterPct: opts.jitterPct ?? 0, shimmerPct: opts.shimmerPct ?? 0 },
       via: {
         f0: mean(r.f0s),
@@ -241,11 +391,44 @@ async function main() {
     process.stdout.write('.');
   }
 
+  for (const { name, opts } of PROSODY_CASES) {
+    const { pcm, truth } = speech(sampleRate, opts);
+    writeWav(path.join(outDir, `${name}.wav`), pcm, sampleRate);
+    writeWav(path.join(outDir, `${name}.conditioned.wav`), dsp.conditionForAnalysis(pcm), sampleRate);
+
+    const r = await prosody.analyseProsody(pcm);
+    const m = r.metrics;
+    measurements.cases[name] = {
+      kind: 'prosody',
+      // Verdad de campo del guion de síntesis: lo que Praat NO puede arbitrar.
+      truth,
+      via: {
+        syllable_count: m.syllableCount,
+        pause_count: m.pauseCount,
+        pause_total_sec: m.pauseTotalSec,
+        speech_rate_sps: m.speechRateSps,
+        articulation_rate_sps: m.articulationRateSps,
+        f0_median_hz: m.f0MedianHz,
+        f0_range_st: m.f0RangeSt,
+        f0_sd_st: m.f0SdSt,
+        final_contour_st: m.finalContourSt,
+        span_sec: m.spanSec,
+        voiced_fraction: m.voicedFraction,
+        reason: r.stats.reason,
+      },
+    };
+    process.stdout.write('.');
+  }
+
   fs.writeFileSync(
     path.join(outDir, 'via-measurements.json'),
     `${JSON.stringify(measurements, null, 2)}\n`,
   );
-  console.log(`\n${CASES.length} casos → ${path.relative(ROOT, outDir)}`);
+  const total = CASES.length + PROSODY_CASES.length;
+  console.log(
+    `\n${total} casos (${CASES.length} vocal · ${PROSODY_CASES.length} prosodia)` +
+    ` → ${path.relative(ROOT, outDir)}`,
+  );
 }
 
 main().catch(e => {

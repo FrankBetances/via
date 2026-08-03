@@ -1,8 +1,9 @@
 name: Acoustic Validation
 
 # Contrasta el análisis acústico de VIA+ con Praat (parselmouth) sobre señales
-# sintéticas deterministas. Corre en build-time: ningún modelo ni librería de
-# análisis entra en el dispositivo (ver tools/acoustics/README.md).
+# sintéticas deterministas. Cubre las DOS familias: vocal sostenida (calidad de
+# la fonación) y habla conectada (prosodia). Corre en build-time: ningún modelo
+# ni librería de análisis entra en el dispositivo (ver tools/acoustics/README.md).
 #
 # Falla si algún parámetro se desvía por encima de su tolerancia declarada, de
 # modo que una regresión del DSP se detecta aquí y no en la consulta.
@@ -12,12 +13,14 @@ on:
   pull_request:
     paths:
       - "src/Screens/VoiceAnalysis/**"
+      - "src/Screens/ProsodyAnalysis/**"
       - "tools/acoustics/**"
       - ".github/workflows/acoustic-validation.yml"
   push:
     branches: [main]
     paths:
       - "src/Screens/VoiceAnalysis/**"
+      - "src/Screens/ProsodyAnalysis/**"
       - "tools/acoustics/**"
 
 permissions:
