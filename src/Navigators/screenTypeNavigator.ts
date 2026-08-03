@@ -22,6 +22,7 @@ export type RootStackParamList = {
   Audiometry: undefined;
   AudiometryConditioned: undefined;
   VoiceAnalysis: undefined;
+  ProsodyAnalysis: undefined;
   DysphagiaTest: undefined;
   SahsScreening: undefined;
   Articulation: undefined;

@@ -19,6 +19,30 @@ import type { ProsodyResult } from './prosodyDsp';
 /*  lo colaría en la base de datos sin que nadie lo revisara.                  */
 /* -------------------------------------------------------------------------- */
 
+/**
+ * Registro sin ninguna métrica medida. Se usa cuando la toma falló antes de
+ * llegar al análisis (el micrófono no entregó audio): la prueba se guarda igual
+ * —queda constancia de que se intentó, con su `reason`— y todos los campos
+ * quedan en `null`, que es lo que significa «no medido».
+ */
+export const EMPTY_PROSODY_METRICS: ProsodyMetricsRecord = {
+  durationSec: 0,
+  spanSec: null,
+  phonationTimeSec: null,
+  voicedFraction: null,
+  pauseCount: null,
+  pauseTotalSec: null,
+  pauseMeanSec: null,
+  syllableCount: null,
+  speechRateSps: null,
+  articulationRateSps: null,
+  f0MedianHz: null,
+  f0RangeSt: null,
+  f0SdSt: null,
+  finalContourSt: null,
+  intensitySdDb: null,
+};
+
 /** Métricas del DSP → registro persistible. No copia audio ni contornos. */
 export function toProsodyMetricsRecord(result: ProsodyResult): ProsodyMetricsRecord {
   const m = result.metrics;

@@ -1,13 +1,15 @@
 import { PermissionsAndroid, Platform } from 'react-native';
-import { AudioManager, AudioRecorder } from 'react-native-audio-api';
+import { AudioManager } from 'react-native-audio-api';
 import type { AudioBufferSourceNode } from 'react-native-audio-api';
 
 import {
   acquireAudioContext,
+  acquireRecorder,
   acquireRecordingSession,
   releaseAudioContext,
   resumeAudioContext,
   type SharedAudioContext,
+  type SharedRecorder,
 } from '@/Audio';
 import { setVoiceMicAdapter, VoiceLiveFrame, VoiceMicAdapter } from './useVoiceAnalysis';
 import {
@@ -81,10 +83,17 @@ const TAIL_DRAIN_MS = 120;
 /*  de eventos y solo la última queda conectada al nativo: las anteriores      */
 /*  quedaban vivas para siempre.                                               */
 /*                                                                            */
-/*  Solución: UN ÚNICO recorder por registro del adaptador, creado de forma    */
-/*  perezosa, con UNA sola suscripción `onAudioReady` que despacha al          */
-/*  consumidor vigente. `start`/`stop` reutilizan la misma instancia, que es   */
-/*  el ciclo que la librería contempla.                                        */
+/*  Solución: UN ÚNICO recorder, creado de forma perezosa, con UNA sola        */
+/*  suscripción `onAudioReady` que despacha al consumidor vigente.             */
+/*  `start`/`stop` reutilizan la misma instancia, que es el ciclo que la       */
+/*  librería contempla.                                                        */
+/*                                                                             */
+/*  Ese recorder ya NO vive aquí: vive en `@/Audio/sharedAudioRecorder`, y es  */
+/*  único para TODA la app. Cuando el análisis de voz era el único módulo que  */
+/*  capturaba, bastaba con que fuera único dentro de este adaptador; desde que */
+/*  el módulo de prosodia también graba, dos adaptadores con recorder propio   */
+/*  reproducirían el mismo fallo entre módulos —el segundo se queda mudo, en   */
+/*  silencio—. Este adaptador pide el micrófono compartido y se suscribe.      */
 /* -------------------------------------------------------------------------- */
 
 /** Sin bloques en este plazo tras arrancar, el stream está mudo. */
@@ -122,8 +131,10 @@ let disposeCurrent: (() => void) | null = null;
 export function registerVoiceMicAdapter(): boolean {
   if (registered) return true;
 
-  /** Recorder ÚNICO del adaptador (ver la nota de ciclo de vida de arriba). */
-  let recorder: AudioRecorder | null = null;
+  /** Reserva del micrófono COMPARTIDO (ver la nota de ciclo de vida de arriba). */
+  let recorder: SharedRecorder | null = null;
+  /** Baja de la suscripción de bloques del micrófono compartido. */
+  let unsubscribe: (() => void) | null = null;
   /** ¿Está el stream nativo entregando bloques ahora mismo? */
   let capturing = false;
   /** Vigilante de «stream abierto pero mudo» de la toma en curso. */
@@ -177,22 +188,19 @@ export function registerVoiceMicAdapter(): boolean {
   let liveListener: ((frame: VoiceLiveFrame) => void) | null = null;
 
   /**
-   * Devuelve el recorder del adaptador, creándolo (y suscribiéndose) UNA sola
-   * vez. Nunca se construye uno por grabación: ver la nota de ciclo de vida.
+   * Reserva el micrófono compartido y se suscribe UNA sola vez. Nunca se pide
+   * uno por grabación: ver la nota de ciclo de vida.
    */
-  const ensureRecorder = (): AudioRecorder => {
+  const ensureRecorder = (): SharedRecorder | null => {
     if (recorder) return recorder;
 
-    const created = new AudioRecorder({
-      sampleRate: CAPTURE_SR,
-      bufferLengthInSamples: Math.round(CAPTURE_SR * 0.1), // ~100 ms
-    });
+    const shared = acquireRecorder();
+    if (!shared) return null;
 
     // Suscripción ÚNICA: despacha al estado de la grabación vigente.
-    created.onAudioReady(({ buffer }) => {
+    unsubscribe = shared.subscribe(raw => {
       if (!capturing) return; // stream vivo pero fuera de una toma
       try {
-        const raw = buffer.getChannelData(0) as Float32Array;
         // Decimación ×3 con anti-alias → 16 kHz efectivos para el análisis.
         const ds = decimate ? decimate(raw) : new Float32Array(0);
         if (!ds.length) return;
@@ -216,8 +224,8 @@ export function registerVoiceMicAdapter(): boolean {
       }
     });
 
-    recorder = created;
-    return created;
+    recorder = shared;
+    return shared;
   };
 
   const adapter: VoiceMicAdapter = {
@@ -241,6 +249,7 @@ export function registerVoiceMicAdapter(): boolean {
       // CONSTRUCTOR, así que crearlo aquí (y no antes) garantiza que se abre
       // con el permiso ya vigente.
       const active = ensureRecorder();
+      if (!active) throw new Error('No hay motor de captura de audio disponible');
       capturing = true;
       active.start();
 
@@ -355,9 +364,12 @@ export function registerVoiceMicAdapter(): boolean {
     } catch {
       /* noop */
     }
-    // Única soltada de la referencia: el stream nativo se cierra cuando el GC
-    // libera el host object. Por eso hay UN recorder por adaptador y no uno
-    // por grabación (ver la nota de ciclo de vida).
+    // Se suelta la reserva del micrófono compartido: cuando ya no queda
+    // ningún módulo capturando, aquel abandona la referencia para que el GC
+    // cierre el stream (ver la nota de ciclo de vida).
+    unsubscribe?.();
+    unsubscribe = null;
+    recorder?.release();
     recorder = null;
     if (playbackCtx) {
       playbackCtx = null;

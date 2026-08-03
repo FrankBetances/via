@@ -18,6 +18,7 @@ import { RoomNoiseCheckScreen } from '@/Screens/RoomNoiseCheck';
 import { AudiometryScreen } from '@/Screens/Audiometry';
 import { AudiometryConditionedScreen } from '@/Screens/AudiometryConditioned';
 import { VoiceAnalysisScreen } from '@/Screens/VoiceAnalysis';
+import { ProsodyAnalysisScreen } from '@/Screens/ProsodyAnalysis';
 import { DysphagiaTestScreen } from '@/Screens/DysphagiaTest';
 import { SahsScreeningScreen } from '@/Screens/SahsScreening';
 import { ArticulationTestScreen } from '@/Screens/Articulation';
@@ -73,6 +74,7 @@ export default function DefaultNavigator() {
           <RootStack.Screen name="Audiometry" component={AudiometryScreen} />
           <RootStack.Screen name="AudiometryConditioned" component={AudiometryConditionedScreen} />
           <RootStack.Screen name="VoiceAnalysis" component={VoiceAnalysisScreen} />
+          <RootStack.Screen name="ProsodyAnalysis" component={ProsodyAnalysisScreen} />
           <RootStack.Screen name="DysphagiaTest" component={DysphagiaTestScreen} />
           <RootStack.Screen name="SahsScreening" component={SahsScreeningScreen} />
           <RootStack.Screen name="Articulation" component={ArticulationTestScreen} />

@@ -66,6 +66,26 @@ describe('prosodia · servicios locales', () => {
   });
 });
 
+describe('prosodia · registro del módulo en la app', () => {
+  /* Un módulo que existe pero no está enrutado ni en el hub es un módulo que
+   * nadie puede abrir. Las tres piezas van juntas o no va ninguna. */
+  it('la ruta está declarada en RootStackParamList', () => {
+    expect(read('src/Navigators/screenTypeNavigator.ts')).toContain('ProsodyAnalysis: undefined');
+  });
+
+  it('la pantalla está montada en el navegador', () => {
+    const nav = read('src/Navigators/Default.tsx');
+    expect(nav).toContain("from '@/Screens/ProsodyAnalysis'");
+    expect(nav).toContain('name="ProsodyAnalysis"');
+  });
+
+  it('el módulo aparece en el hub de selección de pruebas', () => {
+    expect(read('src/Screens/SeleccionEjercicios/SeleccionEjerciciosScreen.tsx')).toContain(
+      "id: 'ProsodyAnalysis'",
+    );
+  });
+});
+
 describe('prosodia · Zero-PHI de la entidad', () => {
   /* La entidad guarda MÉTRICAS. Que nunca aparezca una columna de audio, de
    * transcripción o de contorno no es una convención de estilo: es la garantía

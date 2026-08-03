@@ -183,6 +183,9 @@ const SCENES: Record<string, React.ComponentType<{ color: string }>> = {
   AudiometryConditioned: TrainScene,
   VerbalAudiometry: WordCardsScene,
   Articulation: SpeechScene,
+  // Prosodia: la misma escena de onda que el análisis de voz — los dos módulos
+  // miden sobre la señal acústica, aunque respondan a preguntas distintas.
+  ProsodyAnalysis: VoiceScene,
   DysphagiaTest: PulseScene,
   Mchat: PuzzleScene,
   SahsScreening: SleepScene,

@@ -20,3 +20,12 @@ export {
   __resetSharedAudioContextForTests,
 } from './sharedAudioContext';
 export type { SharedAudioContext } from './sharedAudioContext';
+
+export {
+  acquireRecorder,
+  isRecorderAvailable,
+  RECORDER_SAMPLE_RATE,
+  recorderRefCount,
+  __resetSharedAudioRecorderForTests,
+} from './sharedAudioRecorder';
+export type { RecorderListener, SharedRecorder } from './sharedAudioRecorder';
