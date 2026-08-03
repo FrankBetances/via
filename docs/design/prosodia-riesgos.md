@@ -45,6 +45,27 @@ Wempe sobre señal sintética; no demuestra que cuente bien las sílabas de un n
 de cinco años. Mitigado por la jerarquía del informe y la advertencia explícita,
 pero **no eliminado**. Cierre previsto: B6.
 
+> **Primer dato sobre habla no ideal (agosto 2026).** Al verificar los recortes
+> neuronales de las consignas se pasó el DSP por encima de los cuatro ficheros.
+> Sobre el **mismo texto** locutado por **dos voces distintas**, el recuento
+> silábico difiere de forma marcada:
+>
+> | Consigna | Sílabas del texto | Voz `es` | Voz `es-DO` |
+> |---|---|---|---|
+> | Prelector | ~26 | 16 (62 %) | 23 (88 %) |
+> | Lector | ~31 | 19 (61 %) | 25 (81 %) |
+>
+> Las dos voces dicen exactamente las mismas palabras, así que la diferencia es
+> del **estimador**, no del contenido: la envolvente de intensidad de cada voz
+> —su grado de coarticulación y la profundidad de los valles entre sílabas—
+> decide cuántos núcleos superan el criterio de caída de 2 dB.
+>
+> No es una validación clínica: son voces sintéticas de adulto, no habla
+> infantil. Pero es la primera medida sobre señal **no ideal** y va en la
+> dirección que ya se temía: el recuento tiende a quedarse **corto** y depende
+> del locutor. Refuerza mantener la tasa al final del informe y con advertencia,
+> y convierte la concordancia con recuento manual en la prioridad de B6.
+
 **R-02 — Ventana de cierre del stream de micrófono.** `AudioRecorder` no expone
 `close()`: el stream se cierra cuando el recolector de basura libera el objeto.
 Si una pantalla se desmonta y otra pide el micrófono antes de que el GC pase, el
