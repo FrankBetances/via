@@ -79,7 +79,35 @@ Es un test barato que convierte un fallo de campo silencioso en un fallo de CI.
 
 ---
 
-### PR A2 — Reconocimiento estrictamente *on-device* 🔴 *Zero-PHI*
+### PR A2 — Reconocimiento estrictamente *on-device* ✅ *puerta cerrada · capa nativa pendiente*
+
+> **Resultado del spike A2.0 (verificado leyendo el código de la librería, no
+> supuesto).** `@react-native-voice/voice@3.2.4` **no permite** garantizar el
+> modo local en ninguna de las dos plataformas:
+>
+> - **iOS** (`ios/Voice/Voice.m`): crea el `SFSpeechAudioBufferRecognitionRequest`
+>   y solo fija `shouldReportPartialResults`. `requiresOnDeviceRecognition` **no
+>   aparece en ningún fichero del paquete**, y `startSpeech` solo recibe el
+>   locale y el callback.
+> - **Android** (`VoiceModule.java`): las opciones se trasladan al
+>   `RecognizerIntent` con un `switch` que es una **lista blanca sin rama
+>   `default`**. Una clave no contemplada —`EXTRA_PREFER_OFFLINE`— se descarta
+>   **en silencio**. La ruta 1 del plan queda descartada.
+>
+> **Lo implementado (A2.1): la puerta, con fallo CERRADO.**
+> `articulationRecognition.ts` decide, y su tipo solo admite `'on-device'` y
+> `'unavailable'` — **el modo `'server'` no se puede ni representar**. Lo que no
+> se puede confirmar no se asume, así que hoy la puerta está cerrada y el
+> T.A.R. degrada a SODA manual: **la voz del paciente no sale del equipo**, que
+> es el objetivo de A2. Se retira además el reintento en la lengua base, porque
+> la garantía de modo local se confirma para un locale concreto.
+>
+> **Lo que falta: la capa nativa** (rutas 2/3 del plan). Contrato declarado en
+> la cabecera de `articulationRecognition.ts`. **No se ha implementado aquí a
+> propósito:** este entorno no tiene SDK de Android ni Xcode —`dl.google.com`
+> está bloqueado por política de red— y un parche nativo que no se puede
+> compilar no debe entrar en `main`. Cuando llegue, la puerta se abre sola sin
+> tocar esta lógica.
 
 **Problema.** Los reconocedores del sistema son de servidor por defecto. Hoy la
 voz de un menor puede viajar a Apple o Google desde el módulo TAR.

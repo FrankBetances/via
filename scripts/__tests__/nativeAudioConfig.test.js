@@ -58,6 +58,58 @@ describe('iOS · Info.plist', () => {
   });
 });
 
+/* -------------------------------------------------------------------------- */
+/*  Puerta Zero-PHI del reconocimiento (A2).                                   */
+/*                                                                            */
+/*  La lógica de decisión se prueba exhaustivamente en                         */
+/*  `articulationRecognition.test.ts`. Lo que se vigila AQUÍ son las dos       */
+/*  regresiones de cableado que reabrirían la fuga sin romper ninguna prueba   */
+/*  de comportamiento: volver a abrir la puerta por el mero hecho de que la    */
+/*  librería exista, y reintentar en otra lengua tras un fallo.                */
+/* -------------------------------------------------------------------------- */
+describe('T.A.R. · puerta de reconocimiento en el dispositivo', () => {
+  const audio = read('src/Screens/Articulation/articulationAudio.ts');
+
+  it('la decisión pasa por la puerta, no por «existe la librería»', () => {
+    expect(audio).toContain('probeRecognitionCaps');
+    expect(audio).toContain('resolveRecognitionMode');
+  });
+
+  /* REGRESIÓN — el reconocimiento se activaba en cuanto se resolvía el módulo,
+   * y el reconocedor del sistema es de SERVIDOR por defecto: «hay librería»
+   * acababa significando «la voz del niño viaja a Apple o a Google». */
+  it('no se activa el reconocimiento al detectar la librería', () => {
+    const init = audio.slice(audio.indexOf('// 2) Reconocimiento de voz'));
+    const upToHandlers = init.slice(0, init.indexOf('onSpeechPartialResults'));
+    expect(upToHandlers).not.toContain('setRecognitionAvailable(true)');
+    expect(upToHandlers).not.toContain('recognitionRef.current = true');
+  });
+
+  /* REGRESIÓN — el reintento en la lengua base. La garantía de modo local se
+   * confirma PARA UN LOCALE CONCRETO: arrancar con otro sale del alcance de lo
+   * comprobado y puede acabar reconociendo por red. */
+  it('no reintenta el arranque con otra lengua', () => {
+    const start = audio.slice(
+      audio.indexOf('const startRecognition'),
+      audio.indexOf('const stopRecognition'),
+    );
+    const starts = start.match(/voiceRef\.current\?\.start\?\.\(/g) || [];
+    expect(starts).toHaveLength(1);
+    expect(start).not.toContain('start?.(RECOGNITION_FALLBACK)');
+  });
+
+  it('el módulo de decisión no admite un modo de servidor', () => {
+    const gate = read('src/Screens/Articulation/articulationRecognition.ts');
+    expect(gate).toContain("export type RecognitionMode = 'on-device' | 'unavailable'");
+    // Se miran solo las líneas de CÓDIGO: el módulo menciona «server» en los
+    // comentarios, precisamente para explicar que ese modo no existe.
+    const code = gate
+      .replace(/\/\*[\s\S]*?\*\//g, '')
+      .replace(/^\s*\/\/.*$/gm, '');
+    expect(code).not.toMatch(/'server'/);
+  });
+});
+
 describe('Android · AndroidManifest', () => {
   const manifest = read('android/app/src/main/AndroidManifest.xml');
   const gradle = read('android/build.gradle');

@@ -420,6 +420,22 @@ export default function ArticulationTestScreen({ navigation }: Props) {
                 </HStack>
               ) : null}
 
+              {/* A2 · Zero-PHI. El reconocimiento puede estar apagado aunque el
+                  dispositivo TENGA motor: si no se puede garantizar que
+                  transcribe en local, VIA+ prefiere no transcribir a mandar la
+                  voz del paciente a un servidor. El clínico necesita saber que
+                  es una decisión y no una avería, y cuál de los motivos es:
+                  «falta el modelo de esta lengua» lo resuelve él desde los
+                  ajustes del sistema. */}
+              {audio.available && !audio.recognitionAvailable ? (
+                <HStack space="sm" alignItems="flex-start" p="$3.5" borderRadius={16} bg="$info50" borderWidth={1} borderColor="$info200">
+                  <Icon as={Info} size="sm" color="$info700" style={{ marginTop: 1 }} />
+                  <Text size="xs" color="$info800" style={{ flex: 1, lineHeight: 18 }}>
+                    {audio.recognitionBlockLabel}
+                  </Text>
+                </HStack>
+              ) : null}
+
               {!audio.available && !audio.recognitionAvailable ? (
                 <HStack space="sm" alignItems="flex-start" p="$3.5" borderRadius={16} bg="$warning50" borderWidth={1} borderColor="$warning200">
                   <Icon as={Info} size="sm" color="$warning700" style={{ marginTop: 1 }} />

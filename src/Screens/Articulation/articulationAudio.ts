@@ -1,6 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 import {
+  probeRecognitionCaps,
+  recognitionBlockLabel,
+  resolveRecognitionMode,
+  type RecognitionBlockReason,
+} from './articulationRecognition';
+import {
   canSpeak,
   onVoiceStatusChange,
   speakLocalized,
@@ -104,7 +110,13 @@ export type RecStatus = 'idle' | 'recording' | 'ready';
 
 export interface ArticulationAudio {
   available: boolean;            // hay motor de grabación
-  recognitionAvailable: boolean; // hay motor de reconocimiento de voz
+  recognitionAvailable: boolean; // hay motor de reconocimiento de voz USABLE
+  /** El reconocimiento está garantizado EN EL DISPOSITIVO (A2 · Zero-PHI). */
+  recognitionOnDevice: boolean;
+  /** Por qué no se puede transcribir, para que la pantalla lo explique. */
+  recognitionBlockReason: RecognitionBlockReason;
+  /** Texto listo para pantalla del motivo de bloqueo. */
+  recognitionBlockLabel: string;
   /** Hay alguna vía para el modelo hablado (recorte neuronal o voz del sistema). */
   modelVoiceAvailable: boolean;
   micGranted: boolean;           // permiso de micrófono concedido
@@ -191,6 +203,12 @@ export function useArticulationAudio(lang: string = 'es'): ArticulationAudio {
   const recognitionRef = useRef<boolean>(false);    // reconocimiento
   const [available, setAvailable] = useState(false);
   const [recognitionAvailable, setRecognitionAvailable] = useState(false);
+  /* A2 · Zero-PHI. `recognitionAvailable` ya NO significa «hay motor», sino
+   * «hay motor Y se puede garantizar que transcribe en el dispositivo». La
+   * puerta arranca CERRADA y solo la abre `probeRecognitionCaps` si la capa
+   * nativa confirma las dos capacidades: lo que no se confirma, no se asume. */
+  const [recognitionBlock, setRecognitionBlock] =
+    useState<RecognitionBlockReason>('no-library');
   /* Misma historia con la voz del modelo: el motor del sistema tarda un par de
    * segundos en arrancar, así que `canSpeak()` evaluado en el render podía
    * quedarse congelado en el «no» del arranque y dejar puesto para siempre el
@@ -218,8 +236,11 @@ export function useArticulationAudio(lang: string = 'es'): ArticulationAudio {
     const Voice = voiceMod?.default ?? voiceMod;
     if (Voice) {
       voiceRef.current = Voice;
-      recognitionRef.current = true;
-      setRecognitionAvailable(true);
+      /* NO se activa aquí. Antes bastaba con que la librería existiera, y ese
+       * era justamente el fallo: el reconocedor del sistema es de SERVIDOR por
+       * defecto, así que «hay librería» acababa significando «la voz del niño
+       * viaja a Apple o a Google». Ahora la decisión la toma la puerta, tras
+       * interrogar a la capa nativa. */
       Voice.onSpeechStart = () => setRecognizing(true);
       const handleResults = (e: any) => {
         const text: string = (e?.value && e.value[0]) || '';
@@ -253,6 +274,29 @@ export function useArticulationAudio(lang: string = 'es'): ArticulationAudio {
       }
     };
   }, []);
+
+  /* A2 · PUERTA DE RECONOCIMIENTO. Se interroga a la capa nativa por sus
+   * capacidades y se decide. Depende de la lengua de sesión porque el modelo
+   * local existe POR LENGUA: un dispositivo puede tener castellano descargado
+   * y no gallego, y eso cambia la respuesta.
+   *
+   * Si el sondeo se queda a medias (pantalla desmontada), no se toca estado:
+   * la puerta se queda como estaba, que es cerrada. */
+  useEffect(() => {
+    let alive = true;
+    const locale = RECOGNITION_LOCALE[lang] ?? RECOGNITION_FALLBACK;
+    void (async () => {
+      const caps = await probeRecognitionCaps(voiceRef.current, locale);
+      const decision = resolveRecognitionMode(caps);
+      if (!alive) return;
+      recognitionRef.current = decision.mode === 'on-device';
+      setRecognitionAvailable(decision.mode === 'on-device');
+      setRecognitionBlock(decision.reason);
+    })();
+    return () => {
+      alive = false;
+    };
+  }, [lang]);
 
   /* El motor de voz del sistema se inicializa de forma asíncrona: sin esta
    * suscripción la pantalla no se entera de que ya está listo. */
@@ -325,20 +369,20 @@ export function useArticulationAudio(lang: string = 'es'): ArticulationAudio {
       await voiceRef.current?.start?.(locale);
       setRecognizing(true);
     } catch (_e) {
-      // El dispositivo no trae ese modelo de reconocimiento (habitual en
-      // gl/eu y en variantes como es-DO). Se reintenta con la lengua base
-      // antes de rendirse: transcribir con acento ajeno sigue siendo más útil
-      // que no transcribir, y la clasificación SODA la firma el clínico.
-      if (locale === RECOGNITION_FALLBACK) {
-        setRecognizing(false);
-        return;
-      }
-      try {
-        await voiceRef.current?.start?.(RECOGNITION_FALLBACK);
-        setRecognizing(true);
-      } catch (_e2) {
-        setRecognizing(false);
-      }
+      /* SIN REINTENTO EN OTRA LENGUA (cambio de A2).
+       *
+       * Antes, si el dispositivo no traía el modelo de la lengua pedida, se
+       * reintentaba con `es-ES`: «mejor transcribir con acento ajeno que no
+       * transcribir». Con la puerta Zero-PHI ese razonamiento ya no vale, y no
+       * por purismo lingüístico: la garantía de modo local se confirmó PARA UN
+       * LOCALE CONCRETO. Arrancar con otro distinto sale del alcance de lo
+       * comprobado y puede acabar reconociendo por red — justo lo que la
+       * puerta impide.
+       *
+       * Si falta el modelo de la lengua de sesión, el sondeo lo detecta y la
+       * pantalla lo dice con `no-local-model`, que el clínico resuelve
+       * descargándolo desde los ajustes del sistema. */
+      setRecognizing(false);
     }
   }, []);
 
@@ -434,6 +478,9 @@ export function useArticulationAudio(lang: string = 'es'): ArticulationAudio {
   return {
     available,
     recognitionAvailable,
+    recognitionOnDevice: recognitionAvailable,
+    recognitionBlockReason: recognitionBlock,
+    recognitionBlockLabel: recognitionBlockLabel(recognitionBlock),
     modelVoiceAvailable,
     micGranted,
     speaking,
