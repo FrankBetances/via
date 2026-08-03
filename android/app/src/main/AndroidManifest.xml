@@ -3,6 +3,28 @@
 
     <uses-permission android:name="android.permission.INTERNET" />
 
+    <!-- VISIBILIDAD DEL RECONOCEDOR DE VOZ (T.A.R.).
+
+         Desde Android 11 (API 30) rige el filtrado de visibilidad de paquetes:
+         una app solo «ve» los servicios de otras si los declara aquí. Con
+         `targetSdkVersion = 35`, `SpeechRecognizer` NO PUEDE ENLAZAR con el
+         servicio de reconocimiento sin este bloque, así que
+         `isRecognitionAvailable()` devuelve false y el módulo de articulación
+         se queda permanentemente en «modo limitado» aunque el dispositivo
+         tenga el reconocedor instalado y funcionando.
+
+         `RecognitionService` cubre el enlace del reconocedor; la actividad
+         `RECOGNIZE_SPEECH` cubre la ruta por intent explícito. Se declaran las
+         dos porque los fabricantes reparten el servicio de forma distinta. -->
+    <queries>
+        <intent>
+            <action android:name="android.speech.RecognitionService" />
+        </intent>
+        <intent>
+            <action android:name="android.speech.action.RECOGNIZE_SPEECH" />
+        </intent>
+    </queries>
+
     <!-- Audio: micrófono (sonómetro, análisis de voz, T.A.R.) y sesión de
          audio para la síntesis de tonos de las audiometrías. -->
     <uses-permission android:name="android.permission.RECORD_AUDIO" />

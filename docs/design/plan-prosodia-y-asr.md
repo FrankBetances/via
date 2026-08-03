@@ -31,7 +31,14 @@ paralelo B1+B2, que son TypeScript puro y CI —no dependen de nadie.
 No es una integración: el motor ya está montado en
 `src/Screens/Articulation/articulationAudio.ts`. Es un saneamiento en tres PRs.
 
-### PR A1 — Configuración nativa que falta 🔴 *blocker*
+### PR A1 — Configuración nativa que falta ✅ *hecho*
+
+> **Resuelto.** `NSSpeechRecognitionUsageDescription` añadida al `Info.plist`,
+> `NSMicrophoneUsageDescription` corregida (ya no promete lo que el código no
+> garantizaba), y `<queries>` declarado en el manifiesto para
+> `RecognitionService` y para la actividad `RECOGNIZE_SPEECH`. Cubierto por
+> `scripts/__tests__/nativeAudioConfig.test.js`, verificado revirtiendo las
+> claves: el test falla.
 
 **Problema.** iOS termina el proceso al pedir autorización a `SFSpeechRecognizer`
 sin `NSSpeechRecognitionUsageDescription`; Android con `targetSdkVersion = 35`

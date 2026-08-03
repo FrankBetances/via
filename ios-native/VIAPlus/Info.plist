@@ -50,7 +50,21 @@
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>NSMicrophoneUsageDescription</key>
-	<string>VIA+ usa el micrófono para medir el ruido de la sala antes de las pruebas y para el análisis acústico de la voz. Las grabaciones se procesan en el dispositivo.</string>
+	<string>VIA+ usa el micrófono para medir el ruido de la sala antes de las pruebas y para el análisis acústico de la voz y del habla. El audio se analiza en el dispositivo y no se conserva.</string>
+	<!--
+	  RECONOCIMIENTO DE VOZ (T.A.R.). Sin esta clave, iOS TERMINA EL PROCESO en
+	  cuanto se solicita autorización a `SFSpeechRecognizer`: no es un permiso
+	  denegado que se pueda capturar, es un SIGABRT. El módulo de articulación
+	  pide esa autorización, así que su reconocimiento estaba muerto en iOS —y
+	  la app habría sido rechazada en la revisión de App Store—.
+
+	  El texto dice EN EL DISPOSITIVO porque el módulo solo transcribe cuando
+	  puede garantizar reconocimiento local; si el dispositivo no trae el modelo
+	  descargado, degrada a clasificación manual en vez de enviar la voz del
+	  menor a un servidor (ver `articulationAudio.ts`).
+	-->
+	<key>NSSpeechRecognitionUsageDescription</key>
+	<string>VIA+ transcribe en el dispositivo la repetición del niño o la niña para ayudar al profesional a clasificar la articulación. Si el dispositivo no puede reconocer sin conexión, la prueba continúa con clasificación manual.</string>
 	<key>UILaunchScreen</key>
 	<dict/>
 	<key>UIApplicationSceneManifest</key>
