@@ -367,7 +367,14 @@ desmontaje limpio).
 
 ---
 
-### B6 — Validación clínica (fuera del software)
+### B6 — Validación clínica (fuera del software) ⏳ *Parte A firmada · Parte B pendiente de datos*
+
+> Protocolo en [`validacion-clinica-prosodia.md`](./validacion-clinica-prosodia.md),
+> firma en `assets/prosody-approval.json`, banco de medición en
+> `tools/acoustics/concordance.js`. La Parte A (juicio clínico sobre tarea,
+> estímulos y afirmaciones) está ratificada; la Parte B (concordancia del
+> recuento silábico con anotación manual) **exige grabaciones reales** y no se
+> puede cerrar con una firma.
 
 El propio `tools/acoustics/README.md` ya avisa de este límite:
 

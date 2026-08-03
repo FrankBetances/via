@@ -43,7 +43,9 @@ publica como «no medido», nunca como cero ni como una estimación silenciosa.*
 CI demuestra que el algoritmo implementa correctamente el método de De Jong &
 Wempe sobre señal sintética; no demuestra que cuente bien las sílabas de un niño
 de cinco años. Mitigado por la jerarquía del informe y la advertencia explícita,
-pero **no eliminado**. Cierre previsto: B6.
+pero **no eliminado**. Cierre previsto: B6, con protocolo y criterios de
+aceptación en [`validacion-clinica-prosodia.md`](./validacion-clinica-prosodia.md)
+y banco de medición en `tools/acoustics/concordance.js`.
 
 > **Primer dato sobre habla no ideal (agosto 2026).** Al verificar los recortes
 > neuronales de las consignas se pasó el DSP por encima de los cuatro ficheros.

@@ -1,0 +1,44 @@
+[
+  {
+    "scope": "clinical-judgment",
+    "part": "A",
+    "status": "aprobado",
+    "appliesTo": "module:ProsodyAnalysis",
+    "date": "2026-08-03",
+    "approvedBy": "F. A. Betances (médico · responsable clínico del proyecto)",
+    "protocol": "docs/design/validacion-clinica-prosodia.md",
+    "covers": [
+      "A.1 tarea de habla: narración provocada con apoyo visual, dos bandas de edad, 30-60 s de habla válida, consigna locutada por la app",
+      "A.2 estímulos: lamina-parque-v1 (10 elementos) y lamina-excursion-v1 (3 viñetas, 8 elementos), con consignas abiertas",
+      "A.3 afirmaciones: descriptivas sin baremo, jerarquía tono→ritmo, comparación solo intrasujeto y dentro de la misma tarea",
+      "A.4 criterios de toma válida: avisos de saturación y muestra corta, distinción entre «sin señal» y «sin habla», registro de tomas fallidas con su motivo"
+    ],
+    "stimuli": [
+      { "id": "lamina-parque-v1", "ageBand": "prelector", "task": "narracion-lamina", "elements": 10 },
+      { "id": "lamina-excursion-v1", "ageBand": "lector", "task": "narracion-lamina", "panels": 3, "elements": 8 }
+    ],
+    "notes": "Ratificación del JUICIO CLÍNICO sobre tarea, estímulos, política de afirmaciones y criterios de validez de la toma. NO cubre la exactitud del recuento silábico ni la fiabilidad test-retest de ninguna métrica: eso es la Parte B y exige medición sobre habla infantil real (ver `status` de la entrada siguiente). Cambiar la tarea, sustituir una lámina o pasar a afirmación normativa invalida esta firma y exige una nueva."
+  },
+  {
+    "scope": "measurement-concordance",
+    "part": "B",
+    "status": "pendiente-datos",
+    "appliesTo": "module:ProsodyAnalysis",
+    "protocol": "docs/design/validacion-clinica-prosodia.md",
+    "harness": "tools/acoustics/concordance.js",
+    "acceptance": {
+      "syllableCount": { "metric": "ICC(A,1)", "threshold": 0.75, "maxAbsBiasPct": 10 },
+      "pauseCount": { "metric": "ICC(A,1)", "threshold": 0.75 },
+      "tonalTestRetest": { "metric": "ICC(A,1)", "threshold": 0.75 },
+      "interAnnotator": { "metric": "ICC(A,1)", "threshold": 0.9, "coverage": "≥20 % de las muestras" }
+    },
+    "sample": {
+      "minChildren": 30,
+      "strata": { "prelector": 15, "lector": 15 },
+      "retestSubgroup": 10,
+      "setting": "consulta real, con su ruido de sala habitual"
+    },
+    "measured": null,
+    "notes": "PENDIENTE DE MEDICIÓN. Este bloque no se rellena con una firma: requiere grabaciones reales de habla infantil anotadas por logopeda. `measured` permanece null hasta que exista el informe de `concordance.js`. Indicio previo que motiva la prioridad: el mismo texto locutado por dos voces distintas dio 16 y 23 sílabas frente a ~26 reales (R-01 en docs/design/prosodia-riesgos.md). Si el ICC del recuento silábico queda bajo 0.75, se retiran del informe las tasas de habla y articulación; el resto del módulo (rango y variabilidad tonal, contorno de cierre, pausas, fracción sonora) no depende de ese recuento y se mantiene."
+  }
+]

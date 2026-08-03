@@ -62,6 +62,14 @@ import {
 /*    localizaría mal). A 10 ms hay ~17 puntos por sílaba.                    */
 /* -------------------------------------------------------------------------- */
 
+/**
+ * Frecuencia de muestreo que ESPERA este módulo. Se reexporta porque es su
+ * contrato de entrada y quien lo consume desde fuera de la app —el banco de
+ * validación y el de concordancia— necesita saber a qué frecuencia decodificar
+ * el audio antes de llamar a `analyseProsody`.
+ */
+export { SAMPLE_RATE };
+
 /** Paso del contorno de F0 (muestras). 512 @ 16 kHz = 32 ms → 31.25 tramas/s. */
 export const F0_HOP = 512;
 /** Ventana del contorno de F0: la misma que usa `voiceDsp` (1024 = 64 ms). */

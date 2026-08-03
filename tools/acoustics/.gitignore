@@ -1,3 +1,10 @@
 # Los WAV y las medidas son artefactos regenerables (`node fixtures.js`):
 # se versiona la herramienta, no su salida.
 out/
+
+# Grabaciones de la validación clínica (B6): habla infantil real. NUNCA entra
+# al repositorio — el banco de concordancia las lee de una carpeta local y solo
+# emite cifras agregadas.
+samples/
+muestras/
+*.wav
