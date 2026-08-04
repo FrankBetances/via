@@ -16,12 +16,36 @@
          `RecognitionService` cubre el enlace del reconocedor; la actividad
          `RECOGNIZE_SPEECH` cubre la ruta por intent explícito. Se declaran las
          dos porque los fabricantes reparten el servicio de forma distinta. -->
+    <!-- VISIBILIDAD DEL SINTETIZADOR DE VOZ (modelo hablado del T.A.R.,
+         consigna del módulo de prosodia, consignas de funciones ejecutivas y
+         degradación de la audiometría verbal).
+
+         Mismo filtrado de visibilidad de paquetes, mismo efecto y peor
+         diagnóstico: el motor de síntesis es un SERVICIO ENLAZADO
+         (`android.intent.action.TTS_SERVICE`). Con `targetSdkVersion = 35` y
+         sin esta declaración, `TextToSpeech` no puede enlazar con NINGÚN
+         motor: la inicialización devuelve ERROR, `voices()` sale vacío y
+         `speak()` no emite. Y no falla de forma visible —no lanza, no avisa—,
+         simplemente NO SUENA NADA.
+
+         Eso es exactamente el «el T.A.R. no suena» reportado en campo, y
+         explica por qué la audiometría verbal sí sonaba: aquella reproduce
+         recortes empaquetados (`preferTts: false`) y no depende del motor del
+         sistema. El T.A.R. no tiene recortes propios para su inventario en
+         sesión castellana, así que su única vía era justo la que el filtrado
+         bloqueaba.
+
+         `react-native-tts` no lo declara en su propio manifiesto (el suyo está
+         vacío), así que tiene que declararlo la app. -->
     <queries>
         <intent>
             <action android:name="android.speech.RecognitionService" />
         </intent>
         <intent>
             <action android:name="android.speech.action.RECOGNIZE_SPEECH" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.TTS_SERVICE" />
         </intent>
     </queries>
 

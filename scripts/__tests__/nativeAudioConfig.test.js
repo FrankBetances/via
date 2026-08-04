@@ -111,6 +111,24 @@ describe('T.A.R. · puerta de reconocimiento en el dispositivo', () => {
     expect(pkg.devDependencies['patch-package']).toBeTruthy();
   });
 
+  /* REGRESIÓN — el sondeo moría en Android 12.
+   *
+   * Los dos métodos del sistema que usa el parche NO son de la misma API:
+   *   · `createOnDeviceSpeechRecognizer(Context)` → API 31 (Android 12)
+   *   · `isOnDeviceRecognitionAvailable(Context)` → API 33 (Android 13)
+   *
+   * El parche consultaba el de API 33 bajo una guarda de API 31. En un
+   * Android 12 el enlazador lanza `NoSuchMethodError`, que NO es una
+   * `Exception`: el `catch (Exception)` no lo atrapaba, el callback del sondeo
+   * no llegaba nunca y la puerta se cerraba por «no se ha podido confirmar» en
+   * dispositivos que sí podían haber informado. */
+  it('la consulta de API 33 va bajo la guarda de API 33, no la de API 31', () => {
+    const patch = read('patches/@react-native-voice+voice+3.2.4.patch');
+    expect(patch).toContain('VERSION_CODES.TIRAMISU');
+    // Y se atrapa `Throwable`: un error del enlazador no es una `Exception`.
+    expect(patch).toContain('catch (Throwable');
+  });
+
   it('el módulo de decisión no admite un modo de servidor', () => {
     const gate = read('src/Screens/Articulation/articulationRecognition.ts');
     expect(gate).toContain("export type RecognitionMode = 'on-device' | 'unavailable'");
@@ -175,5 +193,30 @@ describe('Android · AndroidManifest', () => {
     // Los fabricantes reparten el servicio de forma distinta: hay dispositivos
     // que solo resuelven por la actividad RECOGNIZE_SPEECH.
     expect(manifest).toContain('android.speech.action.RECOGNIZE_SPEECH');
+  });
+
+  /* REGRESIÓN — «el T.A.R. no suena».
+   *
+   * El mismo filtrado de visibilidad, el otro servicio. El sintetizador de voz
+   * es un SERVICIO ENLAZADO (`android.intent.action.TTS_SERVICE`): sin esta
+   * declaración, `TextToSpeech` no enlaza con NINGÚN motor —la inicialización
+   * devuelve ERROR, `voices()` sale vacío y `speak()` no emite— y no hay
+   * ninguna señal en JS: simplemente no suena nada.
+   *
+   * Se declaró el `<queries>` del reconocedor y se olvidó el del sintetizador,
+   * que es de lo que dependen el modelo hablado del T.A.R. y la consigna del
+   * módulo de prosodia. La audiometría verbal se salvó por reproducir recortes
+   * empaquetados (`preferTts: false`), y esa asimetría fue justo lo que hizo
+   * que el fallo pareciera «del T.A.R.» y no de la app.
+   *
+   * `react-native-tts` no lo declara en su propio manifiesto (está vacío), así
+   * que tiene que declararlo la app. */
+  it('declara <queries> para el servicio de SÍNTESIS de voz', () => {
+    expect(manifest).toContain('android.intent.action.TTS_SERVICE');
+  });
+
+  it('la declaración del sintetizador está DENTRO del bloque <queries>', () => {
+    const queries = (manifest.match(/<queries>([\s\S]*?)<\/queries>/) || [])[1] ?? '';
+    expect(queries).toContain('android.intent.action.TTS_SERVICE');
   });
 });

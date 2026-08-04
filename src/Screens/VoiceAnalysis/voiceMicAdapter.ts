@@ -6,8 +6,10 @@ import {
   acquireAudioContext,
   acquireRecorder,
   acquireRecordingSession,
+  recorderHealth,
   releaseAudioContext,
   resumeAudioContext,
+  setRecorderPermissionGranted,
   type SharedAudioContext,
   type SharedRecorder,
 } from '@/Audio';
@@ -101,7 +103,18 @@ const CAPTURE_WATCHDOG_MS = 1200;
 
 /* ------------------------------- permisos --------------------------------- */
 
+/**
+ * El resultado se comunica al micrófono compartido ANTES de abrir nada: el
+ * stream nativo se abre en el CONSTRUCTOR de `AudioRecorder`, así que un
+ * recorder creado sin permiso nace sin stream y se queda mudo para siempre.
+ */
 async function ensureMicPermission(): Promise<boolean> {
+  const granted = await requestMicPermission();
+  setRecorderPermissionGranted(granted);
+  return granted;
+}
+
+async function requestMicPermission(): Promise<boolean> {
   if (Platform.OS === 'android') {
     const granted = await PermissionsAndroid.request(PermissionsAndroid.PERMISSIONS.RECORD_AUDIO, {
       title: 'Permiso de micrófono',
@@ -305,6 +318,8 @@ export function registerVoiceMicAdapter(): boolean {
     analyse: analysePcm,
 
     hasSignal: () => blocksReceived > 0,
+
+    health: recorderHealth,
 
     play: (pcm: Float32Array, onEnded: () => void) => {
       stopPlayback();

@@ -48,6 +48,7 @@ export {
   speakLocalized,
   stopSpeaking,
   canSpeak,
+  canSpeakText,
   voiceStatus,
   retryVoiceEngine,
   onVoiceStatusChange,

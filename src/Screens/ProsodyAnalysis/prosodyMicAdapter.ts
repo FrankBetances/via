@@ -4,6 +4,8 @@ import { AudioManager } from 'react-native-audio-api';
 import {
   acquireRecorder,
   acquireRecordingSession,
+  recorderHealth,
+  setRecorderPermissionGranted,
   type SharedRecorder,
 } from '@/Audio';
 import {
@@ -65,7 +67,15 @@ const LIVE_SPEECH_FLOOR = 0.01;
 
 /* ------------------------------- permisos --------------------------------- */
 
+/** Ver la nota del adaptador de voz: el permiso se comunica al micrófono
+ *  compartido ANTES de abrir el stream, que se abre en el constructor. */
 async function ensureMicPermission(): Promise<boolean> {
+  const granted = await requestMicPermission();
+  setRecorderPermissionGranted(granted);
+  return granted;
+}
+
+async function requestMicPermission(): Promise<boolean> {
   if (Platform.OS === 'android') {
     const granted = await PermissionsAndroid.request(PermissionsAndroid.PERMISSIONS.RECORD_AUDIO, {
       title: 'Permiso de micrófono',
@@ -235,6 +245,8 @@ export function registerProsodyMicAdapter(): boolean {
     analyse: analyseProsody,
 
     hasSignal: () => blocksReceived > 0,
+
+    health: recorderHealth,
   };
 
   disposeCurrent = () => {

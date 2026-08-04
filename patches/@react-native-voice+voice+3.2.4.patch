@@ -1,5 +1,5 @@
 diff --git a/node_modules/@react-native-voice/voice/android/src/main/java/com/wenkesj/voice/VoiceModule.java b/node_modules/@react-native-voice/voice/android/src/main/java/com/wenkesj/voice/VoiceModule.java
-index f22833e..267fe55 100644
+index f22833e..478da95 100644
 --- a/node_modules/@react-native-voice/voice/android/src/main/java/com/wenkesj/voice/VoiceModule.java
 +++ b/node_modules/@react-native-voice/voice/android/src/main/java/com/wenkesj/voice/VoiceModule.java
 @@ -5,6 +5,7 @@ import android.content.ComponentName;
@@ -21,7 +21,7 @@ index f22833e..267fe55 100644
    private boolean isRecognizing = false;
    private String locale = null;
  
-@@ -60,7 +65,21 @@ public class VoiceModule extends ReactContextBaseJavaModule implements Recogniti
+@@ -60,7 +65,20 @@ public class VoiceModule extends ReactContextBaseJavaModule implements Recogniti
        speech = null;
      }
      
@@ -33,8 +33,7 @@ index f22833e..267fe55 100644
 +       cae al reconocedor normal: se aborta, porque la alternativa sería
 +       reconocer por red justo cuando se ha pedido no hacerlo. */
 +    if (this.viaRequireOnDevice) {
-+      if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
-+          && SpeechRecognizer.isOnDeviceRecognitionAvailable(this.reactContext)) {
++      if (isOnDeviceAvailable()) {
 +        speech = SpeechRecognizer.createOnDeviceSpeechRecognizer(this.reactContext);
 +      } else {
 +        Log.w("VIA+", "Se exigió reconocimiento local y no está disponible: no se arranca.");
@@ -44,24 +43,43 @@ index f22833e..267fe55 100644
        switch (opts.getString("RECOGNIZER_ENGINE")) {
          case "GOOGLE": {
            speech = SpeechRecognizer.createSpeechRecognizer(this.reactContext, ComponentName.unflattenFromString("com.google.android.googlequicksearchbox/com.google.android.voicesearch.serviceapi.GoogleRecognitionService"));
-@@ -144,6 +163,30 @@ public class VoiceModule extends ReactContextBaseJavaModule implements Recogniti
+@@ -144,6 +162,49 @@ public class VoiceModule extends ReactContextBaseJavaModule implements Recogniti
      });
    }
  
 +  /* VIA+ (A2 · Zero-PHI) --------------------------------------------------- */
 +
++  /* ¿Puede este dispositivo reconocer SIN RED?
++
++     DOS NIVELES DE API DISTINTOS, y confundirlos costaba caro:
++       · `createOnDeviceSpeechRecognizer(Context)` → API 31 (Android 12).
++       · `isOnDeviceRecognitionAvailable(Context)` → API 33 (Android 13).
++
++     La versión anterior consultaba la de API 33 bajo una guarda de API 31, así
++     que en Android 12 el enlazador lanzaba `NoSuchMethodError` — que NO es una
++     `Exception` y por tanto el `catch (Exception)` no atrapaba—. Resultado en
++     un Android 12: el sondeo moría sin invocar el callback y la puerta se
++     quedaba cerrada por «no se ha podido confirmar»; y en `startListening`, la
++     misma llamada reventaba al pulsar grabar.
++
++     Se centraliza en un único sitio, con la guarda correcta y atrapando
++     `Throwable` (que sí incluye los errores del enlazador). El resultado sigue
++     siendo fallo cerrado: lo que no se puede confirmar, no se asume. */
++  private boolean isOnDeviceAvailable() {
++    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
++      return false;
++    }
++    try {
++      return SpeechRecognizer.isOnDeviceRecognitionAvailable(this.reactContext);
++    } catch (Throwable t) {
++      return false;
++    }
++  }
++
 +  /** ¿Puede este dispositivo reconocer SIN RED? */
 +  @ReactMethod
 +  public void isOnDeviceRecognitionAvailable(final String locale, final Callback callback) {
-+    boolean available = false;
-+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-+      try {
-+        available = SpeechRecognizer.isOnDeviceRecognitionAvailable(this.reactContext);
-+      } catch (Exception e) {
-+        available = false;
-+      }
-+    }
-+    callback.invoke(available);
++    callback.invoke(isOnDeviceAvailable());
 +  }
 +
 +  /** Exige (o deja de exigir) reconocimiento local en los arranques siguientes. */
@@ -76,7 +94,7 @@ index f22833e..267fe55 100644
    public String getName() {
      return "RCTVoice";
 diff --git a/node_modules/@react-native-voice/voice/ios/Voice/Voice.m b/node_modules/@react-native-voice/voice/ios/Voice/Voice.m
-index fd9dad8..82b1db5 100644
+index fd9dad8..f2529a5 100644
 --- a/node_modules/@react-native-voice/voice/ios/Voice/Voice.m
 +++ b/node_modules/@react-native-voice/voice/ios/Voice/Voice.m
 @@ -17,6 +17,10 @@
@@ -93,7 +111,7 @@ index fd9dad8..82b1db5 100644
 @@ -153,6 +157,11 @@
      // Configure request so that results are returned before audio recording is finished
      self.recognitionRequest.shouldReportPartialResults = YES;
- 
+     
 +    // VIA+ (A2 · Zero-PHI): reconocimiento estrictamente local cuando se pide.
 +    if (@available(iOS 13.0, *)) {
 +        self.recognitionRequest.requiresOnDeviceRecognition = self.viaRequireOnDevice;

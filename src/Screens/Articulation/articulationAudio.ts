@@ -4,8 +4,10 @@ import {
   acquireAudioContext,
   acquireRecorder,
   acquireRecordingSession,
+  isRecorderAvailable,
   releaseAudioContext,
   resumeAudioContext,
+  setRecorderPermissionGranted,
   type SharedRecorder,
 } from '@/Audio';
 import { createDecimator3, DECIMATION, SAMPLE_RATE } from '@/Screens/VoiceAnalysis/voiceDsp';
@@ -19,10 +21,11 @@ import {
   type RecognitionBlockReason,
 } from './articulationRecognition';
 import {
-  canSpeak,
+  canSpeakText,
   onVoiceStatusChange,
   speakLocalized,
   stopSpeaking,
+  TAR_MODELS,
   tarModelByLang,
 } from '@/Voice';
 
@@ -130,6 +133,8 @@ export interface ArticulationAudio {
   recognitionBlockLabel: string;
   /** Hay alguna vía para el modelo hablado (recorte neuronal o voz del sistema). */
   modelVoiceAvailable: boolean;
+  /** ¿Va a sonar el modelo de ESTA palabra? (asset propio o voz del sistema) */
+  canSpeakModel: (word: string) => boolean;
   micGranted: boolean;           // permiso de micrófono concedido
   speaking: boolean;
   recStatus: RecStatus;
@@ -237,6 +242,31 @@ const nativeRecognitionProbe = (): NativeRecognitionProbe | null => {
   return probe;
 };
 
+/** Pide RECORD_AUDIO. Fuera del hook: no depende de nada del render. */
+async function requestMicPermission(): Promise<boolean> {
+  const permMod = resolveLib(RN_PERMISSIONS, 'react-native-permissions');
+  // Sin librería de permisos, el SO lo solicita en el primer uso; se responde
+  // que sí para no bloquear el flujo (el motor de captura ya reporta si el
+  // stream acaba sin abrirse).
+  if (!permMod) return true;
+  try {
+    const { request, PERMISSIONS, RESULTS, Platform } = permMod;
+    const perm =
+      Platform?.OS === 'ios' ? PERMISSIONS?.IOS?.MICROPHONE : PERMISSIONS?.ANDROID?.RECORD_AUDIO;
+    const res = await request(perm);
+    return res === RESULTS?.GRANTED;
+  } catch (_e) {
+    return false;
+  }
+}
+
+/**
+ * ¿Hay alguna palabra del inventario T.A.R. que vaya a sonar en esta lengua?
+ * Corta en la primera que sí: basta una para que el modelo hablado tenga vía.
+ */
+const anyTarModelSpeakable = (lang: string): boolean =>
+  TAR_MODELS.some(model => canSpeakText('tutor', model.text, lang));
+
 /* -------------------------------------------------------------------------- */
 /*  Hook                                                                       */
 /* -------------------------------------------------------------------------- */
@@ -307,10 +337,19 @@ export function useArticulationAudio(lang: string = 'es'): ArticulationAudio {
   const [recognitionBlock, setRecognitionBlock] =
     useState<RecognitionBlockReason>('no-library');
   /* Misma historia con la voz del modelo: el motor del sistema tarda un par de
-   * segundos en arrancar, así que `canSpeak()` evaluado en el render podía
-   * quedarse congelado en el «no» del arranque y dejar puesto para siempre el
-   * aviso de «sin voz disponible». Se suscribe a los cambios de estado. */
-  const [modelVoiceAvailable, setModelVoiceAvailable] = useState(canSpeak);
+   * segundos en arrancar, así que evaluarlo en el render podía quedarse
+   * congelado en el «no» del arranque y dejar puesto para siempre el aviso de
+   * «sin voz disponible». Se suscribe a los cambios de estado.
+   *
+   * Se pregunta POR EL BANCO T.A.R. y no por `canSpeak()` a secas: aquel
+   * respondía «sí» en cuanto había CUALQUIER locución empaquetada en la app, y
+   * el banco de recortes es hoy solo `es-DO`. En sesión castellana el modelo
+   * hablado del T.A.R. depende del sintetizador del sistema, así que si ese no
+   * está, la respuesta honesta es «no» — y era justo el caso en el que la
+   * pantalla decía que sí y luego no sonaba nada. */
+  const [modelVoiceAvailable, setModelVoiceAvailable] = useState(() =>
+    anyTarModelSpeakable(lang),
+  );
 
   /* -------------------------- purga de la toma (A3) ------------------------- */
   /*  Con la captura en memoria, «purgar» es soltar la referencia: no queda      */
@@ -321,21 +360,41 @@ export function useArticulationAudio(lang: string = 'es'): ArticulationAudio {
     setHasRecording(false);
   }, []);
 
+  /**
+   * Reserva el micrófono compartido y se suscribe, UNA sola vez. Es PEREZOSA a
+   * propósito: hasta que no se llama, el T.A.R. no toca el micrófono.
+   *
+   * Antes esto vivía en el `useEffect` de montaje, y ese era el fallo. El
+   * stream nativo se abre en el CONSTRUCTOR de `AudioRecorder`, así que pedir
+   * el micrófono al ENTRAR en la pantalla lo abría antes de que nadie hubiera
+   * pedido RECORD_AUDIO: Oboe no podía abrir la entrada, el objeto quedaba
+   * cacheado sin stream y —al ser el micrófono COMPARTIDO— el análisis de voz
+   * y el de prosodia heredaban después un micrófono muerto. Ahora se pide
+   * cuando ya hay permiso, que es cuando se puede abrir de verdad.
+   */
+  const ensureRecorder = useCallback((): SharedRecorder | null => {
+    if (recorderRef.current) return recorderRef.current;
+    const shared = acquireRecorder();
+    if (!shared) return null;
+    recorderRef.current = shared;
+    unsubscribeRef.current = shared.subscribe(raw => {
+      if (!capturingRef.current) return;
+      try {
+        const ds = decimateRef.current ? decimateRef.current(raw) : null;
+        if (ds && ds.length) chunksRef.current.push(ds);
+      } catch (_e) {
+        /* un bloque corrupto no debe tumbar la captura */
+      }
+    });
+    return shared;
+  }, []);
+
   /* ---------------------------- init libs ----------------------------- */
   useEffect(() => {
-    // 1) Grabación en memoria sobre el micrófono compartido.
-    const shared = acquireRecorder();
-    if (shared) {
-      recorderRef.current = shared;
-      unsubscribeRef.current = shared.subscribe(raw => {
-        if (!capturingRef.current) return;
-        try {
-          const ds = decimateRef.current ? decimateRef.current(raw) : null;
-          if (ds && ds.length) chunksRef.current.push(ds);
-        } catch (_e) {
-          /* un bloque corrupto no debe tumbar la captura */
-        }
-      });
+    // 1) Grabación en memoria sobre el micrófono compartido. Solo se comprueba
+    //    que el binario TRAE motor de captura: la reserva es perezosa (ver
+    //    `ensureRecorder`), porque abrirlo sin permiso lo deja muerto.
+    if (isRecorderAvailable()) {
       availableRef.current = true;
       setAvailable(true);
     }
@@ -425,31 +484,30 @@ export function useArticulationAudio(lang: string = 'es'): ArticulationAudio {
   }, [lang]);
 
   /* El motor de voz del sistema se inicializa de forma asíncrona: sin esta
-   * suscripción la pantalla no se entera de que ya está listo. */
+   * suscripción la pantalla no se entera de que ya está listo. Depende de la
+   * lengua porque la vía disponible cambia con ella (una sesión dominicana
+   * tiene recortes propios; una castellana, hoy, solo el motor del sistema). */
   useEffect(() => {
-    setModelVoiceAvailable(canSpeak());
-    return onVoiceStatusChange(() => setModelVoiceAvailable(canSpeak()));
-  }, []);
+    const refresh = () => setModelVoiceAvailable(anyTarModelSpeakable(lang));
+    refresh();
+    return onVoiceStatusChange(refresh);
+  }, [lang]);
+
+  /** ¿Sonará el modelo de esta palabra concreta? */
+  const canSpeakModel = useCallback(
+    (word: string) => canSpeakText('tutor', tarModelByLang(word), langRef.current),
+    [],
+  );
 
   /* --------------------------- permiso mic ---------------------------- */
   const ensureMic = useCallback(async (): Promise<boolean> => {
-    const permMod = resolveLib(RN_PERMISSIONS, 'react-native-permissions');
-    if (!permMod) {
-      // sin librería de permisos: el SO lo solicita en el primer uso
-      setMicGranted(availableRef.current || recognitionRef.current);
-      return availableRef.current || recognitionRef.current;
-    }
-    try {
-      const { request, PERMISSIONS, RESULTS, Platform } = permMod;
-      const perm = Platform?.OS === 'ios' ? PERMISSIONS?.IOS?.MICROPHONE : PERMISSIONS?.ANDROID?.RECORD_AUDIO;
-      const res = await request(perm);
-      const ok = res === RESULTS?.GRANTED;
-      setMicGranted(ok);
-      return ok;
-    } catch (_e) {
-      setMicGranted(false);
-      return false;
-    }
+    const ok = await requestMicPermission();
+    setMicGranted(ok);
+    // El micrófono es COMPARTIDO y su stream se abre en el CONSTRUCTOR: hay que
+    // decirle que ya hay permiso antes de que nadie intente abrirlo, o nacería
+    // sin stream y dejaría mudos también al análisis de voz y al de prosodia.
+    setRecorderPermissionGranted(ok);
+    return ok;
   }, []);
 
   /* --------------------------- modelo hablado -------------------------- */
@@ -572,7 +630,9 @@ export function useArticulationAudio(lang: string = 'es'): ArticulationAudio {
           takeRef.current = null;
           setHasRecording(false);
           capturingRef.current = true;
-          recorderRef.current?.start();
+          // Reserva PEREZOSA: el permiso acaba de concederse, así que este es
+          // el primer momento en que el stream nativo se puede abrir de verdad.
+          ensureRecorder()?.start();
           setRecStatus('recording');
         } catch (_e) {
           capturingRef.current = false;
@@ -583,7 +643,7 @@ export function useArticulationAudio(lang: string = 'es'): ArticulationAudio {
         setRecStatus('recording');
       }
     },
-    [recStatus, ensureMic, startRecognition, stopRecognition],
+    [recStatus, ensureMic, ensureRecorder, startRecognition, stopRecognition],
   );
 
   const playRecording = useCallback(() => {
@@ -657,6 +717,7 @@ export function useArticulationAudio(lang: string = 'es'): ArticulationAudio {
     recognitionBlockReason: recognitionBlock,
     recognitionBlockLabel: recognitionBlockLabel(recognitionBlock),
     modelVoiceAvailable,
+    canSpeakModel,
     micGranted,
     speaking,
     recStatus,

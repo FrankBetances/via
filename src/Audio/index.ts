@@ -24,8 +24,11 @@ export type { SharedAudioContext } from './sharedAudioContext';
 export {
   acquireRecorder,
   isRecorderAvailable,
+  isRecorderPermissionGranted,
   RECORDER_SAMPLE_RATE,
+  recorderHealth,
   recorderRefCount,
+  setRecorderPermissionGranted,
   __resetSharedAudioRecorderForTests,
 } from './sharedAudioRecorder';
-export type { RecorderListener, SharedRecorder } from './sharedAudioRecorder';
+export type { RecorderHealth, RecorderListener, SharedRecorder } from './sharedAudioRecorder';

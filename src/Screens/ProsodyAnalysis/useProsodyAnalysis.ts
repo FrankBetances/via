@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
+import type { RecorderHealth } from '@/Audio';
 import type { ProsodyResult } from './prosodyDsp';
 
 /* -------------------------------------------------------------------------- */
@@ -37,12 +38,36 @@ export interface ProsodyMicAdapter {
   analyse: (pcm: Float32Array) => Promise<ProsodyResult>;
   /** ¿Ha entregado el micrófono algún bloque? Distingue «no habló» de «no captura». */
   hasSignal: () => boolean;
+  /**
+   * Estado del motor de captura tras la toma. Permite decir POR QUÉ no hubo
+   * audio (sin permiso, sin motor, stream mudo) en vez de un aviso genérico.
+   * Opcional para no romper adaptadores de prueba ya escritos.
+   */
+  health?: () => RecorderHealth;
 }
 
 let micAdapter: ProsodyMicAdapter | null = null;
 
+/* AVISO DE REGISTRO — el fallo «el módulo de prosodia dice que no detecta
+ * micrófono».
+ *
+ * La pantalla registra su adaptador en un `useEffect`, o sea DESPUÉS del primer
+ * render. El `useEffect` del hook está declarado ANTES (el hook se invoca en la
+ * primera línea del componente), así que corre primero y siempre veía
+ * `micAdapter === null`. Sin nadie que avisara del registro posterior,
+ * `available` se quedaba en `false` PARA SIEMPRE: la pantalla pintaba «No hay
+ * micrófono disponible en este dispositivo» y dejaba el botón de iniciar toma
+ * deshabilitado, en un equipo con micrófono perfectamente funcional.
+ *
+ * No era una carrera ni un fallo intermitente: era determinista, y desmontar y
+ * volver a entrar no lo arreglaba porque al salir el adaptador se desregistra.
+ * Es el mismo defecto que ya se corrigió en el análisis de voz
+ * (`useVoiceAnalysis`) y en el T.A.R.; aquí faltaba la mitad que avisa. */
+const micListeners = new Set<() => void>();
+
 export const setProsodyMicAdapter = (adapter: ProsodyMicAdapter | null) => {
   micAdapter = adapter;
+  micListeners.forEach(listener => listener());
 };
 
 export const getProsodyMicAdapter = (): ProsodyMicAdapter | null => micAdapter;
@@ -98,6 +123,8 @@ export interface ProsodyAnalysisState {
   result: ProsodyResult | null;
   issues: ProsodyTakeIssues;
   available: boolean;
+  /** Estado del motor de captura tras la última toma (para explicar el fallo). */
+  micHealth: RecorderHealth;
   start: () => Promise<void>;
   stop: () => Promise<void>;
   reset: () => void;
@@ -123,6 +150,8 @@ export function useProsodyAnalysis(): ProsodyAnalysisState {
    * siempre con «sin micrófono». Es el mismo fallo que ya se corrigió en el
    * módulo T.A.R. */
   const [available, setAvailable] = useState<boolean>(() => Boolean(getProsodyMicAdapter()));
+  /** Motivo de la última toma sin audio, para que la pantalla lo explique. */
+  const [micHealth, setMicHealth] = useState<RecorderHealth>('unknown');
 
   const speechRef = useRef(0);
   const clippingRef = useRef(false);
@@ -132,8 +161,14 @@ export function useProsodyAnalysis(): ProsodyAnalysisState {
 
   useEffect(() => {
     mountedRef.current = true;
-    setAvailable(Boolean(getProsodyMicAdapter()));
+    // Suscripción al registro del adaptador: la pantalla lo registra en su
+    // propio `useEffect`, que corre DESPUÉS de este. Sin el aviso, `available`
+    // se quedaba en `false` para siempre (ver la nota de `setProsodyMicAdapter`).
+    const listener = () => setAvailable(Boolean(micAdapter));
+    micListeners.add(listener);
+    listener();
     return () => {
+      micListeners.delete(listener);
       mountedRef.current = false;
     };
   }, []);
@@ -146,6 +181,7 @@ export function useProsodyAnalysis(): ProsodyAnalysisState {
     setClipping(false);
     setResult(null);
     setIssues(NO_ISSUES);
+    setMicHealth('unknown');
     speechRef.current = 0;
     clippingRef.current = false;
     stoppingRef.current = false;
@@ -163,6 +199,7 @@ export function useProsodyAnalysis(): ProsodyAnalysisState {
     // decir cuál: un micrófono ocupado por otra app entrega cero bloques sin
     // dar ningún error.
     const noSignal = !adapter.hasSignal() || pcm.length === 0;
+    if (noSignal) setMicHealth(adapter.health?.() ?? 'silent');
     const takeIssues: ProsodyTakeIssues = {
       noSignal,
       clipping: clippingRef.current,
@@ -194,21 +231,32 @@ export function useProsodyAnalysis(): ProsodyAnalysisState {
     reset();
     setPhase('recording');
 
-    await adapter.startRecording(frame => {
-      if (!mountedRef.current) return;
-      speechRef.current = frame.speechSec;
-      if (frame.clipping) clippingRef.current = true;
-      setElapsedSec(frame.elapsedSec);
-      setSpeechSec(frame.speechSec);
-      setLevel(frame.rms);
-      if (frame.clipping) setClipping(true);
+    try {
+      await adapter.startRecording(frame => {
+        if (!mountedRef.current) return;
+        speechRef.current = frame.speechSec;
+        if (frame.clipping) clippingRef.current = true;
+        setElapsedSec(frame.elapsedSec);
+        setSpeechSec(frame.speechSec);
+        setLevel(frame.rms);
+        if (frame.clipping) setClipping(true);
 
-      // Tope duro: la toma se cierra sola. Se hace aquí y no con un temporizador
-      // porque el reloj de la toma es el audio recibido, no el del sistema: si
-      // el motor deja de entregar bloques, un `setTimeout` cerraría una toma que
-      // en realidad ya estaba muerta, y el motivo real quedaría oculto.
-      if (frame.elapsedSec >= MAX_TAKE_SEC) void stop();
-    });
+        // Tope duro: la toma se cierra sola. Se hace aquí y no con un temporizador
+        // porque el reloj de la toma es el audio recibido, no el del sistema: si
+        // el motor deja de entregar bloques, un `setTimeout` cerraría una toma que
+        // en realidad ya estaba muerta, y el motivo real quedaría oculto.
+        if (frame.elapsedSec >= MAX_TAKE_SEC) void stop();
+      });
+    } catch {
+      /* El arranque falla (permiso denegado, sin motor de captura). Sin este
+       * `catch` la promesa se rechazaba sin dueño y la pantalla se quedaba
+       * PARA SIEMPRE en «grabando», con su botón de detener y sin un solo
+       * bloque de audio: el clínico esperaba una toma que nunca existió. */
+      if (!mountedRef.current) return;
+      setMicHealth(adapter.health?.() ?? 'silent');
+      setIssues({ ...NO_ISSUES, noSignal: true });
+      setPhase('error');
+    }
   }, [reset, stop]);
 
   return {
@@ -221,6 +269,7 @@ export function useProsodyAnalysis(): ProsodyAnalysisState {
     result,
     issues,
     available,
+    micHealth,
     start,
     stop,
     reset,

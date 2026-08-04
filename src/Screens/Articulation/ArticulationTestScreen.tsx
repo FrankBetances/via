@@ -174,6 +174,10 @@ export default function ArticulationTestScreen({ navigation }: Props) {
 
   const cur = items[idx];
   const curCode = results[cur.id] ?? null;
+  /* ¿Va a sonar el modelo de ESTA palabra? Se pregunta por palabra y no una
+   * vez por sesión porque las vías son distintas: unas tienen recorte propio y
+   * otras dependen del sintetizador del sistema. */
+  const modelWillSound = audio.canSpeakModel(cur.word);
 
   const score = useMemo(() => computeArticulationScore(items, results), [items, results]);
 
@@ -543,7 +547,17 @@ export default function ArticulationTestScreen({ navigation }: Props) {
 
                 {/* controles de audio */}
                 <HStack space="sm" mt="$5">
-                  <Button action="primary" variant="solid" rounded="$xl" style={{ flex: 1 }} onPress={() => audio.speakModel(cur.word)}>
+                  {/* El botón se apaga cuando ESA palabra no tiene vía de
+                      locución. Antes seguía activo siempre: se pulsaba, no
+                      sonaba nada y no había forma de saber si era el
+                      dispositivo, el volumen o la app. */}
+                  <Button
+                    action="primary"
+                    variant="solid"
+                    rounded="$xl"
+                    style={{ flex: 1 }}
+                    isDisabled={!modelWillSound}
+                    onPress={() => audio.speakModel(cur.word)}>
                     <HStack space="sm" alignItems="center">
                       <Icon as={Volume2} size="sm" color="$white" />
                       <Text size="sm" weight="bold" color="$white">
@@ -573,6 +587,16 @@ export default function ArticulationTestScreen({ navigation }: Props) {
                     </>
                   ) : null}
                 </HStack>
+
+                {!modelWillSound ? (
+                  <HStack space="xs" alignItems="flex-start" mt="$3" p="$2.5" borderRadius={12} bg="$warning50">
+                    <Icon as={AlertTriangle} size="xs" color="$warning700" style={{ marginTop: 2 }} />
+                    <Text size="2xs" color="$warning800" style={{ flex: 1, lineHeight: 15 }}>
+                      Este dispositivo no tiene voz para locutar el modelo. Pronuncie «{cur.word}»
+                      usted mismo/a: el registro SODA funciona igual.
+                    </Text>
+                  </HStack>
+                ) : null}
 
                 {/* feedback de reconocimiento de voz */}
                 {audio.recognizing || audio.transcript ? (

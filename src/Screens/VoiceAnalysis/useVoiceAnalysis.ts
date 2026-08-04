@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import type { RecorderHealth } from '@/Audio';
 import {
   VoiceFormants,
   VoiceQuality,
@@ -56,6 +57,12 @@ export interface VoiceMicAdapter {
    * acciones distintas por parte del clínico.
    */
   hasSignal?: () => boolean;
+  /**
+   * (Opcional) estado del motor de captura tras la toma. Permite distinguir
+   * «sin permiso» de «stream mudo» de «este binario no trae motor», que llevan
+   * a acciones muy distintas por parte del clínico.
+   */
+  health?: () => RecorderHealth;
   /** Reproduce un PCM grabado; `onEnded` se llama al terminar por sí solo. */
   play: (pcm: Float32Array, onEnded: () => void) => void;
   stopPlayback: () => void;
@@ -208,8 +215,18 @@ const SILENT_TAKE_LEVEL = 0.0025;
  * problema de captura (micrófono mudo) de uno de emisión. (Los formantes ya
  * no son motivo de insuficiencia: sin F1–F3 el resultado sale igualmente.)
  */
-const describeInsufficiency = (r: VoiceMicResult): string => {
+const describeInsufficiency = (r: VoiceMicResult, health?: RecorderHealth): string => {
   if (r.stats && r.stats.levelRef < SILENT_TAKE_LEVEL) {
+    // «La toma está en silencio» describe el síntoma; lo que el clínico
+    // necesita es la CAUSA, y el motor de captura la conoce. El caso más
+    // frecuente con diferencia es el permiso sin conceder, que se arregla en
+    // dos toques y que el mensaje genérico mandaba a buscar donde no era.
+    if (health === 'no-permission') {
+      return 'La toma está en silencio porque VIA+ no tiene permiso de micrófono. Concédalo en los ajustes del sistema y repita la grabación.';
+    }
+    if (health === 'no-engine') {
+      return 'Esta versión de la app no incorpora el motor de captura de audio, así que la grabación sale vacía. El análisis acústico no puede realizarse en este dispositivo.';
+    }
     return 'La toma está prácticamente en silencio: el micrófono no entregó señal audible. Compruebe que ninguna otra aplicación usa el micrófono y que no está silenciado por el sistema.';
   }
   if (r.f0s.length === 0) {
@@ -308,9 +325,14 @@ export function useVoiceAnalysis() {
       const durationSec = pcm.length / micAdapter.sampleRate;
       if (durationSec < MIN_TAKE_SEC) {
         const gotBlocks = micAdapter.hasSignal?.() ?? null;
+        const health = micAdapter.health?.();
         setInsufficientReason(
           durationSec === 0 && gotBlocks !== true
-            ? 'El motor de audio no entregó ninguna muestra: el micrófono puede estar ocupado por otra aplicación o silenciado por el sistema. Ciérrelas y repita la grabación.'
+            ? health === 'no-permission'
+              ? 'VIA+ no tiene permiso de micrófono, así que no se capturó nada. Concédalo en los ajustes del sistema y repita la grabación.'
+              : health === 'no-engine'
+                ? 'Esta versión de la app no incorpora el motor de captura de audio: la grabación no puede realizarse en este dispositivo.'
+                : 'El motor de audio no entregó ninguna muestra: el micrófono puede estar ocupado por otra aplicación o silenciado por el sistema. Ciérrelas y repita la grabación.'
             : `La grabación duró solo ${durationSec.toFixed(1)} s (mínimo ${MIN_TAKE_SEC} s).`,
         );
         setPhase('insufficient');
@@ -405,7 +427,7 @@ export function useVoiceAnalysis() {
           setAnalyzedTakeId(take.id);
           setPhase('analyzed');
         } else {
-          setInsufficientReason(describeInsufficiency(r));
+          setInsufficientReason(describeInsufficiency(r, micAdapter?.health?.()));
           setPhase('insufficient');
         }
       } catch (e) {

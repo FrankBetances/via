@@ -13,6 +13,7 @@ import {
 } from '@gluestack-ui/themed';
 import { AlertTriangle, AudioWaveform, Mic, RotateCcw, Save, Square, Volume2 } from 'lucide-react-native';
 
+import type { RecorderHealth } from '@/Audio';
 import { Button, Content, Header, Text } from '@/Components/Common';
 import RadialBackground from '@/Components/Themed/RadialBackground';
 import { finishModule, RootStackParamList } from '@/Navigators';
@@ -53,6 +54,21 @@ type Props = NativeStackScreenProps<RootStackParamList, 'ProsodyAnalysis'>;
 /* -------------------------------------------------------------------------- */
 
 const secs = (v: number) => `${v.toFixed(0)} s`;
+
+/* Por qué no hubo audio. Un aviso genérico («el micrófono no entregó audio»)
+ * manda al clínico a buscar una avería que casi nunca es la que cree: lo más
+ * frecuente es el permiso sin conceder, que se resuelve en dos toques. */
+const MIC_HEALTH_LABEL: Record<RecorderHealth, string> = {
+  unknown:
+    'El micrófono no entregó audio. Compruebe que ninguna otra aplicación lo esté usando.',
+  live: 'El micrófono no entregó audio. Compruebe que ninguna otra aplicación lo esté usando.',
+  silent:
+    'El micrófono no entregó ni un bloque de audio: puede estar ocupado por otra aplicación o silenciado por el sistema. Ciérrelas y repita la toma.',
+  'no-permission':
+    'VIA+ no tiene permiso de micrófono. Concédalo en los ajustes del sistema y repita la toma.',
+  'no-engine':
+    'Esta versión de la app no incorpora el motor de captura de audio. El módulo de prosodia no puede realizarse en este dispositivo.',
+};
 
 export default function ProsodyAnalysisScreen({ navigation }: Props) {
   const activeEvaluation = useClassSelector(
@@ -372,7 +388,7 @@ export default function ProsodyAnalysisScreen({ navigation }: Props) {
             {prosody.issues.noSignal ? (
               <Card p="$4" borderRadius={16} bg="$error50" borderWidth={1} borderColor="$error200">
                 <Text size="sm" color="$error800">
-                  El micrófono no entregó audio. Compruebe que ninguna otra aplicación lo esté usando.
+                  {MIC_HEALTH_LABEL[prosody.micHealth]}
                 </Text>
               </Card>
             ) : null}

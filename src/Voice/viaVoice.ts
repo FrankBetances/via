@@ -117,6 +117,42 @@ export const canSpeak = (): boolean => {
 };
 
 /**
+ * ¿Hay vía REAL para locutar ESTA consigna concreta? A diferencia de
+ * `canSpeak()`, que responde «hay alguna voz en el dispositivo», esto responde
+ * «esta frase, en esta lengua, va a sonar».
+ *
+ * LA DIFERENCIA IMPORTA, y es la que dejaba mudo al T.A.R. sin avisar.
+ * `canSpeak()` devuelve `true` en cuanto hay CUALQUIER locución empaquetada, y
+ * el banco de assets de VIA+ es hoy solo `es-DO`. En una sesión castellana, el
+ * modelo hablado del T.A.R. no tiene asset: su única vía es el sintetizador del
+ * sistema. Si ese motor no está disponible —lo que ocurría en todos los
+ * dispositivos por el filtrado de visibilidad de paquetes de Android, ver el
+ * AndroidManifest—, la pantalla seguía anunciando «hay voz», el botón
+ * «Escuchar modelo» seguía activo y al pulsarlo no sonaba nada ni se explicaba
+ * por qué.
+ *
+ * Con esto, la pantalla puede decir la verdad ítem a ítem.
+ */
+export const canSpeakText = (
+  style: VoiceStyle,
+  byLang: TextByLang,
+  sessionLang: string = 'es',
+): boolean => {
+  const spoken = resolveSpokenText(byLang, toVoiceLang(sessionLang));
+  if (spoken == null) return false;
+  // 1) Recorte neuronal empaquetado para esta locución y esta lengua.
+  if (resolveVoiceAsset(style, spoken.text, spoken.lang) != null) return true;
+  // 2) Voz del sistema. `initializing` cuenta como sí: el motor tarda un par de
+  //    segundos en arrancar y `speak` espera a que lo haga.
+  const adapter = getVerbalAudioAdapter();
+  if (!adapter?.speakText) return false;
+  const phase = adapter.ttsStatus?.().phase;
+  if (phase) return phase !== 'unavailable';
+  if (!adapter.ttsReady) return true; // adaptadores de prueba antiguos
+  return adapter.ttsReady();
+};
+
+/**
  * Estado del motor de voz del sistema, para que una pantalla pueda explicar al
  * profesional por qué no se oye nada (y ofrecerle reintentar) en vez de
  * limitarse a no sonar. `null` si el adaptador no lo declara.

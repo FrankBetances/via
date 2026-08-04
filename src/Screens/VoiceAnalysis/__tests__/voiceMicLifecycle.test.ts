@@ -64,6 +64,7 @@ jest.mock('react-native', () => ({
   PermissionsAndroid: { request: jest.fn(), PERMISSIONS: {}, RESULTS: {} },
 }));
 
+import { __resetSharedAudioRecorderForTests, recorderHealth } from '@/Audio';
 import { getVoiceMicAdapter } from '../useVoiceAnalysis';
 import { registerVoiceMicAdapter, unregisterVoiceMicAdapter } from '../voiceMicAdapter';
 
@@ -80,10 +81,17 @@ describe('voiceMicAdapter · un único recorder por adaptador', () => {
   beforeEach(() => {
     mockConstructed.length = 0;
     mockSubscriptions.length = 0;
+    // El recorder es un SINGLETON DE PROCESO (ver `sharedAudioRecorder`): sin
+    // este reinicio, cada test heredaría el del anterior y `mockSubscriptions`
+    // —que aquí se vacía— dejaría de tener a quién entregar los bloques.
+    __resetSharedAudioRecorderForTests();
     registerVoiceMicAdapter();
   });
 
-  afterEach(() => unregisterVoiceMicAdapter());
+  afterEach(() => {
+    unregisterVoiceMicAdapter();
+    __resetSharedAudioRecorderForTests();
+  });
 
   it('varias tomas seguidas REUTILIZAN el mismo stream nativo', async () => {
     const adapter = getVoiceMicAdapter()!;
@@ -140,5 +148,69 @@ describe('voiceMicAdapter · un único recorder por adaptador', () => {
     const second = await adapter.stopRecording();
 
     expect(first.length).toBeGreaterThan(second.length);
+  });
+});
+
+/* -------------------------------------------------------------------------- */
+/*  REGRESIÓN — «grabo, guarda el audio y luego dice captura insuficiente».    */
+/*                                                                            */
+/*  El stream de entrada se abre en el CONSTRUCTOR y solo se cierra en el      */
+/*  destructor de C++, o sea cuando pasa el GC. La versión anterior soltaba la */
+/*  referencia al bajar el recuento de reservas a cero, así que ir del T.A.R.  */
+/*  al análisis de voz —o de la voz a la prosodia— construía un recorder nuevo */
+/*  mientras el anterior seguía abierto en modo exclusivo: `openStream`        */
+/*  fallaba, el constructor se lo tragaba y el módulo entrante capturaba       */
+/*  silencio sin dar ningún error. Parecía aleatorio porque dependía del orden */
+/*  de visita a los módulos.                                                   */
+/* -------------------------------------------------------------------------- */
+describe('micrófono compartido · singleton de proceso', () => {
+  beforeEach(() => {
+    mockConstructed.length = 0;
+    mockSubscriptions.length = 0;
+    __resetSharedAudioRecorderForTests();
+  });
+
+  afterEach(() => {
+    unregisterVoiceMicAdapter();
+    __resetSharedAudioRecorderForTests();
+  });
+
+  it('entrar y salir de la pantalla NO vuelve a abrir el stream nativo', async () => {
+    for (let visita = 0; visita < 3; visita++) {
+      registerVoiceMicAdapter();
+      const adapter = getVoiceMicAdapter()!;
+      await adapter.startRecording();
+      emit();
+      await adapter.stopRecording();
+      unregisterVoiceMicAdapter(); // desmontaje de la pantalla
+    }
+    expect(mockConstructed).toHaveLength(1);
+  });
+
+  it('la toma de una visita posterior sigue recibiendo audio', async () => {
+    registerVoiceMicAdapter();
+    await getVoiceMicAdapter()!.startRecording();
+    emit();
+    await getVoiceMicAdapter()!.stopRecording();
+    unregisterVoiceMicAdapter();
+
+    registerVoiceMicAdapter();
+    const adapter = getVoiceMicAdapter()!;
+    await adapter.startRecording();
+    for (let b = 0; b < 5; b++) emit();
+    const pcm = await adapter.stopRecording();
+
+    expect(pcm.length).toBeGreaterThan(0);
+    expect(adapter.hasSignal?.()).toBe(true);
+    expect(recorderHealth()).toBe('live');
+  });
+
+  /* El stream se abre en el constructor, así que abrirlo antes de que el
+   * usuario conceda RECORD_AUDIO lo deja sin stream PARA SIEMPRE — y como el
+   * micrófono es compartido, envenenaba también a los demás módulos. */
+  it('no se construye ningún recorder mientras no haya permiso', () => {
+    registerVoiceMicAdapter();
+    expect(mockConstructed).toHaveLength(0);
+    expect(recorderHealth()).toBe('unknown');
   });
 });
