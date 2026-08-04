@@ -146,6 +146,7 @@ const repl = {
   '__SIGN__': sign(),
   '__VOICEWAVE__': voicewave('#7C3AED', 26, 20),
   '__VOICEWAVE_ART__': voicewave('#EA580C', 20, 16),
+  '__VOICEWAVE_PROS__': voicewave('#C026D3', 30, 14),
   '__MODCARD_audio_🎧_AUDICIÓN_Audiometría Infantil_1__':
     modcard('#0284C7', '#E0F2FE', '🎧', 'AUDICIÓN', 'Audiometría Infantil', 'Audiometría tonal por juego.', '6–8 min', '6 m–5 a', '1'),
   '__MODCARD_voice_🎤_VOZ_Análisis de Voz_2__':
@@ -169,9 +170,30 @@ const repl = {
   '__CHIP_🗣️_#EA580C_#FFEDD5_Articulación T.A.R._Registro SODA__': chip('🗣️', '#EA580C', '#FFEDD5', 'Articulación T.A.R.', 'Registro SODA'),
   '__CHIP_🔊_#2563EB_#DBEAFE_Audiometría Verbal_Palabras por tarjetas__': chip('🔊', '#2563EB', '#DBEAFE', 'Audiometría Verbal', 'Palabras por tarjetas'),
   '__CHIP_🧠_#059669_#D1FAE5_Funciones Ejecutivas_5 mini-juegos__': chip('🧠', '#059669', '#D1FAE5', 'Funciones Ejecutivas', '5 mini-juegos'),
+  '__CHIP_〰️_#C026D3_#FAE8FF_Análisis Prosódico_Ritmo · pausas · tono__': chip('〰️', '#C026D3', '#FAE8FF', 'Análisis Prosódico', 'Ritmo · pausas · tono'),
 };
 for (const [k, v] of Object.entries(repl)) {
   html = html.split(k).join(v);
+}
+
+/* -------------------------------------------------------------------------- */
+/*  Guarda: ningún marcador puede sobrevivir al reemplazo.                     */
+/*                                                                            */
+/*  Nació de un fallo real: se añadió el chip de prosodia a `manual.html` sin  */
+/*  darlo de alta aquí, y el PDF salió con el literal `__CHIP_…__` impreso en  */
+/*  la página 3. El reemplazo es un split/join mudo —no avisa de lo que no     */
+/*  encuentra—, así que la única forma de que no vuelva a pasar es reventar    */
+/*  la compilación en vez de publicar basura.                                  */
+/* -------------------------------------------------------------------------- */
+/* Los marcadores llevan espacios dentro («Análisis Prosódico»), así que el
+   patrón NO puede excluir el espacio: se delimita por `<`/`>` y se cierra de
+   forma perezosa en el primer `__`. */
+const leftovers = [...new Set(html.match(/__[A-Z][^<>]*?__/g) || [])];
+if (leftovers.length) {
+  console.error('\n✖ Marcadores sin sustituir en manual.html:\n');
+  for (const m of leftovers) console.error('   ' + m);
+  console.error('\nDalos de alta en el mapa `repl` de este fichero.\n');
+  process.exit(1);
 }
 
 const built = path.join(__dirname, '_built.html');

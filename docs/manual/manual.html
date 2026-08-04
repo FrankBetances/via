@@ -245,7 +245,9 @@ table.info td b{color:var(--ink-2);}
 
 /* índice */
 .toc{list-style:none; padding:0; margin:0;}
-.toc li{display:flex; align-items:center; gap:12px; padding:15.5px 0; border-bottom:1px solid var(--line-soft);}
+/* 15 entradas: el relleno vertical se ajustó al añadir la sección 10 (prosodia).
+   Con 15.5px el aviso de seguridad se salía por debajo del pie de página. */
+.toc li{display:flex; align-items:center; gap:12px; padding:12.4px 0; border-bottom:1px solid var(--line-soft);}
 .toc .tc-n{width:24px;height:24px;border-radius:8px; background:var(--accent-50); color:var(--accent-600); font-weight:800; font-size:11px; display:flex; align-items:center; justify-content:center; flex:0 0 auto;}
 .toc .tc-t{font-weight:700; color:var(--ink-2); font-size:12px;}
 .toc .tc-d{flex:1; border-bottom:1.5px dotted var(--line); margin:0 4px;}
@@ -280,7 +282,7 @@ table.info td b{color:var(--ink-2);}
     <div class="cv-p">Valoración Interactiva de Audición y Lenguaje · Software como Dispositivo Médico (SaMD) Clase IIa · Guía de uso clínico con capturas de pantalla y casos de uso.</div>
     <div class="cv-badges">
       <div class="cv-badge">SaMD · Clase IIa (MDR)</div>
-      <div class="cv-badge">11 módulos de evaluación</div>
+      <div class="cv-badge">12 módulos de evaluación</div>
       <div class="cv-badge">Español · Galego · Euskara · es-DO</div>
       <div class="cv-badge">Offline-first</div>
       <div class="cv-badge">Informe PDF</div>
@@ -310,11 +312,12 @@ table.info td b{color:var(--ink-2);}
       <li><span class="tc-n">7</span><span class="tc-t">Idioma de la sesión y voz neuronal (es · gl · eu · es-DO)</span><span class="tc-d"></span><span class="tc-p">9</span></li>
       <li><span class="tc-n">8</span><span class="tc-t">Módulos de audición · Audiometrías</span><span class="tc-d"></span><span class="tc-p">10</span></li>
       <li><span class="tc-n">9</span><span class="tc-t">Módulos de voz y lenguaje · Voz y T.A.R.</span><span class="tc-d"></span><span class="tc-p">11</span></li>
-      <li><span class="tc-n">10</span><span class="tc-t">Módulos clínicos · Disfagia, M-CHAT y SAHS</span><span class="tc-d"></span><span class="tc-p">12</span></li>
-      <li><span class="tc-n">11</span><span class="tc-t">Módulos nuevos · Audiometría Verbal y Funciones Ejecutivas</span><span class="tc-d"></span><span class="tc-p">13</span></li>
-      <li><span class="tc-n">12</span><span class="tc-t">Resultados detallados, valoración de uso (QR) e informe PDF</span><span class="tc-d"></span><span class="tc-p">14</span></li>
-      <li><span class="tc-n">13</span><span class="tc-t">Casos de uso de principio a fin</span><span class="tc-d"></span><span class="tc-p">15</span></li>
-      <li><span class="tc-n">14</span><span class="tc-t">Buenas prácticas, privacidad y soporte</span><span class="tc-d"></span><span class="tc-p">16</span></li>
+      <li><span class="tc-n">10</span><span class="tc-t">Análisis prosódico · Ritmo, pausas y tono</span><span class="tc-d"></span><span class="tc-p">12</span></li>
+      <li><span class="tc-n">11</span><span class="tc-t">Módulos clínicos · Disfagia, M-CHAT y SAHS</span><span class="tc-d"></span><span class="tc-p">13</span></li>
+      <li><span class="tc-n">12</span><span class="tc-t">Módulos nuevos · Audiometría Verbal y Funciones Ejecutivas</span><span class="tc-d"></span><span class="tc-p">14</span></li>
+      <li><span class="tc-n">13</span><span class="tc-t">Resultados detallados, valoración de uso (QR) e informe PDF</span><span class="tc-d"></span><span class="tc-p">15</span></li>
+      <li><span class="tc-n">14</span><span class="tc-t">Casos de uso de principio a fin</span><span class="tc-d"></span><span class="tc-p">16</span></li>
+      <li><span class="tc-n">15</span><span class="tc-t">Buenas prácticas, privacidad y soporte</span><span class="tc-d"></span><span class="tc-p">17</span></li>
     </ol>
     <div class="fill"></div>
     <div class="note crit">
@@ -331,7 +334,7 @@ table.info td b{color:var(--ink-2);}
     <div>
       <div class="kicker">Sección 1</div>
       <h1 class="h">¿Qué es VIA+?</h1>
-      <p class="lead">VIA+ (Valoración Interactiva de Audición y Lenguaje) es un software de apoyo a la decisión clínica que se ejecuta sobre <b>tablet</b> en la consulta. Reúne una batería de <b>11 pruebas gamificadas</b> adaptadas a la población pediátrica que capturan biomarcadores vocales y respuestas conductuales bajo supervisión profesional directa.</p>
+      <p class="lead">VIA+ (Valoración Interactiva de Audición y Lenguaje) es un software de apoyo a la decisión clínica que se ejecuta sobre <b>tablet</b> en la consulta. Reúne una batería de <b>12 pruebas gamificadas</b> adaptadas a la población pediátrica que capturan biomarcadores vocales y respuestas conductuales bajo supervisión profesional directa.</p>
       <div class="grid2">
         <div>
           <h2 class="h" style="font-size:12px; margin-bottom:7px;">Dominios que cubre</h2>
@@ -364,7 +367,7 @@ table.info td b{color:var(--ink-2);}
         <tr><td><b>Consentimiento</b></td><td>Firma digital del tutor legal, obligatoria antes de evaluar.</td></tr>
         <tr><td><b>Informe PDF</b></td><td>Generación automática de informe clínico estructurado por módulo.</td></tr>
       </table>
-      <h2 class="h" style="font-size:12px; margin:14px 0 8px;">La batería en un vistazo · 11 módulos</h2>
+      <h2 class="h" style="font-size:12px; margin:14px 0 8px;">La batería en un vistazo · 12 módulos</h2>
       <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:8px;">
         __CHIP_📋_#EA580C_#FFEDD5_Evaluación Clínica (CAP)_Anamnesis + firma__
         __CHIP_🧩_#DB2777_#FCE7F3_Autismo M-CHAT-R_Cribado de TEA__
@@ -407,7 +410,7 @@ table.info td b{color:var(--ink-2);}
       <div class="fl-step"><div class="fl-rail"><div class="fl-node">4</div><div class="fl-line"></div></div>
         <div class="fl-card"><div class="fl-t">Hub de la batería</div><div class="fl-d">Idioma de la sesión (castellano, galego, euskara o español dominicano), selección y orden de las pruebas, y estado del motor de voz.</div></div></div>
       <div class="fl-step"><div class="fl-rail"><div class="fl-node">5</div><div class="fl-line"></div></div>
-        <div class="fl-card"><div class="fl-t">Batería de evaluación gamificada</div><div class="fl-d">11 módulos adaptados al perfil del paciente. El modo niño oculta todo elemento clínico. Al guardar cada prueba se pasa directamente a los resultados de la sesión.</div></div></div>
+        <div class="fl-card"><div class="fl-t">Batería de evaluación gamificada</div><div class="fl-d">12 módulos adaptados al perfil del paciente. El modo niño oculta todo elemento clínico. Al guardar cada prueba se pasa directamente a los resultados de la sesión.</div></div></div>
       <div class="fl-step"><div class="fl-rail"><div class="fl-node">6</div><div class="fl-line"></div></div>
         <div class="fl-card"><div class="fl-t">Generación de resultados</div><div class="fl-d">Informe PDF estructurado para el profesional y sincronización diferida con la HCE.</div></div></div>
       <div class="fl-step"><div class="fl-rail"><div class="fl-node">7</div></div>
@@ -712,7 +715,7 @@ table.info td b{color:var(--ink-2);}
         </div></div>
         <div class="shot-caption">
           <div class="sc-title"><span class="sc-num">B</span>Selección de pruebas (hub)</div>
-          <div class="sc-text"><b>11 módulos</b> disponibles, cada uno con color, duración y rango de edad. Al tocarlos se numeran en el <b>orden de la batería</b>. Aquí se elige también el <b>idioma de la sesión</b> y se accede a los <b>resultados</b> y al <b>historial</b> del paciente. Accesos rápidos al CAP y al sonómetro.</div>
+          <div class="sc-text"><b>12 módulos</b> disponibles, cada uno con color, duración y rango de edad. Al tocarlos se numeran en el <b>orden de la batería</b>. Aquí se elige también el <b>idioma de la sesión</b> y se accede a los <b>resultados</b> y al <b>historial</b> del paciente. Accesos rápidos al CAP y al sonómetro.</div>
         </div>
       </div>
     </div>
@@ -974,7 +977,7 @@ table.info td b{color:var(--ink-2);}
         </div></div>
         <div class="shot-caption">
           <div class="sc-title"><span class="sc-num">B</span>Articulación · T.A.R.</div>
-          <div class="sc-text">El niño repite el <b>modelo hablado</b>, servido por la misma voz que el resto de la aplicación (locución neuronal si está disponible). La pantalla de preparación incluye <b>selector de idioma</b>: cambia la voz y la etiqueta del reconocedor, <b>no las palabras</b> (el inventario fonético es del español). El reconocimiento auto-evalúa y el clínico confirma la clasificación <b>SODA</b> (Sustitución / Omisión / Distorsión / Adición) por fonema.</div>
+          <div class="sc-text">El niño repite el <b>modelo hablado</b>, servido por la misma voz que el resto de la aplicación (locución neuronal si está disponible). La pantalla de preparación incluye <b>selector de idioma</b>: cambia la voz y la etiqueta del reconocedor, <b>no las palabras</b> (el inventario fonético es del español). Si hay reconocimiento local, VIA+ alinea fonema a fonema lo esperado con lo dicho y <b>propone</b> la clasificación <b>SODA</b>; el clínico la acepta o la corrige. La propuesta es siempre revisable.</div>
         </div>
       </div>
     </div>
@@ -1001,16 +1004,100 @@ table.info td b{color:var(--ink-2);}
       <div class="uc-h">⬦ Caso de uso — Degradación sin hardware</div>
       <div class="uc-b">Si el micrófono o el reconocimiento de voz no están disponibles, el T.A.R. <b>degrada a SODA manual</b>: el profesional marca cada fonema a mano, sin perder la prueba. En articulación, la clasificación SODA registra por fonema: <b>S</b>ustitución · <b>O</b>misión · <b>D</b>istorsión · <b>A</b>dición.</div>
     </div>
+    <div class="note crit" style="margin-top:10px;"><b>La distorsión la marca siempre el clínico.</b> VIA+ nunca propone <b>D</b> por su cuenta: una /s/ interdental o una /r/ mal vibrada producen la misma cadena de fonemas que la producción correcta, así que ningún análisis del texto reconocido puede verlas. La propuesta automática se limita a <b>S</b>, <b>O</b> y <b>A</b>; la distorsión es juicio perceptivo del profesional.</div>
   </div>
   <div class="page-foot"><span>VIA+ · Manual de Usuario</span><span>Página 11</span></div>
 </div>
 
-<!-- ============================ 11 · MÓDULOS CLÍNICOS ============================ -->
+<!-- ============================ 11 · PROSODIA ============================ -->
 <div class="page">
-  <div class="page-head"><div class="ph-left"><span class="ph-mark">VIA<span>+</span></span><span class="ph-sec">10 · Clínicos</span></div><span class="ph-sec">Disfagia · M-CHAT · SAHS</span></div>
+  <div class="page-head"><div class="ph-left"><span class="ph-mark">VIA<span>+</span></span><span class="ph-sec">10 · Prosodia</span></div><span class="ph-sec">Ritmo · pausas · tono</span></div>
   <div class="content spread">
     <div>
-      <div class="kicker">Sección 10 · Módulos clínicos</div>
+      <div class="kicker">Sección 10 · Módulo de análisis prosódico</div>
+      <h1 class="h">Análisis prosódico</h1>
+      <p class="lead">Mide <b>cómo</b> habla el niño —ritmo, pausas y melodía— sobre 30–60 s de habla espontánea provocada con una lámina. No mide <b>qué</b> dice: no transcribe, no puntúa y no compara con ningún baremo.</p>
+    </div>
+    <div class="grid2" style="gap:26px; align-items:start;">
+      <!-- Toma -->
+      <div class="shot">
+        <div class="device"><div class="screen">
+          <div class="statusbar"><span>10:21</span><div class="sb-r"><span>97%</span><div class="dot"></div></div></div>
+          <div class="appbar"><div class="ab-brand"><div class="logo">__LOGO_22__</div><div class="ab-word">VIA<i>+</i></div></div><span class="pill" style="background:#FAE8FF; color:#C026D3;">PROSODIA</span></div>
+          <div class="scr-body">
+            <div class="i-title">Un día en el parque</div>
+            <div class="i-sub">Prelector (3–6 a) · narración con lámina</div>
+            <div class="i-card" style="margin-top:8px; padding:8px; background:linear-gradient(180deg,#FDF4FF,#fff); border-color:#EFD1F5;">
+              <div style="height:96px; border-radius:8px; background:#EAF4E4; position:relative; overflow:hidden;">
+                <div style="position:absolute; left:9px; top:6px; font-size:15px;">☀️</div>
+                <div style="position:absolute; left:34px; top:9px; font-size:11px;">☁️</div>
+                <div style="position:absolute; right:56px; top:7px; font-size:10px;">🐦</div>
+                <div style="position:absolute; left:56px; top:30px; font-size:20px;">🌳</div>
+                <div style="position:absolute; right:24px; top:24px; font-size:15px;">🪁</div>
+                <div style="position:absolute; left:12px; bottom:14px; font-size:15px;">🧒</div>
+                <div style="position:absolute; left:34px; bottom:13px; font-size:11px;">⚽</div>
+                <div style="position:absolute; left:88px; bottom:12px; font-size:14px;">🐕</div>
+                <div style="position:absolute; right:44px; bottom:13px; font-size:14px;">🧍</div>
+                <div style="position:absolute; right:16px; bottom:12px; font-size:14px;">🪑</div>
+                <div style="position:absolute; left:64px; bottom:3px; font-size:9px;">🌼</div>
+                <div style="position:absolute; right:70px; bottom:3px; font-size:9px;">🌼</div>
+                <div style="position:absolute; left:0; right:0; bottom:0; height:15px; background:#C9E2B8;"></div>
+              </div>
+              <div class="i-row" style="margin-top:7px; gap:5px;">
+                <div class="i-btn" style="flex:1; text-align:center; padding:6px 0; font-size:8.5px;">🔊 Consigna</div>
+                <div class="i-btn" style="flex:1; text-align:center; padding:6px 0; font-size:8.5px; background:#C026D3;">⏺ Grabando 34 s</div>
+              </div>
+            </div>
+            <div style="margin-top:7px; display:flex; justify-content:center; gap:3px;">__VOICEWAVE_PROS__</div>
+            <div style="margin-top:6px; font-size:7.5px; color:var(--muted); text-align:center;">«Cuéntame todo lo que ves y todo lo que está pasando.»</div>
+          </div>
+        </div></div>
+        <div class="shot-caption">
+          <div class="sc-title"><span class="sc-num">A</span>Toma con lámina y consigna hablada</div>
+          <div class="sc-text">La <b>consigna la locuta la app</b>, no el explorador: así es idéntica en todas las tomas y la voz del adulto no entra en la medida. Dos bandas de edad con lámina propia: <b>prelector (3–6 a)</b>, escena única del parque; <b>lector (7–12 a)</b>, secuencia de tres viñetas que obliga a encadenar con conectores. Objetivo: <b>30–60 s</b> de habla conectada.</div>
+        </div>
+      </div>
+      <!-- Resultado -->
+      <div class="shot">
+        <div class="device"><div class="screen">
+          <div class="statusbar"><span>10:23</span><div class="sb-r"><span>97%</span><div class="dot"></div></div></div>
+          <div class="appbar"><div class="ab-brand"><div class="logo">__LOGO_22__</div><div class="ab-word">VIA<i>+</i></div></div><span class="pill" style="background:#FAE8FF; color:#C026D3;">PROSODIA</span></div>
+          <div class="scr-body">
+            <div class="i-title">Registro descriptivo</div>
+            <div class="i-sub">34 s de habla · 1 toma</div>
+            <div style="margin-top:8px;">
+              <div class="metric"><div class="mt-top"><span class="mt-l">Rango tonal</span><span class="mt-v" style="color:#C026D3;">4.2 st</span></div><div class="mt-bar"><div class="mt-fill" style="width:42%; background:#C026D3;"></div></div><div class="mt-ref">Sin baremo · descriptivo</div></div>
+              <div class="metric"><div class="mt-top"><span class="mt-l">Contorno de cierre</span><span class="mt-v" style="color:#C026D3;">−2.8 st</span></div><div class="mt-bar"><div class="mt-fill" style="width:36%; background:#C026D3;"></div></div><div class="mt-ref">Sin baremo · descriptivo</div></div>
+              <div class="metric"><div class="mt-top"><span class="mt-l">Pausas</span><span class="mt-v" style="color:#C026D3;">6</span></div><div class="mt-bar"><div class="mt-fill" style="width:50%; background:#C026D3;"></div></div><div class="mt-ref">4.1 s en pausa · media 0.68 s</div></div>
+              <div class="metric" style="margin-bottom:0;"><div class="mt-top"><span class="mt-l">Tasa de articulación</span><span class="mt-v" style="color:var(--warn);">3.4 sil/s</span></div><div class="mt-bar"><div class="mt-fill" style="width:44%; background:var(--warn);"></div></div><div class="mt-ref">Medida frágil · cautela</div></div>
+            </div>
+            <div style="margin-top:8px; padding:6px 8px; border-radius:7px; background:#FFF7E6; border:1px solid #F0DCB0; font-size:7.5px; color:#8A6A22; line-height:1.35;">Valores descriptivos, sin baremo poblacional: no se emite juicio de normalidad.</div>
+          </div>
+        </div></div>
+        <div class="shot-caption">
+          <div class="sc-title"><span class="sc-num">B</span>Resultado descriptivo, sin normalidad</div>
+          <div class="sc-text">La pantalla presenta primero las medidas <b>tonales</b> y de <b>pausa</b>, que son las más estables, y deja la tasa silábica al final marcada como frágil. <b>No hay percentiles, ni puntuaciones z, ni etiquetas «normal/alterado»</b>: no existe baremo pediátrico español para esta tarea. La comparación legítima es <b>el niño consigo mismo</b> entre tomas de la misma tarea.</div>
+        </div>
+      </div>
+    </div>
+    <h2 class="h" style="font-size:12px; margin:16px 0 8px;">Qué mide y cómo leerlo</h2>
+    <table class="info">
+      <tr><th style="width:22%;">Grupo</th><th style="width:38%;">Medidas</th><th>Lectura clínica</th></tr>
+      <tr><td><b>Tono</b></td><td>Rango tonal · variabilidad · contorno de cierre · tono medio</td><td>En <b>semitonos</b>, no en hercios: así la cifra no depende de si el niño tiene la voz aguda o grave. Un rango muy estrecho acompaña al habla monótona.</td></tr>
+      <tr><td><b>Pausa</b></td><td>Número · tiempo total · duración media · fracción sonora</td><td>Silencios ≥ 0,25 s dentro del habla. Muchas pausas largas orientan a dificultad de acceso o de planificación.</td></tr>
+      <tr><td><b>Ritmo</b></td><td>Tasa de habla · tasa de articulación</td><td>Sílabas por segundo, con y sin pausas. Es la <b>medida más frágil</b> del módulo: se estima por picos de energía, no contando sílabas de verdad.</td></tr>
+    </table>
+    <div class="note crit" style="margin-top:10px;"><b>Lo que este módulo NO hace.</b> No transcribe lo que el niño dice · no guarda el audio ni el contorno (solo las cifras) · no clasifica como normal o alterado · no sustituye la valoración perceptiva del logopeda. Si la toma no reúne habla suficiente, VIA+ deja la medida en <b>«no estimable»</b> en vez de rellenarla.</div>
+  </div>
+  <div class="page-foot"><span>VIA+ · Manual de Usuario</span><span>Página 12</span></div>
+</div>
+
+<!-- ============================ 12 · MÓDULOS CLÍNICOS ============================ -->
+<div class="page">
+  <div class="page-head"><div class="ph-left"><span class="ph-mark">VIA<span>+</span></span><span class="ph-sec">11 · Clínicos</span></div><span class="ph-sec">Disfagia · M-CHAT · SAHS</span></div>
+  <div class="content spread">
+    <div>
+      <div class="kicker">Sección 11 · Módulos clínicos</div>
       <h1 class="h">Disfagia, autismo (M-CHAT) y SAHS</h1>
       <p class="lead">Tres cribados basados en protocolos: MECV-V con pulsioximetría, el cuestionario M-CHAT-R de autismo y el PSQ de Chervin para el sueño.</p>
     </div>
@@ -1120,17 +1207,17 @@ table.info td b{color:var(--ink-2);}
     </div>
     <div class="note" style="margin-top:12px;"><b>Leyenda de hardware.</b> 🟢 sin hardware · 🎙️ micrófono · 🔊 síntesis de tono · 🗣️ voz/TTS · 📶 Bluetooth LE (pulsioxímetro). Cada módulo indica sus requisitos y degrada con elegancia cuando el hardware no está disponible.</div>
   </div>
-  <div class="page-foot"><span>VIA+ · Manual de Usuario</span><span>Página 12</span></div>
+  <div class="page-foot"><span>VIA+ · Manual de Usuario</span><span>Página 13</span></div>
 </div>
 
 <!-- ============================ 11b · MÓDULOS NUEVOS ============================ -->
 <div class="page">
-  <div class="page-head"><div class="ph-left"><span class="ph-mark">VIA<span>+</span></span><span class="ph-sec">11 · Módulos nuevos</span></div><span class="ph-sec">Audiometría Verbal · Funciones Ejecutivas</span></div>
+  <div class="page-head"><div class="ph-left"><span class="ph-mark">VIA<span>+</span></span><span class="ph-sec">12 · Módulos nuevos</span></div><span class="ph-sec">Audiometría Verbal · Funciones Ejecutivas</span></div>
   <div class="content spread">
     <div>
-      <div class="kicker">Sección 11 · Novedades</div>
+      <div class="kicker">Sección 12 · Novedades</div>
       <h1 class="h">Audiometría Verbal y Funciones Ejecutivas</h1>
-      <p class="lead">Dos exploraciones nuevas amplían la batería a <b>11 módulos</b>: la logoaudiometría por tarjetas en campo libre y un cribado lúdico de funciones ejecutivas con cinco mini-juegos.</p>
+      <p class="lead">Dos exploraciones más de la batería de <b>12 módulos</b>: la logoaudiometría por tarjetas en campo libre y un cribado lúdico de funciones ejecutivas con cinco mini-juegos. El módulo de <b>análisis prosódico</b> tiene sección propia (sección 10).</p>
     </div>
     <div class="grid2" style="gap:26px; align-items:start;">
       <!-- Audiometría Verbal -->
@@ -1208,15 +1295,15 @@ table.info td b{color:var(--ink-2);}
     </div>
     <div class="note ok"><b>Funciones nuevas.</b> Consignas de los mini-juegos <b>dictadas por voz</b> (accesible para prelectores) · <b>locuciones neuronales pre-grabadas</b> en las cuatro lenguas de sesión para el estímulo de la audiometría verbal (sección 7) · <b>sonómetro de sala</b> en dB(A) con LAeq, percentiles y calibración de campo · <b>análisis acústico validado contra Praat</b>.</div>
   </div>
-  <div class="page-foot"><span>VIA+ · Manual de Usuario</span><span>Página 13</span></div>
+  <div class="page-foot"><span>VIA+ · Manual de Usuario</span><span>Página 14</span></div>
 </div>
 
 <!-- ============================ 12 · RESULTADOS + COMPARTIR ============================ -->
 <div class="page">
-  <div class="page-head"><div class="ph-left"><span class="ph-mark">VIA<span>+</span></span><span class="ph-sec">12 · Resultados</span></div><span class="ph-sec">Detalle · Informe PDF</span></div>
+  <div class="page-head"><div class="ph-left"><span class="ph-mark">VIA<span>+</span></span><span class="ph-sec">13 · Resultados</span></div><span class="ph-sec">Detalle · Informe PDF</span></div>
   <div class="content spread">
     <div>
-      <div class="kicker">Sección 12</div>
+      <div class="kicker">Sección 13</div>
       <h1 class="h">Resultados detallados e informe PDF</h1>
       <p class="lead">Al guardar cada prueba, VIA+ lleva <b>directamente</b> a los resultados de la sesión, donde se reúnen todas con su interpretación orientativa y se genera el informe PDF. En el cierre, el profesional marca una breve <b>valoración de uso (Likert)</b> que revela un <b>código QR anónimo</b> con la telemetría de usabilidad.</p>
     </div>
@@ -1316,15 +1403,15 @@ table.info td b{color:var(--ink-2);}
       </div>
     </div>
   </div>
-  <div class="page-foot"><span>VIA+ · Manual de Usuario</span><span>Página 14</span></div>
+  <div class="page-foot"><span>VIA+ · Manual de Usuario</span><span>Página 15</span></div>
 </div>
 
 <!-- ============================ 13 · CASOS DE USO ============================ -->
 <div class="page">
-  <div class="page-head"><div class="ph-left"><span class="ph-mark">VIA<span>+</span></span><span class="ph-sec">13 · Casos de uso</span></div><span class="ph-sec">Recorridos completos</span></div>
+  <div class="page-head"><div class="ph-left"><span class="ph-mark">VIA<span>+</span></span><span class="ph-sec">14 · Casos de uso</span></div><span class="ph-sec">Recorridos completos</span></div>
   <div class="content spread">
     <div>
-      <div class="kicker">Sección 13</div>
+      <div class="kicker">Sección 14</div>
       <h1 class="h">Casos de uso de principio a fin</h1>
       <p class="lead">Cuatro recorridos típicos que combinan varias pantallas del manual, tal como ocurren en la consulta.</p>
     </div>
@@ -1373,15 +1460,15 @@ table.info td b{color:var(--ink-2);}
     </div>
     <div class="note ok" style="margin-top:12px;"><b>Consejo.</b> El orden en que se tocan las tarjetas en el hub define el orden de ejecución de la batería; puedes reordenar las pruebas antes de pulsar «Iniciar batería». Comprueba también el <b>idioma de la sesión</b> antes de empezar: cambiarlo a mitad de camino altera el banco de estímulos y los porcentajes dejan de ser comparables.</div>
   </div>
-  <div class="page-foot"><span>VIA+ · Manual de Usuario</span><span>Página 15</span></div>
+  <div class="page-foot"><span>VIA+ · Manual de Usuario</span><span>Página 16</span></div>
 </div>
 
 <!-- ============================ 14 · BUENAS PRÁCTICAS ============================ -->
 <div class="page">
-  <div class="page-head"><div class="ph-left"><span class="ph-mark">VIA<span>+</span></span><span class="ph-sec">14 · Buenas prácticas</span></div><span class="ph-sec">Privacidad · Soporte</span></div>
+  <div class="page-head"><div class="ph-left"><span class="ph-mark">VIA<span>+</span></span><span class="ph-sec">15 · Buenas prácticas</span></div><span class="ph-sec">Privacidad · Soporte</span></div>
   <div class="content">
     <div>
-      <div class="kicker">Sección 14</div>
+      <div class="kicker">Sección 15</div>
       <h1 class="h">Buenas prácticas, privacidad y soporte</h1>
       <p class="lead">Recomendaciones para un uso seguro y conforme a la normativa de dispositivos médicos y protección de datos.</p>
       <div class="grid2">
@@ -1404,7 +1491,8 @@ table.info td b{color:var(--ink-2);}
             <li><span class="fi-ic">🔐</span><span><b>Cifre el dispositivo</b> del centro: hoy es ahí donde reside la protección de los datos en reposo.</span></li>
             <li><span class="fi-ic">✍️</span><span>El <b>consentimiento</b> es requisito legal; puede revocarse.</span></li>
             <li><span class="fi-ic">🔳</span><span><b>Telemetría Zero-PHI</b>: el QR de usabilidad no contiene datos del paciente (sesión anónima, en memoria).</span></li>
-            <li><span class="fi-ic">🎙️</span><span>El <b>reconocimiento de voz</b> lo hace el sistema operativo, que puede procesar el audio en la nube de su proveedor: el T.A.R. puede aplicarse sin él.</span></li>
+            <li><span class="fi-ic">🎙️</span><span>El <b>reconocimiento de voz</b> del T.A.R. solo se activa si el sistema operativo garantiza que transcribe <b>en el propio dispositivo</b>. Si no puede garantizarlo, VIA+ lo <b>desactiva</b> y se pasa a SODA manual: <b>la voz del menor nunca sale por red</b>.</span></li>
+            <li><span class="fi-ic">〰️</span><span>En <b>prosodia</b> no hay reconocimiento ni transcripción: se guardan <b>solo las cifras</b>. Ni el audio ni el contorno de tono se conservan.</span></li>
           </ul>
         </div>
       </div>
@@ -1435,7 +1523,7 @@ table.info td b{color:var(--ink-2);}
       </div>
     </div>
   </div>
-  <div class="page-foot"><span>VIA+ · Manual de Usuario</span><span>Página 16</span></div>
+  <div class="page-foot"><span>VIA+ · Manual de Usuario</span><span>Página 17</span></div>
 </div>
 
 </body>
