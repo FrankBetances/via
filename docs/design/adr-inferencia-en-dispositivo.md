@@ -1,8 +1,8 @@
 # ADR — Inferencia de IA en el dispositivo (Línea A-bis)
 
-> **Decisión pendiente de ratificación por el responsable regulatorio.**
-> Este documento la analiza y propone; la firma es de quien responde del
-> expediente.
+> **Estado: RATIFICADO** por el responsable del proyecto (agosto 2026).
+> La decisión que sigue es vinculante: revertirla —embarcar un modelo— exige
+> reabrir este documento y el expediente, no es un cambio de implementación.
 >
 > **Pregunta:** ¿debe VIA+ incorporar un modelo neuronal que se ejecute en el
 > dispositivo para detectar distorsiones articulatorias (GOP sobre
@@ -125,15 +125,15 @@ No cubre toda la D —no hay medida clásica para cualquier distorsión— pero 
 las de mayor frecuencia clínica, y lo que no cubra se declara «no estimable»,
 que es la doctrina de la casa.
 
-## 5. Recomendación
+## 5. Decisión adoptada
 
-1. **Adoptar A ahora.** El principio se mantiene, el expediente no se toca y la
+1. **Se adopta A.** El principio se mantiene, el expediente no se toca y la
    D sigue siendo del clínico, que es donde está hoy y donde nadie la echa de
    menos como defecto.
-2. **Abrir C como línea de trabajo**, con el mismo patrón que la prosodia:
+2. **Se abre C como línea de trabajo**, con el mismo patrón que la prosodia:
    módulo puro en TypeScript, validado contra Praat en CI, y afirmaciones
    descriptivas hasta que haya validación clínica sobre habla real.
-3. **Reservar B** para si C resulta insuficiente, y solo tras: confirmación
+3. **Se reserva B** para si C resulta insuficiente, y solo tras: confirmación
    regulatoria del encaje en el Reglamento de IA, corpus infantil español
    anotado, y análisis de sesgo dialectal. Ninguna de las tres existe hoy.
 
@@ -146,8 +146,10 @@ que es la doctrina de la casa.
 
 | Campo | Valor |
 |---|---|
-| Estado | **Propuesta — pendiente de ratificación regulatoria** |
-| Decisión propuesta | A ahora · C como línea de trabajo · B reservada |
+| Estado | **RATIFICADO** — agosto 2026 |
+| Firmante | F. A. Betances (médico · responsable del proyecto) |
+| Decisión adoptada | **A** ahora · **C** como línea de trabajo · **B** reservada y condicionada |
+| Condición para reabrir B | Confirmación regulatoria del encaje en el Reglamento (UE) 2024/1689 **+** corpus infantil español anotado **+** análisis de sesgo dialectal. Las tres, no una |
 | Afecta a | Línea A-bis · principio «cero IA en el dispositivo» · expediente MDR |
 | Verificación previa a B | Encaje en Reglamento (UE) 2024/1689 con organismo notificado |
 | Documentos relacionados | [`plan-prosodia-y-asr.md`](./plan-prosodia-y-asr.md) · [`evaluacion-prosodia-y-asr.md`](./evaluacion-prosodia-y-asr.md) |

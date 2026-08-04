@@ -82,7 +82,7 @@ La aplicación opera sobre **tablets iOS/Android** en entornos clínicos bajo su
 - 🎮 **Baterías gamificadas** — 11 módulos de evaluación adaptados al paciente pediátrico
 - 🔇 **Offline-first** — Operación completa sin conexión; los datos clínicos del paciente residen solo en el dispositivo
 - 🌐 **Cuatro lenguas de sesión** — Castellano · Galego · Euskara · Español dominicano, con [banco de estímulos y voz propios](#idiomas-y-voz-neuronal)
-- 🧠 **Cero IA en el dispositivo** — Los modelos neuronales solo corren en **build-time**; la app reproduce audio ya empaquetado
+- 🧠 **Cero IA en el dispositivo** — Los modelos neuronales solo corren en **build-time**; la app reproduce audio ya empaquetado y mide con DSP determinista. Principio **ratificado** en [ADR de inferencia en el dispositivo](./docs/design/adr-inferencia-en-dispositivo.md)
 - 🔐 **Privacidad por diseño** — Datos clínicos locales · TLS 1.3 en tránsito · seudonimización del NHC ([estado real de los controles](#controles-de-seguridad))
 - 📋 **Consentimiento informado digital** — Gestión legal obligatoria para tutores legales
 - 🏥 **Pre-screening clínico** — Certificado de Aptitud para la Prueba (CAP) integrado
@@ -119,6 +119,15 @@ Ruta de conformidad: Organismo Notificado (ON) requerido para marcado CE
 | **ISO 13485:2016** | Sistema de Gestión de Calidad | 🔴 Pendiente |
 | **GDPR / LOPDGDD** | Protección de datos sanitarios | 🟡 En implementación |
 | **HL7 FHIR R4** | Interoperabilidad con HCE | 🟡 En implementación |
+| **Reglamento (UE) 2024/1689 (IA)** | Sistemas de IA de alto riesgo | ⚪ **Fuera de alcance por diseño** — ver [ADR](./docs/design/adr-inferencia-en-dispositivo.md) |
+
+> **Reglamento de IA:** VIA+ **no embarca modelos de inferencia**. Un modelo cuya salida propusiera una
+> clasificación clínica, en un producto MDR de Clase IIa (organismo notificado), tendría muy probablemente
+> la consideración de **sistema de IA de alto riesgo**, con obligaciones propias encima de las del MDR.
+> Mantener el principio deja esa vía cerrada por diseño; el análisis completo y la decisión firmada están
+> en el [ADR de inferencia en el dispositivo](./docs/design/adr-inferencia-en-dispositivo.md).
+
+<!-- Separador: dos citas independientes, no una continuación. -->
 
 > **IEC 62304 — Clase de Seguridad B:** Un fallo en el software podría generar datos erróneos que, sin el adecuado escrutinio clínico del profesional, podría conducir a una decisión subóptima. El riesgo de lesión directa es bajo gracias a la supervisión obligatoria.
 
