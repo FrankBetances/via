@@ -779,6 +779,7 @@ docs/
     ├── b0-prosodia-tarea-y-afirmaciones.md # Tarea de habla y política de afirmaciones (ratificada)
     ├── prosodia-riesgos.md               # Análisis de riesgos del módulo (ISO 14971)
     ├── validacion-clinica-prosodia.md    # Protocolo de validación (parte A firmada, B pendiente)
+    ├── adr-inferencia-en-dispositivo.md  # Decisión regulatoria sobre IA embarcada (A-bis)
     ├── arquitectura-exportacion-ios.md   # Las dos vías de iOS, firma y exportación del .ipa
     ├── audiometria-verbal.md             # Diseño del módulo (+ variantes gl · eu · es-DO)
     ├── validacion-clinica-verbal.md      # Trazabilidad de la aprobación clínica

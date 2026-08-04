@@ -120,8 +120,20 @@ cálculo de potencia formal; si se pretende publicar, procede recalcularlo.
 ### 3.3 Anotación manual
 
 - Recuento silábico y de pausas por **logopeda**, sobre la señal, con criterio
-  documentado (qué cuenta como pausa, cómo se tratan las disfluencias y los
-  alargamientos).
+  documentado. Para que dos anotadores puedan concordar, el criterio tiene que
+  estar cerrado ANTES de empezar:
+
+  | Caso | Criterio |
+  |---|---|
+  | Sílaba | Un núcleo vocálico = una sílaba. Los diptongos cuentan como **una** |
+  | Alargamiento (`caaasa`) | **Una** sílaba: alargar no añade núcleo |
+  | Repetición disfluente (`ca-ca-casa`) | Se cuentan **todas** las emitidas, no las de la palabra objetivo |
+  | Muletillas (`eee`, `mmm`) | **No** cuentan como sílaba; si duran > 250 ms cuentan como pausa llena |
+  | Pausa | Silencio > 250 ms **dentro** del habla. El previo al inicio y el posterior al final NO son pausas |
+  | Pausa llena | Cuenta como pausa y se anota en `_notas` |
+  | Voz del explorador | Se excluye del recuento; si contamina, se descarta la muestra |
+
+- Plantilla de anotación: `tools/acoustics/anotacion-plantilla.json`.
 - **Fiabilidad entre anotadores**: un ≥ 20 % de las muestras lo anotan dos
   personas de forma independiente, y se exige **ICC ≥ 0.90** entre ellas.
 

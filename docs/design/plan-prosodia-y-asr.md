@@ -230,6 +230,13 @@ Beneficio colateral: unifica el motor de captura de toda la app y elimina
 > él cada «zapato» se marcaría como sustitución de un fonema que en esa variedad
 > no existe.
 >
+> **Decisión regulatoria analizada** en
+> [`adr-inferencia-en-dispositivo.md`](./adr-inferencia-en-dispositivo.md):
+> recomienda **no** embarcar modelo, y abrir en su lugar la detección acústica
+> **determinista** de distorsiones concretas (sigmatismo interdental, rotacismo,
+> sonorización), que cubre buena parte de la D con DSP clásico y sin tocar el
+> principio ni el expediente.
+>
 > **PENDIENTE — la mitad acústica (GOP sobre posteriorgramas).** Es la que
 > detecta la **D (distorsión)**, y no es un detalle: una /s/ interdental o una
 > /r/ mal vibrada producen **exactamente la misma cadena** que la producción

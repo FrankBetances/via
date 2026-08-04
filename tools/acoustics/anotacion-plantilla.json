@@ -1,0 +1,31 @@
+{
+  "_comentario": [
+    "PLANTILLA de anotación para la validación clínica del módulo de prosodia (B6-B).",
+    "Ver el criterio de anotación en docs/design/validacion-clinica-prosodia.md §3.3.",
+    "",
+    "El audio NUNCA entra al repositorio: se guarda en una carpeta local y se pasa",
+    "con --audio-dir. Este fichero solo contiene cifras y un identificador anónimo.",
+    "",
+    "Uso:",
+    "  node tools/acoustics/concordance.js \\",
+    "       --annotations muestras/anotador-a.json \\",
+    "       --annotations-b muestras/anotador-b.json \\",
+    "       --audio-dir muestras/audio --json informe.json --fail-under-icc 0.75"
+  ],
+  "protocol": "docs/design/validacion-clinica-prosodia.md",
+  "annotator": "INICIALES-O-CÓDIGO",
+  "samples": [
+    {
+      "id": "s001",
+      "file": "s001.wav",
+      "ageMonths": 0,
+      "task": "narracion-lamina",
+      "manual": {
+        "syllables": 0,
+        "pauses": 0,
+        "speechSec": 0
+      },
+      "_notas": "Incidencias de la toma: interrupciones, ruido, colaboración."
+    }
+  ]
+}

@@ -5,6 +5,7 @@
  * (herramienta de build-time · hito B6).
  *
  *   node tools/acoustics/concordance.js --annotations muestras.json \
+ *        [--annotations-b segundo-anotador.json] \
  *        [--audio-dir DIR] [--json informe.json] [--fail-under-icc 0.75]
  *
  * POR QUÉ ESTA HERRAMIENTA EXISTE
@@ -320,6 +321,58 @@ async function main() {
     };
     console.log('\nCONCORDANCIA DEL RECUENTO DE PAUSAS');
     console.log(`  ICC(A,1)  ${summary.pauses.icc} · sesgo ${summary.pauses.bias}`);
+  }
+
+  /* ---------------- fiabilidad ENTRE ANOTADORES (protocolo §3.3) ------------ */
+  /*  Contrastar el estimador contra un patrón de referencia poco fiable no mide */
+  /*  el estimador: mide el ruido del patrón. Por eso el protocolo exige que un  */
+  /*  ≥20 % de las muestras las anote una segunda persona, con ICC ≥ 0.90 entre  */
+  /*  ellas. Si los anotadores no concuerdan, la Parte B no puede concluirse y   */
+  /*  el ICC contra el automático NO significa nada.                             */
+  const secondPath = arg('--annotations-b');
+  if (secondPath) {
+    const second = JSON.parse(fs.readFileSync(secondPath, 'utf8'));
+    const byId = new Map();
+    for (const s2 of second.samples || []) {
+      const id = s2.id || path.basename(s2.file || '', path.extname(s2.file || ''));
+      if (s2.manual && typeof s2.manual.syllables === 'number') byId.set(id, s2.manual.syllables);
+    }
+    const a = [];
+    const b = [];
+    for (const s1 of samples) {
+      const id = s1.id || path.basename(s1.file, path.extname(s1.file));
+      const other = byId.get(id);
+      if (typeof other === 'number' && s1.manual && typeof s1.manual.syllables === 'number') {
+        a.push(s1.manual.syllables);
+        b.push(other);
+      }
+    }
+    const coverage = samples.length ? a.length / samples.length : 0;
+    summary.interAnnotator = {
+      paired: a.length,
+      coveragePct: Number((100 * coverage).toFixed(1)),
+      icc: a.length >= 3 ? Number(iccAbsoluteAgreement(a, b).toFixed(3)) : null,
+      meetsProtocol: null,
+    };
+    const icc = summary.interAnnotator.icc;
+    summary.interAnnotator.meetsProtocol = icc !== null && icc >= 0.9 && coverage >= 0.2;
+
+    console.log('\nFIABILIDAD ENTRE ANOTADORES');
+    console.log(`  muestras dobles        ${a.length} (${summary.interAnnotator.coveragePct} %)`);
+    console.log(`  ICC(A,1)               ${icc === null ? '— (insuficientes)' : icc}`);
+    if (!summary.interAnnotator.meetsProtocol) {
+      console.log(
+        '  ⚠ No cumple el protocolo (ICC ≥ 0.90 sobre ≥ 20 % de las muestras).\n' +
+          '    Sin patrón de referencia fiable, el ICC contra el automático no es\n' +
+          '    interpretable: revise el criterio de anotación antes de concluir.',
+      );
+    }
+  } else {
+    console.log(
+      '\nSin segundo anotador (--annotations-b): no se puede acreditar la\n' +
+        'fiabilidad del patrón de referencia, que el protocolo exige antes de\n' +
+        'dar por concluida la Parte B.',
+    );
   }
 
   const outJson = arg('--json');
