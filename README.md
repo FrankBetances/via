@@ -793,7 +793,8 @@ docs/
     ├── audiometria-verbal.md             # Diseño del módulo (+ variantes gl · eu · es-DO)
     ├── validacion-clinica-verbal.md      # Trazabilidad de la aprobación clínica
     ├── integracion-proxecto-nos.md       # Plan de integración del gallego (ILENIA)
-    └── integracion-quisqueya-habla.md    # Plan de integración de la variante dominicana
+    ├── integracion-quisqueya-habla.md    # Plan de integración de la variante dominicana
+    └── integracion-lua.md                # Plan de integración de Lúa (periférico BLE de refuerzo)
 ```
 
 El **manual de usuario** con casos de uso clínicos de principio a fin se genera desde
