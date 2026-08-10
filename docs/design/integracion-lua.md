@@ -5,7 +5,8 @@
 > contexto). Sigue pendiente todo lo que exige placa delante: **F0** (banco de
 > pruebas y decisión de placa firmada), **F1** (firmware GATT del ESP32),
 > **F4** (assets visuales) y **F6** (ensayo acústico). Ver §9 para el estado
-> fase a fase y §12 para lo que queda por decidir del lado del código.
+> fase a fase, §12 para lo que queda del lado del código y §13 para la identidad
+> visual, ya decidida: Lúa es la gata de Valeria+, no un personaje nuevo.
 >
 > Este documento fija **qué se construye, qué no, y por qué**, antes de comprar
 > el segundo lote de placas.
@@ -417,7 +418,7 @@ hardware caiga antes de que dependa nada de ella.
 | **F1 · Protocolo y firmware base** | 2-3 | Servidor GATT en ESP32-C3, máquina de estados con arranque mudo, permiso con TTL, sin perfiles BT clásicos | Un central que se desconecta a mitad de permiso deja a Lúa muda dentro del TTL, comprobado |
 | **F2 · Adaptador en VIA+** ✅ | 3-5 | `src/Lua/` completo, con tests de codec y de renovador de permiso | ✅ Suite verde **sin hardware**; app idéntica con y sin Lúa (probado con adaptador ausente, caído y que lanza) |
 | **F3 · Enganche de contexto** ✅ | 5-6 | `onRecordingSessionChange` en `sharedAudioContext.ts` + lista blanca en el navegador | ✅ Los cuatro adaptadores con micrófono revocan el permiso, comprobado contra el `acquireRecordingSession()` real; el guardián del punto único falla si aparece un quinto sin cubrir — y ya cazó una fuga en el T.A.R. (§3.1) |
-| **F4 · Assets visuales** | 6-8 | Catálogo de expresiones para 240×240 circular, con máscara de recorte | Legibles a 32,4 mm de diámetro visible |
+| **F4 · Assets visuales** | 6-8 | Catálogo de expresiones para 240×240 circular, con máscara de recorte, derivado de la identidad de Valeria+ (§13) | Legibles a 32,4 mm de diámetro visible |
 | **F5 · Valeria+** | 8-9 | Mapeo `TurnPhaseStrip` → estados afectivos (repo `FrankBetances/Valeria`) | Fuera del alcance de este repositorio; se referencia para el cronograma |
 | **F6 · Validación y cierre** | 9-10 | Ensayo acústico §7 en Ribera Polusa / ACOPROS, revisión de la tabla §8 | Riesgos L-1 a L-6 con verificación ejecutada |
 
@@ -468,8 +469,8 @@ por hardware o por decisiones de §11:
 1. **Crear el `BleManager` compartido** y llamar a `installLua(manager)` (y, de
    paso, a `installBlePulseOximeter(manager)`, que espera lo mismo desde antes).
    Bloqueado por F0: crearlo cambia el arranque en iOS.
-2. **Assets visuales (F4)** y, con ellos, decidir el catálogo de expresiones
-   para 240×240 circular. Hasta que existan, `useLua().express()` está escrita y
+2. **Assets visuales (F4)**: dibujar las seis expresiones sobre la identidad ya
+   decidida (§13). Hasta que existan, `useLua().express()` está escrita y
    probada pero ninguna pantalla la llama: no se enganchan celebraciones a
    `finishModule` sin cara que poner.
 3. **Firmware (F1)** contra el protocolo de §5, incluidos los estados de
@@ -480,3 +481,68 @@ por hardware o por decisiones de §11:
 Lo que **no** hay que decidir otra vez: el protocolo, la política del permiso y
 el punto de enganche del micrófono están fijados y con pruebas que fallan si
 alguien los cambia sin querer.
+
+---
+
+## 13. Identidad visual — la gata de Valeria+
+
+> **Decisión (agosto 2026): Lúa no es un personaje nuevo.** Es la misma gata de
+> Valeria+, con el mismo estilo gráfico. No se diseña una mascota para el
+> periférico.
+
+**Fuente.** Las láminas de identidad de Valeria+ en Canva: «Valeria - App Icon»
+(`DAHNOAsIZxU`), que trae el personaje, la paleta y las variantes, y «Valeria -
+Bienvenida» (`DAHNOEuJWm0`), que lo muestra a tamaño grande sobre fondo de
+marca. Los valores hexadecimales exactos se toman **de ahí**, no de este
+documento: transcribir colores de marca a mano es la forma más barata de que dos
+productos acaben con dos teales distintos. La paleta tiene cuatro papeles —teal
+de marca, teal oscuro, teal claro y navy— y el personaje se usa en blanco sobre
+teal, con una variante inversa (teal sobre blanco) y otra específica para
+tamaños pequeños que ya existe y es el punto de partida natural.
+
+*Nota de mantenimiento: las leyendas de la lámina del icono describen al
+personaje como «oso». Es un error de etiqueta —la mascota es una gata— y conviene
+corregirlo en Canva antes de que alguien más lo lea al pie de la letra.*
+
+### 13.1. Por qué este estilo es un regalo para el GC9A01
+
+No es solo coherencia de marca; el estilo resuelve casi todos los problemas de
+una pantalla de 240×240 a 32,4 mm:
+
+| Propiedad del estilo | Lo que resuelve en la placa |
+|---|---|
+| Rellenos planos, sin degradados | El panel es de **16 bits** (RGB565): un degradado suave se ve a bandas. Lo que no tiene degradado no puede bandear |
+| Dos o tres colores por composición | Assets diminutos en la flash del C3, y **refresco por región parcial** trivial: repintar una zona plana no deja costura visible |
+| Silueta pesada y cerrada | Lo único que sobrevive a 32,4 mm es la silueta. Un personaje de línea fina se convierte en una mancha |
+| Alto contraste blanco sobre teal | La puerta de la F4 («legible a 32,4 mm») se cumple por construcción, no por ajuste fino |
+| Variante para tamaños pequeños ya diseñada | El trabajo de simplificación está hecho; F4 la adapta, no la inventa |
+
+**Lo que sí hay que rehacer:** el icono es una composición **squircle** de iOS
+—con su brillo superior sutil— y la pantalla de Lúa es un **círculo**. El brillo
+y el squircle son afordancias de icono de app, no rasgos del personaje: se caen.
+La composición se rehace centrada, con margen de seguridad radial para que el
+recorte circular del GC9A01 no coma orejas.
+
+### 13.2. Las seis caras
+
+El catálogo de F4 es el enumerado de §5 y nada más: `dormida`, `neutra`,
+`atenta`, `contenta`, `celebración`, `cariño`. Se dibujan sobre el mismo
+personaje, cambiando ojos, boca y poco más — que es justo lo que permite el
+refresco parcial. Dos de ellas cargan trabajo clínico y conviene decirlo aquí:
+
+- **`dormida`** es el estado por omisión y el que se usa **dentro de todo módulo
+  clínico** (riesgo L-3): una gata dormida no compite por la atención del niño.
+  Tiene que leerse como dormida a 32,4 mm y de un vistazo, no por un detalle
+  fino.
+- **`celebración`** es la única que puede ser vistosa, y solo aparece fuera de
+  los módulos.
+
+### 13.3. Compartir personaje no la convierte en accesorio
+
+Reutilizar la gata de Valeria+ es una decisión de marca y no toca §4. Lo que
+convertiría a Lúa en accesorio de un producto sanitario no es parecerse a
+Valeria+, sino **hacer** algo clínico o que se le **atribuya** un beneficio
+clínico. El límite práctico, para quien escriba el IFU o la ficha de tienda: se
+puede decir que es el mismo personaje de Valeria+; no se puede decir que es «la
+gata que guía la terapia», ni que acompaña, mejora o sostiene el tratamiento. El
+personaje es compartido; la finalidad prevista, no.
