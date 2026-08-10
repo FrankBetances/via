@@ -470,9 +470,10 @@ por hardware o por decisiones de §11:
    paso, a `installBlePulseOximeter(manager)`, que espera lo mismo desde antes).
    Bloqueado por F0: crearlo cambia el arranque en iOS.
 2. **Assets visuales (F4)**: dibujar las seis expresiones sobre la identidad ya
-   decidida (§13). Hasta que existan, `useLua().express()` está escrita y
-   probada pero ninguna pantalla la llama: no se enganchan celebraciones a
-   `finishModule` sin cara que poner.
+   decidida (§13), partiendo de la sección de traspaso del repositorio de
+   Valeria+ —**pendiente de bajar aquí**. Hasta que existan, `useLua().express()`
+   está escrita y probada pero ninguna pantalla la llama: no se enganchan
+   celebraciones a `finishModule` sin cara que poner.
 3. **Firmware (F1)** contra el protocolo de §5, incluidos los estados de
    firmware normativos y la verificación de que la pila BT no anuncia A2DP/HFP.
 4. **Ensayo acústico (F6)** según §7. Con la placa de §2 se espera Δ ≈ 0 y se
@@ -490,19 +491,27 @@ alguien los cambia sin querer.
 > Valeria+, con el mismo estilo gráfico. No se diseña una mascota para el
 > periférico.
 
-**Fuente.** Las láminas de identidad de Valeria+ en Canva: «Valeria - App Icon»
-(`DAHNOAsIZxU`), que trae el personaje, la paleta y las variantes, y «Valeria -
-Bienvenida» (`DAHNOEuJWm0`), que lo muestra a tamaño grande sobre fondo de
-marca. Los valores hexadecimales exactos se toman **de ahí**, no de este
-documento: transcribir colores de marca a mano es la forma más barata de que dos
-productos acaben con dos teales distintos. La paleta tiene cuatro papeles —teal
-de marca, teal oscuro, teal claro y navy— y el personaje se usa en blanco sobre
-teal, con una variante inversa (teal sobre blanco) y otra específica para
-tamaños pequeños que ya existe y es el punto de partida natural.
+**Fuente de verdad: el repositorio `FrankBetances/Valeria`.** La identidad se
+mantiene ahí, incluida una sección propia de traspaso —«Copiar a Lúa a otro
+proyecto»— que es de donde hay que sacar el personaje, la paleta con sus
+hexadecimales y los recortes. De ahí, y no de este documento: transcribir
+colores de marca a mano es la forma más barata de que dos productos acaben con
+dos teales distintos.
 
-*Nota de mantenimiento: las leyendas de la lámina del icono describen al
-personaje como «oso». Es un error de etiqueta —la mascota es una gata— y conviene
-corregirlo en Canva antes de que alguien más lo lea al pie de la letra.*
+> **Aviso: no usar las láminas de Canva como referencia.** Existen varias
+> («Valeria - App Icon», «Valeria - Bienvenida», «Valeria — Créditos») y son
+> material **anterior** a la corrección de la identidad: siguen mostrando el
+> personaje antiguo —un oso, con leyendas que lo llaman así— y consignas con
+> «Oso Distractor». Son imágenes aplanadas, sin capa de texto, así que ni sus
+> colores ni sus rótulos se pueden leer de forma fiable por herramienta. Están
+> ahí, se ven convincentes y llevan a la conclusión equivocada; esta nota existe
+> porque ya pasó una vez.
+
+La paleta tiene cuatro papeles —teal de marca, teal oscuro, teal claro y navy— y
+el personaje se usa en blanco sobre teal, con una variante inversa (teal sobre
+blanco) y otra específica para tamaños pequeños, que es el punto de partida
+natural para la F4. *Los valores concretos quedan pendientes de bajar desde el
+repositorio de Valeria+; este documento no los transcribe.*
 
 ### 13.1. Por qué este estilo es un regalo para el GC9A01
 
