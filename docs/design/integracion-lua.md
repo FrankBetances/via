@@ -1,160 +1,209 @@
-# Integración de Lúa — mascota física de refuerzo (periférico BLE)
+# Integración de Lúa en VIA+ — periférico físico de refuerzo
 
-> **Estado:** EN CURSO (agosto 2026). El lado VIA+ que no depende de hardware
-> está implementado y probado: **F2** (`src/Lua/`) y **F3** (enganche de
-> contexto). Sigue pendiente todo lo que exige placa delante: **F0** (banco de
-> pruebas y decisión de placa firmada), **F1** (firmware GATT del ESP32),
-> **F4** (assets visuales) y **F6** (ensayo acústico). Ver §9 para el estado
-> fase a fase, §12 para lo que queda del lado del código y §13 para la identidad
-> visual, ya decidida: Lúa es la gata de Valeria+, no un personaje nuevo.
+> **Estado:** implementado el lado VIA+ (agosto 2026). Queda pendiente crear el
+> `BleManager` compartido y bajar los assets de la mascota (§9).
 >
-> Este documento fija **qué se construye, qué no, y por qué**, antes de comprar
-> el segundo lote de placas.
->
-> **Alcance:** el lado VIA+ de la integración. El lado Valeria+ vive en
-> `FrankBetances/Valeria` y solo se referencia aquí (§10).
->
-> **Fuentes de partida:** plan de trabajo de Lúa (AIoT, ESP32), manual del
-> ESP32-2424S012 (C3 · IPS circular 1.28") y del ESP32-S3-ePaper-1.54G.
+> **Alcance:** solo lo que hace VIA+. **Lúa no es un proyecto de este
+> repositorio.**
 
 ---
 
-## 1. Qué decide este documento
+## 1. Lo primero: este documento no decide casi nada
 
-Lúa es una gata física que reacciona a lo que ocurre en la tableta. Es una pieza
-de motivación, no de clínica. El plan de partida la describe bien como concepto
-y razonablemente como cronograma, pero al bajarlo al código de VIA+ y a las
-hojas de datos de las dos placas aparecen **tres problemas que cambian el
-diseño**, no solo la implementación. Este documento los resuelve y deja el resto
-del plan en pie.
+Lúa es la mascota de Valeria+ —una gata negra tipo *smoking*, en píxel art— y
+también un aparato físico de refuerzo sobre ESP32-C3 con una pantalla circular de
+240×240. **El proyecto vive en `FrankBetances/Valeria`**, y allí están las cosas
+que mandan:
 
-Los tres, en una línea cada uno:
+| Qué | Dónde, en `FrankBetances/Valeria` |
+|---|---|
+| **La tabla de opcodes — fuente ÚNICA del enlace** | `firmware/lua/protocol.json` |
+| El firmware del aparato | `firmware/lua/` (`src/main.cpp`, `include/lua_protocol.h`) |
+| El plan completo: placas, latencia, seguridad, fases, identidad | `docs/plan-integracion-lua.md` |
+| El sprite de la mascota | `src/ValeriaCatPixel.tsx` |
 
-1. **Ninguna de las dos placas es Lúa.** Se cruzan requisitos: la que refresca a
-   tiempo no tiene ni audio ni reloj; la que los tiene refresca 15 veces más
-   lento que el presupuesto de latencia. (§2)
-2. **El silencio no se ordena, se concede.** Un comando «cállate» falla al lado
-   equivocado: si se pierde, la mascota hace ruido durante una medición. (§3)
-3. **«Accesorio» no es una exención del MDR, es una clasificación propia.** Para
-   que Lúa quede fuera del expediente hay que diseñarla para que no sea
-   accesorio, y eso impone una restricción dura al protocolo. (§4)
+Este documento cubre **únicamente** la parte de VIA+, que es deliberadamente
+pequeña, y el porqué. Para cambiar un opcode, un UUID, una placa o la mascota se
+va al otro repositorio. Aquí no se discute nada de eso.
 
----
+### 1.1. Una versión anterior de este documento estaba mal, y conviene saber cómo
 
-## 2. Ninguna de las dos placas es Lúa
+Se escribió sin leer el repositorio de Valeria+, y produjo dos errores que
+merecen quedar anotados porque explican la forma del código actual:
 
-El plan de partida asume que se elige entre dos candidatas comparables. No lo
-son: cada una tiene la mitad de Lúa y les falta una mitad distinta.
+1. **Un protocolo GATT inventado.** UUID de servicio propio, cuatro
+   características distintas, tramas de dos bytes, TTL en décimas de segundo y un
+   byte de batería que no existe. No coincidía en **nada** con el aparato: no
+   habría conectado con ninguna Lúa flasheada. Era además exactamente la «cuarta
+   copia a mano» contra la que avisa `protocol.json`.
+2. **El encuadre de riesgo invertido.** Declaraba el silencio del periférico como
+   el control de riesgo de la interferencia acústica, con su fila en la tabla ISO
+   14971. El plan de Valeria+ dice lo contrario y con razón (§3 de aquí).
 
-| Requisito de Lúa | ESP32-2424S012 (C3 · IPS) | ESP32-S3-ePaper-1.54G |
-|---|---|---|
-| Expresión facial < 1 s | ✅ IPS 240×240, 16 bits, GC9A01 por SPI | ❌ **15 s** en refresco rápido, **2 niveles de gris** |
-| Altavoz / maullidos | ❌ No hay códec ni amplificador | ✅ ES8311 + amplificador + altavoz MX1.25 |
-| RTC para el «Modo Vínculo» | ❌ No hay | ✅ PCF85063ATL con interrupción a GPIO5 |
-| Gestión de batería | ⚠️ Conector JST 1.25-2P, **sin IC de carga documentada** | ✅ ETA6098 + medida de batería en GPIO4 |
-| Micrófono a bordo | ✅ **No tiene** (ver abajo, es una ventaja) | ⚠️ Micrófono omnidireccional integrado |
-| Expansión de E/S | ⚠️ **SH1.0-4P**: alimentación + dos señales | ✅ Header 2×6P, GPIO1-3 libres |
-
-**La pantalla decide.** El propio plan fija «latencia inferior a 1 segundo tras
-la validación de un acierto fonológico». El e-Paper tarda 15 s en su modo
-rápido: no es un margen ajustado, es un factor de 15 contra el requisito. Y con
-2 niveles de gris, la cara de la gata es una silueta binaria. El e-Paper queda
-descartado para el bucle de refuerzo; su sitio es un cartel de estado, no una
-mascota.
-
-**Y la C3 no puede recuperar lo que le falta.** El SH1.0-4P son cuatro pines:
-3V3, GND y **dos señales**. Eso es un bus, no dos. Se puede colgar un RTC por
-I²C **o** un módulo de audio por UART, no ambos, salvo montajes que nadie quiere
-mantener. Conviene decirlo sin rodeos: sobre la C3 tal cual, **Lúa v1 no tiene
-voz ni despertador**.
-
-### 2.1. La decisión, y por qué es buena noticia
-
-> **Lúa v1 = ESP32-2424S012C-I-Y — pantalla, y nada más.** Sin altavoz, sin
-> servos, sin RTC. El «Modo Vínculo» (alertas autónomas por reloj) se aplaza a
-> una v2 con placa propia.
-
-Parece una renuncia y en realidad resuelve el requisito bloqueante de VIA+ de la
-manera más barata posible: **una Lúa que no puede hacer ruido no puede
-contaminar una prueba acústica**. La interferencia acústica nula deja de ser un
-control de software que hay que verificar y pasa a ser una propiedad física del
-montaje. Para un dispositivo que se va a llevar a la consulta del Hospital
-Ribera Polusa y a ACOPROS, esa diferencia vale más que un maullido.
-
-Dos notas menores del mismo signo:
-
-- **La C3 no lleva micrófono.** La regla 7 del plan de partida («micrófono
-  inhabilitado en Lúa») se cumple por ausencia de componente, que es la única
-  forma de cumplirla sin tener que demostrarla. La placa e-Paper, que sí lo
-  lleva, obligaría a argumentar por qué un micrófono presente en la sala no
-  captura nada — un argumento que no apetece escribir en un expediente.
-- **La carga de batería está sin documentar** en la hoja de la C3 (hay conector,
-  no hay IC). Es una tarea medible de la Fase 0, no un supuesto.
+La lección operativa está en §2: la tabla ya no se escribe, se genera.
 
 ---
 
-## 3. El silencio no se ordena, se concede
+## 2. El protocolo se genera, no se escribe
 
-El plan de partida propone que la tableta envíe «un comando prioritario de
-Silencio Clínico» al entrar en `VoiceAnalysis`, `VerbalAudiometry` o
-`ProsodyAnalysis`. El diseño es correcto en intención y **falla hacia el lado
-equivocado**: el estado seguro (callado) depende de que un mensaje llegue. Si el
-BLE se cae, si la app se cierra de golpe, si alguien añade en 2027 una pantalla
-nueva con micrófono y no se acuerda del comando, Lúa se queda hablando encima de
-una toma de voz. En términos de ISO 14971 eso es un control de riesgo cuyo modo
-de fallo produce exactamente el daño que quiere evitar.
+`protocol.json` lo consumen tres sitios —el firmware en C, Valeria+ y este
+repositorio— y su propia nota lo advierte: «tres copias a mano se desincronizan».
+El bug que produce no aparece como error de compilación ni como test rojo:
+aparece como una mascota que hace cosas raras en la consulta.
 
-Se invierte:
-
-> **Lúa arranca muda y quieta. Solo puede sonar o moverse mientras sostiene un
-> permiso de ruido vigente, de vida corta, que la tableta renueva.**
-
-Es un *dead-man's switch*. La tableta ya no tiene que acordarse de silenciar;
-tiene que acordarse de **permitir**, y olvidarse de permitir es inofensivo.
-Cualquier fallo — enlace caído, app colgada, tableta dormida, pantalla nueva sin
-integrar — converge en silencio dentro del TTL del permiso.
-
-Sobre esa base, tres capas independientes, cada una suficiente por sí sola:
-
-| Capa | Mecanismo | Cubre |
-|---|---|---|
-| **1 · Lista blanca de pantallas** | El permiso solo se concede en pantallas sin clínica: `Bienvenida`, `SeleccionEjercicios`, `ResultadosPreliminares`, `ResultadosFinal` | El caso normal. Dentro de un módulo nunca hay permiso, así que la carrera del apartado siguiente no llega a existir |
-| **2 · Revocación por sesión de grabación** | Observador sobre el contador de `acquireRecordingSession()` en `src/Audio/sharedAudioContext.ts`: en la transición 0→1 se revoca y se deja de renovar | Cualquier captura de micrófono, **incluida la de módulos que aún no existen** |
-| **3 · Caducidad del permiso** | TTL de 3 s, renovación cada 1 s. Sin renovación, el firmware vuelve a mudo | Enlace caído, app muerta, tableta suspendida |
-
-La capa 2 es la que hace que esto sea barato de mantener, y merece un párrafo.
-
-### 3.1. `acquireRecordingSession()` ya es el punto único
-
-VIA+ tiene un sitio, y solo uno, por el que pasa todo módulo que abre el
-micrófono. Está en `src/Audio/sharedAudioContext.ts:129`, con recuento de
-referencias, y hoy lo llaman los cuatro consumidores de micrófono del código:
+Así que en VIA+:
 
 ```
-src/Screens/VoiceAnalysis/voiceMicAdapter.ts:253
-src/Screens/ProsodyAnalysis/prosodyMicAdapter.ts:192
-src/Screens/RoomNoiseCheck/noiseMicAdapter.ts:222
-src/Screens/Articulation/articulationAudio.ts:627
+src/Lua/protocol.json        ← copia VENDORIZADA byte a byte de Valeria+
+scripts/build-lua-protocol.js ← genera el .ts desde ese .json
+src/Lua/luaProtocol.ts       ← GENERADO. No editar a mano
 ```
 
-Colgar ahí la revocación significa que **no hay que tocar ni una pantalla
-clínica** para integrar Lúa, y que el quinto módulo con micrófono que se escriba
-quedará protegido sin que su autor sepa que Lúa existe. Es la diferencia entre
-un control que hay que recordar y un control que se hereda.
+El **cuerpo** del fichero generado es idéntico al `src/valeriaLuaProtocol.ts` de
+Valeria+; solo cambia la cabecera de origen, para que un diff entre repositorios
+enseñe la cabecera y nada más. Lo comprueba
+`src/Lua/__tests__/luaProtocolGate.test.ts`, que regenera y compara en cada
+ejecución de la suite.
 
-El cambio en `sharedAudioContext.ts` es aditivo y pequeño: exportar un
-`onRecordingSessionChange(cb)` que notifique las transiciones 0↔1. Nada más. El
-módulo ya expone `isRecordingSessionActive()` para diagnóstico; esto es su
-versión observable. El aviso se emite **antes** de reconfigurar la sesión de
-audio: quien lo escucha lo hace para apagar algo, y el orden seguro es apagar
-primero y abrir el micrófono después.
+### 2.1. Procedimiento de sincronización
 
-#### El punto único tenía una fuga (hallazgo de la implementación)
+El gate local detecta que alguien edite lo generado; lo que **no** puede detectar
+es que la copia vendorizada se quede atrás respecto a Valeria+, porque este
+repositorio no ve el otro. Eso es un paso manual y hay que hacerlo cuando cambie
+el enlace:
 
-Al escribir la F3 se comprobó el supuesto en vez de darlo por bueno, y **el
-punto único no lo era del todo**. En el T.A.R., `articulationAudio.ts` arrancaba
-el reconocedor nativo y reservaba la sesión **dentro** del `if` de la captura en
-memoria:
+```bash
+# desde un clon de FrankBetances/Valeria al día
+cp ../Valeria/firmware/lua/protocol.json src/Lua/protocol.json
+node scripts/build-lua-protocol.js
+npm test -- src/Lua
+```
+
+Si el `.json` cambia de versión de protocolo, el aparato viejo **no** se actualiza
+solo: `protocol.json` fija que «ni los uuid ni los `code` cambian nunca» porque un
+aparato ya flasheado se queda con los suyos. `isLuaProtocolCompatible()` compara
+la versión que publica el firmware por `STATE` con la del cliente.
+
+### 2.2. Lo que la tabla generada no cubre
+
+`protocol.json` no describe la trama de `SAFE` ni el desglose de `STATE`. Eso
+está en `src/Lua/luaWire.ts`, leído del **firmware** —no deducido del documento— y
+con la línea citada. Dos detalles que se habían inventado mal antes:
+
+- **`SAFE` no lleva byte de versión.** El byte 0 es la operación
+  (`main.cpp:164-165`). Poner ahí la versión haría que el aparato leyera `1` como
+  `CLINICAL_SILENCE` por casualidad.
+- **`STATE` son 8 bytes y ninguno es la batería:** modo, segundos de concesión
+  restantes, cara, versión de firmware, fps y 24 bits de microsegundos de
+  despacho (`main.cpp:91-106`). *La nota de `STATE` en `protocol.json` dice
+  «batería»; el firmware no la publica. Discrepancia de origen, anotada aquí y a
+  resolver en Valeria+.*
+
+---
+
+## 3. La postura de VIA+: el control es la ausencia
+
+VIA+ es SaMD **Clase IIa**: todo lo que pueda alterar la validez de una medición
+entra en el expediente técnico y en el análisis ISO 14971.
+
+La tentación es hacer que la tableta mande callar al periférico al entrar en un
+módulo con micrófono. El §8 del plan de Valeria+ explica por qué es mal negocio:
+eso convierte el silencio en **un control de riesgo implementado por software de
+un dispositivo externo no verificado**, y obliga a demostrar, para el marcado, que
+el comando llega siempre, que el firmware siempre obedece y que el fallo es
+detectable. Caro, y no hace falta.
+
+> **El control es que Lúa no está.** No entra en la cabina ni en la sala de campo
+> libre durante una medición. Es un requisito del **protocolo de exploración**, no
+> del software, y se audita mirando, no leyendo logs. Un aparato ausente no puede
+> interferir.
+
+De ahí sale todo lo demás:
+
+| | Qué hace VIA+ |
+|---|---|
+| **Durante la medición** | Nada. Ni refuerzo, ni espejo de turno, ni veredicto |
+| **Al cerrar la sesión** | La recompensa de `ResultadosFinal` (§4) |
+| **Si alguien la trae puesta** | `SAFE`/`CLINICAL_SILENCE` al abrirse cualquier captura — **defensa en profundidad, no declarada como control** (§5) |
+
+### 3.1. Por qué no se envía `VERDICT` ni `PHASE`
+
+Existen en el protocolo y Valeria+ los usa dentro de la terapia: el adulto
+califica y el aparato espeja el turno. En VIA+ eso sería refuerzo **durante** la
+medición, y el §8.4 del plan lo deja fuera de la v1 con un argumento que no es
+burocrático: hay caso clínico para ello —es literalmente lo que hace un VRA con
+un juguete iluminado—, pero entonces Lúa deja de ser un accesorio decorativo y
+hay que plantearse en serio si es parte del dispositivo. **Esa conversación se
+tiene con el organismo notificado, no en un `.md`.**
+
+Mientras eso no ocurra, VIA+ envía `GRANT`, `HEARTBEAT`, `CELEBRATE` e `IDLE`, y
+nada más.
+
+---
+
+## 4. La recompensa de cierre
+
+`src/Lua/closingReward.ts`, enganchada en `ResultadosFinal` con
+`useLuaClosingReward()`. Es la única integración de la v1, y va ahí porque en esa
+pantalla la exploración está terminada y los datos sellados.
+
+**No** va en `ResultadosPreliminares`, que es donde aterriza `finishModule()` al
+cerrar un módulo: allí la sesión sigue abierta y puede venir otra toma de voz a
+continuación.
+
+El orden importa, y no es evidente:
+
+```
+UNLOCK  →  GRANT(30 s)  →  CELEBRATE(2)     +  HEARTBEAT cada 10 s
+```
+
+- **`UNLOCK` primero** porque el silencio clínico deja el aparato en `LOCKED`, y en
+  ese estado el firmware ignora las concesiones (`main.cpp:126, 148`). Sin
+  desbloquear, la celebración no se dibujaría y no habría ningún error a la vista.
+- **La concesión caduca sola.** Se piden 30 de los 60 s que admite el aparato. Si
+  la app muere o la pantalla se cierra, Lúa vuelve a reposo sin que nadie envíe
+  nada: no hay trama de apagado que pueda perderse.
+- **El latido va a 10 s**, la cadencia del aparato. La versión anterior usaba TTL
+  de 3 s y renovación de 1 s, inventados; con los números reales, aquello habría
+  dejado al aparato en reposo entre latido y latido.
+- **Con un micrófono abierto no se celebra**, comprobado antes de arrancar. No
+  debería poder pasar —esta pantalla no graba— pero cuesta cero.
+
+---
+
+## 5. Silencio clínico: el cinturón, no los tirantes
+
+`src/Lua/clinicalSilence.ts`. Se emite `SAFE`/`CLINICAL_SILENCE` —con
+confirmación— **al abrirse cualquier captura de micrófono**, y también al
+instalarse si ya hay una captura viva: enchufar el aparato a mitad de una
+audiometría no puede dejarlo desbloqueado.
+
+Al cerrarse la captura **no se desbloquea nada**. El desbloqueo es explícito y
+solo lo pide la recompensa de cierre.
+
+Y no se declara como control de riesgo (§3). Está para el caso de que alguien la
+traiga puesta.
+
+### 5.1. `acquireRecordingSession()` es el punto único
+
+El plan pide emitirlo «al abrir cualquier pantalla de captura». En VIA+ hay un
+sitio, y solo uno, por el que pasa todo módulo que abre el micrófono:
+`acquireRecordingSession()` en `src/Audio/sharedAudioContext.ts`, con recuento de
+referencias. Colgarlo de ahí cumple lo que pide el plan y además cubre **los
+módulos que todavía no existen**: el quinto que se escriba queda protegido sin
+que su autor sepa que Lúa existe. Una lista de pantallas hay que acordarse de
+actualizarla; esto se hereda.
+
+La única modificación a código existente por Lúa es aditiva:
+`onRecordingSessionChange(cb)`, que notifica las transiciones 0↔1. El aviso se
+emite **antes** de reconfigurar la sesión de audio: quien lo escucha lo hace para
+apagar algo.
+
+### 5.2. El punto único tenía una fuga (y es un fallo de VIA+, no de Lúa)
+
+Al comprobar el supuesto en vez de darlo por bueno, resultó que no era cierto. En
+el T.A.R., `articulationAudio.ts` arrancaba el reconocedor nativo y reservaba la
+sesión **dentro** del `if` de la captura en memoria:
 
 ```ts
 startRecognition(targetWord, targetPhoneme);   // abre el micrófono
@@ -162,390 +211,156 @@ if (availableRef.current) {                    // ← solo si hay motor de captu
   releaseSessionRef.current = acquireRecordingSession();
 ```
 
-En un dispositivo sin `react-native-audio-api` operativo —la vía «solo
-reconocimiento, SODA manual», que es una degradación prevista y no un caso
-raro— el micrófono se abría por el reconocedor del sistema y **no constaba
-ninguna sesión reservada**. La transcripción no se veía afectada, y por eso el
-hueco no había dado la cara; lo que quedaba fuera era la contabilidad por la que
-el resto de la app se entera de que hay un micrófono abierto. Con Lúa v2 en la
-sala, el permiso de ruido habría seguido vigente durante la repetición del niño.
+En un dispositivo sin motor de captura operativo —la vía «solo reconocimiento,
+SODA manual», que es una degradación prevista— el micrófono se abría por el
+reconocedor del sistema **sin que constara ninguna sesión reservada**. La
+transcripción no se veía afectada, y por eso no había dado la cara; lo que
+quedaba fuera era la contabilidad por la que el resto de la app se entera de que
+hay un micrófono abierto.
 
-Corregido: la reserva pasa a ser **incondicional y previa** a
-`startRecognition()`, y si la captura no llega a arrancar se aborta el intento
-completo en vez de dejar al reconocedor escuchando sin toma que lo acompañe. Es
-la única modificación a un módulo clínico de toda la integración, y no es de
-Lúa: es de VIA+. Lo que hizo Lúa fue obligar a mirar.
+Corregido: la reserva es ahora **incondicional y previa** a `startRecognition()`,
+y si la captura no arranca se aborta el intento completo en vez de dejar al
+reconocedor escuchando sin toma. **Es un fallo de VIA+ que estaba ahí antes y se
+queda corregido aunque Lúa nunca llegue.**
 
-Para que el supuesto no se rompa otra vez en silencio, la suite incluye un
-guardián (`src/Lua/__tests__/micChokePoint.test.ts`) que **lee el árbol de
-fuentes**, localiza todo el que abre el micrófono —construir un `AudioRecorder`,
-reservar el recorder compartido, cargar el reconocedor nativo— y falla si alguno
-no reserva la sesión. Las exenciones se declaran una a una con su motivo, así
-que ampliarlas se ve en el PR. Se ha verificado que el guardián falla de verdad
-en los dos casos que le importan: un módulo nuevo con micrófono sin sesión, y la
-inversión del orden entre reserva y reconocimiento en el T.A.R.
+Para que no se rompa otra vez en silencio,
+`src/Lua/__tests__/micChokePoint.test.ts` **lee el árbol de fuentes**, localiza
+todo lo que abre el micrófono —construir un `AudioRecorder`, reservar el recorder
+compartido, cargar el reconocedor nativo— y falla si alguno no reserva la sesión,
+con las exenciones declaradas una a una. Verificado por mutación: falla con un
+módulo nuevo sin cubrir y falla si se invierte el orden en el T.A.R.
 
-### 3.2. La trampa de `allowBluetooth` en iOS
+### 5.3. La trampa de `allowBluetooth` en iOS
 
-Un detalle del código actual que hay que dejar escrito antes de que muerda. La
-sesión de audio de VIA+ se configura, tanto en reproducción como en grabación,
-con `allowBluetooth` (y `allowBluetoothA2DP` en reproducción):
+Esto es específico de VIA+ y hay que dejarlo escrito. La sesión de audio se
+configura, en reproducción y en grabación, con `allowBluetooth` (y
+`allowBluetoothA2DP` en reproducción):
 
 ```ts
 // src/Audio/sharedAudioContext.ts
 iosOptions: ['defaultToSpeaker', 'allowBluetooth', 'allowBluetoothA2DP'],
 ```
 
-Si Lúa expusiera alguna vez un perfil de audio Bluetooth **clásico** (A2DP o
-HFP), iOS podría encaminar hacia ella los tonos de la audiometría o las palabras
-de la logoaudiometría. El resultado sería una prueba de campo libre saliendo por
-un altavoz de juguete no calibrado, y lo peor es que sonaría — nadie vería un
-error.
+Si Lúa expusiera alguna vez un perfil de audio **clásico** (A2DP o HFP), iOS
+podría encaminar hacia ella los tonos de la audiometría o las palabras de la
+logoaudiometría: una prueba de campo libre saliendo por un altavoz de juguete no
+calibrado, y lo peor es que **sonaría** — nadie vería un error.
 
 > **Regla dura:** Lúa es **BLE-only**. No anuncia, no implementa y no negocia
-> A2DP ni HFP. Se verifica en la Fase 1 sobre la pila del ESP32-C3, no se
-> supone.
+> A2DP ni HFP. En la v1 no tiene ni altavoz, y el firmware trae un gate
+> (`check-lua-mute.js` en Valeria+) que rompe el build si aparece inicialización
+> de audio o de servo.
 
 ---
 
-## 4. «Accesorio» no es una exención del MDR
-
-El plan de partida busca el «aislamiento regulatorio» declarando a Lúa
-«accesorio no decisorio». Conviene ser precisos, porque la etiqueta no hace lo
-que parece: el MDR **se aplica también a los accesorios** de productos
-sanitarios, y el Anexo VIII exige clasificarlos **por derecho propio**,
-separadamente del producto con el que se usan. Llamar accesorio a Lúa no la saca
-del expediente: la mete, con su propia ruta de conformidad y su propio marcado.
-
-La vía que sí funciona es que **Lúa no sea accesorio**. Un accesorio, según la
-definición del Reglamento, es lo que está destinado a permitir específicamente
-que el producto se use conforme a su finalidad prevista, o a asistir específica
-y directamente su funcionalidad médica. Una gata que pone cara de contenta no
-hace ninguna de las dos cosas — **siempre que no se le dé nada clínico que
-hacer**. Y eso hay que sostenerlo en el diseño, no en la prosa:
-
-| Compromiso | Consecuencia técnica |
-|---|---|
-| Lúa no recibe contenido clínico | Por el aire viajan **estados afectivos abstractos**, nunca aciertos, puntuaciones, umbrales ni resultados. §5 lo impone en el propio protocolo |
-| Lúa no influye en la medida ni en el juicio | Ninguna decisión de VIA+ lee el estado de Lúa. El adaptador es de escritura hacia el periférico; lo que Lúa notifica (batería, estado) es diagnóstico y no entra en ningún informe |
-| VIA+ funciona idénticamente sin Lúa | Ya es la norma de la casa: el patrón del pulsioxímetro degrada a modo demo y el motor de audio degrada en silencio si falta el módulo nativo. Lúa degrada a *no-op* |
-| El IFU no le atribuye beneficio clínico | Nada de «mejora la adherencia a la prueba». Es un juguete que acompaña |
-
-De ahí sale, gratis, el **Zero-PHI**: si por el aire no viaja nada clínico, no
-hay dato de salud que proteger en el periférico. El firmware no escribe en flash
-nada de lo que recibe.
-
----
-
-## 5. Protocolo BLE
-
-Lúa es servidor GATT; la tableta, cliente. Un solo servicio.
-
-**UUID base:** `6c7561XX-b17e-4f4d-9a2f-0a1b2c3d4e5f` (`6c 75 61` = `lua`).
-
-| Característica | UUID | Props | Carga útil |
-|---|---|---|---|
-| **Capacidades** | `…6c756101…` | Read | `u8` versión de protocolo · `u8` bitmask: `bit0` pantalla, `bit1` altavoz, `bit2` motores, `bit3` RTC |
-| **Expresión** | `…6c756102…` | Write sin respuesta | `u8` estado afectivo · `u8` intensidad (0-255) |
-| **Permiso de ruido** | `…6c756103…` | Write sin respuesta | `u8` magic `0xA5` · `u8` TTL en décimas de segundo · `u8` secuencia |
-| **Estado** | `…6c756104…` | Notify | `u8` estado del firmware · `u8` batería % · `u8` flags · `u8` eco de secuencia |
-
-**Estados afectivos** (el enumerado completo, deliberadamente pobre en
-semántica): `0` dormida · `1` neutra · `2` atenta · `3` contenta · `4`
-celebración · `5` cariño. No existe `acierto`, no existe `fallo`, no existe
-`umbral alcanzado`. Quien quiera meter clínica en el enlace tendrá que ampliar
-este enumerado en un PR, que es exactamente donde queremos que se discuta.
-
-**Capacidades primero.** El cliente lee capacidades al conectar y adapta la
-política: sobre Lúa v1 (bit1 y bit2 a cero) el permiso de ruido ni siquiera se
-envía. El mismo código sirve para la v2 con altavoz sin bifurcarse. Y mientras
-las capacidades no se hayan leído, la respuesta a «¿puede hacer ruido?» es
-**no**, así que la ventana entre conectar y leer es segura por omisión.
-
-**Estado del firmware** (normativo para la F1, lo fija el códec del cliente en
-`src/Lua/luaProtocol.ts`): `0` muda · `1` con permiso de ruido vigente · `2`
-fallo. Un valor desconocido lo interpreta el cliente como fallo, nunca como
-permiso vigente. Flags: `bit0` cargando, `bit1` batería baja. Batería `0xFF`
-significa «no medida» —la C3 puede no medirla—, que no es lo mismo que
-descargada.
-
-**Seguridad.** Emparejamiento con LE Secure Connections y aceptación de
-escrituras solo desde el central emparejado. No protege confidencialidad de PHI
-—no la hay— sino **integridad**: impide que un tercero conceda un permiso de
-ruido en mitad de una audiometría. El nombre anunciado es fijo (`Lua-XXXX`, con
-los últimos bytes de la MAC); nunca nombre de paciente ni de profesional.
-
-### 5.1. Presupuesto de latencia
-
-| Tramo | Coste |
-|---|---|
-| JS → escritura nativa BLE (sin respuesta) | ~5-15 ms |
-| Espera al intervalo de conexión (solicitado 30 ms) | ≤ 30 ms |
-| Callback GATT → inicio de animación en el C3 | < 5 ms |
-| Primer fotograma completo por SPI al GC9A01 (240×240×16 bits ≈ 115 KB, SPI a 40 MHz) | ~23 ms; por región parcial, mucho menos |
-| **Total** | **< 100 ms frente a un presupuesto de 1000 ms** |
-
-Diez veces de margen. Compárese con los 15 000 ms del e-Paper y se entenderá por
-qué §2 no admitía discusión.
-
----
-
-## 6. Cómo se integra en el código de VIA+
-
-El patrón ya está inventado en este repositorio: el adaptador del pulsioxímetro
-(`src/Screens/DysphagiaTest/pulseOximeter.ts`) registra **un** adaptador global,
-lo instala con una función que recibe el `BleManager` y devuelve su limpieza, y
-degrada a un modo sin hardware si nadie lo registró. Lúa lo copia literalmente.
+## 6. El mapa del código
 
 ```
 src/Lua/
-├── luaProtocol.ts     # codec puro de tramas + enumerados. Sin dependencias nativas → testeable
-├── luaAdapter.ts      # setLuaAdapter / getLuaAdapter / installBleLua(manager) → cleanup
-│                      # + fachada no-op (luaExpress, luaSendNoisePermit) que nunca lanza
-├── noisePermit.ts     # renovador del permiso: lista blanca + observador de grabación + TTL
-├── luaRoute.ts        # ruta activa (la hoja más profunda) desde el estado del navegador
-├── installLua.ts      # instalación conjunta: adaptador + permiso, para que no se separen
-├── useLua.ts          # hook de conveniencia para las pantallas (expresión + estado de enlace)
-├── index.ts           # punto de entrada único
-└── __tests__/         # codec, adaptador, permiso, integración con @/Audio y guardián del
-                       # punto único del micrófono
+├── protocol.json        # copia vendorizada de la fuente única de Valeria+
+├── luaProtocol.ts       # GENERADO desde el .json: UUIDs, opcodes, límites, trama CTRL
+├── luaWire.ts           # trama SAFE y desglose de STATE, leídos del firmware
+├── luaAdapter.ts        # adaptador único + fachada no-op que nunca lanza
+├── clinicalSilence.ts   # SAFE al abrirse una captura (defensa en profundidad)
+├── closingReward.ts     # UNLOCK → GRANT → CELEBRATE + latido (ResultadosFinal)
+├── useLua.ts            # useLuaClosingReward() · useLuaDiagnostics()
+├── installLua.ts        # instalación conjunta: silencio + adaptador
+└── __tests__/
 ```
 
-Todo `src/Lua/` es *no-op* sin adaptador registrado, y la suite corre **sin
-hardware**: el renovador del permiso se prueba con dependencias inyectadas y
-temporizadores falsos, y el adaptador BLE contra un doble del `BleManager`.
+Enganches, todos existentes:
 
-Puntos de anclaje, todos ya existentes:
+| Enganche | Dónde | Estado |
+|---|---|---|
+| Permisos Android | `AndroidManifest.xml:62-64` — ya declarados para el pulsioxímetro | ✅ nada que hacer |
+| Dependencia BLE | `react-native-ble-plx@^3.2.1` ya está | ✅ nada que hacer |
+| Aviso de captura | `onRecordingSessionChange()` en `src/Audio/sharedAudioContext.ts` | ✅ hecho |
+| Recompensa | `useLuaClosingReward()` en `ResultadosFinal` | ✅ hecho |
+| `BleManager` compartido | arranque de la app, para Lúa **y** el pulsioxímetro | ⏳ pendiente (§9) |
 
-| Enganche | Dónde | Qué se hace | Estado |
-|---|---|---|---|
-| Permisos Android | `android/app/src/main/AndroidManifest.xml:62-64` | **Nada.** `BLUETOOTH_SCAN` (con `neverForLocation`) y `BLUETOOTH_CONNECT` ya están declarados para el pulsioxímetro | ✅ nada que hacer |
-| Dependencia BLE | `package.json` | **Nada.** `react-native-ble-plx@^3.2.1` ya está | ✅ nada que hacer |
-| Revocación por micrófono | `src/Audio/sharedAudioContext.ts` | `onRecordingSessionChange(cb)` (§3.1), exportado desde `@/Audio` | ✅ hecho |
-| Lista blanca de pantallas | `NavigationContainer` en `src/App.tsx` | `onStateChange` + `onReady` → `handleNavigationStateChange` | ✅ hecho |
-| `BleManager` compartido | Arranque de la app | Una sola instancia para pulsioxímetro y Lúa, como ya anticipa el comentario de `pulseOximeter.ts:74` | ⏳ **pendiente** (ver abajo) |
-| Celebración de cierre | `src/Navigators/finishModule.ts` y `ResultadosFinal` | Ver abajo | ⏳ pendiente de F4 |
-
-**Sobre la lista blanca y por qué acabó en `App.tsx`.** El plan situaba el
-enganche en `src/Navigators/Default.tsx`, pero el estado de navegación no vive
-ahí: lo publica el `NavigationContainer`, que se monta en `App.tsx`. Se escuchan
-`onStateChange` **y** `onReady`, porque el primero no se dispara con el estado
-inicial y sin el segundo la primera pantalla del arranque quedaría sin informar
-—inofensivo (una ruta desconocida no concede permiso) pero dejaría a la gata
-dormida hasta la primera navegación. La ruta que se toma es la **hoja más
-profunda** del árbol: un módulo clínico anidado no puede quedar tapado por el
-nombre de su contenedor.
-
-**Sobre el `BleManager`, que sigue sin crearse.** Hoy la app no instancia
-ninguno: el adaptador del pulsioxímetro tiene la misma forma
-`install…(manager)` y también está esperando ese manager compartido. Crearlo no
-es cableado inocuo —en iOS el primer uso dispara el diálogo de permiso de
-Bluetooth del sistema en el arranque—, así que se decide con la placa delante,
-en la F0, y de una vez para los dos periféricos. Hasta entonces `installLua()`
-existe, está probada y no se llama: `src/Lua/` es *no-op* y lo único vivo es la
-lista blanca de rutas, que ya se alimenta desde el navegador sin coste alguno.
-`installLua()` instala **adaptador y permiso juntos** a propósito: el estado
-intermedio «la gata ya funciona, el permiso lo hacemos luego» no debe existir ni
-un día.
-
-**Sobre dónde celebrar.** El plan de partida sitúa la recompensa en
-`ResultadosFinal`. En el código, cerrar un módulo no lleva ahí: `finishModule()`
-hace `replace('ResultadosPreliminares')`. Hay entonces dos momentos posibles y no
-son equivalentes:
-
-- **Cierre de módulo** (`finishModule` → `ResultadosPreliminares`): refuerza más
-  a menudo, que es lo que motiva a un niño. Pero puede dispararse segundos
-  después de una toma de voz.
-- **Cierre de sesión** (`ResultadosFinal`): seguro, y raro.
-
-Se hacen **los dos**, y el conflicto lo resuelve el mecanismo de §3 sin lógica
-adicional: la expresión visual no está sujeta a permiso —una pantalla no hace
-ruido—, y el sonido y el movimiento sí. En Lúa v1, que no tiene ni lo uno ni lo
-otro, la pregunta ni se plantea.
+**Reglas de la casa, verificadas en los tests:** ningún camino clínico espera
+(`await`) a Lúa; los envíos de `CTRL` son dispara-y-olvida con `catch` vacío
+deliberado; sin adaptador registrado todo es *no-op* y la app es idéntica; un
+adaptador que lanza no se propaga a ninguna pantalla.
 
 ---
 
-## 7. Criterio de aceptación acústica
+## 7. Riesgos (ISO 14971) — la parte de VIA+
 
-El plan de partida pide «auditoría acústica» sin decir contra qué. VIA+ trae su
-propio sonómetro (`src/Screens/RoomNoiseCheck/`, ponderación A, Leq por bloques
-de ~100 ms), y es el instrumento natural para la prueba — con una limitación que
-hay que escribir antes de usarlo: su escala tiene el suelo en **25 dB(A)**
-(`NOISE_DB_MIN`) y el micrófono de la tableta **no está calibrado en absoluto**;
-el propio módulo lo dice al justificar su fondo de escala. Con ese instrumento
-**no se puede demostrar «Lúa emite menos de X dB(A)»**.
+| # | Peligro | Daño | Control | Verificación |
+|---|---|---|---|---|
+| L-1 | El periférico interfiere en una medición | Medida inválida → decisión clínica sobre dato falso | **Ausencia física durante la medición** (procedimiento de exploración). *Defensa en profundidad, no declarada:* `SAFE` al abrirse cualquier captura; y en v1 el aparato no tiene altavoz | Auditoría del procedimiento. Además, test de integración: la reserva real de micrófono emite el `SAFE` |
+| L-2 | Encaminamiento del audio clínico al periférico | Audiometría de campo libre por transductor no calibrado, **sin señal de error** | BLE-only, sin perfiles de audio clásicos (§5.3) | Inspección de la pila BT del firmware + prueba en iOS con Lúa conectada durante audiometría |
+| L-3 | Distracción visual | Peor rendimiento atribuido al niño, no al estímulo | VIA+ no expresa nada durante la batería: la única expresión es al cerrar la sesión (§4) | Tests de la recompensa: no celebra con captura viva ni fuera de su pantalla |
+| L-4 | El periférico bloquea el flujo clínico | Sesión interrumpida | Adaptador *no-op* sin hardware; ningún `await` de Lúa en un flujo de prueba; escaneo fuera del camino crítico | Tests con adaptador ausente, caído, que lanza y con escrituras que fallan |
+| L-5 | Fuga de datos | Incumplimiento de protección de datos | **Zero-PHI estructural**: no existe ninguna característica de texto en el protocolo. No hay sitio donde meter un nombre | Gate del protocolo en cada ejecución de la suite |
 
-Sí se puede demostrar lo que de verdad importa, que es diferencial:
-
-1. **Protocolo:** sala en silencio, tableta en posición de examen, Lúa a 1 m.
-   Tres tandas de 60 s alternando Lúa apagada / Lúa en su peor caso (todas las
-   animaciones, y en v2 altavoz y motores al máximo).
-2. **Criterio:** ΔLeq entre condiciones **por debajo de la repetibilidad medida
-   de la propia condición «apagada»**, y sin cambio visible en el espectro de 24
-   bandas. Si Lúa no se distingue del ruido de fondo con el mismo instrumento
-   que usa la clínica, no interfiere en esa clínica.
-3. **Cifra absoluta:** para el expediente, medición con **sonómetro clase 2**
-   contra los niveles máximos de ruido ambiente de la **ISO 8253-2** para campo
-   libre. La cifra concreta se toma de la norma en el momento del ensayo, no de
-   este documento — *pendiente de verificar contra el texto vigente*.
-4. **Trivialidad de v1:** con la placa de §2 la condición «peor caso» no incluye
-   ni altavoz ni motores. Se espera Δ ≈ 0 y se mide igualmente, porque un
-   resultado esperado sin medir no es un resultado.
+La interferencia acústica **medida** (ensayo diferencial con el sonómetro de
+`RoomNoiseCheck`) deja de ser una puerta de VIA+: con la v1 sin altavoz y ausente
+durante la medición, no hay nada que medir. Si algún día hay hardware con
+altavoz, vuelve, y con sonómetro clase 2 contra la ISO 8253-2.
 
 ---
 
-## 8. Riesgos (ISO 14971)
+## 8. Identidad visual
 
-| # | Peligro | Situación peligrosa | Daño | Control | Verificación |
-|---|---|---|---|---|---|
-| L-1 | Emisión acústica del periférico | Lúa suena durante análisis de voz, prosodia o logoaudiometría | Medida inválida → decisión clínica sobre dato falso | Permiso de ruido con caducidad, revocación por sesión de grabación, lista blanca (§3). En v1, ausencia física de altavoz | Ensayo §7 + test de integración: iniciar cada módulo con micrófono y comprobar revocación |
-| L-2 | Encaminamiento del audio clínico al periférico | iOS enruta tonos por A2DP hacia Lúa | Audiometría de campo libre por transductor no calibrado, **sin señal de error** | BLE-only, sin perfiles de audio clásicos (§3.2) | Inspección de la pila BT del firmware + prueba en iOS con Lúa conectada durante audiometría |
-| L-3 | Distracción visual | Animación durante una prueba que exige atención | Peor rendimiento atribuido al niño, no al estímulo | La lista blanca gobierna también la expresión: dentro de un módulo, Lúa duerme | Test de navegación por ruta |
-| L-4 | Bloqueo del flujo clínico por el periférico | Escaneo o reconexión BLE bloquea la UI | Sesión interrumpida | Adaptador *no-op* si no hay hardware; todo el trabajo BLE fuera del camino crítico; ningún `await` de Lúa en un flujo de prueba | Tests con adaptador ausente y con desconexión a mitad de módulo |
-| L-5 | Fuga de datos | El periférico recibe o almacena información del paciente | Incumplimiento de protección de datos | Sin semántica clínica en el protocolo (§4-§5); el firmware no persiste lo recibido | Revisión del enumerado en cada PR que toque `luaProtocol.ts` |
-| L-6 | Escritura por un tercero | Un central no emparejado concede permiso de ruido | Equivale a L-1, provocado | Emparejamiento LESC + escrituras solo del central emparejado | Prueba con central no emparejado |
+**Lúa es la gata de Valeria+: negra tipo *smoking*, en píxel art.** No se diseña
+mascota para VIA+.
 
----
+El sprite es una **rejilla de caracteres** que se pinta como rectángulos de 1×1 en
+un `viewBox` (`src/ValeriaCatPixel.tsx` en Valeria+): escala a cualquier tamaño
+sin perder el borde duro, y un mapa de texto se revisa en el diff, cosa que un PNG
+no. Dos poses: cabeza sola por debajo de 90 px, cuerpo entero por encima.
 
-## 9. Fases
+Y el dato que simplifica el hardware: **a 240×240 el píxel art es el formato
+nativo del panel**, así que la cara del aparato y la de la app son literalmente el
+mismo dibujo, no dos interpretaciones que se separan versión a versión.
 
-Diez semanas, como el plan de partida, reordenadas para que la decisión de
-hardware caiga antes de que dependa nada de ella.
+### 8.1. Qué copiar, y qué no
 
-| Fase | Semanas | Entregable | Puerta de salida |
-|---|---|---|---|
-| **F0 · Banco de pruebas** | 1-2 | Medida real en ambas placas: latencia de refresco del GC9A01, consumo, comportamiento de carga de la C3, ruido propio | **Decisión de placa firmada.** La recomendación de §2 es la hipótesis a batir, no un hecho |
-| **F1 · Protocolo y firmware base** | 2-3 | Servidor GATT en ESP32-C3, máquina de estados con arranque mudo, permiso con TTL, sin perfiles BT clásicos | Un central que se desconecta a mitad de permiso deja a Lúa muda dentro del TTL, comprobado |
-| **F2 · Adaptador en VIA+** ✅ | 3-5 | `src/Lua/` completo, con tests de codec y de renovador de permiso | ✅ Suite verde **sin hardware**; app idéntica con y sin Lúa (probado con adaptador ausente, caído y que lanza) |
-| **F3 · Enganche de contexto** ✅ | 5-6 | `onRecordingSessionChange` en `sharedAudioContext.ts` + lista blanca en el navegador | ✅ Los cuatro adaptadores con micrófono revocan el permiso, comprobado contra el `acquireRecordingSession()` real; el guardián del punto único falla si aparece un quinto sin cubrir — y ya cazó una fuga en el T.A.R. (§3.1) |
-| **F4 · Assets visuales** | 6-8 | Catálogo de expresiones para 240×240 circular, con máscara de recorte, derivado de la identidad de Valeria+ (§13) | Legibles a 32,4 mm de diámetro visible |
-| **F5 · Valeria+** | 8-9 | Mapeo `TurnPhaseStrip` → estados afectivos (repo `FrankBetances/Valeria`) | Fuera del alcance de este repositorio; se referencia para el cronograma |
-| **F6 · Validación y cierre** | 9-10 | Ensayo acústico §7 en Ribera Polusa / ACOPROS, revisión de la tabla §8 | Riesgos L-1 a L-6 con verificación ejecutada |
+El README de Valeria+ tiene una sección de traspaso —«Copiar a Lúa a otro
+proyecto»— y es normativa. **Se llevan tres ficheros y nada más:**
 
----
-
-## 10. Lo que este plan NO hace
-
-Escrito para que no se cuele por omisión:
-
-- **No embarca perro robot, servos ni cinemática.** El chasis mecánico del plan
-  de partida queda fuera de v1 por §2 y §3. Reabrirlo exige rehacer §7 con
-  motores en el peor caso.
-- **No implementa el «Modo Vínculo».** Sin RTC no hay alertas autónomas. Es la
-  razón principal para que exista una v2 con placa propia.
-- **No pone micrófono en Lúa.** Ni ahora ni en la v2. La telemetría vocal se
-  captura en la tableta, donde está caracterizada.
-- **No mete a Lúa en el expediente MDR** — precisamente el objetivo de §4. Si
-  alguna vez se le atribuye beneficio clínico, o se le envía contenido clínico,
-  este documento queda invalidado y hay que reabrir la clasificación.
-- **No añade lógica de Lúa a los módulos clínicos.** Ninguna pantalla clínica
-  sabe que Lúa existe, y ninguna decisión clínica depende de ella. La intención
-  original —«no toca los módulos clínicos»— se cumplió con una excepción que
-  conviene decir en voz alta: la reserva de sesión del T.A.R. se corrigió
-  (§3.1). No es código de Lúa ni una concesión a Lúa; es un fallo de
-  contabilidad del micrófono que estaba ahí antes y que esta integración
-  destapó. Se corrige en VIA+ y se queda aunque Lúa nunca llegue.
-
----
-
-## 11. Qué hay que decidir antes de empezar
-
-1. **Compra de F0:** ¿se compra una segunda C3 para el banco, o se decide sobre
-   las placas ya disponibles?
-2. **v1 sin sonido:** ¿se acepta que Lúa v1 sea muda, o el maullido es
-   irrenunciable para el valor motivacional? Si lo es, F0 debe evaluar una
-   tercera placa (C3/S3 con IPS **y** códec), no las dos de este documento.
-3. **Orden Valeria+ / VIA+:** el refuerzo tiene más sentido clínico en Valeria+
-   (uso diario) que en VIA+ (valoración puntual). Si se prioriza Valeria+, F5
-   sube y F3 baja.
-
----
-
-## 12. Lo que sigue del lado del código
-
-Con F2 y F3 dentro, lo que queda en este repositorio es corto y está bloqueado
-por hardware o por decisiones de §11:
-
-1. **Crear el `BleManager` compartido** y llamar a `installLua(manager)` (y, de
-   paso, a `installBlePulseOximeter(manager)`, que espera lo mismo desde antes).
-   Bloqueado por F0: crearlo cambia el arranque en iOS.
-2. **Assets visuales (F4)**: dibujar las seis expresiones sobre la identidad ya
-   decidida (§13), partiendo de la sección de traspaso del repositorio de
-   Valeria+ —**pendiente de bajar aquí**. Hasta que existan, `useLua().express()`
-   está escrita y probada pero ninguna pantalla la llama: no se enganchan
-   celebraciones a `finishModule` sin cara que poner.
-3. **Firmware (F1)** contra el protocolo de §5, incluidos los estados de
-   firmware normativos y la verificación de que la pila BT no anuncia A2DP/HFP.
-4. **Ensayo acústico (F6)** según §7. Con la placa de §2 se espera Δ ≈ 0 y se
-   mide igualmente.
-
-Lo que **no** hay que decidir otra vez: el protocolo, la política del permiso y
-el punto de enganche del micrófono están fijados y con pruebas que fallan si
-alguien los cambia sin querer.
-
----
-
-## 13. Identidad visual — la gata de Valeria+
-
-> **Decisión (agosto 2026): Lúa no es un personaje nuevo.** Es la misma gata de
-> Valeria+, con el mismo estilo gráfico. No se diseña una mascota para el
-> periférico.
-
-**Fuente única: el repositorio `FrankBetances/Valeria`.** La identidad se
-mantiene ahí, incluida una sección propia de traspaso —«Copiar a Lúa a otro
-proyecto»— que es de donde salen el personaje, la paleta con sus hexadecimales y
-los recortes. **Este documento no describe el arte ni transcribe un solo color**,
-y no por brevedad: transcribir una identidad a mano es la forma más barata de que
-dos productos acaben con dos teales distintos, y de que una descripción vieja
-sobreviva a la corrección que la invalidó.
-
-> **No hay otra fuente.** Cualquier mockup, lámina o presentación que circule
-> fuera de ese repositorio —incluidas las de Canva— **no es material válido** y
-> no se usa como referencia, ni para colores ni para el personaje. Este aviso
-> está escrito porque ya se tomó una vez por bueno.
-
-*Pendiente:* bajar de esa sección a la F4 el personaje corregido, los valores de
-paleta y los recortes. Hasta entonces, lo único fijado aquí es la decisión de
-arriba y los requisitos de §13.1, que vienen de la placa y no del arte.
-
-### 13.1. Lo que el arte tiene que cumplir en el GC9A01
-
-Esto no describe el estilo de Valeria+: son los **requisitos** que impone la
-pantalla de §2 —240×240, 16 bits, 32,4 mm de diámetro visible— y que el arte
-tendrá que satisfacer. Se dejan escritos antes de recibirlo, para que la F4
-compruebe en vez de descubrir:
-
-| Requisito | Por qué |
+| Llévate | Para qué |
 |---|---|
-| Rellenos planos, sin degradados largos | El panel es de **16 bits** (RGB565): un degradado suave se ve a bandas |
-| Pocos colores por composición | Assets pequeños en la flash del C3, y **refresco por región parcial** sin costura visible al repintar una zona |
-| Silueta pesada y cerrada | A 32,4 mm solo sobrevive la silueta; una línea fina se convierte en mancha |
-| Contraste alto contra el fondo | Es lo que hace que la puerta de la F4 («legible a 32,4 mm») se cumpla por construcción y no por ajuste fino |
-| Composición **circular** | La pantalla es un círculo: hace falta centrado y margen de seguridad radial para que el recorte no coma orejas. Cualquier afordancia de icono de app —esquinas squircle, brillos— se cae aquí |
+| `src/ValeriaCatPixel.tsx` | El sprite y el componente: rejilla, paleta y las dos poses. Solo necesita `react-native-svg`, que VIA+ ya tiene |
+| `scripts/build-brand-assets.js` | Genera los PNG de marca **desde** ese fichero. Hay que ajustar las rutas de salida |
+| `scripts/check-brand-consistency.js` | El gate. Sin él, la copia se desfasa |
 
-Si el arte que llegue de Valeria+ no cumple alguno de estos puntos, lo que se
-adapta es el arte para el periférico, no el requisito.
+**Lo que no se copia:** ningún PNG —son salidas, no fuentes, y copiarlas es
+exactamente cómo se propagan las láminas viejas—; nada que se llame como la
+mascota anterior; y el copy de los ejercicios de Valeria+, que es contenido
+clínico suyo y no marca.
 
-### 13.2. Las seis caras
+Después de copiar, **se corre el gate en VIA+**. Si pasa, la copia está bien.
 
-El catálogo de F4 es el enumerado de §5 y nada más: `dormida`, `neutra`,
-`atenta`, `contenta`, `celebración`, `cariño`. Se dibujan sobre el mismo
-personaje, cambiando ojos, boca y poco más — que es justo lo que permite el
-refresco parcial. Dos de ellas cargan trabajo clínico y conviene decirlo aquí:
+*Pendiente (§9). No hay ningún asset de Lúa en este repositorio todavía, y no se
+transcribe aquí ni un color: la fuente es el otro repositorio.*
 
-- **`dormida`** es el estado por omisión y el que se usa **dentro de todo módulo
-  clínico** (riesgo L-3): una gata dormida no compite por la atención del niño.
-  Tiene que leerse como dormida a 32,4 mm y de un vistazo, no por un detalle
-  fino.
-- **`celebración`** es la única que puede ser vistosa, y solo aparece fuera de
-  los módulos.
+### 8.2. Compartir personaje no la convierte en parte del dispositivo
 
-### 13.3. Compartir personaje no la convierte en accesorio
+Reutilizar la gata es una decisión de marca. Lo que cambiaría la clasificación no
+es parecerse a Valeria+, sino **hacer** algo clínico o que se le **atribuya**
+beneficio clínico. El límite práctico para quien escriba el IFU o la ficha de
+tienda: se puede decir que es el mismo personaje; no se puede decir que es «la
+gata que guía la terapia», ni que acompaña, mejora o sostiene el tratamiento.
 
-Reutilizar la gata de Valeria+ es una decisión de marca y no toca §4. Lo que
-convertiría a Lúa en accesorio de un producto sanitario no es parecerse a
-Valeria+, sino **hacer** algo clínico o que se le **atribuya** un beneficio
-clínico. El límite práctico, para quien escriba el IFU o la ficha de tienda: se
-puede decir que es el mismo personaje de Valeria+; no se puede decir que es «la
-gata que guía la terapia», ni que acompaña, mejora o sostiene el tratamiento. El
-personaje es compartido; la finalidad prevista, no.
+---
+
+## 9. Lo que queda
+
+1. **Crear el `BleManager` compartido** y llamar a `installLua(manager)` —y, de
+   paso, a `installBlePulseOximeter(manager)`, que espera lo mismo desde antes—.
+   No es cableado inocuo: en iOS el primer uso dispara el permiso de Bluetooth
+   del sistema en el arranque. Se decide con la placa delante y de una vez para
+   los dos periféricos. No corre prisa: el aparato solo anuncia 120 s tras pulsar
+   su botón físico, así que ni un escaneo permanente lo encontraría solo.
+2. **Bajar la mascota** según §8.1, con su gate.
+3. **Probar contra el aparato de verdad.** Todo lo de aquí está verificado contra
+   el firmware **leyéndolo**, que es mejor que inventarlo pero no es lo mismo que
+   conectar. Pendiente: emparejamiento, `BENCH` para el presupuesto de latencia
+   (300 ms) y comprobar que `UNLOCK` → `GRANT` → `CELEBRATE` dibuja de verdad.
+4. **Avisar a Valeria+** de la discrepancia de `STATE` en `protocol.json` (§2.2).
+
+Lo que **no** hay que decidir otra vez: el protocolo no se negocia —se genera—, y
+la postura regulatoria de VIA+ está fijada en el §8 del plan de Valeria+, no aquí.

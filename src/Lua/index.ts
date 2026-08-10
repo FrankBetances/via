@@ -1,72 +1,79 @@
 /* -------------------------------------------------------------------------- */
-/*  Lúa — periférico de refuerzo (mascota física BLE). Punto de entrada único.  */
+/*  Lúa — periférico físico de refuerzo. Punto de entrada único.                 */
 /*                                                                             */
-/*  Lúa es una pieza de MOTIVACIÓN, no de clínica: reacciona a lo que ocurre en */
-/*  la tableta con estados afectivos y no recibe, calcula ni devuelve nada que  */
-/*  intervenga en una medida o en un juicio clínico. VIA+ funciona idénticamente*/
-/*  sin ella (todo es *no-op* si no hay adaptador registrado).                  */
+/*  Lúa es la mascota de Valeria+ —una gata negra en píxel art— y también un      */
+/*  aparato sobre ESP32-C3 con una pantalla circular de 240×240. **El proyecto    */
+/*  vive en `FrankBetances/Valeria`**: allí están el firmware, la tabla de        */
+/*  opcodes (`firmware/lua/protocol.json`, fuente única del enlace) y el plan     */
+/*  `docs/plan-integracion-lua.md`.                                             */
 /*                                                                             */
-/*  Diseño y justificación regulatoria: docs/design/integracion-lua.md          */
+/*  LA PARTE DE VIA+ ES DELIBERADAMENTE MÍNIMA. El §8 de ese plan se titula      */
+/*  «VIA+: la integración correcta es la ausencia»: Lúa no está presente durante  */
+/*  la medición —requisito de procedimiento, no de software— y lo único que hace  */
+/*  VIA+ es la recompensa al cerrar la sesión, más el silencio clínico como       */
+/*  defensa en profundidad. Nada de esto influye en ninguna medida ni en ningún   */
+/*  informe, y sin aparato todo es *no-op*.                                     */
+/*                                                                             */
+/*  Diseño del lado de VIA+: docs/design/integracion-lua.md                      */
 /* -------------------------------------------------------------------------- */
 
+/* Tabla de opcodes — GENERADA desde `protocol.json`. No editar a mano. */
 export {
-  LUA_AFFECTS,
-  LUA_CAPABILITIES_UUID,
-  LUA_CAP_DISPLAY,
-  LUA_CAP_MOTORS,
-  LUA_CAP_RTC,
-  LUA_CAP_SPEAKER,
-  LUA_EXPRESSION_UUID,
-  LUA_NOISE_PERMIT_MAGIC,
-  LUA_NOISE_PERMIT_MAX_TTL_MS,
-  LUA_NOISE_PERMIT_RENEWAL_MS,
-  LUA_NOISE_PERMIT_TTL_MS,
-  LUA_NOISE_PERMIT_UUID,
+  LUA_CHR,
+  LUA_LIMITS,
+  LUA_MODE,
+  LUA_OP,
   LUA_PROTOCOL_VERSION,
+  LUA_SAFE,
   LUA_SERVICE_UUID,
-  LUA_STATUS_FLAG_CHARGING,
-  LUA_STATUS_FLAG_LOW_BATTERY,
-  LUA_STATUS_UUID,
-  LuaAffect,
-  LuaFirmwareState,
+  luaFrame,
+} from './luaProtocol';
+export type { LuaOp } from './luaProtocol';
+
+/* Formato de cable que la tabla no cubre, leído del firmware. */
+export {
   base64ToBytes,
   bytesToBase64,
-  decodeCapabilities,
-  decodeStatus,
-  encodeExpression,
-  encodeNoisePermit,
-  encodeNoiseRevocation,
-  luaCanMakeNoise,
-  nextSequence,
-} from './luaProtocol';
-export type { LuaCapabilities, LuaStatus } from './luaProtocol';
+  clampGrantSeconds,
+  decodeLuaState,
+  isLuaProtocolCompatible,
+  luaSafeFrame,
+} from './luaWire';
+export type { LuaState } from './luaWire';
 
 export {
   getLuaAdapter,
   installBleLua,
   isLuaConnected,
-  luaCapabilities,
-  luaExpress,
-  luaSendNoisePermit,
+  luaCelebrate,
+  luaClinicalSilence,
+  luaCtrl,
+  luaGrant,
+  luaHeartbeat,
+  luaIdle,
+  luaState,
+  luaUnlock,
   setLuaAdapter,
 } from './luaAdapter';
 export type { LuaAdapter } from './luaAdapter';
 
 export {
-  NOISE_ALLOWED_ROUTES,
-  createNoisePermitController,
-  installNoisePermit,
-  isNoiseAllowedRoute,
-  isNoisePermitGranted,
-  refreshNoisePermit,
-  setActiveLuaRoute,
-  __resetNoisePermitForTests,
-} from './noisePermit';
-export type { NoisePermitController, NoisePermitDeps } from './noisePermit';
+  createClinicalSilenceController,
+  installClinicalSilence,
+  isLuaSilenced,
+  __resetClinicalSilenceForTests,
+} from './clinicalSilence';
+export type { ClinicalSilenceController, ClinicalSilenceDeps } from './clinicalSilence';
 
-export { useLua, useLuaAffectWhileMounted, useLuaDiagnostics } from './useLua';
-export type { LuaControls, LuaDiagnostics } from './useLua';
+export {
+  CLOSING_CELEBRATION_INTENSITY,
+  CLOSING_GRANT_SECONDS,
+  createClosingReward,
+  createRealClosingReward,
+} from './closingReward';
+export type { ClosingReward, ClosingRewardDeps } from './closingReward';
 
-export { activeRouteName, handleNavigationStateChange } from './luaRoute';
+export { useLuaClosingReward, useLuaDiagnostics } from './useLua';
+export type { LuaDiagnostics } from './useLua';
 
 export { installLua } from './installLua';

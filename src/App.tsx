@@ -3,7 +3,7 @@ import React, { useEffect, useState } from 'react';
 import { Provider as ReduxProvider } from 'react-redux';
 import { PersistGate } from 'redux-persist/integration/react';
 import { GluestackUIProvider } from '@gluestack-ui/themed';
-import { NavigationContainer, createNavigationContainerRef } from '@react-navigation/native';
+import { NavigationContainer } from '@react-navigation/native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
@@ -12,7 +12,6 @@ import { config } from '@/Theme/gluestack-ui.config';
 import { initDatabase } from '@/Database/config';
 import DefaultNavigator from '@/Navigators/Default';
 import SplashScreen from '@/Screens/Splash/SplashScreen';
-import { handleNavigationStateChange } from '@/Lua';
 import { installAudiometryToneAdapter } from '@/Screens/Audiometry';
 import { installVerbalAudioAdapter, verbalAudioBase64ForLang, verbalAudioSourceForLang } from '@/Screens/VerbalAudiometry';
 import '@/Navigators/screenTypeNavigator';
@@ -23,10 +22,6 @@ import '@/Navigators/screenTypeNavigator';
 /*  El DataSource de TypeORM se inicializa una vez al montar; mientras tanto  */
 /*  se muestra un splash.                                                     */
 /* -------------------------------------------------------------------------- */
-
-/* Ref del contenedor de navegación: solo se usa para leer el estado inicial de
- * rutas al quedar listo (ver `onReady`). */
-const navigationRef = createNavigationContainerRef();
 
 function AppShell() {
   const [dbReady, setDbReady] = useState(false);
@@ -93,19 +88,7 @@ function AppShell() {
   }
 
   return (
-    <NavigationContainer
-      ref={navigationRef}
-      // La ruta activa alimenta la lista blanca del permiso de ruido del
-      // periférico de refuerzo (docs/design/integracion-lua.md §3). Es *no-op*
-      // mientras Lúa no esté instalada: nada de la app depende de esto.
-      //
-      // `onReady` además de `onStateChange` porque el segundo no se dispara con
-      // el estado INICIAL: sin él, la primera pantalla del arranque quedaría sin
-      // informar. No sería peligroso —una ruta desconocida no concede permiso—
-      // pero dejaría a la gata dormida hasta la primera navegación.
-      onReady={() => handleNavigationStateChange(navigationRef.getRootState())}
-      onStateChange={handleNavigationStateChange}
-    >
+    <NavigationContainer>
       <DefaultNavigator />
     </NavigationContainer>
   );

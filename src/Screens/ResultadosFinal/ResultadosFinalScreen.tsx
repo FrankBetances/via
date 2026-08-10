@@ -34,6 +34,7 @@ import { signOutQuietly } from '@/Services/firebase';
 import { Evaluation } from '@/Models/Evaluation/Evaluation';
 import { useClassSelector } from '@/Helpers/ClassTransformer';
 import { useTelemetryTracker, compressTelemetry } from '@/Telemetry';
+import { useLuaClosingReward } from '@/Lua';
 
 import { AudiometryRepository } from '@/Repositories/AudiometryRepository';
 import { VoiceAnalysisRepository } from '@/Repositories/VoiceAnalysisRepository';
@@ -159,6 +160,17 @@ export default function ResultadosFinalScreen({ navigation }: Props) {
   // telemetría-en-vivo → no viola la regla "cero useState para telemetría".
   const telemetry = useTelemetryTracker();
   const [likert, setLikert] = useState<number>(0);
+
+  // --- Recompensa de Lúa (periférico físico de refuerzo) ---
+  // Esta pantalla es el ÚNICO sitio de VIA+ donde Lúa hace algo, y a propósito:
+  // la exploración ya está terminada y los datos sellados, así que la mascota no
+  // puede contaminar ninguna medida. Ver docs/design/integracion-lua.md §6 y el
+  // §8 del plan en FrankBetances/Valeria («la integración correcta es la
+  // ausencia»).
+  //
+  // Es *no-op* completo si no hay aparato: no devuelve nada, no hay estado que
+  // comprobar y esta pantalla no se entera de si existe.
+  useLuaClosingReward();
 
   // Congela la duración total al llegar al cierre de la batería.
   useEffect(() => {

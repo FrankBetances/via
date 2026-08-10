@@ -159,12 +159,13 @@ via/
 │   │   └── viaVoicePlayback     # Reproducción del recorte (react-native-audio-api)
 │   │
 │   ├── Audio/                   # AudioContext compartido (48 kHz) para toda la app
-│   ├── Lua/                     # Periférico de refuerzo BLE (mascota física, NO clínico)
-│   │   ├── luaProtocol          # Códec GATT PURO: solo estados afectivos, cero clínica
+│   ├── Lua/                     # Periférico de refuerzo BLE (proyecto de FrankBetances/Valeria)
+│   │   ├── protocol.json        # Fuente vendorizada del enlace (copia byte a byte)
+│   │   ├── luaProtocol          # GENERADO del .json: UUIDs, opcodes, límites, trama CTRL
+│   │   ├── luaWire              # Trama SAFE y desglose de STATE, leídos del firmware
 │   │   ├── luaAdapter           # Adaptador único + fachada no-op sin hardware
-│   │   ├── noisePermit          # Permiso de ruido con caducidad (control de riesgo L-1)
-│   │   ├── luaRoute             # Lista blanca de pantallas desde el estado del navegador
-│   │   └── useLua               # Hook para las pantallas (expresión + estado de enlace)
+│   │   ├── clinicalSilence      # SAFE al abrirse una captura (defensa en profundidad)
+│   │   └── closingReward        # Única integración: recompensa en ResultadosFinal
 │   ├── Telemetry/               # Telemetría de usabilidad Zero-PHI (singleton + hook useRef)
 │   │   ├── telemetryStore       # Estado efímero fuera del árbol React
 │   │   ├── useTelemetryTracker  # Hook silencioso: solo useRef → cero re-render
@@ -800,7 +801,7 @@ docs/
     ├── validacion-clinica-verbal.md      # Trazabilidad de la aprobación clínica
     ├── integracion-proxecto-nos.md       # Plan de integración del gallego (ILENIA)
     ├── integracion-quisqueya-habla.md    # Plan de integración de la variante dominicana
-    └── integracion-lua.md                # Plan de integración de Lúa (periférico BLE de refuerzo)
+    └── integracion-lua.md                # Lúa en VIA+: solo recompensa de cierre (el aparato es de Valeria+)
 ```
 
 El **manual de usuario** con casos de uso clínicos de principio a fin se genera desde

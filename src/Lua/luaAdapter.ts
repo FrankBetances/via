@@ -1,61 +1,61 @@
 /* -------------------------------------------------------------------------- */
 /*  Lúa — adaptador del periférico (BLE) y degradación a *no-op*.               */
 /*                                                                             */
-/*  Mismo patrón que el adaptador del pulsioxímetro                            */
-/*  (`src/Screens/DysphagiaTest/pulseOximeter.ts`): en el arranque se registra  */
-/*  UN adaptador único y, si nadie lo registra, todas las llamadas son          */
-/*  *no-op*. VIA+ tiene que funcionar exactamente igual sin Lúa —es la norma de */
-/*  la casa y aquí además es un requisito regulatorio (§4): un periférico de    */
-/*  motivación no puede estar en el camino crítico de una exploración.          */
+/*  Lúa es la mascota de Valeria+ —una gata en píxel art— y también el aparato  */
+/*  físico de refuerzo sobre ESP32-C3. El plan que manda es                      */
+/*  `docs/plan-integracion-lua.md` en `FrankBetances/Valeria`, porque allí viven */
+/*  el firmware y la tabla de opcodes.                                          */
 /*                                                                             */
-/*  DOS REGLAS DURAS DE ESTE FICHERO                                            */
+/*  QUÉ HACE VIA+ CON LÚA, Y ES MUY POCO                                        */
+/*  El §8 de ese plan se titula «VIA+: la integración correcta es la ausencia», y */
+/*  fija la postura: Lúa **no está presente durante la medición** —requisito de   */
+/*  procedimiento, no de software— y la única integración de la v1 es la          */
+/*  recompensa de cierre, con la exploración terminada y los datos sellados. Por  */
+/*  eso este adaptador expone tan poco: `CTRL` para la celebración de cierre,     */
+/*  `SAFE` para el silencio clínico como defensa en profundidad, y `STATE` para   */
+/*  diagnóstico. `CFG` no se usa en la v1.                                       */
 /*                                                                             */
-/*  1. NADA DE `await` HACIA LÚA. Todas las funciones de envío son sincrónicas  */
-/*     y devuelven `void`. Una escritura BLE que tarda, un periférico que se    */
-/*     desconecta a mitad o un `startDeviceScan` que se atasca no pueden        */
-/*     bloquear ni retrasar una pantalla clínica (riesgo L-4). Lo que falla, se */
-/*     traga; el peor caso admisible es que la gata no reaccione.               */
-/*                                                                             */
-/*  2. BLE-ONLY. Lúa no anuncia, no implementa y no negocia A2DP ni HFP. No es  */
-/*     una preferencia de diseño: la sesión de audio de VIA+ se configura con   */
-/*     `allowBluetooth` y `allowBluetoothA2DP`, así que un perfil de audio      */
-/*     clásico en el periférico permitiría a iOS encaminar hacia él los tonos   */
-/*     de la audiometría — una prueba de campo libre saliendo por un altavoz de */
-/*     juguete sin calibrar, y sin ningún error a la vista (riesgo L-2). Este   */
-/*     fichero solo habla GATT; la verificación en el firmware es de la F1.     */
-/*                                                                             */
-/*  Referencia: docs/design/integracion-lua.md §5 y §6.                        */
+/*  DOS REGLAS DURAS                                                            */
+/*  1. NADA DE `await` HACIA LÚA desde un flujo clínico. Los envíos de `CTRL` son */
+/*     dispara-y-olvida con `catch` vacío deliberado. Una mascota apagada no      */
+/*     puede colgar una exploración. La excepción es `SAFE`, que sí devuelve      */
+/*     promesa —se escribe con confirmación— pero tampoco se espera en el camino  */
+/*     crítico: se lanza y se comprueba después.                                 */
+/*  2. BLE-ONLY. La sesión de audio de VIA+ se configura con `allowBluetooth` y   */
+/*     `allowBluetoothA2DP`; un perfil de audio clásico en el periférico dejaría  */
+/*     que iOS encaminase hacia él los tonos de la audiometría, sin ningún error  */
+/*     a la vista. Lúa no anuncia A2DP ni HFP, y en la v1 no tiene ni altavoz.    */
 /* -------------------------------------------------------------------------- */
 
 import {
+  LUA_CHR,
+  LUA_OP,
+  LUA_SAFE,
+  LUA_SERVICE_UUID,
+  luaFrame,
+  type LuaOp,
+} from './luaProtocol';
+import {
   base64ToBytes,
   bytesToBase64,
-  decodeCapabilities,
-  decodeStatus,
-  encodeExpression,
-  encodeNoisePermit,
-  LUA_CAPABILITIES_UUID,
-  LUA_EXPRESSION_UUID,
-  LUA_NOISE_PERMIT_UUID,
-  LUA_SERVICE_UUID,
-  LUA_STATUS_UUID,
-  LuaAffect,
-  LuaCapabilities,
-  LuaStatus,
-} from './luaProtocol';
+  clampGrantSeconds,
+  decodeLuaState,
+  luaSafeFrame,
+  type LuaState,
+} from './luaWire';
 
 export interface LuaAdapter {
-  /** ¿Hay periférico conectado ahora mismo? */
+  /** ¿Hay aparato conectado ahora mismo? */
   isConnected: () => boolean;
-  /** Capacidades leídas al conectar; `null` mientras no se hayan leído. */
-  capabilities: () => LuaCapabilities | null;
-  /** Envía una expresión. No espera confirmación y nunca lanza. */
-  sendExpression: (affect: LuaAffect, intensity?: number) => void;
-  /** Envía un permiso de ruido con caducidad (`ttlMs` a 0 = revocación). */
-  sendNoisePermit: (ttlMs: number, sequence: number) => void;
+  /** Último estado notificado por `STATE`; `null` si no ha llegado ninguno. */
+  state: () => LuaState | null;
+  /** Escribe en `CTRL` (sin confirmación). No espera y nunca lanza. */
+  sendCtrl: (op: LuaOp, param?: number) => void;
+  /** Escribe en `SAFE` (con confirmación). Devuelve si la escritura se confirmó. */
+  sendSafe: (safeOp: number) => Promise<boolean>;
   /** Suscribe al estado notificado (diagnóstico). Devuelve la baja. */
-  subscribeStatus: (listener: (status: LuaStatus) => void) => () => void;
-  /** Suscribe a los cambios de enlace (conectado / desconectado). */
+  subscribeState: (listener: (state: LuaState) => void) => () => void;
+  /** Suscribe a los cambios de enlace. */
   onLinkChange: (listener: (connected: boolean) => void) => () => void;
 }
 
@@ -69,13 +69,11 @@ export const getLuaAdapter = (): LuaAdapter | null => adapter;
 /* -------------------------------------------------------------------------- */
 /*  Fachada *no-op*                                                            */
 /*                                                                             */
-/*  Las pantallas y el renovador del permiso llaman SIEMPRE a estas funciones,  */
-/*  nunca a `getLuaAdapter()` directamente. Así ningún sitio de la app necesita */
-/*  comprobar si hay hardware, que es la forma en que estos controles se        */
-/*  olvidan.                                                                    */
+/*  Todo el resto de la app llama a estas funciones, nunca al adaptador. Sin    */
+/*  aparato son no-op y no hay que comprobar nada en el sitio de la llamada,    */
+/*  que es como se olvidan estos controles.                                    */
 /* -------------------------------------------------------------------------- */
 
-/** ¿Hay periférico conectado? `false` también cuando no hay adaptador. */
 export const isLuaConnected = (): boolean => {
   try {
     return adapter?.isConnected() ?? false;
@@ -84,30 +82,56 @@ export const isLuaConnected = (): boolean => {
   }
 };
 
-/** Capacidades del periférico conectado, o `null`. */
-export const luaCapabilities = (): LuaCapabilities | null => {
+export const luaState = (): LuaState | null => {
   try {
-    return adapter?.capabilities() ?? null;
+    return adapter?.state() ?? null;
   } catch {
     return null;
   }
 };
 
-/** Expresa un estado afectivo. Sin adaptador, no hace nada. */
-export const luaExpress = (affect: LuaAffect, intensity = 255): void => {
+/** Envía un opcode de `CTRL`. Sin aparato, no hace nada. */
+export const luaCtrl = (op: LuaOp, param = 0): void => {
   try {
-    adapter?.sendExpression(affect, intensity);
+    adapter?.sendCtrl(op, param);
   } catch {
-    /* un periférico de juguete no interrumpe una exploración */
+    /* una mascota no interrumpe una exploración */
   }
 };
 
-/** Concede o revoca (ttlMs = 0) el permiso de ruido. Sin adaptador, no hace nada. */
-export const luaSendNoisePermit = (ttlMs: number, sequence: number): void => {
+/** Concede capacidad visual durante `seconds` (1-60). */
+export const luaGrant = (seconds: number): void => luaCtrl(LUA_OP.GRANT, clampGrantSeconds(seconds));
+
+/** Renueva la concesión viva. El firmware la extiende al máximo (60 s). */
+export const luaHeartbeat = (): void => luaCtrl(LUA_OP.HEARTBEAT);
+
+/** Cara neutra. Funciona SIN concesión (`main.cpp:137-140`), a propósito. */
+export const luaIdle = (): void => luaCtrl(LUA_OP.IDLE);
+
+/** Celebración, intensidad 0-2. Exige concesión viva en el aparato. */
+export const luaCelebrate = (intensity: number): void =>
+  luaCtrl(LUA_OP.CELEBRATE, Math.max(0, Math.min(2, Math.round(intensity))));
+
+/**
+ * Silencio clínico: revoca la concesión y **bloquea** nuevas hasta un desbloqueo
+ * explícito. Con confirmación. Resuelve `false` si no hay aparato o si la
+ * escritura no llegó — que no es una emergencia: el control de la medición es la
+ * ausencia física del aparato, no esta trama (§8).
+ */
+export const luaClinicalSilence = async (): Promise<boolean> => {
   try {
-    adapter?.sendNoisePermit(ttlMs, sequence);
+    return (await adapter?.sendSafe(LUA_SAFE.CLINICAL_SILENCE)) ?? false;
   } catch {
-    /* idem: el silencio no depende de que esta trama salga (§3) */
+    return false;
+  }
+};
+
+/** Levanta el bloqueo del silencio clínico. Sin esto, el aparato no dibuja nada. */
+export const luaUnlock = async (): Promise<boolean> => {
+  try {
+    return (await adapter?.sendSafe(LUA_SAFE.UNLOCK)) ?? false;
+  } catch {
+    return false;
   }
 };
 
@@ -116,27 +140,20 @@ export const luaSendNoisePermit = (ttlMs: number, sequence: number): void => {
 /* -------------------------------------------------------------------------- */
 
 /**
- * Registra el adaptador BLE real con `react-native-ble-plx`. Recibe la
- * instancia de `BleManager` de la app —la MISMA que usa el pulsioxímetro: dos
- * managers escanean por separado y se estorban— y devuelve la función de
- * limpieza.
+ * Registra el adaptador BLE con `react-native-ble-plx`. Recibe el `BleManager` de
+ * la app —el MISMO que usa el pulsioxímetro— y devuelve la función de limpieza.
  *
- *   import { BleManager } from 'react-native-ble-plx';
- *   const manager = new BleManager();
- *   useEffect(() => installBleLua(manager), []);
- *
- * Los permisos de Android ya están declarados en el manifiesto para el
- * pulsioxímetro (`BLUETOOTH_SCAN` con `neverForLocation` y `BLUETOOTH_CONNECT`):
- * no hace falta añadir ninguno.
+ * El aparato **solo anuncia 120 s tras pulsar su botón físico** (§6.4 del plan de
+ * Valeria+), así que un escaneo que no encuentra nada es lo normal, no un fallo.
  */
 export function installBleLua(manager: any): () => void {
   let device: any = null;
   let connected = false;
-  let caps: LuaCapabilities | null = null;
-  let statusSub: any = null;
+  let lastState: LuaState | null = null;
+  let stateSub: any = null;
   let cancelled = false;
 
-  const statusListeners = new Set<(s: LuaStatus) => void>();
+  const stateListeners = new Set<(s: LuaState) => void>();
   const linkListeners = new Set<(c: boolean) => void>();
 
   const setConnected = (value: boolean): void => {
@@ -151,27 +168,6 @@ export function installBleLua(manager: any): () => void {
     });
   };
 
-  /* Escritura SIN respuesta: la característica está declarada así porque el
-   * presupuesto de latencia (§5.1) no admite esperar el ack del GATT, y porque
-   * no hay nada que hacer con un fallo salvo ignorarlo. El `catch` vacío es
-   * deliberado: escribir a un periférico que acaba de irse es normal. */
-  const write = (characteristicUuid: string, bytes: number[]): void => {
-    const target = device;
-    if (!target || !connected) return;
-    try {
-      const result = target.writeCharacteristicWithoutResponseForService(
-        LUA_SERVICE_UUID,
-        characteristicUuid,
-        bytesToBase64(bytes),
-      );
-      // La librería devuelve una promesa; se descarta explícitamente para que
-      // nadie la espere y para no dejar un rechazo sin manejar.
-      if (result && typeof result.catch === 'function') result.catch(() => {});
-    } catch {
-      /* noop */
-    }
-  };
-
   const connect = async (dev: any): Promise<void> => {
     device = await dev.connect();
     if (cancelled) {
@@ -184,26 +180,17 @@ export function installBleLua(manager: any): () => void {
     }
     await device.discoverAllServicesAndCharacteristics();
 
-    // Capacidades PRIMERO: la política del permiso de ruido depende de ellas, y
-    // hasta leerlas `luaCanMakeNoise(null)` es `false`, o sea que no se concede
-    // nada. Ese orden es el que hace segura una v1 sin altavoz.
-    try {
-      const ch = await device.readCharacteristicForService(LUA_SERVICE_UUID, LUA_CAPABILITIES_UUID);
-      caps = decodeCapabilities(ch?.value ? base64ToBytes(ch.value) : null);
-    } catch {
-      caps = null;
-    }
-
-    statusSub = device.monitorCharacteristicForService(
+    stateSub = device.monitorCharacteristicForService(
       LUA_SERVICE_UUID,
-      LUA_STATUS_UUID,
+      LUA_CHR.STATE,
       (error: any, ch: any) => {
         if (error || !ch?.value) return;
-        const status = decodeStatus(base64ToBytes(ch.value));
-        if (!status) return;
-        statusListeners.forEach(listener => {
+        const next = decodeLuaState(base64ToBytes(ch.value));
+        if (!next) return;
+        lastState = next;
+        stateListeners.forEach(listener => {
           try {
-            listener(status);
+            listener(next);
           } catch {
             /* noop */
           }
@@ -212,7 +199,7 @@ export function installBleLua(manager: any): () => void {
     );
 
     device.onDisconnected(() => {
-      caps = null;
+      lastState = null;
       setConnected(false);
       device = null;
     });
@@ -220,47 +207,59 @@ export function installBleLua(manager: any): () => void {
     setConnected(true);
   };
 
-  const scan = (): void => {
-    try {
-      manager.startDeviceScan([LUA_SERVICE_UUID], null, (error: any, dev: any) => {
-        if (error || cancelled || !dev) return;
-        try {
-          manager.stopDeviceScan();
-        } catch {
-          /* noop */
-        }
-        void connect(dev).catch(() => {
-          caps = null;
-          setConnected(false);
-          device = null;
-        });
+  try {
+    manager.startDeviceScan([LUA_SERVICE_UUID], null, (error: any, dev: any) => {
+      if (error || cancelled || !dev) return;
+      try {
+        manager.stopDeviceScan();
+      } catch {
+        /* noop */
+      }
+      void connect(dev).catch(() => {
+        lastState = null;
+        setConnected(false);
+        device = null;
       });
-    } catch {
-      /* sin BLE disponible: el adaptador queda registrado y es un no-op */
-    }
-  };
-
-  scan();
+    });
+  } catch {
+    /* sin BLE disponible: el adaptador queda registrado y es un no-op */
+  }
 
   setLuaAdapter({
     isConnected: () => connected,
-    capabilities: () => caps,
-    sendExpression: (affect, intensity = 255) => {
-      const frame = encodeExpression(affect, intensity);
-      // `null` = estado fuera del enumerado. No se envía nada: el códec es la
-      // puerta por la que no pasa semántica clínica (ver luaProtocol.ts).
-      if (frame) write(LUA_EXPRESSION_UUID, frame);
+    state: () => lastState,
+    sendCtrl: (op, param = 0) => {
+      if (!device || !connected) return;
+      try {
+        // Sin confirmación a propósito: pedir ACK duplica el peor caso del
+        // presupuesto de latencia (300 ms) y una celebración perdida no le
+        // importa a nadie.
+        const result = device.writeCharacteristicWithoutResponseForService(
+          LUA_SERVICE_UUID,
+          LUA_CHR.CTRL,
+          bytesToBase64(luaFrame(op, param)),
+        );
+        if (result && typeof result.catch === 'function') result.catch(() => {});
+      } catch {
+        /* noop */
+      }
     },
-    sendNoisePermit: (ttlMs, sequence) => {
-      // Un permiso solo se envía a un periférico que pueda hacer ruido. En Lúa
-      // v1 (pantalla y nada más) esta rama no se ejecuta jamás.
-      if (!caps?.speaker && !caps?.motors) return;
-      const frame = encodeNoisePermit(ttlMs, sequence);
-      if (frame) write(LUA_NOISE_PERMIT_UUID, frame);
+    sendSafe: async safeOp => {
+      if (!device || !connected) return false;
+      try {
+        await device.writeCharacteristicWithResponseForService(
+          LUA_SERVICE_UUID,
+          LUA_CHR.SAFE,
+          bytesToBase64(luaSafeFrame(safeOp)),
+        );
+        return true;
+      } catch {
+        return false;
+      }
     },
-    subscribeStatus: listener => {
-      statusListeners.add(listener);
-      return () => statusListeners.delete(listener);
+    subscribeState: listener => {
+      stateListeners.add(listener);
+      return () => stateListeners.delete(listener);
     },
     onLinkChange: listener => {
       linkListeners.add(listener);
@@ -276,7 +275,7 @@ export function installBleLua(manager: any): () => void {
       /* noop */
     }
     try {
-      statusSub?.remove();
+      stateSub?.remove();
     } catch {
       /* noop */
     }
@@ -285,11 +284,11 @@ export function installBleLua(manager: any): () => void {
     } catch {
       /* noop */
     }
-    statusListeners.clear();
+    stateListeners.clear();
     linkListeners.clear();
     connected = false;
     device = null;
-    caps = null;
+    lastState = null;
     setLuaAdapter(null);
   };
 }
