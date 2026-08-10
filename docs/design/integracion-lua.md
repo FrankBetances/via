@@ -491,46 +491,40 @@ alguien los cambia sin querer.
 > Valeria+, con el mismo estilo gráfico. No se diseña una mascota para el
 > periférico.
 
-**Fuente de verdad: el repositorio `FrankBetances/Valeria`.** La identidad se
+**Fuente única: el repositorio `FrankBetances/Valeria`.** La identidad se
 mantiene ahí, incluida una sección propia de traspaso —«Copiar a Lúa a otro
-proyecto»— que es de donde hay que sacar el personaje, la paleta con sus
-hexadecimales y los recortes. De ahí, y no de este documento: transcribir
-colores de marca a mano es la forma más barata de que dos productos acaben con
-dos teales distintos.
+proyecto»— que es de donde salen el personaje, la paleta con sus hexadecimales y
+los recortes. **Este documento no describe el arte ni transcribe un solo color**,
+y no por brevedad: transcribir una identidad a mano es la forma más barata de que
+dos productos acaben con dos teales distintos, y de que una descripción vieja
+sobreviva a la corrección que la invalidó.
 
-> **Aviso: no usar las láminas de Canva como referencia.** Existen varias
-> («Valeria - App Icon», «Valeria - Bienvenida», «Valeria — Créditos») y son
-> material **anterior** a la corrección de la identidad: siguen mostrando el
-> personaje antiguo —un oso, con leyendas que lo llaman así— y consignas con
-> «Oso Distractor». Son imágenes aplanadas, sin capa de texto, así que ni sus
-> colores ni sus rótulos se pueden leer de forma fiable por herramienta. Están
-> ahí, se ven convincentes y llevan a la conclusión equivocada; esta nota existe
-> porque ya pasó una vez.
+> **No hay otra fuente.** Cualquier mockup, lámina o presentación que circule
+> fuera de ese repositorio —incluidas las de Canva— **no es material válido** y
+> no se usa como referencia, ni para colores ni para el personaje. Este aviso
+> está escrito porque ya se tomó una vez por bueno.
 
-La paleta tiene cuatro papeles —teal de marca, teal oscuro, teal claro y navy— y
-el personaje se usa en blanco sobre teal, con una variante inversa (teal sobre
-blanco) y otra específica para tamaños pequeños, que es el punto de partida
-natural para la F4. *Los valores concretos quedan pendientes de bajar desde el
-repositorio de Valeria+; este documento no los transcribe.*
+*Pendiente:* bajar de esa sección a la F4 el personaje corregido, los valores de
+paleta y los recortes. Hasta entonces, lo único fijado aquí es la decisión de
+arriba y los requisitos de §13.1, que vienen de la placa y no del arte.
 
-### 13.1. Por qué este estilo es un regalo para el GC9A01
+### 13.1. Lo que el arte tiene que cumplir en el GC9A01
 
-No es solo coherencia de marca; el estilo resuelve casi todos los problemas de
-una pantalla de 240×240 a 32,4 mm:
+Esto no describe el estilo de Valeria+: son los **requisitos** que impone la
+pantalla de §2 —240×240, 16 bits, 32,4 mm de diámetro visible— y que el arte
+tendrá que satisfacer. Se dejan escritos antes de recibirlo, para que la F4
+compruebe en vez de descubrir:
 
-| Propiedad del estilo | Lo que resuelve en la placa |
+| Requisito | Por qué |
 |---|---|
-| Rellenos planos, sin degradados | El panel es de **16 bits** (RGB565): un degradado suave se ve a bandas. Lo que no tiene degradado no puede bandear |
-| Dos o tres colores por composición | Assets diminutos en la flash del C3, y **refresco por región parcial** trivial: repintar una zona plana no deja costura visible |
-| Silueta pesada y cerrada | Lo único que sobrevive a 32,4 mm es la silueta. Un personaje de línea fina se convierte en una mancha |
-| Alto contraste blanco sobre teal | La puerta de la F4 («legible a 32,4 mm») se cumple por construcción, no por ajuste fino |
-| Variante para tamaños pequeños ya diseñada | El trabajo de simplificación está hecho; F4 la adapta, no la inventa |
+| Rellenos planos, sin degradados largos | El panel es de **16 bits** (RGB565): un degradado suave se ve a bandas |
+| Pocos colores por composición | Assets pequeños en la flash del C3, y **refresco por región parcial** sin costura visible al repintar una zona |
+| Silueta pesada y cerrada | A 32,4 mm solo sobrevive la silueta; una línea fina se convierte en mancha |
+| Contraste alto contra el fondo | Es lo que hace que la puerta de la F4 («legible a 32,4 mm») se cumpla por construcción y no por ajuste fino |
+| Composición **circular** | La pantalla es un círculo: hace falta centrado y margen de seguridad radial para que el recorte no coma orejas. Cualquier afordancia de icono de app —esquinas squircle, brillos— se cae aquí |
 
-**Lo que sí hay que rehacer:** el icono es una composición **squircle** de iOS
-—con su brillo superior sutil— y la pantalla de Lúa es un **círculo**. El brillo
-y el squircle son afordancias de icono de app, no rasgos del personaje: se caen.
-La composición se rehace centrada, con margen de seguridad radial para que el
-recorte circular del GC9A01 no coma orejas.
+Si el arte que llegue de Valeria+ no cumple alguno de estos puntos, lo que se
+adapta es el arte para el periférico, no el requisito.
 
 ### 13.2. Las seis caras
 
