@@ -159,6 +159,12 @@ via/
 │   │   └── viaVoicePlayback     # Reproducción del recorte (react-native-audio-api)
 │   │
 │   ├── Audio/                   # AudioContext compartido (48 kHz) para toda la app
+│   ├── Lua/                     # Periférico de refuerzo BLE (mascota física, NO clínico)
+│   │   ├── luaProtocol          # Códec GATT PURO: solo estados afectivos, cero clínica
+│   │   ├── luaAdapter           # Adaptador único + fachada no-op sin hardware
+│   │   ├── noisePermit          # Permiso de ruido con caducidad (control de riesgo L-1)
+│   │   ├── luaRoute             # Lista blanca de pantallas desde el estado del navegador
+│   │   └── useLua               # Hook para las pantallas (expresión + estado de enlace)
 │   ├── Telemetry/               # Telemetría de usabilidad Zero-PHI (singleton + hook useRef)
 │   │   ├── telemetryStore       # Estado efímero fuera del árbol React
 │   │   ├── useTelemetryTracker  # Hook silencioso: solo useRef → cero re-render

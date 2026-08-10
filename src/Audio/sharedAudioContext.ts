@@ -120,6 +120,42 @@ const applyRecordingSession = (): void => {
   }
 };
 
+/* ---------------------- observadores de la grabación ---------------------- */
+/*  Este módulo es el ÚNICO punto por el que pasa todo consumidor de           */
+/*  micrófono de la app, así que es también el único sitio donde un tercero    */
+/*  puede enterarse de que hay una captura en curso sin tener que conocer los  */
+/*  módulos clínicos uno a uno. Lo usa el permiso de ruido del periférico de   */
+/*  refuerzo (`src/Lua/noisePermit.ts`, ver docs/design/integracion-lua.md §3):*/
+/*  cualquier módulo que abra el micrófono —incluidos los que aún no están     */
+/*  escritos— revoca el permiso sin que su autor tenga que saberlo.            */
+
+type RecordingSessionListener = (active: boolean) => void;
+const recordingSessionListeners = new Set<RecordingSessionListener>();
+
+/**
+ * Avisa de las transiciones 0↔1 del recuento de grabación (no de cada
+ * petición: dos módulos grabando a la vez son una sola transición). Devuelve la
+ * función para darse de baja.
+ */
+export function onRecordingSessionChange(listener: RecordingSessionListener): () => void {
+  recordingSessionListeners.add(listener);
+  return () => {
+    recordingSessionListeners.delete(listener);
+  };
+}
+
+/* Un oyente que lanza NO puede impedir que se reserve la sesión: el micrófono
+ * clínico manda sobre cualquier accesorio colgado de este aviso. */
+const notifyRecordingSession = (active: boolean): void => {
+  recordingSessionListeners.forEach(listener => {
+    try {
+      listener(active);
+    } catch (e) {
+      console.warn('VIA+: un oyente de sesión de grabación falló', e);
+    }
+  });
+};
+
 /**
  * Reserva la sesión de audio en modo GRABACIÓN (`playAndRecord`). Devuelve la
  * función de liberación; cuando se suelta la última petición la sesión vuelve
@@ -128,13 +164,22 @@ const applyRecordingSession = (): void => {
  */
 export function acquireRecordingSession(): () => void {
   recordingHolders += 1;
-  if (recordingHolders === 1) applyRecordingSession();
+  if (recordingHolders === 1) {
+    // El aviso va ANTES de reconfigurar la sesión, y no por eficiencia: quien
+    // escucha esta transición lo hace para APAGAR algo que puede hacer ruido.
+    // El orden seguro es apagar primero y abrir el micrófono después.
+    notifyRecordingSession(true);
+    applyRecordingSession();
+  }
   let released = false;
   return () => {
     if (released) return;
     released = true;
     recordingHolders = Math.max(0, recordingHolders - 1);
-    if (recordingHolders === 0) applyPlaybackSession();
+    if (recordingHolders === 0) {
+      applyPlaybackSession();
+      notifyRecordingSession(false);
+    }
   };
 }
 
@@ -222,6 +267,7 @@ export function __resetSharedAudioContextForTests(): void {
   refCount = 0;
   recordingHolders = 0;
   unavailable = false;
+  recordingSessionListeners.clear();
 }
 
 /** Solo para tests/diagnóstico: nº de reservas vivas del contexto. */

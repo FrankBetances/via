@@ -1,6 +1,12 @@
 # Integración de Lúa — mascota física de refuerzo (periférico BLE)
 
-> **Estado:** PROPUESTA (agosto 2026). Ningún código de Lúa está escrito todavía.
+> **Estado:** EN CURSO (agosto 2026). El lado VIA+ que no depende de hardware
+> está implementado y probado: **F2** (`src/Lua/`) y **F3** (enganche de
+> contexto). Sigue pendiente todo lo que exige placa delante: **F0** (banco de
+> pruebas y decisión de placa firmada), **F1** (firmware GATT del ESP32),
+> **F4** (assets visuales) y **F6** (ensayo acústico). Ver §9 para el estado
+> fase a fase y §12 para lo que queda por decidir del lado del código.
+>
 > Este documento fija **qué se construye, qué no, y por qué**, antes de comprar
 > el segundo lote de placas.
 >
@@ -138,7 +144,45 @@ un control que hay que recordar y un control que se hereda.
 El cambio en `sharedAudioContext.ts` es aditivo y pequeño: exportar un
 `onRecordingSessionChange(cb)` que notifique las transiciones 0↔1. Nada más. El
 módulo ya expone `isRecordingSessionActive()` para diagnóstico; esto es su
-versión observable.
+versión observable. El aviso se emite **antes** de reconfigurar la sesión de
+audio: quien lo escucha lo hace para apagar algo, y el orden seguro es apagar
+primero y abrir el micrófono después.
+
+#### El punto único tenía una fuga (hallazgo de la implementación)
+
+Al escribir la F3 se comprobó el supuesto en vez de darlo por bueno, y **el
+punto único no lo era del todo**. En el T.A.R., `articulationAudio.ts` arrancaba
+el reconocedor nativo y reservaba la sesión **dentro** del `if` de la captura en
+memoria:
+
+```ts
+startRecognition(targetWord, targetPhoneme);   // abre el micrófono
+if (availableRef.current) {                    // ← solo si hay motor de captura
+  releaseSessionRef.current = acquireRecordingSession();
+```
+
+En un dispositivo sin `react-native-audio-api` operativo —la vía «solo
+reconocimiento, SODA manual», que es una degradación prevista y no un caso
+raro— el micrófono se abría por el reconocedor del sistema y **no constaba
+ninguna sesión reservada**. La transcripción no se veía afectada, y por eso el
+hueco no había dado la cara; lo que quedaba fuera era la contabilidad por la que
+el resto de la app se entera de que hay un micrófono abierto. Con Lúa v2 en la
+sala, el permiso de ruido habría seguido vigente durante la repetición del niño.
+
+Corregido: la reserva pasa a ser **incondicional y previa** a
+`startRecognition()`, y si la captura no llega a arrancar se aborta el intento
+completo en vez de dejar al reconocedor escuchando sin toma que lo acompañe. Es
+la única modificación a un módulo clínico de toda la integración, y no es de
+Lúa: es de VIA+. Lo que hizo Lúa fue obligar a mirar.
+
+Para que el supuesto no se rompa otra vez en silencio, la suite incluye un
+guardián (`src/Lua/__tests__/micChokePoint.test.ts`) que **lee el árbol de
+fuentes**, localiza todo el que abre el micrófono —construir un `AudioRecorder`,
+reservar el recorder compartido, cargar el reconocedor nativo— y falla si alguno
+no reserva la sesión. Las exenciones se declaran una a una con su motivo, así
+que ampliarlas se ve en el PR. Se ha verificado que el guardián falla de verdad
+en los dos casos que le importan: un módulo nuevo con micrófono sin sesión, y la
+inversión del orden entre reserva y reconocimiento en el T.A.R.
 
 ### 3.2. La trampa de `allowBluetooth` en iOS
 
@@ -213,7 +257,16 @@ este enumerado en un PR, que es exactamente donde queremos que se discuta.
 
 **Capacidades primero.** El cliente lee capacidades al conectar y adapta la
 política: sobre Lúa v1 (bit1 y bit2 a cero) el permiso de ruido ni siquiera se
-envía. El mismo código sirve para la v2 con altavoz sin bifurcarse.
+envía. El mismo código sirve para la v2 con altavoz sin bifurcarse. Y mientras
+las capacidades no se hayan leído, la respuesta a «¿puede hacer ruido?» es
+**no**, así que la ventana entre conectar y leer es segura por omisión.
+
+**Estado del firmware** (normativo para la F1, lo fija el códec del cliente en
+`src/Lua/luaProtocol.ts`): `0` muda · `1` con permiso de ruido vigente · `2`
+fallo. Un valor desconocido lo interpreta el cliente como fallo, nunca como
+permiso vigente. Flags: `bit0` cargando, `bit1` batería baja. Batería `0xFF`
+significa «no medida» —la C3 puede no medirla—, que no es lo mismo que
+descargada.
 
 **Seguridad.** Emparejamiento con LE Secure Connections y aceptación de
 escrituras solo desde el central emparejado. No protege confidencialidad de PHI
@@ -247,21 +300,52 @@ degrada a un modo sin hardware si nadie lo registró. Lúa lo copia literalmente
 src/Lua/
 ├── luaProtocol.ts     # codec puro de tramas + enumerados. Sin dependencias nativas → testeable
 ├── luaAdapter.ts      # setLuaAdapter / getLuaAdapter / installBleLua(manager) → cleanup
+│                      # + fachada no-op (luaExpress, luaSendNoisePermit) que nunca lanza
 ├── noisePermit.ts     # renovador del permiso: lista blanca + observador de grabación + TTL
+├── luaRoute.ts        # ruta activa (la hoja más profunda) desde el estado del navegador
+├── installLua.ts      # instalación conjunta: adaptador + permiso, para que no se separen
 ├── useLua.ts          # hook de conveniencia para las pantallas (expresión + estado de enlace)
-└── __tests__/
+├── index.ts           # punto de entrada único
+└── __tests__/         # codec, adaptador, permiso, integración con @/Audio y guardián del
+                       # punto único del micrófono
 ```
+
+Todo `src/Lua/` es *no-op* sin adaptador registrado, y la suite corre **sin
+hardware**: el renovador del permiso se prueba con dependencias inyectadas y
+temporizadores falsos, y el adaptador BLE contra un doble del `BleManager`.
 
 Puntos de anclaje, todos ya existentes:
 
-| Enganche | Dónde | Qué se hace |
-|---|---|---|
-| Permisos Android | `android/app/src/main/AndroidManifest.xml:62-64` | **Nada.** `BLUETOOTH_SCAN` (con `neverForLocation`) y `BLUETOOTH_CONNECT` ya están declarados para el pulsioxímetro |
-| Dependencia BLE | `package.json` | **Nada.** `react-native-ble-plx@^3.2.1` ya está |
-| `BleManager` compartido | Arranque de la app | Una sola instancia para pulsioxímetro y Lúa, como ya anticipa el comentario de `pulseOximeter.ts:74` |
-| Revocación por micrófono | `src/Audio/sharedAudioContext.ts` | Añadir `onRecordingSessionChange(cb)` (§3.1). **Única modificación a código existente** |
-| Lista blanca de pantallas | `src/Navigators/Default.tsx` | Escuchar el estado de navegación y conceder/retirar permiso según la ruta activa |
-| Celebración de cierre | `src/Navigators/finishModule.ts` y `ResultadosFinal` | Ver abajo |
+| Enganche | Dónde | Qué se hace | Estado |
+|---|---|---|---|
+| Permisos Android | `android/app/src/main/AndroidManifest.xml:62-64` | **Nada.** `BLUETOOTH_SCAN` (con `neverForLocation`) y `BLUETOOTH_CONNECT` ya están declarados para el pulsioxímetro | ✅ nada que hacer |
+| Dependencia BLE | `package.json` | **Nada.** `react-native-ble-plx@^3.2.1` ya está | ✅ nada que hacer |
+| Revocación por micrófono | `src/Audio/sharedAudioContext.ts` | `onRecordingSessionChange(cb)` (§3.1), exportado desde `@/Audio` | ✅ hecho |
+| Lista blanca de pantallas | `NavigationContainer` en `src/App.tsx` | `onStateChange` + `onReady` → `handleNavigationStateChange` | ✅ hecho |
+| `BleManager` compartido | Arranque de la app | Una sola instancia para pulsioxímetro y Lúa, como ya anticipa el comentario de `pulseOximeter.ts:74` | ⏳ **pendiente** (ver abajo) |
+| Celebración de cierre | `src/Navigators/finishModule.ts` y `ResultadosFinal` | Ver abajo | ⏳ pendiente de F4 |
+
+**Sobre la lista blanca y por qué acabó en `App.tsx`.** El plan situaba el
+enganche en `src/Navigators/Default.tsx`, pero el estado de navegación no vive
+ahí: lo publica el `NavigationContainer`, que se monta en `App.tsx`. Se escuchan
+`onStateChange` **y** `onReady`, porque el primero no se dispara con el estado
+inicial y sin el segundo la primera pantalla del arranque quedaría sin informar
+—inofensivo (una ruta desconocida no concede permiso) pero dejaría a la gata
+dormida hasta la primera navegación. La ruta que se toma es la **hoja más
+profunda** del árbol: un módulo clínico anidado no puede quedar tapado por el
+nombre de su contenedor.
+
+**Sobre el `BleManager`, que sigue sin crearse.** Hoy la app no instancia
+ninguno: el adaptador del pulsioxímetro tiene la misma forma
+`install…(manager)` y también está esperando ese manager compartido. Crearlo no
+es cableado inocuo —en iOS el primer uso dispara el diálogo de permiso de
+Bluetooth del sistema en el arranque—, así que se decide con la placa delante,
+en la F0, y de una vez para los dos periféricos. Hasta entonces `installLua()`
+existe, está probada y no se llama: `src/Lua/` es *no-op* y lo único vivo es la
+lista blanca de rutas, que ya se alimenta desde el navegador sin coste alguno.
+`installLua()` instala **adaptador y permiso juntos** a propósito: el estado
+intermedio «la gata ya funciona, el permiso lo hacemos luego» no debe existir ni
+un día.
 
 **Sobre dónde celebrar.** El plan de partida sitúa la recompensa en
 `ResultadosFinal`. En el código, cerrar un módulo no lleva ahí: `finishModule()`
@@ -331,8 +415,8 @@ hardware caiga antes de que dependa nada de ella.
 |---|---|---|---|
 | **F0 · Banco de pruebas** | 1-2 | Medida real en ambas placas: latencia de refresco del GC9A01, consumo, comportamiento de carga de la C3, ruido propio | **Decisión de placa firmada.** La recomendación de §2 es la hipótesis a batir, no un hecho |
 | **F1 · Protocolo y firmware base** | 2-3 | Servidor GATT en ESP32-C3, máquina de estados con arranque mudo, permiso con TTL, sin perfiles BT clásicos | Un central que se desconecta a mitad de permiso deja a Lúa muda dentro del TTL, comprobado |
-| **F2 · Adaptador en VIA+** | 3-5 | `src/Lua/` completo, con tests de codec y de renovador de permiso | Suite verde **sin hardware** conectado; app idéntica con y sin Lúa |
-| **F3 · Enganche de contexto** | 5-6 | `onRecordingSessionChange` en `sharedAudioContext.ts` + lista blanca en el navegador | Los cuatro módulos con micrófono revocan el permiso; test que falla si aparece un quinto sin cubrir |
+| **F2 · Adaptador en VIA+** ✅ | 3-5 | `src/Lua/` completo, con tests de codec y de renovador de permiso | ✅ Suite verde **sin hardware**; app idéntica con y sin Lúa (probado con adaptador ausente, caído y que lanza) |
+| **F3 · Enganche de contexto** ✅ | 5-6 | `onRecordingSessionChange` en `sharedAudioContext.ts` + lista blanca en el navegador | ✅ Los cuatro adaptadores con micrófono revocan el permiso, comprobado contra el `acquireRecordingSession()` real; el guardián del punto único falla si aparece un quinto sin cubrir — y ya cazó una fuga en el T.A.R. (§3.1) |
 | **F4 · Assets visuales** | 6-8 | Catálogo de expresiones para 240×240 circular, con máscara de recorte | Legibles a 32,4 mm de diámetro visible |
 | **F5 · Valeria+** | 8-9 | Mapeo `TurnPhaseStrip` → estados afectivos (repo `FrankBetances/Valeria`) | Fuera del alcance de este repositorio; se referencia para el cronograma |
 | **F6 · Validación y cierre** | 9-10 | Ensayo acústico §7 en Ribera Polusa / ACOPROS, revisión de la tabla §8 | Riesgos L-1 a L-6 con verificación ejecutada |
@@ -353,8 +437,13 @@ Escrito para que no se cuele por omisión:
 - **No mete a Lúa en el expediente MDR** — precisamente el objetivo de §4. Si
   alguna vez se le atribuye beneficio clínico, o se le envía contenido clínico,
   este documento queda invalidado y hay que reabrir la clasificación.
-- **No toca los módulos clínicos.** La única modificación a código existente es
-  la exportación aditiva de §3.1.
+- **No añade lógica de Lúa a los módulos clínicos.** Ninguna pantalla clínica
+  sabe que Lúa existe, y ninguna decisión clínica depende de ella. La intención
+  original —«no toca los módulos clínicos»— se cumplió con una excepción que
+  conviene decir en voz alta: la reserva de sesión del T.A.R. se corrigió
+  (§3.1). No es código de Lúa ni una concesión a Lúa; es un fallo de
+  contabilidad del micrófono que estaba ahí antes y que esta integración
+  destapó. Se corrige en VIA+ y se queda aunque Lúa nunca llegue.
 
 ---
 
@@ -368,3 +457,26 @@ Escrito para que no se cuele por omisión:
 3. **Orden Valeria+ / VIA+:** el refuerzo tiene más sentido clínico en Valeria+
    (uso diario) que en VIA+ (valoración puntual). Si se prioriza Valeria+, F5
    sube y F3 baja.
+
+---
+
+## 12. Lo que sigue del lado del código
+
+Con F2 y F3 dentro, lo que queda en este repositorio es corto y está bloqueado
+por hardware o por decisiones de §11:
+
+1. **Crear el `BleManager` compartido** y llamar a `installLua(manager)` (y, de
+   paso, a `installBlePulseOximeter(manager)`, que espera lo mismo desde antes).
+   Bloqueado por F0: crearlo cambia el arranque en iOS.
+2. **Assets visuales (F4)** y, con ellos, decidir el catálogo de expresiones
+   para 240×240 circular. Hasta que existan, `useLua().express()` está escrita y
+   probada pero ninguna pantalla la llama: no se enganchan celebraciones a
+   `finishModule` sin cara que poner.
+3. **Firmware (F1)** contra el protocolo de §5, incluidos los estados de
+   firmware normativos y la verificación de que la pila BT no anuncia A2DP/HFP.
+4. **Ensayo acústico (F6)** según §7. Con la placa de §2 se espera Δ ≈ 0 y se
+   mide igualmente.
+
+Lo que **no** hay que decidir otra vez: el protocolo, la política del permiso y
+el punto de enganche del micrófono están fijados y con pruebas que fallan si
+alguien los cambia sin querer.
