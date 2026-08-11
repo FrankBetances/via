@@ -165,8 +165,7 @@ via/
 │   │   ├── luaWire              # Trama SAFE y desglose de STATE, leídos del firmware
 │   │   ├── luaAdapter           # Adaptador único + fachada no-op sin hardware
 │   │   ├── clinicalSilence      # SAFE al abrirse una captura (defensa en profundidad)
-│   │   ├── closingReward        # Única integración: recompensa en ResultadosFinal
-│   │   └── vendor/              # La gata en píxel art, copiada de Valeria+ (no editar)
+│   │   └── closingReward        # Única integración: recompensa en ResultadosFinal
 │   ├── Telemetry/               # Telemetría de usabilidad Zero-PHI (singleton + hook useRef)
 │   │   ├── telemetryStore       # Estado efímero fuera del árbol React
 │   │   ├── useTelemetryTracker  # Hook silencioso: solo useRef → cero re-render

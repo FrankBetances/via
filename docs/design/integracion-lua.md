@@ -2,7 +2,7 @@
 
 > **Estado:** implementado el lado VIA+ (agosto 2026). Queda pendiente crear el
 > `BleManager` compartido y probar contra el aparato (§9). La mascota ya está
-> vendorizada (§8).
+> ya está en el repositorio, con su gate (§8).
 >
 > **Alcance:** solo lo que hace VIA+. **Lúa no es un proyecto de este
 > repositorio.**
@@ -317,67 +317,53 @@ Y el dato que simplifica el hardware: **a 240×240 el píxel art es el formato
 nativo del panel**, así que la cara del aparato y la de la app son literalmente el
 mismo dibujo, no dos interpretaciones que se separan versión a versión.
 
-### 8.1. Qué se trajo, y las dos desviaciones del traspaso
-
-El README de Valeria+ tiene una sección normativa —«Copiar a Lúa a otro
-proyecto»— que manda llevarse **tres ficheros y ningún PNG**. Está seguida en lo
-esencial, con dos desviaciones deliberadas que conviene justificar porque
-apartarse de un traspaso normativo es justo como se desfasan las copias.
-
-**Lo que hay:**
+### 8.1. Dónde está, y por qué no hay una segunda copia
 
 ```
-src/Lua/vendor/ValeriaCatPixel.tsx   # el sprite, CUERPO INTACTO + cabecera de origen
-src/Lua/vendor/origen.json           # commit de origen y sha256 del cuerpo
-scripts/check-lua-brand.js           # el gate, adaptado (ver abajo)
+src/Components/Mascot/LuaPixel.tsx   # copia literal del sprite de Valeria+
+scripts/check-lua-sprite.js          # el gate: compara el DIBUJO, no el fichero
 ```
 
-El sprite conserva su nombre original y su cuerpo byte a byte —la cabecera de
-vendorización son 19 líneas y a partir de ahí el fichero es idéntico— para que el
-diff contra Valeria+ sea exactamente esa cabecera. Se expone desde `@/Lua` como
-`CatPixel`. Solo necesita `react-native-svg`, que ya estaba.
+Se reexporta como `CatPixel` desde `@/Lua`, porque el mismo sprite es la cara del
+periférico: una pantalla que celebre el cierre pinta la misma gata que el aparato,
+no una segunda interpretación. Solo necesita `react-native-svg`, que ya estaba.
 
-**Desviación 1 · no se trae `build-brand-assets.js`.** Ese script genera los cinco
-PNG de marca de Valeria+ —icono Android, icono adaptativo, splash, retrato del
-manual, icono de iOS— desde la rejilla. En VIA+ eso **sobrescribiría la identidad
-del producto con la mascota de otro**: VIA+ es un producto distinto, con su propio
-icono, y Lúa es aquí el personaje de un periférico, no la marca de la app. El
-traspaso está escrito para un proyecto que adopta a Lúa como marca; VIA+ no lo es.
-Además arrastra Playwright como dependencia de build para renderizar los PNG.
-*Si algún día VIA+ necesita un bitmap de Lúa —para la cara del aparato, por
-ejemplo— sale de ahí, y las caras del periférico se generan en Valeria+ con
-`build-lua-faces.js`, que es donde vive el firmware.*
+**El gate compara el dibujo, no el fichero,** y esa decisión es la buena: extrae
+las dos rejillas y la paleta y las hashea, así que los comentarios, las rutas y el
+nombre del componente pueden diferir entre repositorios —y difieren— sin que
+salte. Lo que no puede diferir es un solo píxel. Un gate que exigiera identidad
+byte a byte del fichero entero saltaría con cada cabecera adaptada, y un gate que
+salta por nada se acaba desactivando.
 
-**Desviación 2 · el gate está adaptado, no copiado.** El
-`check-brand-consistency.js` de Valeria+ persigue los restos de la mascota
-retirada en **sus** pantallas: `ValeriaDistractorBear`, el copy «Oso Distractor»
-en cuatro variedades, los nombres de nivel. Nada de eso existe aquí, así que
-copiarlo daría un gate que pasa en vacío — y un gate que no puede fallar es peor
-que ninguno, porque da confianza. `scripts/check-lua-brand.js` vigila lo que VIA+
-sí puede romper:
+Corre en dos sitios: en `android-release.yml` al publicar, y en la suite
+(`src/Lua/__tests__/luaSpriteGate.test.ts`), porque un dibujo retocado aquí no
+debería pasar desapercibido todo el desarrollo para saltar al publicar. El test
+comprueba además que el paso de CI siga existiendo: un gate que alguien quita de
+un workflow no deja ningún rastro rojo.
 
-1. **Que la copia no se edite aquí**, por hash contra el manifiesto. Si alguien
-   retoca el sprite en VIA+, la cara de la app y la del aparato se separan versión
-   a versión, que es exactamente lo que el formato de rejilla venía a evitar.
-   *Verificado por mutación: cambiar un valor por defecto rompe el gate.*
-2. **Que no entre marca de la mascota retirada**, por si una sincronización futura
-   arrastra al oso.
+### 8.2. Lo que NO se trae del traspaso
 
-Y hereda la distinción que importa: **«oso» es vocabulario terapéutico legítimo**
-en este repositorio —par mínimo *ocho/oso*, frases de lectura, órdenes TPR— y no
-se toca. El gate persigue marca, no contenido.
+El README de Valeria+ manda llevarse tres ficheros; el tercero,
+`build-brand-assets.js`, **no se trae**, y conviene justificarlo porque apartarse
+de un traspaso normativo es justo como se desfasan las copias.
 
-### 8.2. Sincronizar la mascota
+Ese script genera los cinco PNG de marca de Valeria+ —icono Android, icono
+adaptativo, splash, retrato del manual e icono de iOS— desde la rejilla. En VIA+
+eso **sobrescribiría la identidad del producto con la mascota de otro**: VIA+ es un
+producto distinto, con su propio icono, y Lúa es aquí el personaje de un
+periférico, no la marca de la app. El traspaso está escrito para un proyecto que
+adopta a Lúa como marca; VIA+ no lo es. Arrastra además Playwright como
+dependencia de build.
 
-```bash
-cp ../Valeria/src/ValeriaCatPixel.tsx src/Lua/vendor/ValeriaCatPixel.tsx
-# volver a poner la cabecera de vendorización (19 líneas) encima del original
-node scripts/check-lua-brand.js --update    # rehace el manifiesto
-npm test -- src/Lua
-```
+Si algún día hace falta un bitmap de Lúa en VIA+, sale de ahí. Las caras del
+periférico se generan en Valeria+ con `build-lua-faces.js`, que es donde vive el
+firmware.
 
-El `upstreamCommit` del manifiesto se actualiza a mano: el script no puede
-saberlo, porque este repositorio no ve el otro.
+Tampoco se trae **ningún PNG** —son salidas, no fuentes— ni el copy de los
+ejercicios de Valeria+, que es contenido clínico suyo y no marca. Y se respeta la
+distinción que hereda el gate de allí: **«oso» es vocabulario terapéutico
+legítimo** en este repositorio —par mínimo *ocho/oso*, frases de lectura, órdenes
+TPR— y no se toca.
 
 ### 8.3. Compartir personaje no la convierte en parte del dispositivo
 

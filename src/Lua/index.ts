@@ -73,11 +73,13 @@ export {
 } from './closingReward';
 export type { ClosingReward, ClosingRewardDeps } from './closingReward';
 
-/* La mascota. VENDORIZADA de Valeria+ (`src/Lua/vendor/`): no se edita aquí, y un
- * gate de la suite lo comprueba por hash. El mismo sprite es la cara del
- * periférico, así que retocarlo en VIA+ separaría las dos. */
-export { CAT_TUXEDO, CatPixel, catSilhouette } from './vendor/ValeriaCatPixel';
-export type { CatPalette, CatPose } from './vendor/ValeriaCatPixel';
+/* La mascota vive en `src/Components/Mascot/LuaPixel.tsx`, copia literal de
+ * Valeria+ que NO se edita aquí (`scripts/check-lua-sprite.js` compara el dibujo
+ * píxel a píxel). Se reexporta desde aquí porque el mismo sprite es la cara del
+ * periférico: una pantalla que celebre el cierre pinta la misma gata que el
+ * aparato, no una segunda interpretación. */
+export { CAT_TUXEDO, CatPixel, catSilhouette } from '@/Components/Mascot/LuaPixel';
+export type { CatPalette, CatPose } from '@/Components/Mascot/LuaPixel';
 
 export { useLuaClosingReward, useLuaDiagnostics } from './useLua';
 export type { LuaDiagnostics } from './useLua';
