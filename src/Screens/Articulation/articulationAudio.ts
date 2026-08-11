@@ -617,14 +617,24 @@ export function useArticulationAudio(lang: string = 'es'): ArticulationAudio {
       const ok = await ensureMic();
       if (!ok) return;
 
+      // La sesión de grabación se reserva ANTES de abrir cualquier micrófono, y
+      // FUERA del `if` de la captura en memoria. El reconocedor nativo también
+      // abre el micrófono: en la vía «solo reconocimiento» (dispositivo sin
+      // motor de captura, SODA manual) el T.A.R. escuchaba sin que constara
+      // ninguna grabación reservada. Eso no afectaba a la transcripción, pero
+      // dejaba la escucha invisible para el único punto por el que el resto de
+      // la app se entera de que el micrófono está abierto
+      // (`onRecordingSessionChange`) — y con él, para el permiso de ruido del
+      // periférico de refuerzo (docs/design/integracion-lua.md §3.1).
+      releaseSessionRef.current?.();
+      releaseSessionRef.current = acquireRecordingSession();
+
       // reconocimiento (no bloqueante)
       startRecognition(targetWord, targetPhoneme);
 
       // grabación en memoria
       if (availableRef.current) {
         try {
-          releaseSessionRef.current?.();
-          releaseSessionRef.current = acquireRecordingSession();
           chunksRef.current = [];
           decimateRef.current = createDecimator3();
           takeRef.current = null;
@@ -636,6 +646,12 @@ export function useArticulationAudio(lang: string = 'es'): ArticulationAudio {
           setRecStatus('recording');
         } catch (_e) {
           capturingRef.current = false;
+          // La toma no arrancó: se aborta el intento completo en vez de dejar
+          // al reconocedor escuchando sin grabación que lo acompañe, y se
+          // suelta la sesión que se acaba de reservar.
+          void stopRecognition();
+          releaseSessionRef.current?.();
+          releaseSessionRef.current = null;
           setRecStatus('idle');
         }
       } else {

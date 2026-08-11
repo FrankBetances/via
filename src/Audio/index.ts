@@ -14,6 +14,7 @@ export {
   AUDIO_SAMPLE_RATE,
   isAudioEngineAvailable,
   isRecordingSessionActive,
+  onRecordingSessionChange,
   peekAudioContext,
   releaseAudioContext,
   resumeAudioContext,

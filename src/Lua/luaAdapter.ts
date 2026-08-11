@@ -1,0 +1,294 @@
+/* -------------------------------------------------------------------------- */
+/*  Lúa — adaptador del periférico (BLE) y degradación a *no-op*.               */
+/*                                                                             */
+/*  Lúa es la mascota de Valeria+ —una gata en píxel art— y también el aparato  */
+/*  físico de refuerzo sobre ESP32-C3. El plan que manda es                      */
+/*  `docs/plan-integracion-lua.md` en `FrankBetances/Valeria`, porque allí viven */
+/*  el firmware y la tabla de opcodes.                                          */
+/*                                                                             */
+/*  QUÉ HACE VIA+ CON LÚA, Y ES MUY POCO                                        */
+/*  El §8 de ese plan se titula «VIA+: la integración correcta es la ausencia», y */
+/*  fija la postura: Lúa **no está presente durante la medición** —requisito de   */
+/*  procedimiento, no de software— y la única integración de la v1 es la          */
+/*  recompensa de cierre, con la exploración terminada y los datos sellados. Por  */
+/*  eso este adaptador expone tan poco: `CTRL` para la celebración de cierre,     */
+/*  `SAFE` para el silencio clínico como defensa en profundidad, y `STATE` para   */
+/*  diagnóstico. `CFG` no se usa en la v1.                                       */
+/*                                                                             */
+/*  DOS REGLAS DURAS                                                            */
+/*  1. NADA DE `await` HACIA LÚA desde un flujo clínico. Los envíos de `CTRL` son */
+/*     dispara-y-olvida con `catch` vacío deliberado. Una mascota apagada no      */
+/*     puede colgar una exploración. La excepción es `SAFE`, que sí devuelve      */
+/*     promesa —se escribe con confirmación— pero tampoco se espera en el camino  */
+/*     crítico: se lanza y se comprueba después.                                 */
+/*  2. BLE-ONLY. La sesión de audio de VIA+ se configura con `allowBluetooth` y   */
+/*     `allowBluetoothA2DP`; un perfil de audio clásico en el periférico dejaría  */
+/*     que iOS encaminase hacia él los tonos de la audiometría, sin ningún error  */
+/*     a la vista. Lúa no anuncia A2DP ni HFP, y en la v1 no tiene ni altavoz.    */
+/* -------------------------------------------------------------------------- */
+
+import {
+  LUA_CHR,
+  LUA_OP,
+  LUA_SAFE,
+  LUA_SERVICE_UUID,
+  luaFrame,
+  type LuaOp,
+} from './luaProtocol';
+import {
+  base64ToBytes,
+  bytesToBase64,
+  clampGrantSeconds,
+  decodeLuaState,
+  luaSafeFrame,
+  type LuaState,
+} from './luaWire';
+
+export interface LuaAdapter {
+  /** ¿Hay aparato conectado ahora mismo? */
+  isConnected: () => boolean;
+  /** Último estado notificado por `STATE`; `null` si no ha llegado ninguno. */
+  state: () => LuaState | null;
+  /** Escribe en `CTRL` (sin confirmación). No espera y nunca lanza. */
+  sendCtrl: (op: LuaOp, param?: number) => void;
+  /** Escribe en `SAFE` (con confirmación). Devuelve si la escritura se confirmó. */
+  sendSafe: (safeOp: number) => Promise<boolean>;
+  /** Suscribe al estado notificado (diagnóstico). Devuelve la baja. */
+  subscribeState: (listener: (state: LuaState) => void) => () => void;
+  /** Suscribe a los cambios de enlace. */
+  onLinkChange: (listener: (connected: boolean) => void) => () => void;
+}
+
+let adapter: LuaAdapter | null = null;
+
+export const setLuaAdapter = (a: LuaAdapter | null): void => {
+  adapter = a;
+};
+export const getLuaAdapter = (): LuaAdapter | null => adapter;
+
+/* -------------------------------------------------------------------------- */
+/*  Fachada *no-op*                                                            */
+/*                                                                             */
+/*  Todo el resto de la app llama a estas funciones, nunca al adaptador. Sin    */
+/*  aparato son no-op y no hay que comprobar nada en el sitio de la llamada,    */
+/*  que es como se olvidan estos controles.                                    */
+/* -------------------------------------------------------------------------- */
+
+export const isLuaConnected = (): boolean => {
+  try {
+    return adapter?.isConnected() ?? false;
+  } catch {
+    return false;
+  }
+};
+
+export const luaState = (): LuaState | null => {
+  try {
+    return adapter?.state() ?? null;
+  } catch {
+    return null;
+  }
+};
+
+/** Envía un opcode de `CTRL`. Sin aparato, no hace nada. */
+export const luaCtrl = (op: LuaOp, param = 0): void => {
+  try {
+    adapter?.sendCtrl(op, param);
+  } catch {
+    /* una mascota no interrumpe una exploración */
+  }
+};
+
+/** Concede capacidad visual durante `seconds` (1-60). */
+export const luaGrant = (seconds: number): void => luaCtrl(LUA_OP.GRANT, clampGrantSeconds(seconds));
+
+/** Renueva la concesión viva. El firmware la extiende al máximo (60 s). */
+export const luaHeartbeat = (): void => luaCtrl(LUA_OP.HEARTBEAT);
+
+/** Cara neutra. Funciona SIN concesión (`main.cpp:137-140`), a propósito. */
+export const luaIdle = (): void => luaCtrl(LUA_OP.IDLE);
+
+/** Celebración, intensidad 0-2. Exige concesión viva en el aparato. */
+export const luaCelebrate = (intensity: number): void =>
+  luaCtrl(LUA_OP.CELEBRATE, Math.max(0, Math.min(2, Math.round(intensity))));
+
+/**
+ * Silencio clínico: revoca la concesión y **bloquea** nuevas hasta un desbloqueo
+ * explícito. Con confirmación. Resuelve `false` si no hay aparato o si la
+ * escritura no llegó — que no es una emergencia: el control de la medición es la
+ * ausencia física del aparato, no esta trama (§8).
+ */
+export const luaClinicalSilence = async (): Promise<boolean> => {
+  try {
+    return (await adapter?.sendSafe(LUA_SAFE.CLINICAL_SILENCE)) ?? false;
+  } catch {
+    return false;
+  }
+};
+
+/** Levanta el bloqueo del silencio clínico. Sin esto, el aparato no dibuja nada. */
+export const luaUnlock = async (): Promise<boolean> => {
+  try {
+    return (await adapter?.sendSafe(LUA_SAFE.UNLOCK)) ?? false;
+  } catch {
+    return false;
+  }
+};
+
+/* -------------------------------------------------------------------------- */
+/*  Adaptador BLE real                                                         */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * Registra el adaptador BLE con `react-native-ble-plx`. Recibe el `BleManager` de
+ * la app —el MISMO que usa el pulsioxímetro— y devuelve la función de limpieza.
+ *
+ * El aparato **solo anuncia 120 s tras pulsar su botón físico** (§6.4 del plan de
+ * Valeria+), así que un escaneo que no encuentra nada es lo normal, no un fallo.
+ */
+export function installBleLua(manager: any): () => void {
+  let device: any = null;
+  let connected = false;
+  let lastState: LuaState | null = null;
+  let stateSub: any = null;
+  let cancelled = false;
+
+  const stateListeners = new Set<(s: LuaState) => void>();
+  const linkListeners = new Set<(c: boolean) => void>();
+
+  const setConnected = (value: boolean): void => {
+    if (connected === value) return;
+    connected = value;
+    linkListeners.forEach(listener => {
+      try {
+        listener(value);
+      } catch {
+        /* noop */
+      }
+    });
+  };
+
+  const connect = async (dev: any): Promise<void> => {
+    device = await dev.connect();
+    if (cancelled) {
+      try {
+        await device.cancelConnection();
+      } catch {
+        /* noop */
+      }
+      return;
+    }
+    await device.discoverAllServicesAndCharacteristics();
+
+    stateSub = device.monitorCharacteristicForService(
+      LUA_SERVICE_UUID,
+      LUA_CHR.STATE,
+      (error: any, ch: any) => {
+        if (error || !ch?.value) return;
+        const next = decodeLuaState(base64ToBytes(ch.value));
+        if (!next) return;
+        lastState = next;
+        stateListeners.forEach(listener => {
+          try {
+            listener(next);
+          } catch {
+            /* noop */
+          }
+        });
+      },
+    );
+
+    device.onDisconnected(() => {
+      lastState = null;
+      setConnected(false);
+      device = null;
+    });
+
+    setConnected(true);
+  };
+
+  try {
+    manager.startDeviceScan([LUA_SERVICE_UUID], null, (error: any, dev: any) => {
+      if (error || cancelled || !dev) return;
+      try {
+        manager.stopDeviceScan();
+      } catch {
+        /* noop */
+      }
+      void connect(dev).catch(() => {
+        lastState = null;
+        setConnected(false);
+        device = null;
+      });
+    });
+  } catch {
+    /* sin BLE disponible: el adaptador queda registrado y es un no-op */
+  }
+
+  setLuaAdapter({
+    isConnected: () => connected,
+    state: () => lastState,
+    sendCtrl: (op, param = 0) => {
+      if (!device || !connected) return;
+      try {
+        // Sin confirmación a propósito: pedir ACK duplica el peor caso del
+        // presupuesto de latencia (300 ms) y una celebración perdida no le
+        // importa a nadie.
+        const result = device.writeCharacteristicWithoutResponseForService(
+          LUA_SERVICE_UUID,
+          LUA_CHR.CTRL,
+          bytesToBase64(luaFrame(op, param)),
+        );
+        if (result && typeof result.catch === 'function') result.catch(() => {});
+      } catch {
+        /* noop */
+      }
+    },
+    sendSafe: async safeOp => {
+      if (!device || !connected) return false;
+      try {
+        await device.writeCharacteristicWithResponseForService(
+          LUA_SERVICE_UUID,
+          LUA_CHR.SAFE,
+          bytesToBase64(luaSafeFrame(safeOp)),
+        );
+        return true;
+      } catch {
+        return false;
+      }
+    },
+    subscribeState: listener => {
+      stateListeners.add(listener);
+      return () => stateListeners.delete(listener);
+    },
+    onLinkChange: listener => {
+      linkListeners.add(listener);
+      return () => linkListeners.delete(listener);
+    },
+  });
+
+  return () => {
+    cancelled = true;
+    try {
+      manager.stopDeviceScan();
+    } catch {
+      /* noop */
+    }
+    try {
+      stateSub?.remove();
+    } catch {
+      /* noop */
+    }
+    try {
+      device?.cancelConnection();
+    } catch {
+      /* noop */
+    }
+    stateListeners.clear();
+    linkListeners.clear();
+    connected = false;
+    device = null;
+    lastState = null;
+    setLuaAdapter(null);
+  };
+}

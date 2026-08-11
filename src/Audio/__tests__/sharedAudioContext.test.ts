@@ -55,6 +55,7 @@ import {
   audioContextRefCount,
   AUDIO_SAMPLE_RATE,
   isRecordingSessionActive,
+  onRecordingSessionChange,
   peekAudioContext,
   releaseAudioContext,
   __resetSharedAudioContextForTests,
@@ -147,5 +148,82 @@ describe('sesión de audio', () => {
     expect(isRecordingSessionActive()).toBe(true);
     releaseB();
     expect(isRecordingSessionActive()).toBe(false);
+  });
+});
+
+/* -------------------------------------------------------------------------- */
+/*  Observador de la grabación.                                                */
+/*                                                                             */
+/*  Este módulo es el único punto por el que pasan todos los consumidores de    */
+/*  micrófono, así que es el único desde el que un tercero puede enterarse de   */
+/*  que hay una captura en curso sin conocer los módulos clínicos uno a uno. Lo */
+/*  usa el permiso de ruido del periférico de refuerzo (src/Lua/noisePermit.ts).*/
+/* -------------------------------------------------------------------------- */
+describe('observador de sesión de grabación', () => {
+  it('avisa de la transición a grabando y de la vuelta a reproducción', () => {
+    const visto: boolean[] = [];
+    onRecordingSessionChange(active => visto.push(active));
+
+    const release = acquireRecordingSession();
+    expect(visto).toEqual([true]);
+    release();
+    expect(visto).toEqual([true, false]);
+  });
+
+  it('avisa de las transiciones 0↔1, no de cada peticionario', () => {
+    const visto: boolean[] = [];
+    onRecordingSessionChange(active => visto.push(active));
+
+    const releaseA = acquireRecordingSession();
+    const releaseB = acquireRecordingSession();
+    const releaseC = acquireRecordingSession();
+    expect(visto).toEqual([true]);
+
+    releaseA();
+    releaseB();
+    expect(visto).toEqual([true]);
+    releaseC();
+    expect(visto).toEqual([true, false]);
+  });
+
+  it('el aviso de grabación llega ANTES de reconfigurar la sesión de audio', () => {
+    // El orden importa: quien escucha esto lo hace para APAGAR algo que puede
+    // hacer ruido, y lo seguro es apagar primero y abrir el micrófono después.
+    const orden: string[] = [];
+    onRecordingSessionChange(active => orden.push(`aviso:${active}`));
+    const antes = mockSessionOptions.length;
+
+    acquireRecordingSession();
+    orden.push(`sesión:${mockSessionOptions.length > antes}`);
+
+    expect(orden).toEqual(['aviso:true', 'sesión:true']);
+  });
+
+  it('darse de baja deja de recibir avisos', () => {
+    const visto: boolean[] = [];
+    const off = onRecordingSessionChange(active => visto.push(active));
+
+    acquireRecordingSession()();
+    off();
+    acquireRecordingSession()();
+
+    expect(visto).toEqual([true, false]);
+  });
+
+  it('un oyente que lanza no impide reservar la sesión de grabación', () => {
+    // El micrófono clínico manda sobre cualquier accesorio colgado del aviso.
+    const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
+    onRecordingSessionChange(() => {
+      throw new Error('el accesorio falló');
+    });
+    const otro: boolean[] = [];
+    onRecordingSessionChange(active => otro.push(active));
+
+    expect(() => acquireRecordingSession()).not.toThrow();
+    expect(isRecordingSessionActive()).toBe(true);
+    expect(mockSessionOptions.map(o => o.iosCategory)).toContain('playAndRecord');
+    // Y el oyente siguiente sigue recibiendo el aviso.
+    expect(otro).toEqual([true]);
+    warn.mockRestore();
   });
 });
