@@ -73,6 +73,12 @@ export {
 } from './closingReward';
 export type { ClosingReward, ClosingRewardDeps } from './closingReward';
 
+/* La mascota. VENDORIZADA de Valeria+ (`src/Lua/vendor/`): no se edita aquí, y un
+ * gate de la suite lo comprueba por hash. El mismo sprite es la cara del
+ * periférico, así que retocarlo en VIA+ separaría las dos. */
+export { CAT_TUXEDO, CatPixel, catSilhouette } from './vendor/ValeriaCatPixel';
+export type { CatPalette, CatPose } from './vendor/ValeriaCatPixel';
+
 export { useLuaClosingReward, useLuaDiagnostics } from './useLua';
 export type { LuaDiagnostics } from './useLua';
 

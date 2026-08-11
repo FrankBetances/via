@@ -1,0 +1,9 @@
+{
+  "source": "FrankBetances/Valeria · src/ValeriaCatPixel.tsx",
+  "upstreamCommit": "0715146",
+  "upstreamCommitFull": "07151465691c18229c097b98f6aa705dd8e70d86",
+  "originalSha256": "02ff5a2643453680f414ef69c356ab8d1c212c7e2d3b94a606b459bace3bac7f",
+  "bodySha256": "02ff5a2643453680f414ef69c356ab8d1c212c7e2d3b94a606b459bace3bac7f",
+  "syncedAt": "2026-08-11",
+  "note": "Copia vendorizada de la mascota. NO editar en VIA+: la fuente es Valeria+, y el sprite lo comparten la app y la cara del periférico. Ver la cabecera del .tsx para el procedimiento de sincronización."
+}

@@ -1,7 +1,8 @@
 # Integración de Lúa en VIA+ — periférico físico de refuerzo
 
 > **Estado:** implementado el lado VIA+ (agosto 2026). Queda pendiente crear el
-> `BleManager` compartido y bajar los assets de la mascota (§9).
+> `BleManager` compartido y probar contra el aparato (§9). La mascota ya está
+> vendorizada (§8).
 >
 > **Alcance:** solo lo que hace VIA+. **Lúa no es un proyecto de este
 > repositorio.**
@@ -316,28 +317,69 @@ Y el dato que simplifica el hardware: **a 240×240 el píxel art es el formato
 nativo del panel**, así que la cara del aparato y la de la app son literalmente el
 mismo dibujo, no dos interpretaciones que se separan versión a versión.
 
-### 8.1. Qué copiar, y qué no
+### 8.1. Qué se trajo, y las dos desviaciones del traspaso
 
-El README de Valeria+ tiene una sección de traspaso —«Copiar a Lúa a otro
-proyecto»— y es normativa. **Se llevan tres ficheros y nada más:**
+El README de Valeria+ tiene una sección normativa —«Copiar a Lúa a otro
+proyecto»— que manda llevarse **tres ficheros y ningún PNG**. Está seguida en lo
+esencial, con dos desviaciones deliberadas que conviene justificar porque
+apartarse de un traspaso normativo es justo como se desfasan las copias.
 
-| Llévate | Para qué |
-|---|---|
-| `src/ValeriaCatPixel.tsx` | El sprite y el componente: rejilla, paleta y las dos poses. Solo necesita `react-native-svg`, que VIA+ ya tiene |
-| `scripts/build-brand-assets.js` | Genera los PNG de marca **desde** ese fichero. Hay que ajustar las rutas de salida |
-| `scripts/check-brand-consistency.js` | El gate. Sin él, la copia se desfasa |
+**Lo que hay:**
 
-**Lo que no se copia:** ningún PNG —son salidas, no fuentes, y copiarlas es
-exactamente cómo se propagan las láminas viejas—; nada que se llame como la
-mascota anterior; y el copy de los ejercicios de Valeria+, que es contenido
-clínico suyo y no marca.
+```
+src/Lua/vendor/ValeriaCatPixel.tsx   # el sprite, CUERPO INTACTO + cabecera de origen
+src/Lua/vendor/origen.json           # commit de origen y sha256 del cuerpo
+scripts/check-lua-brand.js           # el gate, adaptado (ver abajo)
+```
 
-Después de copiar, **se corre el gate en VIA+**. Si pasa, la copia está bien.
+El sprite conserva su nombre original y su cuerpo byte a byte —la cabecera de
+vendorización son 19 líneas y a partir de ahí el fichero es idéntico— para que el
+diff contra Valeria+ sea exactamente esa cabecera. Se expone desde `@/Lua` como
+`CatPixel`. Solo necesita `react-native-svg`, que ya estaba.
 
-*Pendiente (§9). No hay ningún asset de Lúa en este repositorio todavía, y no se
-transcribe aquí ni un color: la fuente es el otro repositorio.*
+**Desviación 1 · no se trae `build-brand-assets.js`.** Ese script genera los cinco
+PNG de marca de Valeria+ —icono Android, icono adaptativo, splash, retrato del
+manual, icono de iOS— desde la rejilla. En VIA+ eso **sobrescribiría la identidad
+del producto con la mascota de otro**: VIA+ es un producto distinto, con su propio
+icono, y Lúa es aquí el personaje de un periférico, no la marca de la app. El
+traspaso está escrito para un proyecto que adopta a Lúa como marca; VIA+ no lo es.
+Además arrastra Playwright como dependencia de build para renderizar los PNG.
+*Si algún día VIA+ necesita un bitmap de Lúa —para la cara del aparato, por
+ejemplo— sale de ahí, y las caras del periférico se generan en Valeria+ con
+`build-lua-faces.js`, que es donde vive el firmware.*
 
-### 8.2. Compartir personaje no la convierte en parte del dispositivo
+**Desviación 2 · el gate está adaptado, no copiado.** El
+`check-brand-consistency.js` de Valeria+ persigue los restos de la mascota
+retirada en **sus** pantallas: `ValeriaDistractorBear`, el copy «Oso Distractor»
+en cuatro variedades, los nombres de nivel. Nada de eso existe aquí, así que
+copiarlo daría un gate que pasa en vacío — y un gate que no puede fallar es peor
+que ninguno, porque da confianza. `scripts/check-lua-brand.js` vigila lo que VIA+
+sí puede romper:
+
+1. **Que la copia no se edite aquí**, por hash contra el manifiesto. Si alguien
+   retoca el sprite en VIA+, la cara de la app y la del aparato se separan versión
+   a versión, que es exactamente lo que el formato de rejilla venía a evitar.
+   *Verificado por mutación: cambiar un valor por defecto rompe el gate.*
+2. **Que no entre marca de la mascota retirada**, por si una sincronización futura
+   arrastra al oso.
+
+Y hereda la distinción que importa: **«oso» es vocabulario terapéutico legítimo**
+en este repositorio —par mínimo *ocho/oso*, frases de lectura, órdenes TPR— y no
+se toca. El gate persigue marca, no contenido.
+
+### 8.2. Sincronizar la mascota
+
+```bash
+cp ../Valeria/src/ValeriaCatPixel.tsx src/Lua/vendor/ValeriaCatPixel.tsx
+# volver a poner la cabecera de vendorización (19 líneas) encima del original
+node scripts/check-lua-brand.js --update    # rehace el manifiesto
+npm test -- src/Lua
+```
+
+El `upstreamCommit` del manifiesto se actualiza a mano: el script no puede
+saberlo, porque este repositorio no ve el otro.
+
+### 8.3. Compartir personaje no la convierte en parte del dispositivo
 
 Reutilizar la gata es una decisión de marca. Lo que cambiaría la clasificación no
 es parecerse a Valeria+, sino **hacer** algo clínico o que se le **atribuya**
@@ -355,12 +397,11 @@ gata que guía la terapia», ni que acompaña, mejora o sostiene el tratamiento.
    del sistema en el arranque. Se decide con la placa delante y de una vez para
    los dos periféricos. No corre prisa: el aparato solo anuncia 120 s tras pulsar
    su botón físico, así que ni un escaneo permanente lo encontraría solo.
-2. **Bajar la mascota** según §8.1, con su gate.
-3. **Probar contra el aparato de verdad.** Todo lo de aquí está verificado contra
+2. **Probar contra el aparato de verdad.** Todo lo de aquí está verificado contra
    el firmware **leyéndolo**, que es mejor que inventarlo pero no es lo mismo que
    conectar. Pendiente: emparejamiento, `BENCH` para el presupuesto de latencia
    (300 ms) y comprobar que `UNLOCK` → `GRANT` → `CELEBRATE` dibuja de verdad.
-4. **Avisar a Valeria+** de la discrepancia de `STATE` en `protocol.json` (§2.2).
+3. **Avisar a Valeria+** de la discrepancia de `STATE` en `protocol.json` (§2.2).
 
 Lo que **no** hay que decidir otra vez: el protocolo no se negocia —se genera—, y
 la postura regulatoria de VIA+ está fijada en el §8 del plan de Valeria+, no aquí.
