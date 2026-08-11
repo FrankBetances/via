@@ -24,36 +24,53 @@ import Animated, {
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 
 import { Header } from '@/Components/Common';
+import ViaIcon from '@/Components/Common/ViaIcon';
 import { RootStackParamList } from '@/Navigators';
+import {
+  AcoprosMark,
+  DrBetancesMark,
+  EarlifyMark,
+  ItemasSealMark,
+  QuisqueyaHablaMark,
+} from './BrandMarks';
+import { ORBIT_MODULES, ORBIT_MAX_REACH, OrbitModule } from './orbitModules';
 
 /* -------------------------------------------------------------------------- */
-/*  CreditosScreen — presentación del proyecto "Quisqueya Habla".              */
-/*  Mismo lenguaje visual que Bienvenida (crema + naranja + etiquetas mono):   */
-/*  emblema con anillos de pulso y satélites orbitando de verdad, onda        */
-/*  respirando como separador y sello normativo. La tarjeta del autor es una  */
-/*  banda de partículas: fluyen caóticas desde la izquierda y, tras atravesar */
-/*  el nombre, se ordenan en carriles alineados naranjas (el nombre actúa     */
-/*  como filtro que ordena el caos). El CTA                                   */
-/*  continúa a la selección de perfil profesional (esta ruta solo existe en    */
-/*  el flujo de acceso, antes de abrir sesión).                                */
+/*  CreditosScreen — quién hay detrás de VIA+.                                 */
+/*  Mismo lenguaje visual que Bienvenida (crema + naranja + etiquetas mono).   */
+/*                                                                            */
+/*  El emblema es el isotipo V+ rodeado de anillos de pulso y de DOCE puntos   */
+/*  diminutos: uno por cada módulo de la batería, del CAP a Funciones          */
+/*  Ejecutivas (ver orbitModules.ts). Cada punto lleva su radio, su periodo y  */
+/*  el color de su módulo, así que la constelación no gira en bloque: se       */
+/*  recompone sola y nunca repite la misma figura.                             */
+/*                                                                            */
+/*  La tarjeta de autoría es una banda de partículas: fluyen caóticas desde    */
+/*  la izquierda y, tras atravesar el nombre, se ordenan en carriles naranjas  */
+/*  (el nombre actúa como filtro que ordena el caos). El CTA continúa a la     */
+/*  selección de perfil profesional (esta ruta solo existe en el flujo de      */
+/*  acceso, antes de abrir sesión).                                            */
 /* -------------------------------------------------------------------------- */
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Creditos'>;
 
 const YEAR = new Date().getFullYear();
-const EMBLEM = 88;
+const EMBLEM = 92;
 const RING_DURATION = 2600;
+/** El isotipo tiene rx = 42 sobre una tesela de 150: los anillos lo copian. */
+const EMBLEM_RADIUS = EMBLEM * (42 / 150);
 
 /* Onda separadora (perfil simétrico, "respira" por barra). */
 const WAVE_BARS = [10, 18, 30, 44, 56, 44, 30, 18, 10];
 
-/* Satélites que orbitan el emblema: los tres dominios del proyecto. */
-const SATELLITES = [
-  { emoji: '👂', angle: -35, radius: 74 },
-  { emoji: '🗣️', angle: 145, radius: 78 },
-  { emoji: '🎵', angle: 65, radius: 82 },
-];
-const ORBIT_DURATION = 26000;
+/* Lienzo de la constelación: el radio mayor más aire para el punto y su halo. */
+const ORBIT_CANVAS = Math.ceil(ORBIT_MAX_REACH + 12) * 2;
+/** Achatamiento vertical: da profundidad sin salirse del ancho de pantalla. */
+const ORBIT_TILT = 0.84;
+
+const ORBIT_LABEL = `Los doce módulos de la batería VIA+ orbitando el isotipo: ${ORBIT_MODULES.map(
+  m => m.label,
+).join(', ')}.`;
 
 /* Idiomas/variantes de la batería y motor de voz neural abierto que los hace
    posibles (ver docs/design/integracion-*.md y tools/nos/). */
@@ -162,6 +179,58 @@ function FlowParticle({ cfg, width }: { cfg: ParticleCfg; width: number }) {
   );
 }
 
+/* --------------------------- punto en órbita ------------------------------ */
+/*  Un módulo de la batería. Cada punto tiene su propio reloj (periodo propio  */
+/*  = velocidad propia), así que la figura del conjunto nunca se repite. La    */
+/*  órbita se pinta achatada y el punto se aclara y encoge en la mitad         */
+/*  superior, la que "pasa por detrás" del isotipo: eso es toda la             */
+/*  profundidad que necesita.                                                  */
+
+function OrbitDot({ module: m }: { module: OrbitModule }) {
+  const spin = useSharedValue(0);
+
+  useEffect(() => {
+    spin.value = withRepeat(
+      withTiming(360, { duration: m.durationMs, easing: Easing.linear }),
+      -1,
+      false,
+    );
+    return () => cancelAnimation(spin);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const style = useAnimatedStyle(() => {
+    const rad = ((m.phase + spin.value) * Math.PI) / 180;
+    // 0 = mitad de atrás (arriba), 1 = mitad de delante (abajo).
+    const depth = (Math.sin(rad) + 1) / 2;
+    return {
+      transform: [
+        { translateX: Math.cos(rad) * m.radius },
+        { translateY: Math.sin(rad) * m.radius * ORBIT_TILT },
+        { scale: 0.76 + 0.36 * depth },
+      ],
+      opacity: 0.4 + 0.6 * depth,
+    };
+  });
+
+  return (
+    <Animated.View
+      pointerEvents="none"
+      style={[
+        styles.orbitDot,
+        {
+          width: m.size,
+          height: m.size,
+          borderRadius: m.size / 2,
+          backgroundColor: m.color,
+          shadowColor: m.color,
+        },
+        style,
+      ]}
+    />
+  );
+}
+
 function WaveBar({ index, height }: { index: number; height: number }) {
   const breathe = useSharedValue(0);
   useEffect(() => {
@@ -186,11 +255,40 @@ function WaveBar({ index, height }: { index: number; height: number }) {
   return <Animated.View style={[styles.waveBar, { height }, style]} />;
 }
 
+function SectionRule({ label }: { label: string }) {
+  return (
+    <View style={styles.sectionRow}>
+      <View style={styles.sectionLine} />
+      <Text style={styles.sectionLabel}>{label}</Text>
+      <View style={styles.sectionLine} />
+    </View>
+  );
+}
+
+function PartnerRow({
+  mark,
+  name,
+  role,
+}: {
+  mark: React.ReactNode;
+  name: string;
+  role: string;
+}) {
+  return (
+    <View style={styles.partnerRow}>
+      <View style={styles.partnerLogo}>{mark}</View>
+      <View style={{ flex: 1 }}>
+        <Text style={styles.partnerName}>{name}</Text>
+        <Text style={styles.partnerRole}>{role}</Text>
+      </View>
+    </View>
+  );
+}
+
 export default function CreditosScreen({ navigation }: Props) {
   const ring1 = useSharedValue(0);
   const ring2 = useSharedValue(0);
   const float = useSharedValue(0);
-  const orbit = useSharedValue(0);
   const [bandWidth, setBandWidth] = useState(0);
 
   useEffect(() => {
@@ -213,16 +311,10 @@ export default function CreditosScreen({ navigation }: Props) {
       -1,
       false,
     );
-    orbit.value = withRepeat(
-      withTiming(360, { duration: ORBIT_DURATION, easing: Easing.linear }),
-      -1,
-      false,
-    );
     return () => {
       cancelAnimation(ring1);
       cancelAnimation(ring2);
       cancelAnimation(float);
-      cancelAnimation(orbit);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -237,13 +329,6 @@ export default function CreditosScreen({ navigation }: Props) {
   }));
   const floatStyle = useAnimatedStyle(() => ({
     transform: [{ translateY: float.value }],
-  }));
-  const orbitStyle = useAnimatedStyle(() => ({
-    transform: [{ rotate: `${orbit.value}deg` }],
-  }));
-  // Contrarrota cada satélite para que el emoji se mantenga derecho.
-  const counterOrbitStyle = useAnimatedStyle(() => ({
-    transform: [{ rotate: `${-orbit.value}deg` }],
   }));
 
   return (
@@ -261,47 +346,34 @@ export default function CreditosScreen({ navigation }: Props) {
         {/* ----- overline ----- */}
         <View style={styles.badge}>
           <View style={styles.badgeDot} />
-          <Text style={styles.badgeText}>VIA+ · EVALUACIÓN DE AUDICIÓN Y LENGUAJE</Text>
+          <Text style={styles.badgeText}>VIA+ · CDSS AUDICIÓN Y LENGUAJE</Text>
         </View>
 
-        {/* ----- emblema con órbita ----- */}
-        <Animated.View style={[styles.emblemWrapper, floatStyle]}>
+        {/* ----- emblema: isotipo V+ y los doce módulos en órbita ----- */}
+        <Animated.View
+          style={[styles.emblemWrapper, floatStyle]}
+          accessible
+          accessibilityRole="image"
+          accessibilityLabel={ORBIT_LABEL}>
           <Animated.View style={[styles.ring, ring1Style]} />
           <Animated.View style={[styles.ring, ring2Style]} />
           <View style={styles.emblem}>
-            <Text style={styles.emblemEmoji}>🎙️</Text>
+            <ViaIcon size={EMBLEM} />
           </View>
-          <Animated.View style={[styles.orbitLayer, orbitStyle]} pointerEvents="none">
-            {SATELLITES.map(s => {
-              const rad = (s.angle * Math.PI) / 180;
-              return (
-                <View
-                  key={s.emoji}
-                  style={[
-                    styles.satelliteAnchor,
-                    {
-                      transform: [
-                        { translateX: Math.cos(rad) * s.radius },
-                        { translateY: Math.sin(rad) * s.radius },
-                      ],
-                    },
-                  ]}>
-                  <Animated.View style={[styles.satellite, counterOrbitStyle]}>
-                    <Text style={styles.satelliteEmoji}>{s.emoji}</Text>
-                  </Animated.View>
-                </View>
-              );
-            })}
-          </Animated.View>
+          <View style={styles.orbitLayer} pointerEvents="none">
+            {ORBIT_MODULES.map(m => (
+              <OrbitDot key={m.key} module={m} />
+            ))}
+          </View>
         </Animated.View>
 
         {/* ----- título ----- */}
-        <Text style={styles.overline}>PROYECTO</Text>
+        <Text style={styles.overline}>DOCE MÓDULOS · UNA SOLA BATERÍA</Text>
         <Text style={styles.title}>
-          Quisqueya <Text style={styles.titleAccent}>Habla</Text>
+          VIA<Text style={styles.titleAccent}>+</Text>
         </Text>
         <Text style={styles.subtitle}>
-          Tecnología clínica al servicio de la rehabilitación del lenguaje.
+          Tecnología clínica al servicio de la evaluación y la rehabilitación del lenguaje.
         </Text>
 
         {/* ----- onda separadora ----- */}
@@ -311,12 +383,8 @@ export default function CreditosScreen({ navigation }: Props) {
           ))}
         </View>
 
-        {/* ----- desarrollado por ----- */}
-        <View style={styles.sectionRow}>
-          <View style={styles.sectionLine} />
-          <Text style={styles.sectionLabel}>DESARROLLADO POR</Text>
-          <View style={styles.sectionLine} />
-        </View>
+        {/* ----- autoría y dirección clínica ----- */}
+        <SectionRule label="AUTORÍA Y DIRECCIÓN CLÍNICA" />
 
         {/* Banda de partículas: caos → nombre → orden. */}
         <View style={styles.authorCard}>
@@ -328,45 +396,40 @@ export default function CreditosScreen({ navigation }: Props) {
               ? PARTICLES.map(cfg => <FlowParticle key={cfg.id} cfg={cfg} width={bandWidth} />)
               : null}
             <View style={styles.authorOverlay} pointerEvents="none">
-              <View style={styles.authorAvatar}>
-                <Text style={styles.authorAvatarText}>FB</Text>
+              <View style={styles.authorLogo}>
+                <DrBetancesMark size={46} />
               </View>
-              <Text style={styles.authorName}>Dr. Frank Betances</Text>
-              <Text style={styles.authorRole}>Dirección clínica e investigación 🩺</Text>
+              <Text style={styles.authorName}>Dr. Frank Alberto Betances</Text>
+              <Text style={styles.authorRole}>Otorrinolaringólogo y desarrollador</Text>
             </View>
           </View>
         </View>
 
         {/* ----- colaboradores ----- */}
-        <View style={styles.sectionRow}>
-          <View style={styles.sectionLine} />
-          <Text style={styles.sectionLabel}>EN COLABORACIÓN CON</Text>
-          <View style={styles.sectionLine} />
-        </View>
+        <SectionRule label="COLABORADORES" />
 
-        <View style={styles.partnersRow}>
-          <View style={styles.partnerCard}>
-            <View style={[styles.partnerBadge, { backgroundColor: '#2A7948' }]}>
-              <Text style={styles.partnerBadgeText}>E</Text>
-            </View>
-            <Text style={styles.partnerName}>Earlify Health</Text>
-            <Text style={styles.partnerRole}>Tecnología e ingeniería</Text>
-          </View>
-          <View style={styles.partnerCard}>
-            <View style={[styles.partnerBadge, { backgroundColor: '#0066B3' }]}>
-              <Text style={styles.partnerBadgeText}>A</Text>
-            </View>
-            <Text style={styles.partnerName}>ACOPROS</Text>
-            <Text style={styles.partnerRole}>Apoyo y alianza institucional</Text>
-          </View>
+        <View style={styles.partnerCard}>
+          <PartnerRow
+            mark={<QuisqueyaHablaMark size={40} />}
+            name="Quisqueya Habla"
+            role="Proyecto FONDOCYT · variante dominicana de la batería"
+          />
+          <View style={styles.partnerDivider} />
+          <PartnerRow
+            mark={<AcoprosMark size={40} />}
+            name="ACOPROS"
+            role="Asociación de Colaboración y Promoción del Sordo"
+          />
+          <View style={styles.partnerDivider} />
+          <PartnerRow
+            mark={<EarlifyMark size={40} />}
+            name="Earlify Health"
+            role="Tecnología e ingeniería"
+          />
         </View>
 
         {/* ----- voces y lenguajes ----- */}
-        <View style={styles.sectionRow}>
-          <View style={styles.sectionLine} />
-          <Text style={styles.sectionLabel}>VOCES Y LENGUAJES</Text>
-          <View style={styles.sectionLine} />
-        </View>
+        <SectionRule label="VOCES Y LENGUAJES" />
 
         <View style={styles.langCard}>
           {LANGUAGE_CREDITS.map((c, i) => (
@@ -382,7 +445,15 @@ export default function CreditosScreen({ navigation }: Props) {
           ))}
         </View>
 
-        {/* ----- sello normativo + lugar ----- */}
+        {/* ----- calidad y normativa ----- */}
+        <SectionRule label="CALIDAD Y NORMATIVA" />
+
+        <View style={styles.sealCard}>
+          <ItemasSealMark size={64} />
+          <Text style={styles.sealTitle}>Sello de Calidad ITEMAS 2024</Text>
+          <Text style={styles.sealRole}>Calidad en innovación tecnológica</Text>
+        </View>
+
         <View style={styles.sealRow}>
           <View style={styles.sealChip}>
             <Text style={styles.sealChipText}>SaMD · Clase IIa</Text>
@@ -467,61 +538,40 @@ const styles = StyleSheet.create({
   },
 
   emblemWrapper: {
-    width: EMBLEM + 100,
-    height: EMBLEM + 100,
+    width: ORBIT_CANVAS,
+    height: ORBIT_CANVAS * ORBIT_TILT,
+    maxWidth: '100%',
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: 26,
+    marginTop: 18,
   },
   ring: {
     position: 'absolute',
     width: EMBLEM,
     height: EMBLEM,
-    borderRadius: 26,
+    borderRadius: EMBLEM_RADIUS,
     borderWidth: 2,
     borderColor: 'rgba(255,127,0,0.4)',
   },
   emblem: {
-    width: EMBLEM,
-    height: EMBLEM,
-    borderRadius: 26,
-    backgroundColor: '#FF7F00',
-    alignItems: 'center',
-    justifyContent: 'center',
+    borderRadius: EMBLEM_RADIUS,
     shadowColor: '#FF7F00',
     shadowOpacity: 0.35,
     shadowRadius: 18,
     shadowOffset: { width: 0, height: 8 },
     elevation: 8,
   },
-  emblemEmoji: {
-    fontSize: 40,
-  },
   orbitLayer: {
     ...StyleSheet.absoluteFillObject,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  satelliteAnchor: {
+  orbitDot: {
     position: 'absolute',
-  },
-  satellite: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: '#FFFFFF',
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: '#EFE8DB',
-    shadowColor: '#000',
-    shadowOpacity: 0.06,
-    shadowRadius: 6,
-    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.5,
+    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 1 },
     elevation: 2,
-  },
-  satelliteEmoji: {
-    fontSize: 17,
   },
 
   overline: {
@@ -530,7 +580,8 @@ const styles = StyleSheet.create({
     letterSpacing: 2,
     fontWeight: '700',
     color: '#B3A791',
-    marginTop: 18,
+    marginTop: 14,
+    textAlign: 'center',
   },
   title: {
     fontSize: 36,
@@ -618,58 +669,53 @@ const styles = StyleSheet.create({
     ...StyleSheet.absoluteFillObject,
     alignItems: 'center',
     justifyContent: 'center',
+    paddingHorizontal: 18,
   },
-  authorAvatar: {
-    width: 40,
-    height: 40,
+  authorLogo: {
     borderRadius: 14,
-    backgroundColor: '#3A352F',
-    alignItems: 'center',
-    justifyContent: 'center',
+    overflow: 'hidden',
     marginBottom: 8,
   },
-  authorAvatarText: {
-    color: '#FFFFFF',
-    fontSize: 13,
-    fontWeight: '800',
-  },
   authorName: {
-    fontSize: 17,
+    // 16 y no 17: «Dr. Frank Alberto Betances» ocupa casi todo el ancho de la
+    // tarjeta en un móvil de 360 dp y a 17 se partía en dos líneas.
+    fontSize: 16,
     fontWeight: '800',
     color: '#3A352F',
+    textAlign: 'center',
   },
   authorRole: {
     fontSize: 11,
     color: '#8A8274',
     marginTop: 3,
+    textAlign: 'center',
   },
 
-  partnersRow: {
-    flexDirection: 'row',
-    gap: 10,
-    alignSelf: 'stretch',
-  },
   partnerCard: {
-    flex: 1,
+    alignSelf: 'stretch',
     backgroundColor: '#FFFFFF',
     borderRadius: 18,
     borderWidth: 1,
     borderColor: '#EFE8DB',
-    padding: 14,
-    alignItems: 'flex-start',
+    paddingHorizontal: 14,
   },
-  partnerBadge: {
-    width: 34,
-    height: 34,
-    borderRadius: 12,
+  partnerRow: {
+    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 8,
+    gap: 12,
+    paddingVertical: 12,
   },
-  partnerBadgeText: {
-    color: '#FFFFFF',
-    fontSize: 14,
-    fontWeight: '800',
+  partnerDivider: {
+    height: 1,
+    backgroundColor: '#F1ECE2',
+  },
+  partnerLogo: {
+    width: 40,
+    height: 40,
+    borderRadius: 13,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: '#EFE8DB',
   },
   partnerName: {
     fontSize: 13,
@@ -678,6 +724,7 @@ const styles = StyleSheet.create({
   },
   partnerRole: {
     fontSize: 10.5,
+    lineHeight: 15,
     color: '#8A8274',
     marginTop: 2,
   },
@@ -721,6 +768,30 @@ const styles = StyleSheet.create({
     lineHeight: 15,
     color: '#8A8274',
     marginTop: 2,
+  },
+
+  sealCard: {
+    alignSelf: 'stretch',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: '#EFE8DB',
+    paddingVertical: 16,
+    paddingHorizontal: 14,
+    alignItems: 'center',
+  },
+  sealTitle: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#3A352F',
+    marginTop: 8,
+    textAlign: 'center',
+  },
+  sealRole: {
+    fontSize: 10.5,
+    color: '#8A8274',
+    marginTop: 2,
+    textAlign: 'center',
   },
 
   sealRow: {

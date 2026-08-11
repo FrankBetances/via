@@ -7,7 +7,7 @@ tienda.
 |---|---|---|
 | `icono-app-512.png` | Icono de la app compuesto (fondo degradado + primer plano del icono adaptativo), al tamaño que pide la ficha de Google Play | 512 × 512 |
 | `icono-app-launcher.png` | Icono de lanzador tal cual está empaquetado en el APK (`mipmap-xxxhdpi/ic_launcher.png`) | 192 × 192 |
-| `creditos.png` | Pantalla de **Créditos** (proyecto Quisqueya Habla) | 824 × 1830 |
+| `creditos.png` | Pantalla de **Créditos** (autoría, colaboradores y sello de calidad) | 824 × 1830 |
 | `seleccion-ejercicios.png` | Pantalla de **Selección de pruebas**, el hub de la batería | 824 × 1830 |
 
 ## Procedencia — léase antes de subir nada a la tienda
@@ -35,8 +35,8 @@ sean, no lo son.
 Diferencias conocidas frente a la app en ejecución:
 
 - las animaciones aparecen congeladas en un fotograma (los anillos de pulso del
-  emblema, los satélites en órbita y la banda de partículas de la tarjeta del
-  autor se ven en una posición fija);
+  emblema, los doce puntos de módulo en órbita y la banda de partículas de la
+  tarjeta del autor se ven en una posición fija);
 - la tipografía es la sustituta del entorno de render, no la Rethink Sans
   declarada en `src/Theme/gluestack-ui.config.ts`;
 - no hay datos de paciente (ninguna de las dos pantallas los muestra en el

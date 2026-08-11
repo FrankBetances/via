@@ -87,6 +87,9 @@
     "preset": "react-native",
     "moduleNameMapper": {
       "\\.(m4a|mp3|wav|aac)$": "<rootDir>/jest/assetMock.js"
-    }
+    },
+    "transformIgnorePatterns": [
+      "node_modules/(?!((jest-)?react-native|@react-native(-community)?|react-native-reanimated|react-native-svg)/)"
+    ]
   }
 }
