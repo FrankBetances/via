@@ -51,6 +51,12 @@ jobs:
       - name: Verify verbal clip coverage
         run: node scripts/check-verbal-coverage.js --strict
 
+      # Lúa es de los dos productos y su fuente vive en FrankBetances/Valeria.
+      # Una copia sin comprobación se desfasa: aquí se exige que el dibujo sea
+      # el mismo píxel a píxel.
+      - name: Verify Lúa matches Valeria+
+        run: node scripts/check-lua-sprite.js
+
       - name: Decode release keystore
         env:
           RELEASE_KEYSTORE_BASE64: ${{ secrets.MYAPP_RELEASE_STORE_FILE_BASE64 }}
