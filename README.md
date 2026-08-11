@@ -40,6 +40,7 @@
 - [Stack Tecnológico](#stack-tecnológico)
 - [Instalación y Configuración](#instalación-y-configuración)
 - [Módulos de la Aplicación](#módulos-de-la-aplicación)
+- [Lúa (periférico de refuerzo)](#lúa-periférico-de-refuerzo)
 - [Herramientas de Build-Time](#herramientas-de-build-time)
 - [Automatización (CI/CD)](#automatización-cicd)
 - [Distribución y Sitio Público](#distribución-y-sitio-público)
@@ -79,7 +80,7 @@ La aplicación opera sobre **tablets iOS/Android** en entornos clínicos bajo su
 
 ## Características Principales
 
-- 🎮 **Baterías gamificadas** — 11 módulos de evaluación adaptados al paciente pediátrico
+- 🎮 **Baterías gamificadas** — 12 módulos de evaluación adaptados al paciente pediátrico
 - 🔇 **Offline-first** — Operación completa sin conexión; los datos clínicos del paciente residen solo en el dispositivo
 - 🌐 **Cuatro lenguas de sesión** — Castellano · Galego · Euskara · Español dominicano, con [banco de estímulos y voz propios](#idiomas-y-voz-neuronal)
 - 🧠 **Cero IA en el dispositivo** — Los modelos neuronales solo corren en **build-time**; la app reproduce audio ya empaquetado y mide con DSP determinista. Principio **ratificado** en [ADR de inferencia en el dispositivo](./docs/design/adr-inferencia-en-dispositivo.md)
@@ -92,6 +93,7 @@ La aplicación opera sobre **tablets iOS/Android** en entornos clínicos bajo su
 - 👁️ **UX dual** — Modo Profesional analítico y Modo Niño lúdico en un único dispositivo
 - 🗂️ **Historial longitudinal** — Resultados de la sesión y sesiones anteriores del paciente accesibles desde el hub
 - 📊 **Telemetría de usabilidad Zero-PHI** — Fricción de uso + percepción del clínico (Likert), exportadas en un QR anónimo (IEC 62366-1), sin tocar la base de datos clínica
+- 🐈‍⬛ **Lúa, refuerzo fuera de la medición** — Soporte del periférico BLE de Valeria+ reducido a la [recompensa de cierre](#lúa-periférico-de-refuerzo): el aparato **no está presente mientras se mide**, y sin hardware todo el módulo es *no-op*
 
 ---
 
@@ -165,7 +167,9 @@ via/
 │   │   ├── luaWire              # Trama SAFE y desglose de STATE, leídos del firmware
 │   │   ├── luaAdapter           # Adaptador único + fachada no-op sin hardware
 │   │   ├── clinicalSilence      # SAFE al abrirse una captura (defensa en profundidad)
-│   │   └── closingReward        # Única integración: recompensa en ResultadosFinal
+│   │   ├── closingReward        # Única integración: recompensa en ResultadosFinal
+│   │   ├── useLua               # useLuaClosingReward() y useLuaDiagnostics()
+│   │   └── installLua           # Instalación conjunta: adaptador BLE + silencio clínico
 │   ├── Telemetry/               # Telemetría de usabilidad Zero-PHI (singleton + hook useRef)
 │   │   ├── telemetryStore       # Estado efímero fuera del árbol React
 │   │   ├── useTelemetryTracker  # Hook silencioso: solo useRef → cero re-render
@@ -180,7 +184,7 @@ via/
 │   ├── PDF/                     # Plantillas y bloques de los informes clínicos
 │   ├── Store/                   # Redux Toolkit (auth · theme · locale · patient…)
 │   ├── Navigators/              # Native Stack + finishModule (salida de módulo)
-│   ├── Components/              # Common · Survey · Themed
+│   ├── Components/              # Common · Survey · Themed · Mascot (LuaPixel, copia con gate)
 │   ├── I18n/                    # Catálogos i18next (es · en · es-DO) — preparado
 │   ├── Theme/                   # Tokens de diseño Gluestack
 │   └── Helpers/
@@ -191,7 +195,7 @@ via/
 │   ├── img/verbal/              # Ilustraciones de las láminas
 │   └── verbal-approval.*.json   # Actas de aprobación clínica por idioma
 │
-├── scripts/                     # Pipeline de voz (corpus, síntesis, mapa de assets)
+├── scripts/                     # Pipeline de voz + gates (protocolo y sprite de Lúa)
 ├── tools/
 │   ├── nos/                     # Motor de voz neuronal (ILENIA · Proxecto Nós · AhoTTS · Piper)
 │   └── acoustics/               # Banco de validación del DSP contra Praat
@@ -239,14 +243,16 @@ El siguiente flujo es **obligatorio** y no puede omitirse. Cada fase es un prere
       │  Selección y orden de los módulos · estado del motor de voz (con reintento)
       ▼
 [5] BATERÍA DE EVALUACIÓN GAMIFICADA
-      │  11 módulos adaptados al perfil del paciente (clínicos + gamificados)
+      │  12 módulos adaptados al perfil del paciente (clínicos + gamificados)
       │  Modo Niño: interfaz lúdica sin elementos clínicos visibles
       │  Al guardar cada módulo, `finishModule` lleva a los resultados de la sesión
+      │  → Sin refuerzo del periférico Lúa en ninguna medición (ver §Lúa)
       ▼
 [6] GENERACIÓN DE RESULTADOS
       │  Informe PDF estructurado para el profesional
       │  Datos clínicos persistidos localmente (SQLite del dispositivo)
       │  Telemetría de usabilidad: Likert del clínico → QR anónimo (Zero-PHI)
+      │  Recompensa de Lúa (ResultadosFinal), ya con los datos sellados y solo si hay aparato
       ▼
 [7] ARCHIVO Y SEGUIMIENTO
          Historial de sesiones anteriores del paciente (HistorialPaciente),
@@ -493,10 +499,10 @@ Cada módulo emite eventos con su granularidad natural (tiempo = respuesta; 2.ª
 | **Captura de nivel sonoro** | `react-native-audio-api` (`AudioRecorder`) | Sonómetro Ambiental: ponderación **A con estado** (IEC 61672) → **LAeq** + percentiles L10/L90 |
 | **Capa de voz de la app** | `src/Voice` sobre `react-native-tts` + assets `.m4a` | Un solo motor de voz para toda la app: recorte neuronal → recorte base `es` → voz del sistema → silencio |
 | **Grabación/reproducción + voz** | `react-native-audio-recorder-player` · `@react-native-voice/voice` | Articulación T.A.R. (repetición y auto-evaluación); el reconocedor arranca con la etiqueta de la lengua y reintenta con la base |
-| **Permisos runtime** | `react-native-permissions` | Micrófono, Bluetooth, cámara, unificados Android/iOS |
+| **Permisos runtime** | `react-native-permissions` | Micrófono y Bluetooth (escaneo + conexión), unificados Android/iOS. La app **no declara permiso de cámara** |
 | **Pulsioximetría BLE** | `react-native-ble-plx` (perfil Pulse Oximeter 0x1822) | Test de Disfagia MECV-V |
-| **Firma digital** | `react-native-signature-canvas` | Consentimiento informado en Evaluación Clínica |
-| **Vídeo / foto clínica** | `react-native-vision-camera` · `react-native-image-picker` | Disfagia y Evaluación Clínica |
+| **Periférico de refuerzo BLE** | `react-native-ble-plx` sobre el GATT de Lúa (`src/Lua`) | Recompensa al cerrar la sesión y silencio clínico; **comparte el mismo `BleManager`** que el pulsioxímetro, ver [Lúa](#lúa-periférico-de-refuerzo) |
+| **Firma digital** | `SignaturePad` propio (`react-native-svg` + `PanResponder`) | Consentimiento informado y cierre firmado del análisis de voz; sin dependencia externa de firma |
 | **Generación PDF** | `pdf-lib` | Informes clínicos estructurados por módulo |
 | **Telemetría de usabilidad** | `lz-string` · `react-native-qrcode-svg` (sobre `react-native-svg`) | Compresión extrema del payload Zero-PHI + código QR de cierre de batería |
 | **Identidad y backend** | Firebase (`@react-native-firebase` app/auth/firestore) | Autenticación email/contraseña + perfil del profesional en Firestore (`professionals/{uid}`) |
@@ -708,6 +714,100 @@ npm run tsc
 
 ---
 
+## Lúa (periférico de refuerzo)
+
+**Lúa es la mascota de Valeria+** —una gata negra tipo *smoking*, en píxel art— y también un
+**aparato físico de refuerzo** sobre ESP32-C3 con una pantalla circular de 240 × 240 que se
+comunica por BLE. **El proyecto no es de este repositorio: vive en `FrankBetances/Valeria`**,
+y allí están el firmware, la tabla de opcodes y el plan completo.
+
+Lo que hay en VIA+ es deliberadamente pequeño, y el diseño está en
+[`docs/design/integracion-lua.md`](./docs/design/integracion-lua.md).
+
+### La postura: el control es la ausencia
+
+El §8 del plan de Valeria+ se titula «VIA+: la integración correcta es la ausencia», y de ahí
+sale todo lo demás:
+
+> **Lúa no está presente durante la medición.** Es un **requisito del protocolo de exploración**
+> —un aparato ausente no puede interferir en una audiometría de campo libre ni en una toma de
+> voz—, no un control implementado en software. Se audita mirando, no leyendo logs.
+
+Esa distinción no es retórica. Declarar el silencio del periférico como el control de riesgo de
+la interferencia obligaría a demostrar, para el marcado CE de un SaMD Clase IIa, que el comando
+llega siempre, que el firmware siempre obedece y que el fallo es detectable — y a meter un
+dispositivo externo no verificado en el expediente técnico. Una versión anterior del diseño lo
+planteaba así y era un error caro; está anotado en el §1.1 del documento.
+
+### Lo único que hace VIA+
+
+| Pieza | Qué hace | Dónde |
+|---|---|---|
+| **Recompensa de cierre** | La **única** integración de la v1: al llegar a `ResultadosFinal`, con la exploración terminada y los datos ya sellados, se pide `UNLOCK` → `GRANT` → `CELEBRATE` y se renueva el latido mientras la pantalla vive | `closingReward.ts` · `useLuaClosingReward()` |
+| **Silencio clínico** | Defensa en profundidad, por si alguien la trae puesta: al abrirse **cualquier** captura de micrófono se escribe `SAFE`/`CLINICAL_SILENCE`, que revoca la concesión y **bloquea** nuevas hasta un desbloqueo explícito | `clinicalSilence.ts` |
+| **Diagnóstico** | Estado notificado por `STATE` para una pantalla de ajustes. **No entra en ningún informe ni en ninguna decisión** | `useLuaDiagnostics()` |
+
+Y, por el mismo motivo, lo que **no** hay:
+
+- **Ningún refuerzo durante ningún módulo**, ni siquiera al cerrar uno (`ResultadosPreliminares`):
+  la sesión sigue abierta y puede haber otra toma de voz a continuación. Solo al cerrar la **sesión**.
+- **No se envían `VERDICT` ni `PHASE`.** Existen en el protocolo porque Valeria+ los usa dentro de
+  la terapia; en VIA+ serían refuerzo durante la medición, explícitamente fuera de la v1.
+- **Ninguna decisión de VIA+ lee nada de Lúa.** El enlace es de un solo sentido, y esa asimetría es
+  lo que sostiene que el aparato sea un accesorio y no parte del dispositivo médico.
+
+### El protocolo se genera, no se escribe
+
+`protocol.json` lo consumen tres sitios —el firmware en C, Valeria+ y este repositorio— y su
+propia nota avisa de que las copias a mano se desincronizan. El bug que produce eso no sale como
+error de compilación: sale como una mascota que hace cosas raras en la consulta.
+
+```
+src/Lua/protocol.json           ← copia VENDORIZADA byte a byte desde Valeria+
+scripts/build-lua-protocol.js   ← genera el .ts (--check lo verifica como gate)
+src/Lua/luaProtocol.ts          ← GENERADO. No se edita a mano
+src/Lua/luaWire.ts              ← lo que el .json no cubre (trama SAFE, desglose de STATE),
+                                  leído del FIRMWARE y con la línea citada
+```
+
+El **sprite** sigue la misma regla: `src/Components/Mascot/LuaPixel.tsx` es una copia literal de
+Valeria+ que no se edita aquí, y `scripts/check-lua-sprite.js` compara el dibujo **píxel a píxel**
+en cada release. Si ese gate falla, el dibujo se cambia en Valeria+ y se vuelve a copiar.
+
+### Enlace GATT
+
+| Característica | Escritura | Para qué |
+|---|---|---|
+| `CTRL` | **Sin** confirmación | `GRANT`, `HEARTBEAT`, `IDLE`, `CELEBRATE`. Camino de latencia (presupuesto de 300 ms del veredicto al primer fotograma) |
+| `SAFE` | **Con** confirmación | `CLINICAL_SILENCE` y `UNLOCK`. La única escritura del enlace en la que importa saber que llegó |
+| `STATE` | Notificación | Modo, segundos de concesión restantes, cara, versión, fps y µs de despacho. **Diagnóstico** |
+| `CFG` | — | No se usa en la v1 |
+
+Dos reglas duras del adaptador:
+
+1. **Nada de `await` hacia Lúa desde un flujo clínico.** Los envíos de `CTRL` son dispara-y-olvida
+   con `catch` vacío deliberado: una mascota apagada no puede colgar una exploración.
+2. **BLE-only.** La sesión de audio de VIA+ se configura con `allowBluetooth` y `allowBluetoothA2DP`;
+   un perfil de audio clásico en el periférico dejaría que iOS encaminase hacia él los tonos de la
+   audiometría **sin ningún error a la vista**. Lúa no anuncia A2DP ni HFP y en la v1 no tiene altavoz.
+
+> **Zero-PHI estructural.** La tabla de opcodes no tiene **ni un campo de texto**. Un nombre de
+> paciente no puede llegar al aparato porque no existe el sitio donde meterlo — es una garantía de
+> la forma del protocolo, no de la disciplina de quien lo usa.
+
+### Estado: hoy todo `src/Lua/` es *no-op*
+
+El módulo está implementado y probado (`src/Lua/__tests__/`, 7 suites: protocolo, cable, adaptador,
+silencio clínico, recompensa, gate del sprite y punto único del micrófono), pero **`installLua()`
+todavía no se llama en `App.tsx`**: necesita un `BleManager` y hoy la app no crea ninguno — el
+adaptador del pulsioxímetro está en la misma situación, esperando ese manager compartido. Crearlo
+cambia el arranque en iOS (el primer uso dispara el permiso de Bluetooth del sistema), así que es
+una decisión de la fase de hardware y se toma con la placa delante, de una vez para los dos
+periféricos. Sin adaptador registrado, cada llamada a la fachada no hace nada y ninguna pantalla
+se entera.
+
+---
+
 ## Herramientas de Build-Time
 
 Dos cadenas de herramientas corren **fuera del dispositivo**. Ninguna librería de IA ni de análisis
@@ -743,7 +843,7 @@ del HNR no declarado, y un caso de prueba mal construido. Detalle en
 | Workflow | Disparo | Qué hace |
 |---|---|---|
 | `voice-assets.yml` | Manual · push a `claude/**` que toque el corpus o `tools/nos` | Sintetiza consignas y/o recortes verbales de los cuatro idiomas y los commitea a la rama (nunca a `main`). Tolerante: una voz que falle no tira el lote |
-| `android-release.yml` | Manual · push a `main` (android, src, assets/audio) | **Puerta de locuciones** → keystore → APK + AAB firmados → verificación de firma → artefactos |
+| `android-release.yml` | Manual · push a `main` (android, src, assets/audio) | **Puerta de locuciones** → **gate del sprite de Lúa** → keystore → APK + AAB firmados → verificación de firma → artefactos |
 | `acoustic-validation.yml` | PR/push que toque `VoiceAnalysis` o `tools/acoustics` | Contrasta el DSP con Praat y falla si un parámetro se desvía de su tolerancia |
 | `codeql.yml` | Push/PR a `main` + semanal | Análisis estático de seguridad |
 | `markdown-lint.yml` | Cambios en `**/*.md` | `markdownlint-cli2` con la configuración de `.markdownlint.yaml` |
@@ -754,6 +854,15 @@ del HNR no declarado, y un caso de prueba mal construido. Detalle en
 > propias, la misma que usa la pantalla para advertir al profesional. Falla en los dos sentidos: si
 > a un idioma no declarado pendiente le faltan recortes (la app prometería un estímulo que no
 > existe) y si un idioma declarado pendiente ya los tiene todos (el aviso ha pasado a ser falso).
+
+<!-- Separador: dos citas independientes, no una continuación. -->
+
+> **Los dos gates de Lúa.** `scripts/check-lua-sprite.js` corre en la release y compara el dibujo
+> de la mascota píxel a píxel con el de Valeria+; `scripts/build-lua-protocol.js --check` verifica
+> que la tabla generada siga cuadrando con `src/Lua/protocol.json` (también cubierto por
+> `luaProtocolGate.test.ts`). Ninguno de los dos puede comprobar que la copia vendorizada siga al
+> día respecto a Valeria+ —este repositorio no ve el otro—: para eso está el procedimiento de
+> sincronización de [`docs/design/integracion-lua.md`](./docs/design/integracion-lua.md).
 
 La gobernanza del repositorio —CODEOWNERS, política de divulgación, Dependabot en modo solo
 seguridad, protección de rama y *secret scanning*— está documentada en
@@ -801,6 +910,7 @@ docs/
     ├── validacion-clinica-verbal.md      # Trazabilidad de la aprobación clínica
     ├── integracion-proxecto-nos.md       # Plan de integración del gallego (ILENIA)
     ├── integracion-quisqueya-habla.md    # Plan de integración de la variante dominicana
+    ├── integracion-valeria.md            # Voz de referencia de Valeria+: qué se portó y dónde se desvió
     └── integracion-lua.md                # Lúa en VIA+: solo recompensa de cierre (el aparato es de Valeria+)
 ```
 
@@ -829,8 +939,15 @@ docs/risk-management/          (🔴 pendiente)
 └── risk-controls.md           # Controles implementados
 ```
 
-Para reportar un incidente de seguridad: **safety@earlify.com** · para vulnerabilidades del código,
-la política de divulgación responsable está en [`.github/SECURITY.md`](./.github/SECURITY.md).
+> **Periféricos externos y alcance del expediente.** El refuerzo de Lúa está diseñado para quedar
+> **fuera** del análisis de riesgo del dispositivo: el aparato no está presente durante la medición
+> —control de procedimiento, no de software—, el enlace es de un solo sentido y nada de lo que
+> notifica entra en una decisión clínica o en un informe. Ver [Lúa](#lúa-periférico-de-refuerzo).
+
+Para reportar un incidente de seguridad o una vulnerabilidad del código, los canales privados son
+los de la política de divulgación responsable: **GitHub Security Advisories** (pestaña *Security* →
+*Report a vulnerability*) o el correo indicado en
+[`.github/SECURITY.md`](./.github/SECURITY.md). **No abras un issue público.**
 
 ---
 
@@ -882,6 +999,11 @@ Earlify Health
 │
 ├── Valeria+      →  Rehabilitación adaptativa del lenguaje
 │                    Cápsulas TPR (Total Physical Response) con padres
+│                    │
+│                    └── Lúa  →  Mascota y periférico físico de refuerzo (ESP32-C3, BLE)
+│                                Su firmware, su protocolo y su sprite viven en
+│                                `FrankBetances/Valeria`. VIA+ solo lo usa para la
+│                                recompensa de cierre (ver §Lúa)
 │
 └── [Módulos futuros en roadmap]
 ```
@@ -908,6 +1030,7 @@ Earlify Health
 | Sitio público y política de privacidad (Pages) | 🟢 Publicable |
 | Release firmada de Android (APK + AAB) | 🟢 En CI, con puerta de locuciones |
 | Port nativo iOS (SwiftUI) | 🟡 Parcial (acceso, paciente, consentimiento, CAP, sonómetro) |
+| Lúa — periférico de refuerzo BLE | 🟡 Código completo y probado; *no-op* hasta que exista el `BleManager` compartido ([detalle](#estado-hoy-todo-srclua-es-no-op)) |
 | Cifrado en reposo y seudonimización efectiva | 🔴 Pendiente ([detalle](#controles-de-seguridad)) |
 | Expediente de gestión de riesgos (ISO 14971) | 🔴 Pendiente |
 | Sincronización clínica HL7-FHIR | 🔴 Pendiente (roadmap) |
@@ -951,7 +1074,7 @@ Consulta el archivo [LICENSE](./LICENSE) para los términos completos.
 | Área | Contacto |
 |---|---|
 | General / Licencias | fbetances@futureforkids.eu |
-| Incidentes de seguridad | safety@earlify.com |
+| Incidentes de seguridad y vulnerabilidades | Canales privados de [`.github/SECURITY.md`](./.github/SECURITY.md) (GitHub Security Advisories, preferido) |
 
 ---
 
