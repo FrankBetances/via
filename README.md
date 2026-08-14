@@ -93,7 +93,7 @@ La aplicación opera sobre **tablets iOS/Android** en entornos clínicos bajo su
 - 👁️ **UX dual** — Modo Profesional analítico y Modo Niño lúdico en un único dispositivo
 - 🗂️ **Historial longitudinal** — Resultados de la sesión y sesiones anteriores del paciente accesibles desde el hub
 - 📊 **Telemetría de usabilidad Zero-PHI** — Fricción de uso + percepción del clínico (Likert), exportadas en un QR anónimo (IEC 62366-1), sin tocar la base de datos clínica
-- 🐈‍⬛ **Lúa, refuerzo fuera de la medición** — Soporte del periférico BLE de Valeria+ reducido a la [recompensa de cierre](#lúa-periférico-de-refuerzo): el aparato **no está presente mientras se mide**, y sin hardware todo el módulo es *no-op*
+- 🐈‍⬛ **Lúa, refuerzo fuera de la medición** — Soporte del periférico BLE de Valeria+ reducido a la [recompensa de cierre](#lúa-periférico-de-refuerzo): el aparato **no está presente mientras se mide**, y sin hardware todo el módulo es *no-op*. La dirección amplió el alcance el 14/8/2026 —espejo durante la batería y alertas sonoras—, sin implementar todavía: [decisión y matriz](./docs/design/lua-salida-y-alertas-sonoras.md)
 
 ---
 
@@ -724,7 +724,15 @@ y allí están el firmware, la tabla de opcodes y el plan completo.
 Lo que hay en VIA+ es deliberadamente pequeño, y el diseño está en
 [`docs/design/integracion-lua.md`](./docs/design/integracion-lua.md).
 
-### La postura: el control es la ausencia
+> ⚠ **14/8/2026 · la dirección cambió el alcance, y esta sección describe lo que hay hoy.**
+> Lúa queda fijada como periférico **estrictamente de salida** —pantalla y altavoz, cero
+> micrófonos, cero ASR en el aparato— y pasa a estar **presente durante la batería**,
+> espejando y con alertas sonoras en algunos módulos. Nada de eso está implementado y el
+> sonido está bloqueado por hardware: **ninguna de las placas estudiadas anima la cara y
+> habla a la vez**. La decisión entera, la matriz por módulo y lo que falta están en
+> [`docs/design/lua-salida-y-alertas-sonoras.md`](./docs/design/lua-salida-y-alertas-sonoras.md).
+
+### La postura: el control es la ausencia — *superada en la conclusión, vigente en el argumento*
 
 El §8 del plan de Valeria+ se titula «VIA+: la integración correcta es la ausencia», y de ahí
 sale todo lo demás:
@@ -738,6 +746,12 @@ la interferencia obligaría a demostrar, para el marcado CE de un SaMD Clase IIa
 llega siempre, que el firmware siempre obedece y que el fallo es detectable — y a meter un
 dispositivo externo no verificado en el expediente técnico. Una versión anterior del diseño lo
 planteaba así y era un error caro; está anotado en el §1.1 del documento.
+
+**El criterio sobrevive al cambio de alcance, y es el que hay que aplicar módulo a módulo:** si
+el aparato se apaga y la exploración sigue igual, es un accesorio; si la maniobra depende de que
+el aviso llegue, no lo es. De las siete filas de la matriz nueva, tres caen del segundo lado —el
+maquinista del tren de la audiometría condicionada **es el método**, no un adorno—, y esa
+conversación se tiene con el organismo notificado, no en un `.md`.
 
 ### Lo único que hace VIA+
 
@@ -789,7 +803,12 @@ Dos reglas duras del adaptador:
    con `catch` vacío deliberado: una mascota apagada no puede colgar una exploración.
 2. **BLE-only.** La sesión de audio de VIA+ se configura con `allowBluetooth` y `allowBluetoothA2DP`;
    un perfil de audio clásico en el periférico dejaría que iOS encaminase hacia él los tonos de la
-   audiometría **sin ningún error a la vista**. Lúa no anuncia A2DP ni HFP y en la v1 no tiene altavoz.
+   audiometría **sin ningún error a la vista**. Lúa no anuncia A2DP ni HFP. Esta regla **sube de
+   importancia** con el altavoz autorizado, no baja: mientras el aparato no podía sonar, un
+   encaminamiento por descuido era un fallo silencioso sin transductor al otro lado; con altavoz,
+   es una audiometría de campo libre saliendo de verdad por un altavoz de juguete sin calibrar.
+   Las órdenes de sonido viajan como **un identificador por GATT**, nunca como audio encaminado
+   por el sistema.
 
 > **Zero-PHI estructural.** La tabla de opcodes no tiene **ni un campo de texto**. Un nombre de
 > paciente no puede llegar al aparato porque no existe el sitio donde meterlo — es una garantía de

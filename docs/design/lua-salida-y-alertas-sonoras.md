@@ -376,7 +376,11 @@ no vinculante para Valeria+, §4.1):
    separa a la recompensa de cierre de funcionar contra un aparato real. Lo
    espera también el pulsioxímetro.
 
-**Lo que hay que cerrar en Valeria+ antes de que exista:**
+**Lo que hay que cerrar en Valeria+ antes de que exista** — los ocho puntos están
+desglosados, con su cita y sin convertirlos en parches, en
+[`docs/pendiente-en-valeria.md`](https://github.com/FrankBetances/lua-firmware/blob/main/docs/pendiente-en-valeria.md)
+del repositorio del firmware. **Es la lista que hay que darle al agente cuando se
+abra una sesión con Valeria+:**
 
 3. **La placa, que es la decisión de verdad del sonido** (§6.1): tonos en la C3,
    otra placa, o la consigna por el altavoz de la tableta. Hasta que esto no se
