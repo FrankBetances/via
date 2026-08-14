@@ -17,6 +17,7 @@ import {
   isLuaConnected,
   luaCelebrate,
   luaClinicalSilence,
+  luaMute,
   luaGrant,
   luaHeartbeat,
   luaIdle,
@@ -151,7 +152,13 @@ describe('adaptador BLE', () => {
     expect(ble.written).toEqual([
       {
         characteristic: LUA_CHR.CTRL,
-        bytes: [LUA_PROTOCOL_VERSION, LUA_OP.GRANT, 30, 0],
+        // El cuarto byte es la máscara de capacidades y vale 0x01 (VISUAL).
+        // VIA+ la manda EXPLÍCITA en vez de dejarla a 0: en una captura de
+        // tramas se lee lo que se está pidiendo, y la sonora tiene que ser
+        // siempre un bit que alguien escribió a mano. Un firmware anterior al
+        // campo lee los 16 bits como TTL (0x011E = 286), lo recorta a 60 y se
+        // comporta igual, así que el byte explícito no rompe nada flasheado.
+        bytes: [LUA_PROTOCOL_VERSION, LUA_OP.GRANT, 30, 0x01],
         withResponse: false,
       },
       {
@@ -169,7 +176,7 @@ describe('adaptador BLE', () => {
     await settle();
 
     luaGrant(9999);
-    expect(ble.written[0].bytes).toEqual([LUA_PROTOCOL_VERSION, LUA_OP.GRANT, 60, 0]);
+    expect(ble.written[0].bytes).toEqual([LUA_PROTOCOL_VERSION, LUA_OP.GRANT, 60, 0x01]);
     cleanup();
   });
 
@@ -183,6 +190,31 @@ describe('adaptador BLE', () => {
       {
         characteristic: LUA_CHR.SAFE,
         bytes: [LUA_SAFE.CLINICAL_SILENCE, 0x00],
+        withResponse: true,
+      },
+    ]);
+    cleanup();
+  });
+
+  it('MUTE va por SAFE, CON confirmación, y no toca la concesión visual', async () => {
+    const ble = fakeManager();
+    const cleanup = installBleLua(ble.manager);
+    await settle();
+
+    luaGrant(30);
+    await expect(luaMute()).resolves.toBe(true);
+    // La concesión visual sale por CTRL y el silencio sonoro por SAFE: son dos
+    // escrituras a dos características distintas, y la segunda no revoca la
+    // primera. Es la diferencia con CLINICAL_SILENCE, que se lleva las dos.
+    expect(ble.written).toEqual([
+      {
+        characteristic: LUA_CHR.CTRL,
+        bytes: [LUA_PROTOCOL_VERSION, LUA_OP.GRANT, 30, 0x01],
+        withResponse: false,
+      },
+      {
+        characteristic: LUA_CHR.SAFE,
+        bytes: [LUA_SAFE.MUTE, 0x00],
         withResponse: true,
       },
     ]);

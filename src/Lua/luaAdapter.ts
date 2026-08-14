@@ -28,11 +28,13 @@
 /* -------------------------------------------------------------------------- */
 
 import {
+  LUA_CAP,
   LUA_CHR,
   LUA_OP,
   LUA_SAFE,
   LUA_SERVICE_UUID,
   luaFrame,
+  luaGrantParam,
   type LuaOp,
 } from './luaProtocol';
 import {
@@ -99,8 +101,16 @@ export const luaCtrl = (op: LuaOp, param = 0): void => {
   }
 };
 
-/** Concede capacidad visual durante `seconds` (1-60). */
-export const luaGrant = (seconds: number): void => luaCtrl(LUA_OP.GRANT, clampGrantSeconds(seconds));
+/**
+ * Concede capacidades durante `seconds` (1-60). Sin `caps` concede **solo la
+ * visual**: la sonora nunca es implícita y hay que pedir su bit.
+ *
+ * VIA+ no la pide nunca. Desde la D-K la voz sale del altavoz de la tableta y
+ * Lúa es muda en los siete módulos, así que aquí `caps` existe para que
+ * `LUA_CAP.SOUND` tenga que escribirse a mano el día que alguien lo intente.
+ */
+export const luaGrant = (seconds: number, caps: number = LUA_CAP.VISUAL): void =>
+  luaCtrl(LUA_OP.GRANT, luaGrantParam(clampGrantSeconds(seconds), caps));
 
 /** Renueva la concesión viva. El firmware la extiende al máximo (60 s). */
 export const luaHeartbeat = (): void => luaCtrl(LUA_OP.HEARTBEAT);
@@ -126,7 +136,25 @@ export const luaClinicalSilence = async (): Promise<boolean> => {
   }
 };
 
-/** Levanta el bloqueo del silencio clínico. Sin esto, el aparato no dibuja nada. */
+/**
+ * Silencio SONORO: quita la capacidad de sonar y **deja la pantalla viva**. Es
+ * lo que permite que la gata acompañe la /a/ sostenida con el micrófono
+ * abierto, que con `CLINICAL_SILENCE` era imposible —bloquea el aparato entero
+ * y en `LOCKED` no se dibuja nada—.
+ *
+ * Pega en el firmware hasta un `luaUnlock()` explícito: un `GRANT` posterior no
+ * devuelve el sonido. No sustituye al silencio clínico y no lo suaviza; son dos
+ * herramientas para dos casos, y la de apagarlo todo sigue siendo la otra.
+ */
+export const luaMute = async (): Promise<boolean> => {
+  try {
+    return (await adapter?.sendSafe(LUA_SAFE.MUTE)) ?? false;
+  } catch {
+    return false;
+  }
+};
+
+/** Levanta el bloqueo del silencio clínico y el sonoro. Sin esto, el aparato no dibuja nada. */
 export const luaUnlock = async (): Promise<boolean> => {
   try {
     return (await adapter?.sendSafe(LUA_SAFE.UNLOCK)) ?? false;

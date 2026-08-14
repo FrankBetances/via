@@ -30,6 +30,9 @@ const SRC = path.join(ROOT, 'src', 'Lua', 'protocol.json');
 const OUT_TS = path.join(ROOT, 'src', 'Lua', 'luaProtocol.ts');
 
 const hx = n => `0x${n.toString(16).padStart(2, '0').toUpperCase()}`;
+// La máscara se deriva del bit: escribir el valor a mano en el .json sería
+// tener dos formas de decir lo mismo y que se separen.
+const capMask = c => 1 << c.bit;
 
 /** Cabecera propia de VIA+: deja escrito de dónde viene la tabla. */
 const header = `// GENERADO por scripts/build-lua-protocol.js — no editar a mano.
@@ -62,6 +65,15 @@ export const LUA_OP = {
 ${p.opcodes.map(o => `  ${o.key}: ${hx(o.code)},`).join('\n')}
 } as const;
 
+/**
+ * Capacidades concedibles. Viajan en el byte ALTO del parámetro de \`GRANT\`;
+ * el byte bajo es el TTL. Una máscara de 0 concede SOLO la visual, que es lo
+ * que valía un \`GRANT\` antes de que este campo existiera.
+ */
+export const LUA_CAP = {
+${p.capabilities.map(c => `  ${c.key}: ${hx(capMask(c))},`).join('\n')}
+} as const;
+
 /** Operaciones de SAFE (con confirmación: aquí sí importa saber que llegó). */
 export const LUA_SAFE = {
 ${p.safeOps.map(o => `  ${o.key}: ${hx(o.code)},`).join('\n')}
@@ -86,6 +98,16 @@ export type LuaOp = (typeof LUA_OP)[keyof typeof LUA_OP];
 /** Trama de CTRL: versión, opcode y parámetro de 16 bits little-endian. */
 export const luaFrame = (op: LuaOp, param = 0): Uint8Array =>
   Uint8Array.from([LUA_PROTOCOL_VERSION, op, param & 0xff, (param >> 8) & 0xff]);
+
+/**
+ * Parámetro de \`GRANT\`: TTL en el byte bajo, capacidades en el alto.
+ * Sin capacidades explícitas concede solo la visual — la sonora se pide, nunca
+ * se hereda.
+ */
+export const luaGrantParam = (ttlSeconds: number, caps = 0): number => {
+  const ttl = Math.max(1, Math.min(LUA_LIMITS.grantMaxSeconds, Math.trunc(ttlSeconds)));
+  return ((caps & 0xff) << 8) | ttl;
+};
 `;
 }
 

@@ -18,8 +18,12 @@
 > repositorios**, y todavía no puede haberla: §6 dice por qué y §7 en qué orden
 > se desbloquea.
 >
-> ✅ **El sonido está cerrado (Frank, 14/8/2026 · D-K del plan de Valeria+): la
-> voz la pone la tableta.** Lúa se queda con la cara, la placa no se mueve y **el
+> ✅ **Cerrados los dos: el sonido (D-K) y el permiso (D-L), 14/8/2026.** La voz
+> la pone la tableta, y `GRANT` ya lleva máscara de capacidades con un `MUTE` en
+> `SAFE` que silencia **sin apagar la pantalla** — el estado que este documento
+> pedía en su §5 y que hoy ya existe en el enlace y en el firmware.
+>
+> **El sonido, en detalle: la voz la pone la tableta.** Lúa se queda con la cara, la placa no se mueve y **el
 > altavoz del aparato desaparece de las siete filas de la matriz** (§3). Con eso
 > caen `AudioPlay`, `noisePermit.ts`, el TTL de 3 s y cualquier cambio del gate
 > de la mudez: no eran trabajo pendiente, y ahora directamente no existen. La
@@ -449,12 +453,13 @@ abra una sesión con Valeria+:**
    (Frank, 14/8/2026 · D-K): la consigna la dice la tableta.** Con eso,
    `AudioPlay`, el TTL del permiso de ruido y el volumen por trama **dejan de ser
    trabajo pendiente y pasan a no existir**. Este punto ya no bloquea nada.
-4. **Recuperar el campo de capacidad de `GRANT` en `protocol.json`** (§5), que el
-   plan declara en su §6.2 y la tabla perdió. Es lo que da el estado «dibuja pero
-   no suena» sin opcode nuevo. **Con el punto 3 cerrado, este es el primero de la
-   lista** — y no perdió sentido al cerrarse aquel, lo ganó: si Lúa no suena
-   nunca, VIA+ necesita exactamente una concesión visual sin concesión sonora, y
-   hoy `SAFE` bloquea el aparato entero.
+4. ~~**Recuperar el campo de capacidad de `GRANT` en `protocol.json`**~~ — ✅
+   **CERRADO Y APLICADO (14/8/2026 · D-L).** TTL en el byte bajo, máscara en el
+   alto (`LUA_CAP.VISUAL`, `LUA_CAP.SOUND`), y una operación `MUTE` en `SAFE` que
+   quita el sonido dejando la pantalla viva. Sin opcode nuevo, así que cumple la
+   D-F. Bajado ya a las tres copias; en este repositorio `luaGrant()` concede solo
+   la visual y `luaMute()` existe. **Lo que sigue siendo del §4 y no de esto: que
+   VIA+ lo use durante las capturas.**
 5. **De paso, las otras dos discrepancias de origen ya anotadas**: `STATE` dice
    publicar batería y capacidades vivas y publica cara, fps y microsegundos; y el
    latido renueva al máximo en un firmware y al TTL concedido en el otro —abierto

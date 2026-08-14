@@ -761,6 +761,21 @@ conversación se tiene con el organismo notificado, no en un `.md`.
 | **Silencio clínico** | Defensa en profundidad, por si alguien la trae puesta: al abrirse **cualquier** captura de micrófono se escribe `SAFE`/`CLINICAL_SILENCE`, que revoca la concesión y **bloquea** nuevas hasta un desbloqueo explícito | `clinicalSilence.ts` |
 | **Diagnóstico** | Estado notificado por `STATE` para una pantalla de ajustes. **No entra en ningún informe ni en ninguna decisión** | `useLuaDiagnostics()` |
 
+#### Dibujar y sonar son dos permisos distintos (D‑L, 14/8/2026)
+
+`GRANT` lleva **TTL en el byte bajo y máscara de capacidades en el alto**: `LUA_CAP.VISUAL` y
+`LUA_CAP.SOUND`, generadas de la tabla. `luaGrant(seconds)` concede **solo la visual** y VIA+ no
+pide la sonora nunca —desde la D‑K la voz sale del altavoz de la tableta y Lúa es muda en los siete
+módulos—, así que `LUA_CAP.SOUND` está para que alguien tenga que escribirlo a mano.
+
+Y `SAFE` gana `MUTE` (`luaMute()`), que quita el sonido **dejando la pantalla viva**: es el estado
+«dibuja pero no suena» que hacía falta para que la gata pueda acompañar la /a/ sostenida con el
+micrófono abierto. **Hoy VIA+ no lo usa**, y no por descuido: `clinicalSilence.ts` sigue emitiendo
+`CLINICAL_SILENCE` durante las capturas, porque poner un aparato animándose en la sala durante una
+medición mueve a Lúa de accesorio a parte del acto clínico, y eso es Clase IIa — se decide con el
+análisis de riesgo delante (§4 de [`lua-salida-y-alertas-sonoras.md`](docs/design/lua-salida-y-alertas-sonoras.md)),
+no cambiando una línea.
+
 Y, por el mismo motivo, lo que **no** hay:
 
 - **Ningún refuerzo durante ningún módulo**, ni siquiera al cerrar uno (`ResultadosPreliminares`):
@@ -793,7 +808,7 @@ en cada release. Si ese gate falla, el dibujo se cambia en Valeria+ y se vuelve 
 | Característica | Escritura | Para qué |
 |---|---|---|
 | `CTRL` | **Sin** confirmación | `GRANT`, `HEARTBEAT`, `IDLE`, `CELEBRATE`. Camino de latencia (presupuesto de 300 ms del veredicto al primer fotograma) |
-| `SAFE` | **Con** confirmación | `CLINICAL_SILENCE` y `UNLOCK`. La única escritura del enlace en la que importa saber que llegó |
+| `SAFE` | **Con** confirmación | `CLINICAL_SILENCE`, `UNLOCK` y `MUTE`. La única escritura del enlace en la que importa saber que llegó |
 | `STATE` | Notificación | Modo, segundos de concesión restantes, cara, versión, fps y µs de despacho. **Diagnóstico** |
 | `CFG` | — | No se usa en la v1 |
 
