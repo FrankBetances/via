@@ -18,6 +18,16 @@
 > repositorios**, y todavía no puede haberla: §6 dice por qué y §7 en qué orden
 > se desbloquea.
 >
+> ✅ **El sonido está cerrado (Frank, 14/8/2026 · D-K del plan de Valeria+): la
+> voz la pone la tableta.** Lúa se queda con la cara, la placa no se mueve y **el
+> altavoz del aparato desaparece de las siete filas de la matriz** (§3). Con eso
+> caen `AudioPlay`, `noisePermit.ts`, el TTL de 3 s y cualquier cambio del gate
+> de la mudez: no eran trabajo pendiente, y ahora directamente no existen. La
+> fila que pedía locución de consigna **ya funcionaba** por `@/Voice`. Lo que
+> sigue abierto de este documento es lo **visual**: el arte que no existe (§3.1),
+> la clasificación regulatoria fila a fila (§4) y el campo de capacidad de `GRANT`
+> (§5), que la D-K hace más necesario, no menos.
+>
 > Este documento **no sustituye** a [`integracion-lua.md`](integracion-lua.md),
 > que sigue describiendo lo que VIA+ hace hoy. Lo que hace es marcar qué parte
 > de aquel documento queda superada por esta decisión —el §3, «el control es la
@@ -87,11 +97,19 @@ que traducir nada al implementarlo.
 | :--- | :--- | :--- | :--- |
 | **`DysphagiaTest`** (MECV-V) | Modelo visual de postura y deglución | **Silencio.** La orden de tragar la da el clínico | No. Usa el pulsioxímetro BLE |
 | **`AudiometryConditioned`** | Maquinista del tren: avanza al detectar respuesta | **Silencio.** Los tonos salen por los auriculares o la tableta | No. La respuesta es motora, en pantalla |
-| **`ExecutiveFunctions`** | Avatar de juego y retroalimentación de bloque | Locución de consigna inicial pregrabada (`@/Voice`) | No. Interacción táctil |
+| **`ExecutiveFunctions`** | Avatar de juego y retroalimentación de bloque | **Silencio.** La consigna la locuta **la tableta** (`@/Voice`), y ya lo hace | No. Interacción táctil |
 | **`VoiceAnalysis`** (/a/ sostenida) | Gata respirando hondo / cantando | **Silencio absoluto** | **Sí** · 48 kHz → F₀, jitter, shimmer, HNR, formantes |
 | **`ProsodyAnalysis`** (habla continua) | Gata con cara atenta, escucha activa | **Silencio absoluto** | **Sí** · pausas, rango dinámico en semitonos |
 | **`RoomNoiseCheck`** | — | **Silencio absoluto** | **Sí** · sonómetro |
-| **`ResultadosFinal`** (cierre) | Animación de celebración | Locución de refuerzo y felicitación | No |
+| **`ResultadosFinal`** (cierre) | Animación de celebración | **Silencio.** El refuerzo hablado lo pone **la tableta** | No |
+
+**La columna del altavoz se quedó entera en silencio, y no por prudencia: por la
+D-K** (Frank, 14/8/2026, §14 del plan de Valeria+). La voz la pone la tableta y
+Lúa se queda con la cara, así que en los siete módulos el aparato **no emite ni un
+sonido**. Lo que era una regla que había que sostener módulo a módulo pasa a ser
+una propiedad del aparato: en VIA+, Lúa es muda por decisión, no por
+temporización. Las consecuencias están en §6, y son casi todas cosas que ya no hay
+que construir.
 
 Tres lecturas que no son evidentes en la tabla:
 
@@ -100,7 +118,11 @@ Tres lecturas que no son evidentes en la tabla:
    Valeria+ («Lúa no suena mientras la tableta escucha»). Un pitido encima del
    estímulo enmascara, y un pitido durante la captura entra en el micrófono y
    contamina la medida. Aquí pesa más aún que allí, porque lo que contamina no
-   es un reconocedor: es un F₀ y un HNR que van a un informe.
+   es un reconocedor: es un F₀ y un HNR que van a un informe. **Con la D-K esta
+   regla deja de necesitar vigilancia en VIA+**: el aparato no puede violarla
+   porque no tiene nada que emitir. Sigue escrita porque es la que explica por
+   qué la columna es como es, y porque en Valeria+ —donde el zumbador sigue
+   autorizado— sí hay que sostenerla.
 2. **Donde el altavoz calla, la pantalla no.** `VoiceAnalysis` y
    `ProsodyAnalysis` piden gata visible con el micrófono abierto. **Hoy eso es
    imposible por construcción** y es el conflicto principal de esta decisión:
@@ -205,6 +227,15 @@ tres necesitan la conversación regulatoria del §4.
 
 ## 5. El permiso de ruido, y por qué no es el silencio clínico que ya existe
 
+> **Reducido por la D-K (14/8/2026), y conviene ver hasta dónde.** Con la voz en
+> la tableta, **`noisePermit.ts` deja de hacer falta**: no hay capacidad sonora
+> que revocar en un aparato que no suena. Lo que **no** desaparece es la otra
+> mitad de esta sección —el estado «dibuja pero no suena»—, y de hecho la D-K lo
+> hace más necesario, no menos: VIA+ necesita que la gata esté **visible**
+> durante la /a/ sostenida, y hoy `CLINICAL_SILENCE` bloquea el aparato entero.
+> Lo que hay que recuperar en `protocol.json` es el campo de capacidad de `GRANT`;
+> lo que ya no hay que escribir es el temporizador de ruido y su TTL de 3 s.
+
 La dirección describe `noisePermit.ts`: un coordinador colgado de
 `onRecordingSessionChange()` que **revoca el permiso de ruido** cuando la tableta
 abre el micrófono. La intención es exactamente la correcta. El detalle que hay
@@ -261,11 +292,43 @@ cada 10 s (`LUA_LIMITS`), así que aquel diseño habría dejado a Lúa en reposo
 entre latido y latido. Un *dead-man's switch* de 3 s para el sonido es una idea
 razonable —cuanto más corto, antes calla si se cae el enlace—, pero **exige un
 latido más rápido que el que el firmware implementa hoy**, y eso hay que
-decidirlo con el firmware delante y no aquí.
+decidirlo con el firmware delante y no aquí. *(Con la D-K esta discusión se
+archiva: no hay sonido que temporizar. El número del latido sigue importando para
+la capacidad visual, que es el punto 5 de la lista de Valeria+.)*
 
 ## 6. Las cuatro divergencias con el diseño ya cerrado en Valeria+
 
-Esto es lo que impide escribir código de audio hoy, y no es burocracia: el
+> ## ✅ **RESUELTO el 14/8/2026: la voz la pone la tableta (D-K)**
+>
+> Frank cerró la elección que esta sección dejaba abierta, y eligió la salida que
+> el §6.1 recomendaba mirar primero: **tonos en la C3 —sin implementar— y la
+> locución por el altavoz de la tableta**. Está escrito en el §14 del plan de
+> Valeria+ como **D-K**, con su consecuencia en el §3.
+>
+> Las tres divergencias de la tabla de abajo **se cierran sin escribir nada**:
+>
+> | Divergencia | Cómo queda |
+> | :--- | :--- |
+> | Qué suena | Nada, en el aparato. La voz sale de la tableta |
+> | Cómo | No aplica: sin salida de audio no hay PWM ni I2S que elegir |
+> | Protocolo `AudioPlay` | **No entra.** `protocol.json` no se toca, y con él ninguna de las tres copias |
+>
+> **Lo que esto ahorra, que es el resultado de verdad:** no hay cuarta placa, no
+> se rehacen los §2/§3/§4 del plan, no hay opcode nuevo, no hay `noisePermit.ts`,
+> no hay TTL de 3 s y no hay que tocar `check-lua-mute.js` en ningún repositorio.
+> **La fila de `ExecutiveFunctions` ya funciona hoy**: `speakConsigna()`, en
+> `src/Screens/ExecutiveFunctions/efSpeech.ts`, locuta la consigna del dominio
+> resolviendo texto y voz juntos en las cinco lenguas y degradando en silencio si
+> no hay voz disponible.
+>
+> Lo que **no** cierra la D-K es el §6.1 de la lista de Valeria+ —el campo de
+> capacidad de `GRANT`—, que es lo único que sigue separando a esta matriz de su
+> parte visual. Ver §7.
+>
+> Lo de abajo se conserva como el razonamiento que llevó ahí, no como trabajo
+> pendiente.
+
+Esto es lo que impedía escribir código de audio, y no era burocracia: el
 protocolo tiene **una sola** fuente, `firmware/lua/protocol.json` en
 `FrankBetances/Valeria`, y las copias de este repositorio y del firmware se
 generan de ella. Una quinta interpretación escrita a mano es exactamente el
@@ -382,14 +445,16 @@ desglosados, con su cita y sin convertirlos en parches, en
 del repositorio del firmware. **Es la lista que hay que darle al agente cuando se
 abra una sesión con Valeria+:**
 
-3. **La placa, que es la decisión de verdad del sonido** (§6.1): tonos en la C3,
-   otra placa, o la consigna por el altavoz de la tableta. Hasta que esto no se
-   elija, `AudioPlay`, el TTL del permiso y el volumen son conversaciones sobre
-   un aparato que no se sabe cuál es.
+3. ~~**La placa, que es la decisión de verdad del sonido**~~ — ✅ **CERRADA
+   (Frank, 14/8/2026 · D-K): la consigna la dice la tableta.** Con eso,
+   `AudioPlay`, el TTL del permiso de ruido y el volumen por trama **dejan de ser
+   trabajo pendiente y pasan a no existir**. Este punto ya no bloquea nada.
 4. **Recuperar el campo de capacidad de `GRANT` en `protocol.json`** (§5), que el
    plan declara en su §6.2 y la tabla perdió. Es lo que da el estado «dibuja pero
-   no suena» sin opcode nuevo, y se puede hacer **antes** que el punto 3: no
-   depende de qué suene, solo de que el permiso exista.
+   no suena» sin opcode nuevo. **Con el punto 3 cerrado, este es el primero de la
+   lista** — y no perdió sentido al cerrarse aquel, lo ganó: si Lúa no suena
+   nunca, VIA+ necesita exactamente una concesión visual sin concesión sonora, y
+   hoy `SAFE` bloquea el aparato entero.
 5. **De paso, las otras dos discrepancias de origen ya anotadas**: `STATE` dice
    publicar batería y capacidades vivas y publica cara, fps y microsegundos; y el
    latido renueva al máximo en un firmware y al TTL concedido en el otro —abierto
@@ -397,13 +462,16 @@ abra una sesión con Valeria+:**
 
 **Lo que solo entonces tiene sentido escribir:**
 
-6. **Firmware**: pin, tabla de tonos, y el cambio del gate `check-lua-mute.js`
-   —**en los dos repositorios o en ninguno**, porque el del firmware es copia del
-   de Valeria+—. La parte del micrófono no se toca nunca.
-7. **VIA+**: refrescar `protocol.json`, regenerar, y entonces `noisePermit.ts`
-   con el silencio clínico intacto por debajo (§5).
+6. ~~**Firmware**: pin, tabla de tonos, y el cambio del gate~~ — **cae con la
+   D-K.** No hay salida de audio que escribir, así que `check-lua-mute.js` se
+   queda como está en los dos repositorios. El micrófono no se toca nunca, y eso
+   no dependía de esta decisión ni de ninguna otra.
+7. **VIA+**: refrescar `protocol.json` y regenerar, cuando el punto 4 baje. ~~y
+   entonces `noisePermit.ts`~~ — **tampoco hace falta**: sin capacidad sonora que
+   revocar, el silencio clínico se queda solo, que es como está hoy.
 8. **El arte que no existe** (§3.1): el modelo de deglución y el tren. Es la
    primera partida de dibujo que sería solo del aparato, y no está estimada.
+   **Es, con el punto 1, lo que de verdad queda abierto de todo este documento.**
 
 ## 8. Lo único que cambia hoy en el código
 
