@@ -29,6 +29,18 @@
 /*  autor sepa que Lúa existe. Una lista de pantallas hay que recordar            */
 /*  actualizarla; esto se hereda.                                               */
 /*                                                                             */
+/*  LO QUE AHORA EXISTE Y ESTE MÓDULO NO USA (14/8/2026)                        */
+/*  El protocolo ya tiene `SAFE`/`MUTE`: quita la capacidad sonora y **deja la   */
+/*  pantalla viva**, así que la gata podría acompañar la /a/ sostenida en vez de */
+/*  apagarse. El adaptador lo expone como `luaMute()`.                          */
+/*                                                                             */
+/*  **Aquí se sigue emitiendo `CLINICAL_SILENCE`, a propósito.** Cambiarlo por   */
+/*  `MUTE` no es una mejora técnica: pone un aparato animándose en la sala        */
+/*  durante una medición, y eso mueve a Lúa de accesorio a parte del acto        */
+/*  clínico en un producto Clase IIa. Esa decisión es la del §4 de               */
+/*  `docs/design/lua-salida-y-alertas-sonoras.md` y se toma con el análisis de   */
+/*  riesgo delante, fila a fila de la matriz — no cambiando esta línea.          */
+/*                                                                             */
 /*  Referencias: `FrankBetances/Valeria` · `docs/plan-integracion-lua.md` §5 y   */
 /*  §8; `docs/design/integracion-lua.md` §3 en este repositorio.                */
 /* -------------------------------------------------------------------------- */

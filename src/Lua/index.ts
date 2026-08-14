@@ -19,6 +19,7 @@
 
 /* Tabla de opcodes — GENERADA desde `protocol.json`. No editar a mano. */
 export {
+  LUA_CAP,
   LUA_CHR,
   LUA_LIMITS,
   LUA_MODE,
@@ -27,6 +28,7 @@ export {
   LUA_SAFE,
   LUA_SERVICE_UUID,
   luaFrame,
+  luaGrantParam,
 } from './luaProtocol';
 export type { LuaOp } from './luaProtocol';
 
@@ -51,6 +53,7 @@ export {
   luaGrant,
   luaHeartbeat,
   luaIdle,
+  luaMute,
   luaState,
   luaUnlock,
   setLuaAdapter,

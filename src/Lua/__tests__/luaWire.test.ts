@@ -15,9 +15,11 @@ import {
   LUA_MODE,
   LUA_OP,
   LUA_PROTOCOL_VERSION,
+  LUA_CAP,
   LUA_SAFE,
   LUA_SERVICE_UUID,
   luaFrame,
+  luaGrantParam,
 } from '../luaProtocol';
 import {
   base64ToBytes,
@@ -61,7 +63,8 @@ describe('la tabla generada es la del aparato', () => {
       HEARTBEAT: 0x11,
       BENCH: 0xf0,
     });
-    expect(LUA_SAFE).toEqual({ CLINICAL_SILENCE: 0x01, UNLOCK: 0x02 });
+    expect(LUA_SAFE).toEqual({ CLINICAL_SILENCE: 0x01, UNLOCK: 0x02, MUTE: 0x03 });
+    expect(LUA_CAP).toEqual({ VISUAL: 0x01, SOUND: 0x02 });
     expect(LUA_MODE).toEqual({ REST: 0x00, ACTIVE: 0x01, LOCKED: 0x02 });
   });
 
@@ -105,6 +108,7 @@ describe('trama de SAFE', () => {
 
   it('mide los 2 bytes que declara protocol.json, con el segundo reservado a cero', () => {
     expect(luaSafeFrame(LUA_SAFE.UNLOCK)).toEqual([0x02, 0x00]);
+    expect(luaSafeFrame(LUA_SAFE.MUTE)).toEqual([0x03, 0x00]);
   });
 });
 
@@ -168,5 +172,37 @@ describe('base64 (lo que habla react-native-ble-plx)', () => {
   it('codifica una trama real de CTRL', () => {
     const b64 = bytesToBase64(luaFrame(LUA_OP.GRANT, 30));
     expect(base64ToBytes(b64)).toEqual([LUA_PROTOCOL_VERSION, 0x10, 30, 0]);
+  });
+});
+
+describe('el parámetro de GRANT lleva TTL y capacidades', () => {
+  // El byte BAJO es el TTL y el ALTO la máscara. El orden importa y no es
+  // arbitrario: así, una trama escrita cuando el parámetro era «solo TTL»
+  // sigue significando lo mismo, porque el contrato siempre dijo 1-60 y eso
+  // cabe en el byte bajo.
+  it('el TTL va en el byte bajo, como cuando no había máscara', () => {
+    expect(luaGrantParam(30)).toBe(30);
+    expect(luaGrantParam(60)).toBe(60);
+    expect(luaFrame(LUA_OP.GRANT, luaGrantParam(30))).toEqual(
+      Uint8Array.from([LUA_PROTOCOL_VERSION, LUA_OP.GRANT, 30, 0x00]),
+    );
+  });
+
+  it('las capacidades van en el byte alto sin tocar el TTL', () => {
+    const p = luaGrantParam(60, LUA_CAP.VISUAL | LUA_CAP.SOUND);
+    expect(p & 0xff).toBe(60);
+    expect((p >> 8) & 0xff).toBe(0x03);
+    expect(p).toBe(828);
+  });
+
+  it('recorta el TTL al máximo del protocolo sin comerse la máscara', () => {
+    const p = luaGrantParam(9999, LUA_CAP.VISUAL);
+    expect(p & 0xff).toBe(LUA_LIMITS.grantMaxSeconds);
+    expect((p >> 8) & 0xff).toBe(LUA_CAP.VISUAL);
+  });
+
+  it('nunca concede un TTL de 0: eso sería una concesión que no caduca', () => {
+    expect(luaGrantParam(0) & 0xff).toBe(1);
+    expect(luaGrantParam(-5) & 0xff).toBe(1);
   });
 });

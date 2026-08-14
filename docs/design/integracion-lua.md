@@ -8,14 +8,19 @@
 > repositorio.**
 >
 > ⚠ **14/8/2026 · el §3 de este documento está superado en su postura.** La
-> dirección fijó que Lúa es un periférico de SALIDA con altavoz y que **sí**
-> espeja durante la batería, con alertas sonoras en algunos módulos. Lo que
-> describe este documento sigue siendo **lo que el código hace hoy** —la
-> recompensa de cierre y nada más—; la decisión nueva, la matriz por módulo y lo
-> que falta para poder implementarla están en
+> dirección fijó que Lúa **sí** espeja durante la batería. Lo que describe este
+> documento sigue siendo **lo que el código hace hoy** —la recompensa de cierre y
+> nada más—; la decisión nueva, la matriz por módulo y lo que falta para poder
+> implementarla están en
 > [`lua-salida-y-alertas-sonoras.md`](lua-salida-y-alertas-sonoras.md). El
 > argumento del §3 no se retira: es el que decide con qué figura entra Lúa en el
 > expediente técnico.
+>
+> **De las alertas sonoras que aquella decisión traía ya no queda ninguna en
+> VIA+**: la D-K del plan de Valeria+ cerró ese mismo día que **la voz la pone la
+> tableta**, así que el aparato es **mudo en los siete módulos** y lo que espeja
+> es solo imagen. El §2.2 de aquí sigue siendo la referencia de lo que `STATE` y
+> `SAFE` hacen de verdad.
 
 ---
 
