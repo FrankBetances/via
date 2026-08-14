@@ -6,6 +6,16 @@
 >
 > **Alcance:** solo lo que hace VIA+. **Lúa no es un proyecto de este
 > repositorio.**
+>
+> ⚠ **14/8/2026 · el §3 de este documento está superado en su postura.** La
+> dirección fijó que Lúa es un periférico de SALIDA con altavoz y que **sí**
+> espeja durante la batería, con alertas sonoras en algunos módulos. Lo que
+> describe este documento sigue siendo **lo que el código hace hoy** —la
+> recompensa de cierre y nada más—; la decisión nueva, la matriz por módulo y lo
+> que falta para poder implementarla están en
+> [`lua-salida-y-alertas-sonoras.md`](lua-salida-y-alertas-sonoras.md). El
+> argumento del §3 no se retira: es el que decide con qué figura entra Lúa en el
+> expediente técnico.
 
 ---
 
@@ -80,6 +90,17 @@ node scripts/build-lua-protocol.js
 npm test -- src/Lua
 ```
 
+**Refresco del 14/8/2026, y de dónde salió exactamente.** La copia de aquí se
+había quedado en los ocho opcodes de la primera tanda y el aparato contesta a
+trece. Se refrescó **desde `protocol/protocol.json` del repositorio
+`FrankBetances/lua-firmware`**, no desde un clon de Valeria+, porque es a lo que
+había acceso; ese fichero se declara allí copia de `firmware/lua/protocol.json`
+de Valeria+ y su `make check VALERIA=../Valeria` lo compara contra el original.
+Es una copia de una copia: la cadena está escrita para que se pueda seguir, pero
+**la próxima sincronización conviene hacerla contra Valeria+ directamente**. La
+versión de protocolo no cambió (sigue en 1) y ningún `code` ni UUID se movió: lo
+que entró son cinco opcodes nuevos al final, que es como se añaden.
+
 Si el `.json` cambia de versión de protocolo, el aparato viejo **no** se actualiza
 solo: `protocol.json` fija que «ni los uuid ni los `code` cambian nunca» porque un
 aparato ya flasheado se queda con los suyos. `isLuaProtocolCompatible()` compara
@@ -103,6 +124,16 @@ con la línea citada. Dos detalles que se habían inventado mal antes:
 ---
 
 ## 3. La postura de VIA+: el control es la ausencia
+
+> **Superado en la conclusión, vigente en el argumento (14/8/2026).** La
+> dirección decidió que Lúa esté presente y espeje durante la batería, así que la
+> tabla de abajo ya no describe lo que VIA+ va a hacer —sí lo que hace hoy—. Lo
+> que **no** cambia es el criterio: si el aparato se apaga y la exploración sigue
+> igual, es un accesorio; si la maniobra depende de que el aviso llegue, no lo
+> es. Cada fila de la matriz nueva se clasifica con ese criterio en
+> [`lua-salida-y-alertas-sonoras.md`](lua-salida-y-alertas-sonoras.md) §4, y tres
+> de las siete caen del lado que hay que hablar con el análisis de riesgo
+> delante.
 
 VIA+ es SaMD **Clase IIa**: todo lo que pueda alterar la validez de una medición
 entra en el expediente técnico y en el análisis ISO 14971.
@@ -252,6 +283,13 @@ calibrado, y lo peor es que **sonaría** — nadie vería un error.
 > (`check-lua-mute.js` en Valeria+) que rompe el build si aparece inicialización
 > de audio o de servo.
 
+**Esta regla sube de importancia con el altavoz autorizado, no baja.** Mientras
+Lúa no podía sonar, encaminar audio hacia ella era un fallo silencioso pero sin
+transductor al otro lado. Con altavoz, un perfil clásico negociado por descuido
+convierte L-2 en una audiometría de campo libre saliendo de verdad por un
+altavoz de juguete no calibrado. **BLE-only, y las órdenes de sonido viajan como
+un identificador por GATT — nunca como audio encaminado por el sistema.**
+
 ---
 
 ## 6. El mapa del código
@@ -300,6 +338,15 @@ La interferencia acústica **medida** (ensayo diferencial con el sonómetro de
 `RoomNoiseCheck`) deja de ser una puerta de VIA+: con la v1 sin altavoz y ausente
 durante la medición, no hay nada que medir. Si algún día hay hardware con
 altavoz, vuelve, y con sonómetro clase 2 contra la ISO 8253-2.
+
+> **14/8/2026: ese día llegó como decisión, no como hardware.** El altavoz está
+> autorizado y Lúa pasa a estar presente durante la batería, así que la puerta
+> del ensayo diferencial **vuelve**, y los controles de L-1 y L-3 dejan de poder
+> apoyarse en «el aparato no está» y «no tiene altavoz». Esta tabla se reescribe
+> cuando se cierre lo del §6 de
+> [`lua-salida-y-alertas-sonoras.md`](lua-salida-y-alertas-sonoras.md) — no
+> antes, y no aquí: mientras el protocolo del sonido no exista, un control
+> redactado contra él sería un control redactado contra una suposición.
 
 ---
 
@@ -388,6 +435,10 @@ gata que guía la terapia», ni que acompaña, mejora o sostiene el tratamiento.
    conectar. Pendiente: emparejamiento, `BENCH` para el presupuesto de latencia
    (300 ms) y comprobar que `UNLOCK` → `GRANT` → `CELEBRATE` dibuja de verdad.
 3. **Avisar a Valeria+** de la discrepancia de `STATE` en `protocol.json` (§2.2).
+4. **Cerrar en Valeria+ las cuatro divergencias del sonido** entre la D-F del
+   plan y la decisión de dirección del 14/8/2026, que es lo que hoy impide
+   escribir una sola línea de audio en cualquiera de los tres repositorios:
+   [`lua-salida-y-alertas-sonoras.md`](lua-salida-y-alertas-sonoras.md) §6.
 
 Lo que **no** hay que decidir otra vez: el protocolo no se negocia —se genera—, y
 la postura regulatoria de VIA+ está fijada en el §8 del plan de Valeria+, no aquí.

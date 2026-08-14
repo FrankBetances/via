@@ -39,13 +39,24 @@ describe('la tabla generada es la del aparato', () => {
     });
   });
 
-  it('los opcodes son los ocho de protocol.json, con sus códigos', () => {
+  it('los opcodes son los trece de protocol.json, con sus códigos', () => {
+    // Los cinco del tramo 0x06…0x0A entraron al refrescar la copia vendorizada
+    // (14/8/2026): el firmware ya los contestaba y esta copia se había quedado en
+    // los ocho de la primera tanda. Son los del ESPEJO —emoción, ficha del
+    // ejercicio, insignia, nivel— y ninguno lo envía VIA+ todavía: tenerlos en la
+    // tabla no es usarlos, y quién los manda se decide en
+    // docs/design/lua-salida-y-alertas-sonoras.md.
     expect(LUA_OP).toEqual({
       PHASE: 0x01,
       VERDICT: 0x02,
       CELEBRATE: 0x03,
       IDLE: 0x04,
       CALL: 0x05,
+      AFFECT: 0x06,
+      PICTO: 0x07,
+      AWARD: 0x08,
+      LEVEL: 0x09,
+      PICTO_PAIR: 0x0a,
       GRANT: 0x10,
       HEARTBEAT: 0x11,
       BENCH: 0xf0,
