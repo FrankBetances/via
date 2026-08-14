@@ -94,12 +94,12 @@ npm test -- src/Lua
 había quedado en los ocho opcodes de la primera tanda y el aparato contesta a
 trece. Se refrescó **desde `protocol/protocol.json` del repositorio
 `FrankBetances/lua-firmware`**, no desde un clon de Valeria+, porque es a lo que
-había acceso; ese fichero se declara allí copia de `firmware/lua/protocol.json`
-de Valeria+ y su `make check VALERIA=../Valeria` lo compara contra el original.
-Es una copia de una copia: la cadena está escrita para que se pueda seguir, pero
-**la próxima sincronización conviene hacerla contra Valeria+ directamente**. La
-versión de protocolo no cambió (sigue en 1) y ningún `code` ni UUID se movió: lo
-que entró son cinco opcodes nuevos al final, que es como se añaden.
+había acceso en ese momento; ese fichero se declara allí copia de
+`firmware/lua/protocol.json` de Valeria+. **Verificado después contra el original:
+`diff` contra `firmware/lua/protocol.json` de un clon de Valeria+ da cero
+diferencias**, y allí los tres gates `--upstream` pasan en verde. La versión de
+protocolo no cambió (sigue en 1) y ningún `code` ni UUID se movió: lo que entró
+son cinco opcodes nuevos al final, que es como se añaden.
 
 Si el `.json` cambia de versión de protocolo, el aparato viejo **no** se actualiza
 solo: `protocol.json` fija que «ni los uuid ni los `code` cambian nunca» porque un

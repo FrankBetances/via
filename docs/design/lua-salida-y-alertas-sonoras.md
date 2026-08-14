@@ -1,5 +1,16 @@
 # Lúa como periférico de SALIDA · espejo visual y alertas sonoras en VIA+
 
+> **Revisado contra el plan de Valeria+ el 14/8/2026.** La primera versión de este
+> documento se escribió sin el plan delante y acertó el problema pero no las
+> cifras. Leído `docs/plan-integracion-lua.md`, cambian cuatro cosas y conviene
+> saber cuáles: la capacidad sonora separada **sí está diseñada** (§5 del plan) y
+> `GRANT` **ya lleva** un campo de capacidad que la tabla perdió por el camino
+> (§5 de aquí); el volumen desde la app **ya estaba** en la D-F, por `CFG` (§6);
+> el espejo puro es una decisión de Valeria+ y **no se aplica a VIA+** (§3.1); y
+> lo que zanja el sonido no es el protocolo sino la placa: **voz y sonido
+> muestreado son v2 y placa distinta**, y la única placa que los trae no puede
+> animar una cara (§6).
+>
 > **Estado (14/8/2026):** decisión de dirección **registrada**, no implementada.
 > Del lado del código solo está hecho lo que no necesita protocolo nuevo: la
 > tabla de opcodes vendorizada, que se había quedado en ocho y ahora trae los
@@ -100,6 +111,44 @@ Tres lecturas que no son evidentes en la tabla:
    sala contra el propio periférico. Es la fila donde el error sería más difícil
    de ver después.
 
+### 3.1. Esto no es el espejo de Valeria+, y el plan lo dice de las dos formas
+
+En Valeria+ el espejo está cerrado como **espejo puro** (D-G): «Lúa muestra la
+misma imagen que ve el adulto en la tableta», y la consecuencia que el plan
+subraya es que **ninguna de las siete pantallas clínicas se toca**. Eso funciona
+allí porque el dibujo ya está en el aparato: los pictogramas, las insignias y los
+niveles son los mismos activos, y por el cable viaja **el número**, no el dibujo.
+El §10.1 del plan lo dice sin rodeos al presupuestar la flash:
+
+> «Ninguna se dibuja nueva: es el mismo dibujo que ve el niño en la tableta, que
+> es lo que significa espejo.»
+
+**En VIA+ eso no se cumple, y por eso esto no es un espejo.** Lo que pide la
+matriz del §3 no tiene contrapartida en el catálogo del aparato. Contado contra
+el catálogo real —22 caras más tres fichas que no son caras, en
+`core/include/lua/faces.h`—:
+
+| Lo que pide la matriz | Qué hay hoy en el aparato |
+| :--- | :--- |
+| Gata atenta / escucha activa (prosodia) | ✅ `kExprAttentive`. Existe, es la de `PHASE(0)` |
+| Gata respirando hondo (/a/ sostenida) | ✅ `kExprNeutral` — «la gata mira, respira». *Cantando*, no |
+| Celebración de cierre | ✅ `kExprCelebrate`, `kExprSuccess` y el destello de la corona |
+| Avatar de juego y retroalimentación de bloque | 🟨 caras hay; «avatar de juego» y «bloque» no significan nada para el aparato |
+| **Modelo visual de postura y deglución** | ❌ no existe. Arte nuevo |
+| **Maquinista del tren que avanza con la respuesta** | ❌ no existe. Arte nuevo **y** semántica nueva: no hay forma de decir «avanza un paso» |
+
+Las dos últimas filas son las caras: no es que falte el dibujo —eso son 24×24 y
+el 1 % de la flash, el §10.1 lo resolvió—, es que **falta qué byte lo pide**. El
+catálogo tiene techo de 256 fichas y `PICTO` manda un índice; un tren que avanza
+no es una ficha, es un estado con progreso.
+
+Y hay una asimetría que conviene ver antes de dibujar nada: en Valeria+ el arte
+del aparato **sube** a la app y sirve a las dos (D-J). Un modelo de deglución
+dibujado para el cristal de 32 mm de Lúa no le sirve a ninguna pantalla de VIA+,
+así que sería la primera vez que se dibuja arte **solo** para el aparato. No es
+un impedimento; es una partida de trabajo que no aparece en ninguna estimación
+todavía.
+
 ## 4. Lo que esto supera de `integracion-lua.md`
 
 Aquel documento tiene un §3 titulado «la postura de VIA+: el control es la
@@ -136,6 +185,24 @@ vez.
 Mientras tanto: **la fila de `ResultadosFinal` es la única que se puede
 construir sin abrir esa conversación**, y ya está construida.
 
+### 4.1. La buena noticia: cambiar la presencia no necesita permiso de Valeria+
+
+El §8 del plan —el de «la integración correcta es la ausencia»— se cierra a sí
+mismo con esta frase, que es fácil pasar por alto y aquí vale dinero:
+
+> «Esta sección describe lo que VIA+ hace con Lúa. **No es una fuente de
+> requisitos para Valeria+.** Nada de aquí baja a §1, §3, §5, §10 ni §11.»
+
+Es decir: la postura de la ausencia es **de VIA+ sobre VIA+**, y moverla es
+competencia de este repositorio y de su análisis de riesgo. No hay que negociarla
+en Valeria+ ni esperar a que allí se cierre nada.
+
+Lo que sí depende de Valeria+ es el **sonido**, porque eso sí baja: protocolo,
+tabla y placa (§6). Separadas las dos cosas, la parte visual de esta decisión
+—que es la mayor parte de la matriz— está desbloqueada hoy, con la salvedad de
+que cuatro de las siete filas necesitan arte y semántica que no existen (§3.1) y
+tres necesitan la conversación regulatoria del §4.
+
 ## 5. El permiso de ruido, y por qué no es el silencio clínico que ya existe
 
 La dirección describe `noisePermit.ts`: un coordinador colgado de
@@ -159,11 +226,28 @@ dos, no eligiendo:
   que alguien traiga el aparato puesto a una medición para la que nadie lo
   planeó. Sustituirlo por una revocación parcial sería cambiar un cierre por un
   permiso, que es justo el sentido contrario.
-- **El permiso de ruido es una capacidad nueva, concedida aparte de la visual y
-  caducando aparte**, para que exista un estado «puede dibujar, no puede sonar».
-  Ese estado **no existe en el aparato**: hoy hay `REST`, `ACTIVE` y `LOCKED`, y
-  ninguna capacidad separada. Es firmware y es protocolo, y ninguna de las dos
-  cosas se decide en este repositorio (§6).
+- **El permiso de ruido no hay que inventarlo: está diseñado desde el principio.**
+  El §5 del plan —«capacidades por concesión, no interruptores»— dice que las
+  capacidades son independientes (visual, sonora y de motor), que la sonora «se
+  concede aparte de la visual, caduca igual, y el firmware topa el volumen aunque
+  la app pida más», y remata con la frase exacta que esta matriz necesita:
+
+  > «Que se conceda por separado es lo que permite —si algún día hiciera falta—
+  > dejar a Lúa mostrando el pictograma y callada, **sin inventar un modo
+  > nuevo**.»
+
+  Lo que falta no es el diseño: es que **se perdió al escribir la tabla**. El
+  §6.2 del plan declara `GRANT` con parámetros «**capacidad · ttl en s**», pero
+  `protocol.json` —que es la fuente de la que se generan las tres copias— lo
+  declara «ttl en segundos (1-60)» y anota «concede capacidad **visual**», y el
+  firmware lee los 16 bits enteros como TTL. **El campo de capacidad existe en la
+  prosa del plan y no existe en el enlace.** Es la misma clase de fallo que la
+  discrepancia de `STATE` ya anotada en `integracion-lua.md` §2.2, y va al mismo
+  sitio: se corrige en Valeria+, en el `.json`, y baja.
+
+  Que quede ahí y no en un opcode nuevo importa: recuperar ese campo **cumple la
+  D-F** —«no hay opcode nuevo»— y le da a VIA+ el estado «dibuja pero no suena»
+  sin tocar la tabla.
 - **El orden no es negociable: el silencio gana siempre, y gana antes de que el
   zumbador pueda sonar una sola vez.** En términos de implementación: la
   capacidad sonora se concede solo desde un estado en el que se ha comprobado que
@@ -187,48 +271,135 @@ protocolo tiene **una sola** fuente, `firmware/lua/protocol.json` en
 generan de ella. Una quinta interpretación escrita a mano es exactamente el
 error que ya se cometió una vez aquí (§1.1 de `integracion-lua.md`).
 
-El plan de Valeria+ cerró el 13/8/2026 la decisión **D-F**, «Lúa suena». La
-decisión de dirección del 14/8/2026 se aparta de ella en cuatro puntos:
+El plan de Valeria+ cerró el 13/8/2026 la decisión **D-F**, «Lúa suena», y el §3
+la sostiene con una cuenta de pines que no es una preferencia de diseño:
 
-| | D-F (cerrada, 13/8) | Dirección (14/8) | Consecuencia |
+| Vía de salida | Pines | Qué da | Coste |
+| :--- | ---: | :--- | :--- |
+| Zumbador pasivo por PWM | **1** | tonos, arpegios, un «tilín» de acierto | ninguno: cabe hoy en la placa elegida |
+| DAC interno + amplificador I2C | 2 | muestras cortas, calidad pobre | ocupa el puerto entero |
+| **Códec I²S + altavoz** | **3+** | **voz y sonido real** | **exige otra placa** |
+
+La placa de v1 es la **ESP32-2424S012** (ESP32-C3, 4 MB de flash, panel GC9A01),
+y su puerto de expansión es **un** SH1.0-4P: 3V3, GND y **dos I/O**. Eso es todo
+lo que hay. El plan lo resume en una línea: «para I²S —BCLK, WS, DOUT— no llegan
+ni los tres pines mínimos», y la D-F concluye que **voz y sonido muestreado son
+v2 y placa distinta**.
+
+Con eso delante, las divergencias reales son estas tres —una menos de las que
+esta sección decía antes de leer el plan—:
+
+| | D-F (cerrada, 13/8) | Dirección (14/8) | Estado |
 | :--- | :--- | :--- | :--- |
-| **Qué suena** | Tonos de zumbador pasivo | **Locuciones pregrabadas** y sonidos | No es un incremento: es otro subsistema |
-| **Cómo** | PWM en un pin del puerto de expansión | **DAC / I2S** | El ESP32-**C3 no tiene DAC**, e I2S son tres señales; el puerto de expansión es un SH1.0-4P. Hay que confirmarlo contra el esquemático — `board.h` avisa de que sus pines tampoco están confirmados |
-| **Protocolo** | **Ningún opcode nuevo**: el tono se ata al opcode existente en una tabla del firmware | Característica **`AudioPlay`** con `[id_sonido, volumen]` | Con opcode nuevo, un aparato ya flasheado se queda atrás. Sin él, no hay forma de pedir una locución concreta |
-| **Volumen** | Tope **en el firmware** | Parámetro **desde la app** | Un tope que viaja en cada trama es un tope que se puede perder |
+| **Qué suena** | Tonos de zumbador pasivo | **Locuciones pregrabadas** | Divergencia real, y es la que arrastra todo |
+| **Cómo** | PWM, **1 pin** | DAC / I2S | Divergencia real: I2S no cabe en la placa de v1 |
+| **Protocolo** | **Ningún opcode nuevo**: el tono va atado al opcode existente | `AudioPlay` con `[id_sonido, volumen]` | Divergencia **derivada**: solo hace falta si hay locuciones |
+| **Volumen** | Tope en firmware; **el adulto lo ajusta por `CFG`**, y el 0 es legítimo | Parámetro desde la app | ~~Divergencia~~ **No lo es.** La D-F ya da volumen a la app; lo que cambia es *dónde* viaja |
 
-La tercera fila merece leerse dos veces, porque la propuesta de la dirección es
-**coherente** y la de D-F también, y son incompatibles: una locución pregrabada
-no cabe en el enlace —GATT no es un transporte de audio—, así que tiene que vivir
-en la flash del aparato e indexarse. Y en cuanto se indexa, hace falta decir
-*cuál*, y eso es un opcode o una característica nueva. **Pedir locuciones y
-prohibir opcodes nuevos no puede cumplirse a la vez.** Quien cierre esto tiene
-que elegir, y la elección arrastra el hardware.
+La fila del volumen la tenía mal este documento: la D-F dice literalmente que
+«el adulto lo ajusta por `CFG` desde la tarjeta de Ajustes, y **el 0 es un valor
+legítimo**: hay niños con hiperacusia y sesiones donde el sonido sobra». La app
+manda volumen, y el firmware topa. Lo único que habría que discutir es si viaja
+como preferencia en `CFG` —como está— o como byte en cada trama de reproducción,
+y esa es una conversación pequeña.
 
-**Dónde se cierra:** en el plan de Valeria+, que es donde vive D-F, y de ahí baja
-a `protocol.json`. No aquí, y tampoco en el repositorio del firmware: el
-14/8/2026 quedó anotado allí que aparcar parches para Valeria+ en otro
-repositorio no funciona —cuando llegó el momento de aplicarlos ya no aplicaban, y
-además chocaban con opcodes decididos mientras tanto—.
+### 6.1. La que no tiene salida por protocolo: la placa que suena no puede animar una cara
+
+Esta es la que zanja el asunto, y no se ve mirando el protocolo. La única de las
+tres placas estudiadas que trae el códec I²S y el altavoz es la **e-Paper S3**
+(ES8311, RTC, microSD, 8 MB de PSRAM). Y el plan la descarta como Lúa por un
+motivo que el sonido no arregla:
+
+> «**Refresco de 15 s en modo rápido, 20 s completo.** Una cara que tarda quince
+> segundos en sonreír no es refuerzo inmediato; es otra cosa.»
+
+Con lo cual, de las placas que hay sobre la mesa:
+
+| | Cara animada 240×240 | Locuciones |
+| :--- | :---: | :---: |
+| ESP32-C3 · IPS circular (v1) | ✅ 20-30 fps | ❌ solo tonos, 1 pin |
+| ESP32-S3 · e-Paper | ❌ 15-20 s por refresco | ✅ ES8311 |
+
+**Ninguna hace las dos cosas**, y la matriz del §3 las pide juntas —gata
+respirando *y* locución de consigna—. Eso deja tres salidas, y las tres son
+decisiones de dirección, no de código:
+
+1. **Tonos en v1 y ya** (la D-F tal cual). La consigna hablada no sale de Lúa.
+2. **Una cuarta placa** que traiga panel rápido y códec. No está estudiada: abrir
+   esa puerta obliga a rehacer los §2, §3 y §4 del plan —el presupuesto de
+   latencia no contempla audio— y mueve el calendario entero.
+3. **La consigna la dice la tableta.** Es la que recomiendo mirar primero, y la
+   más barata con diferencia: VIA+ **ya tiene** el banco de locuciones y el motor
+   que las reproduce (`@/Voice`: `viaVoiceConsignas.ts`, `viaVoicePlayback.ts`,
+   `VOICE_ASSETS`), y la matriz de la dirección ya lo cita entre paréntesis en esa
+   misma fila. Con la consigna en la tableta, Lúa se queda con la cara —que es lo
+   que la placa hace bien— y el sonido sale por donde ya está calibrado el resto
+   del audio de la app. Cuesta cero hardware, cero flash y cero opcodes.
+
+La opción 3 no cubre el caso que de verdad quería la dirección con sonido en el
+aparato —el niño que **no mira la tableta**, que es el argumento con el que nació
+todo esto— pero sí cubre las dos filas de la matriz que piden locución, porque en
+las dos el niño está atendiendo a la tarea de la tableta.
+
+**Dónde se cierra:** en el plan de Valeria+, que es donde viven la D-F y la
+decisión de hardware, y de ahí baja a `protocol.json`. No aquí, y tampoco en el
+repositorio del firmware: el 14/8/2026 quedó anotado allí que aparcar parches
+para Valeria+ en otro repositorio no funciona —cuando llegó el momento de
+aplicarlos ya no aplicaban, y además chocaban con opcodes decididos mientras
+tanto—.
+
+### 6.2. Un detalle de la tabla de pines que hay que confirmar, no dar por bueno
+
+La fila del medio —«DAC interno + amplificador I2C, 2 pines»— conviene revisarla
+antes de contar con ella: **el ESP32-C3 no lleva el periférico DAC** que sí
+tienen el ESP32 clásico y el S2. Lo más parecido que da el C3 es el modulador
+sigma-delta, que con filtro y amplificador saca audio pobre por un pin. Si eso se
+confirma, la tabla de tres filas se queda en **dos** —tonos por un pin, o cambiar
+de placa— y desaparece la opción intermedia que hoy parece existir.
+
+No lo doy por cerrado: no he mirado la hoja de datos, y el plan sostiene la fila.
+Pero es exactamente el tipo de dato que hay que confirmar antes de que alguien
+diseñe contra él, igual que `board.h` avisa de que sus propios seis pines están
+sin confirmar contra el esquemático.
 
 ## 7. En qué orden se desbloquea
 
-1. **Cerrar las cuatro divergencias del §6 en el plan de Valeria+** y bajarlas a
-   `protocol.json`. Sin esto no hay nada que implementar en ningún lado.
-2. **Decidir la figura regulatoria de las tres filas «parte del acto» del §4**,
-   con el análisis de riesgo delante. Esto es independiente de lo anterior y
-   puede hacerse en paralelo; es lo que decide si `AudiometryConditioned` y
-   `DysphagiaTest` llegan a implementarse.
-3. **Firmware**: pin, tabla, y el cambio del gate `check-lua-mute.js` —que se
-   cambia **en los dos repositorios o en ninguno**, porque el del firmware es
-   copia del de Valeria+—. La parte del micrófono del gate no se toca nunca.
-4. **VIA+**: refrescar `protocol.json`, regenerar, y entonces `noisePermit.ts`
-   con el silencio clínico intacto por debajo (§5).
-5. **El `BleManager` compartido**, que sigue pendiente de antes y sin el cual
-   todo `src/Lua/` es *no-op* — Lúa y el pulsioxímetro lo esperan igual.
+Separado por quién manda en cada cosa, que es lo que la lectura del plan aclaró:
 
-El punto 5 no depende de ninguno de los otros cuatro y es el único que hoy
-separa a la recompensa de cierre de funcionar contra un aparato real.
+**Lo que decide VIA+ solo, hoy, sin hablar con nadie** (el §8 del plan se declara
+no vinculante para Valeria+, §4.1):
+
+1. **Mover la postura de la ausencia** en el análisis de riesgo de este
+   repositorio, fila a fila del §4. Es la puerta de todo lo visual.
+2. **El `BleManager` compartido**, pendiente de antes y sin el cual todo
+   `src/Lua/` es *no-op*. No depende de nada de lo de abajo y es lo único que hoy
+   separa a la recompensa de cierre de funcionar contra un aparato real. Lo
+   espera también el pulsioxímetro.
+
+**Lo que hay que cerrar en Valeria+ antes de que exista:**
+
+3. **La placa, que es la decisión de verdad del sonido** (§6.1): tonos en la C3,
+   otra placa, o la consigna por el altavoz de la tableta. Hasta que esto no se
+   elija, `AudioPlay`, el TTL del permiso y el volumen son conversaciones sobre
+   un aparato que no se sabe cuál es.
+4. **Recuperar el campo de capacidad de `GRANT` en `protocol.json`** (§5), que el
+   plan declara en su §6.2 y la tabla perdió. Es lo que da el estado «dibuja pero
+   no suena» sin opcode nuevo, y se puede hacer **antes** que el punto 3: no
+   depende de qué suene, solo de que el permiso exista.
+5. **De paso, las otras dos discrepancias de origen ya anotadas**: `STATE` dice
+   publicar batería y capacidades vivas y publica cara, fps y microsegundos; y el
+   latido renueva al máximo en un firmware y al TTL concedido en el otro —abierto
+   en el §5 del plan, y es el número del que depende cualquier TTL corto—.
+
+**Lo que solo entonces tiene sentido escribir:**
+
+6. **Firmware**: pin, tabla de tonos, y el cambio del gate `check-lua-mute.js`
+   —**en los dos repositorios o en ninguno**, porque el del firmware es copia del
+   de Valeria+—. La parte del micrófono no se toca nunca.
+7. **VIA+**: refrescar `protocol.json`, regenerar, y entonces `noisePermit.ts`
+   con el silencio clínico intacto por debajo (§5).
+8. **El arte que no existe** (§3.1): el modelo de deglución y el tren. Es la
+   primera partida de dibujo que sería solo del aparato, y no está estimada.
 
 ## 8. Lo único que cambia hoy en el código
 
