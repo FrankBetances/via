@@ -1,5 +1,7 @@
 const { getDefaultConfig, mergeConfig } = require('@react-native/metro-config');
 
+const defaultConfig = getDefaultConfig(__dirname);
+
 /**
  * Metro configuration for VIA+.
  * https://reactnative.dev/docs/metro
@@ -17,6 +19,29 @@ const config = {
       'react-dom': require.resolve('./scripts/empty-module.js'),
     },
   },
+  transformer: {
+    // `inlineRequires` convierte los import de nivel superior en require()
+    // perezosos: un módulo no se evalúa hasta que alguien usa uno de sus
+    // símbolos. Importa aquí más que en una app corriente porque VIA+ tiene
+    // dos grafos muy pesados colgando del arranque:
+    //   · Navigators/Default.tsx importa las 19 pantallas, y cada pantalla
+    //     arrastra su registro de assets.
+    //   · verbalAssetsByLang.ts importa los CUATRO bancos de recortes en
+    //     base64 (es, es-DO, gl, eu ≈ 1,6 MB de fuente), de los que una
+    //     sesión usa uno.
+    // El preset de RN ya lo activa por defecto desde 0.72; se fija aquí de
+    // forma EXPLÍCITA para que un cambio de ese valor por defecto no revierta
+    // en silencio el arranque de la app. Se compone con las opciones del
+    // preset en lugar de reemplazarlas: `getDefaultConfig` puede fijar otras
+    // banderas de transformación y perderlas sería una regresión callada.
+    getTransformOptions: async (...args) => {
+      const base = await defaultConfig.transformer?.getTransformOptions?.(...args);
+      return {
+        ...base,
+        transform: { ...base?.transform, inlineRequires: true },
+      };
+    },
+  },
 };
 
-module.exports = mergeConfig(getDefaultConfig(__dirname), config);
+module.exports = mergeConfig(defaultConfig, config);

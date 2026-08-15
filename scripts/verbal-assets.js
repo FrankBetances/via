@@ -50,6 +50,27 @@ const REGISTRY = path.join(ROOT, 'src', 'Screens', 'VerbalAudiometry', 'verbalAs
 const CLIPS = path.join(ROOT, 'src', 'Screens', 'VerbalAudiometry', 'verbalAudioClips.ts');
 const NOS_TTS = path.join(ROOT, 'tools', 'nos', 'tts.py');
 
+/**
+ * Lado de las ilustraciones, en píxeles.
+ *
+ * `WordCard` las dibuja a 72–96 pt (`imgSide`), así que 96 × 3 = 288 cubre la
+ * densidad más alta que sirve la app. Subirlo no añade un solo píxel visible y
+ * sí memoria: React Native descomprime cada PNG a un bitmap de ancho × alto × 4
+ * bytes, de modo que el coste en RAM va con el CUADRADO de este número y es
+ * indiferente a lo bien que comprima el fichero. A 512 el banco costaba 97 MB
+ * de bitmap; a 288 cuesta 31 MB.
+ *
+ * El diseño se expresa abajo en las medidas originales de 512 y se escala por
+ * `SIDE_SCALE`: cambiar solo esta constante reescala el pictograma entero sin
+ * tocar la maqueta.
+ */
+const IMG_SIDE = 288;
+const IMG_DESIGN_SIDE = 512;
+const SIDE_SCALE = IMG_SIDE / IMG_DESIGN_SIDE;
+
+/** Medida del diseño (en la rejilla de 512) → píxeles CSS del lienzo real. */
+const px = n => `${+(n * SIDE_SCALE).toFixed(2)}px`;
+
 /** Rutas por idioma: `es` conserva la disposición histórica (sin subcarpeta). */
 function langPaths(lang) {
   const sub = lang === 'es' ? [] : [lang];
@@ -230,7 +251,10 @@ async function cmdImages({ bands, inventory, glyphs }, lang) {
     return;
   }
   const browser = await chromium.launch(fs.existsSync(executablePath) ? { executablePath } : {});
-  const page = await browser.newPage({ viewport: { width: 512, height: 512 }, deviceScaleFactor: 1 });
+  const page = await browser.newPage({
+    viewport: { width: IMG_SIDE, height: IMG_SIDE },
+    deviceScaleFactor: 1,
+  });
 
   for (const { key, word } of entries) {
     const glyph = glyphs[word];
@@ -241,16 +265,16 @@ async function cmdImages({ bands, inventory, glyphs }, lang) {
       : `<div class="wrap tile"><span class="l">${word.charAt(0).toUpperCase()}</span><span class="w">${word}</span></div>`;
     await page.setContent(`<!doctype html><meta charset="utf-8"><style>
       * { margin:0; box-sizing:border-box }
-      body { width:512px; height:512px; display:grid; place-items:center; background:transparent;
+      body { width:${px(512)}; height:${px(512)}; display:grid; place-items:center; background:transparent;
              font-family:"Noto Color Emoji","Segoe UI",system-ui,sans-serif }
-      .wrap { width:512px; height:512px; display:grid; place-items:center }
-      .g { font-size:380px; line-height:1 }
-      .tile { width:440px; height:440px; border-radius:72px; background:#F5F2EC;
-              border:10px dashed #DDD5C7; display:flex; flex-direction:column;
-              align-items:center; justify-content:center; gap:12px }
-      .l { font-size:190px; font-weight:800; color:#9A9183;
+      .wrap { width:${px(512)}; height:${px(512)}; display:grid; place-items:center }
+      .g { font-size:${px(380)}; line-height:1 }
+      .tile { width:${px(440)}; height:${px(440)}; border-radius:${px(72)}; background:#F5F2EC;
+              border:${px(10)} dashed #DDD5C7; display:flex; flex-direction:column;
+              align-items:center; justify-content:center; gap:${px(12)} }
+      .l { font-size:${px(190)}; font-weight:800; color:#9A9183;
            font-family:"Segoe UI",system-ui,sans-serif }
-      .w { font-size:44px; font-weight:700; color:#6B635A;
+      .w { font-size:${px(44)}; font-weight:700; color:#6B635A;
            font-family:"Segoe UI",system-ui,sans-serif }
     </style>${body}`);
     await page.screenshot({ path: path.join(imgDir, `${key}.png`), omitBackground: true });

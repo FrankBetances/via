@@ -57,6 +57,15 @@ jobs:
       - name: Verify Lúa matches Valeria+
         run: node scripts/check-lua-sprite.js
 
+      # Una ilustración cuesta ancho × alto × 4 bytes de RAM en cuanto React
+      # Native la descomprime, comprima como comprima el fichero. El banco se
+      # generó una vez a 512×512 para dibujarse a 72–96 pt: 97 MB de bitmap de
+      # los que dos tercios no llegaban a la pantalla. El gate impide que
+      # vuelva a colarse un asset sobredimensionado — sobre todo el banco
+      # definitivo del ilustrador, que entra por fuera del generador.
+      - name: Verify illustration size budget
+        run: node scripts/resize-verbal-images.js --check
+
       - name: Decode release keystore
         env:
           RELEASE_KEYSTORE_BASE64: ${{ secrets.MYAPP_RELEASE_STORE_FILE_BASE64 }}
