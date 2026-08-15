@@ -1,10 +1,26 @@
 name: Android Release (APK + AAB)
 
+# Un push a `main` COMPILA y pasa las puertas, pero no publica nada. El APK y
+# el AAB solo se suben cuando hay una entrega de verdad: un tag `v*` o un
+# disparo manual (ver el `if` de los pasos de subida).
+#
+# El motivo es de almacenamiento. Cada ejecución subía 166 MB (APK 64 + AAB
+# 102) y `main` recibe pushes a diario: se acumularon 34 ejecuciones vivas,
+# unos 5,6 GB, para dos o tres entregas reales. Lo que se quiere saber en un
+# push a `main` es que compila, que firma y que las puertas pasan — y eso se
+# sigue sabiendo igual, porque el build entero se ejecuta.
+#
+# El filtro `paths` de abajo NO se aplica a los pushes de tag (GitHub lo
+# ignora para refs de tag), así que un `v*` dispara el workflow aunque el
+# commit etiquetado no toque ninguna de esas rutas. Es justo lo que se quiere:
+# una entrega no debe depender de qué ficheros llevara el último commit.
 on:
   workflow_dispatch:
   push:
     branches:
       - main
+    tags:
+      - "v*"
     paths:
       - "android/**"
       - "src/**"
@@ -17,6 +33,12 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    env:
+      # ¿Esta ejecución es una ENTREGA (se publican los binarios) o solo una
+      # verificación? Se calcula una vez aquí para que los dos pasos de subida
+      # no puedan divergir: si un día se añade un tercer artefacto, hereda el
+      # mismo criterio sin que nadie tenga que acordarse de copiar la condición.
+      IS_RELEASE: ${{ startsWith(github.ref, 'refs/tags/v') || github.event_name == 'workflow_dispatch' }}
     steps:
       - uses: actions/checkout@v4
 
@@ -105,16 +127,28 @@ jobs:
         if: always()
         run: rm -f android/app/viaplus-release.keystore
 
+      # `retention-days: 7` no es una preferencia: es el máximo que admite este
+      # repositorio (Settings → Actions → General → Artifact and log
+      # retention). Antes decía 30 y GitHub lo recortaba a 7 en silencio, de
+      # modo que el fichero afirmaba una cosa y la papelera hacía otra. Para
+      # conservarlos más tiempo hay que subir PRIMERO el límite del repositorio;
+      # cambiar solo este número no sirve de nada.
+      #
+      # Si algún día una entrega tiene que sobrevivir más allá de esa ventana,
+      # el sitio de los binarios no es un artefacto sino un GitHub Release:
+      # sus adjuntos no caducan.
       - name: Upload release APK
+        if: env.IS_RELEASE == 'true'
         uses: actions/upload-artifact@v4
         with:
           name: viaplus-release-apk
           path: android/app/build/outputs/apk/release/*.apk
-          retention-days: 30
+          retention-days: 7
 
       - name: Upload release AAB
+        if: env.IS_RELEASE == 'true'
         uses: actions/upload-artifact@v4
         with:
           name: viaplus-release-aab
           path: android/app/build/outputs/bundle/release/*.aab
-          retention-days: 30
+          retention-days: 7

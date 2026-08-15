@@ -877,7 +877,7 @@ del HNR no declarado, y un caso de prueba mal construido. Detalle en
 | Workflow | Disparo | Qué hace |
 |---|---|---|
 | `voice-assets.yml` | Manual · push a `claude/**` que toque el corpus o `tools/nos` | Sintetiza consignas y/o recortes verbales de los cuatro idiomas y los commitea a la rama (nunca a `main`). Tolerante: una voz que falle no tira el lote |
-| `android-release.yml` | Manual · push a `main` (android, src, assets/audio) | **Puerta de locuciones** → **gate del sprite de Lúa** → keystore → APK + AAB firmados → verificación de firma → artefactos |
+| `android-release.yml` | Manual · tag `v*` · push a `main` (android, src, assets/audio) | **Puerta de locuciones** → **gate del sprite de Lúa** → **presupuesto de ilustraciones** → keystore → APK + AAB firmados → verificación de firma. Los artefactos se publican **solo** en tag `v*` o disparo manual; un push a `main` compila y pasa las puertas sin subir nada |
 | `acoustic-validation.yml` | PR/push que toque `VoiceAnalysis` o `tools/acoustics` | Contrasta el DSP con Praat y falla si un parámetro se desvía de su tolerancia |
 | `codeql.yml` | Push/PR a `main` + semanal | Análisis estático de seguridad |
 | `markdown-lint.yml` | Cambios en `**/*.md` | `markdownlint-cli2` con la configuración de `.markdownlint.yaml` |
@@ -910,7 +910,7 @@ versionados de los que hay que **activar en la interfaz de GitHub** para que sur
 | Elemento | Valor / ubicación |
 |---|---|
 | Identificador del paquete Android | **`eu.futureforkids.via`** (`namespace` y `applicationId`) |
-| Artefactos de release | APK + AAB firmados por `android-release.yml` |
+| Artefactos de release | APK + AAB firmados por `android-release.yml`, publicados solo en tag `v*` o disparo manual (retención de 7 días, el máximo del repositorio) |
 | Icono de la app | [`docs/capturas/`](./docs/capturas/README.md) (512 × 512 para la ficha + icono de lanzador) |
 | Política de privacidad | [`site/privacidad.html`](./site/privacidad.html), publicada con GitHub Pages |
 | Port nativo iOS | [`ios-native/`](./ios-native/README.md) — SwiftUI, parcial: acceso y créditos, profesionales, pacientes, consentimiento, evaluación clínica (CAP), sonómetro de sala y hub de módulos |
