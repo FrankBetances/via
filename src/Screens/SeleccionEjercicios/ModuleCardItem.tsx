@@ -1,73 +1,60 @@
 import React, { useEffect } from 'react';
-import { Pressable, View } from 'react-native';
-import { Box, Center, HStack, VStack } from '@gluestack-ui/themed';
+import { Pressable, StyleSheet, View } from 'react-native';
+import { Center, HStack, VStack } from '@gluestack-ui/themed';
 import type { LucideIcon } from 'lucide-react-native';
+import { Clock, Compass, Sparkles, User } from 'lucide-react-native';
 import Animated, {
   FadeInDown,
-  ZoomIn,
   interpolate,
   useAnimatedStyle,
   useSharedValue,
   withSpring,
+  ZoomIn,
 } from 'react-native-reanimated';
 
 import { Text } from '@/Components/Common';
 import ModuleIllustration from './ModuleIllustration';
+import { CategoryType } from './CategoryBadgeIcon';
 
 /* -------------------------------------------------------------------------- */
-/*  ModuleCardItem — tarjeta de módulo clínico.                                */
-/*                                                                             */
-/*  REDISEÑO: la versión anterior era una rejilla de dos columnas con una      */
-/*  cabecera ilustrada de 96 px por tarjeta. Con nueve módulos eso dejaba una  */
-/*  huérfana en la última fila, recortaba los títulos largos a dos líneas      */
-/*  apretadas, obligaba a resumir la descripción en una frase telegráfica y    */
-/*  dedicaba más superficie al dibujo que al contenido: parecía un menú de     */
-/*  juegos, no el índice de una batería de exploración.                         */
-/*                                                                             */
-/*  Ahora es una FILA a ancho completo con jerarquía tipográfica explícita:    */
-/*   · raíl de acento a la izquierda — identifica el dominio sin teñir la      */
-/*     tarjeta entera;                                                          */
-/*   · icono sobre azulejo tintado, tamaño fijo, alineado con la primera línea; */
-/*   · título en un solo renglón de lectura + descripción completa;             */
-/*   · metadatos (dominio · duración · edades) en una línea sobria de texto     */
-/*     con separadores, en lugar de tres chips de colores;                      */
-/*   · la escena SVG del módulo pasa a MARCA DE AGUA a la derecha, muy tenue:  */
-/*     conserva la identidad visual sin competir con el texto;                  */
-/*   · selección = borde de acento + índice de orden en la batería.            */
-/*                                                                             */
-/*  Movimiento (reanimated, todo en el hilo de UI): entrada escalonada, escala */
-/*  de feedback al pulsar y realce contenido al seleccionar. Se retiran el     */
-/*  zoom y la báscula del medallón, que en una lista clínica sobran.            */
+/*  ModuleCardItem — Tarjeta clínica vertical en rejilla según el render       */
+/*  aprobado para tableta (azulejo superior, micro-gráfica central, metadatos) */
 /* -------------------------------------------------------------------------- */
 
 export interface ModuleCardData {
   id: string;
   title: string;
+  subtitle?: string;
   description: string;
   duration: string;
+  durationMinutes: number;
   ages: string;
   icon: LucideIcon;
-  tag: string; // etiqueta corta de dominio clínico
-  color: string; // acento (raíl/azulejo/borde/badge)
-  soft: string; // fondo suave del azulejo y de la marca de agua
+  category: CategoryType;
+  tag: string;
+  color: string;
+  soft: string;
+  badgeParam?: string;
+  isCalibrated?: boolean;
 }
 
 interface Props {
   module: ModuleCardData;
-  /** Índice de la tarjeta en la lista; escalona la animación de entrada. */
   index: number;
-  /** Posición 1-based dentro de la selección (null = no seleccionada). */
   order: number | null;
   onToggle: (id: string) => void;
+  cardWidth?: number | string;
 }
 
 const SPRING = { damping: 14, stiffness: 180 };
 
-/** Gris de los metadatos: contraste suficiente sobre blanco sin pesar. */
-const META_COLOR = '#8A8577';
-const HAIRLINE = '#EDE9E1';
-
-export default function ModuleCardItem({ module: m, index, order, onToggle }: Props) {
+export default function ModuleCardItem({
+  module: m,
+  index,
+  order,
+  onToggle,
+  cardWidth = '100%',
+}: Props) {
   const isSelected = order !== null;
   const IconGlyph = m.icon;
 
@@ -79,16 +66,17 @@ export default function ModuleCardItem({ module: m, index, order, onToggle }: Pr
   }, [isSelected, sel]);
 
   const cardStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: 1 - 0.015 * pressed.value }],
-    shadowOpacity: interpolate(sel.value, [0, 1], [0.04, 0.14]),
+    transform: [{ scale: 1 - 0.02 * pressed.value }],
+    shadowOpacity: interpolate(sel.value, [0, 1], [0.06, 0.18]),
   }));
 
   return (
     <Animated.View
-      entering={FadeInDown.delay(index * 45)
+      entering={FadeInDown.delay(index * 40)
         .springify()
         .damping(16)
-        .stiffness(150)}>
+        .stiffness(150)}
+      style={{ width: cardWidth as any }}>
       <Pressable
         onPress={() => onToggle(m.id)}
         onPressIn={() => {
@@ -102,109 +90,197 @@ export default function ModuleCardItem({ module: m, index, order, onToggle }: Pr
         accessibilityLabel={`${m.title}. ${m.description} Duración ${m.duration}. Edades ${m.ages}.`}>
         <Animated.View
           style={[
+            styles.card,
             {
-              borderRadius: 16,
-              backgroundColor: '#FFFFFF',
-              borderWidth: 1.5,
-              borderColor: isSelected ? m.color : HAIRLINE,
-              overflow: 'hidden',
-              shadowColor: isSelected ? m.color : '#000000',
-              shadowRadius: 10,
-              shadowOffset: { width: 0, height: 4 },
-              elevation: isSelected ? 4 : 1,
+              backgroundColor: isSelected ? m.soft : '#FFFFFF',
+              borderColor: isSelected ? m.color : '#EDE7DC',
+              borderLeftColor: m.color,
+              borderLeftWidth: isSelected ? 3 : 4,
+              shadowColor: isSelected ? m.color : '#0F172A',
             },
             cardStyle,
           ]}>
-          {/* Marca de agua: la escena del módulo, recortada a la derecha. Muy
-              tenue y estrecha a propósito — una descripción de dos líneas llega
-              hasta aquí, y la ilustración no puede competir con el texto. */}
-          <View
-            pointerEvents="none"
-            style={{
-              position: 'absolute',
-              right: 0,
-              top: 0,
-              bottom: 0,
-              width: 130,
-              opacity: isSelected ? 0.34 : 0.22,
-            }}>
-            <ModuleIllustration moduleId={m.id} color={m.color} />
+          {/* Fila Superior: Azulejo de Icono + Número de Selección */}
+          <HStack alignItems="center" justifyContent="space-between" mb="$2.5">
+            {/* Azulejo temático */}
+            <Center
+              w={44}
+              h={44}
+              borderRadius={14}
+              style={{
+                backgroundColor: isSelected ? '#FFFFFF' : m.soft,
+                borderWidth: 1,
+                borderColor: isSelected ? m.color : 'rgba(0,0,0,0.04)',
+                shadowColor: isSelected ? m.color : 'transparent',
+                shadowOffset: { width: 0, height: 2 },
+                shadowOpacity: isSelected ? 0.2 : 0,
+                shadowRadius: 4,
+                elevation: isSelected ? 2 : 0,
+              }}>
+              <IconGlyph size={22} color={m.color} strokeWidth={2.2} />
+            </Center>
+
+            {/* Círculo de orden secuencial (#1, #2...) o estado vacío */}
+            {isSelected ? (
+              <Animated.View entering={ZoomIn.springify().damping(12).stiffness(220)}>
+                <Center
+                  w={30}
+                  h={30}
+                  borderRadius={15}
+                  style={{
+                    backgroundColor: '#FFFFFF',
+                    borderWidth: 2,
+                    borderColor: m.color,
+                    shadowColor: m.color,
+                    shadowOffset: { width: 0, height: 2 },
+                    shadowOpacity: 0.25,
+                    shadowRadius: 4,
+                    elevation: 3,
+                  }}>
+                  <Text
+                    size="xs"
+                    weight="bold"
+                    style={{
+                      color: m.color,
+                      fontSize: 13,
+                      fontVariant: ['tabular-nums'],
+                    }}>
+                    {order}
+                  </Text>
+                </Center>
+              </Animated.View>
+            ) : (
+              <Center
+                w={26}
+                h={26}
+                borderRadius={13}
+                style={{
+                  backgroundColor: 'rgba(0,0,0,0.03)',
+                  borderWidth: 1.5,
+                  borderColor: '#E2DDD5',
+                }}
+              />
+            )}
+          </HStack>
+
+          {/* Título y Subtítulo / Descripción */}
+          <VStack space="xs" style={{ minHeight: 64 }}>
+            <Text
+              size="sm"
+              weight="bold"
+              color="$textLight900"
+              style={{
+                fontSize: 15,
+                lineHeight: 19,
+                letterSpacing: -0.2,
+              }}
+              numberOfLines={2}>
+              {m.title}
+            </Text>
+            {m.subtitle ? (
+              <Text
+                size="2xs"
+                weight="semiBold"
+                style={{ color: m.color, fontSize: 11, lineHeight: 14 }}>
+                {m.subtitle}
+              </Text>
+            ) : null}
+            <Text
+              size="2xs"
+              color="$textLight600"
+              style={{ fontSize: 11, lineHeight: 15 }}
+              numberOfLines={2}>
+              {m.description}
+            </Text>
+          </VStack>
+
+          {/* Micro-Gráfica Vectorial Central */}
+          <View style={styles.graphicContainer}>
+            <ModuleIllustration moduleId={m.id} color={m.color} softColor={m.soft} />
           </View>
 
-          <HStack>
-            {/* raíl de acento del dominio clínico */}
-            <Box w={5} style={{ backgroundColor: isSelected ? m.color : m.soft }} />
-
-            <HStack style={{ flex: 1, gap: 12 }} p="$3.5" alignItems="flex-start">
-              {/* azulejo con el icono */}
-              <Center
-                w={44}
-                h={44}
-                borderRadius={12}
-                style={{ backgroundColor: isSelected ? m.color : m.soft }}>
-                <IconGlyph size={22} color={isSelected ? '#FFFFFF' : m.color} strokeWidth={2.2} />
-              </Center>
-
-              <VStack style={{ flex: 1 }} space="xs">
-                <Text size="sm" weight="bold" color="$textLight900" style={{ lineHeight: 19 }}>
-                  {m.title}
+          {/* Fila Inferior de Metadatos */}
+          <VStack space="xs" mt="$1">
+            {/* Duración y Rango de Edad */}
+            <HStack alignItems="center" space="md">
+              <HStack alignItems="center" space="xs">
+                <Clock size={12} color="#64748B" />
+                <Text
+                  size="2xs"
+                  weight="medium"
+                  style={{ color: '#475569', fontSize: 11, fontVariant: ['tabular-nums'] }}>
+                  {m.duration}
                 </Text>
-                <Text size="2xs" color="$textLight500" style={{ lineHeight: 16 }}>
-                  {m.description}
+              </HStack>
+              <HStack alignItems="center" space="xs">
+                <User size={12} color="#64748B" />
+                <Text
+                  size="2xs"
+                  weight="medium"
+                  style={{ color: '#475569', fontSize: 11 }}>
+                  {m.ages}
                 </Text>
+              </HStack>
+            </HStack>
 
-                {/* metadatos en una línea sobria, con separadores */}
-                <HStack alignItems="center" style={{ gap: 6, flexWrap: 'wrap' }} mt="$0.5">
+            {/* Badge de Parámetro o Calibración */}
+            <HStack alignItems="center" space="xs" mt="$0.5">
+              {m.badgeParam ? (
+                <HStack
+                  alignItems="center"
+                  space="xs"
+                  px="$2"
+                  py="$0.5"
+                  borderRadius={8}
+                  style={{
+                    backgroundColor: isSelected ? '#FFFFFF' : 'rgba(0,0,0,0.05)',
+                    borderWidth: 0.8,
+                    borderColor: isSelected ? m.color : 'rgba(0,0,0,0.08)',
+                  }}>
+                  <Sparkles size={10} color={m.color} />
                   <Text
                     size="2xs"
                     weight="bold"
-                    style={{ color: m.color, letterSpacing: 0.7, fontSize: 9 }}>
-                    {m.tag}
+                    style={{ color: m.color, fontSize: 10 }}>
+                    {m.badgeParam}
                   </Text>
-                  <Text size="2xs" style={{ color: HAIRLINE, fontSize: 9 }}>
-                    ●
-                  </Text>
+                </HStack>
+              ) : (
+                <HStack alignItems="center" space="xs">
+                  <Compass size={12} color="#0D9488" />
                   <Text
                     size="2xs"
                     weight="semiBold"
-                    style={{ color: META_COLOR, fontSize: 10, fontVariant: ['tabular-nums'] }}>
-                    {m.duration}
-                  </Text>
-                  <Text size="2xs" style={{ color: HAIRLINE, fontSize: 9 }}>
-                    ●
-                  </Text>
-                  <Text size="2xs" weight="semiBold" style={{ color: META_COLOR, fontSize: 10 }}>
-                    {m.ages}
+                    style={{ color: '#0D9488', fontSize: 11 }}>
+                    Calibración OK
                   </Text>
                 </HStack>
-              </VStack>
-
-              {/* selección: casilla con el ORDEN dentro de la batería */}
-              <Center
-                w={28}
-                h={28}
-                borderRadius={9}
-                borderWidth={isSelected ? 0 : 1.5}
-                borderColor="$borderLight300"
-                style={{ backgroundColor: isSelected ? m.color : '#FFFFFF', marginTop: 8 }}>
-                {isSelected ? (
-                  <Animated.View entering={ZoomIn.springify().damping(12).stiffness(220)}>
-                    {/* el número ES el orden de ejecución de la batería, así que
-                        se muestra siempre (también con una sola prueba) */}
-                    <Text
-                      size="2xs"
-                      weight="bold"
-                      color="$white"
-                      style={{ fontVariant: ['tabular-nums'] }}>
-                      {order}
-                    </Text>
-                  </Animated.View>
-                ) : null}
-              </Center>
+              )}
             </HStack>
-          </HStack>
+          </VStack>
         </Animated.View>
       </Pressable>
     </Animated.View>
   );
 }
+
+const styles = StyleSheet.create({
+  card: {
+    borderRadius: 20,
+    borderWidth: 1.5,
+    padding: 14,
+    shadowOffset: { width: 0, height: 4 },
+    shadowRadius: 10,
+    elevation: 2,
+    marginBottom: 14,
+  },
+  graphicContainer: {
+    height: 52,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginVertical: 6,
+    borderRadius: 10,
+    backgroundColor: 'rgba(255, 255, 255, 0.4)',
+    overflow: 'hidden',
+  },
+});

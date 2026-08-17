@@ -1,56 +1,55 @@
 import React, { useEffect, useMemo } from 'react';
 import {
-  View,
-  Text,
-  Pressable,
-  StyleSheet,
-  StatusBar,
   Platform,
+  Pressable,
+  ScrollView,
+  StatusBar,
+  StyleSheet,
+  Text,
   useWindowDimensions,
+  View,
 } from 'react-native';
+import Svg, { Path } from 'react-native-svg';
 import Animated, {
-  useSharedValue,
+  cancelAnimation,
+  Easing,
+  interpolate,
+  interpolateColor,
   useAnimatedStyle,
+  useSharedValue,
+  withDelay,
   withRepeat,
   withSequence,
   withTiming,
-  withDelay,
-  cancelAnimation,
-  interpolate,
-  interpolateColor,
-  Easing,
 } from 'react-native-reanimated';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { ArrowRight, Lock, Stethoscope, Trophy } from 'lucide-react-native';
+
 import type { RootStackParamList } from '@/Navigators/screenTypeNavigator';
 import ViaIcon from '@/Components/Common/ViaIcon';
 
 type Nav = NativeStackNavigationProp<RootStackParamList, 'Bienvenida'>;
 
 /* -------------------------------------------------------------------------- */
-/*  BienvenidaScreen — "del ruido a la información" contado con partículas:    */
-/*  un enjambre desordenado entra por la izquierda (movimiento caótico, gris)  */
-/*  y, al atravesar el isotipo VIA+, cada partícula se alinea en una onda      */
-/*  senoidal limpia y se tiñe de naranja: la señal ordenada. El CTA continúa   */
-/*  a la pantalla de créditos del proyecto.                                    */
+/*  BienvenidaScreen — "Del ruido a la información clínica" en tableta (4:3)   */
+/*  Escenario cinemático de partículas + onda dual a la izquierda, propuesta   */
+/*  de valor clínico estructurada y CTA a la derecha.                          */
 /* -------------------------------------------------------------------------- */
 
-const ICON_SIZE = 108;
+const ICON_SIZE = 92;
 const RING_DURATION = 2600;
-const FIELD_H = 200;
-const PARTICLES = 26;
-const TRAVEL_MS = 5600;
+const FIELD_H = 220;
+const PARTICLES = 28;
+const TRAVEL_MS = 5400;
 
-/* Parámetros deterministas por partícula (generados con un LCG con semilla
-   fija: el enjambre es idéntico en cada arranque y no cuesta Math.random en
-   cada render). */
 interface ParticleSpec {
-  delay: number; // ms de entrada escalonada
-  duration: number; // ms de viaje completo
-  size: number; // diámetro px
-  baseY: number; // deriva vertical base (-1..1)
-  amp: number; // amplitud del caos (px)
-  f1: number; // frecuencias/fases del ruido
+  delay: number;
+  duration: number;
+  size: number;
+  baseY: number;
+  amp: number;
+  f1: number;
   p1: number;
   f2: number;
   p2: number;
@@ -65,17 +64,15 @@ function buildSpecs(): ParticleSpec[] {
   return Array.from({ length: PARTICLES }, (_, i) => ({
     delay: i * (TRAVEL_MS / PARTICLES) + rnd() * 160,
     duration: TRAVEL_MS * (0.88 + rnd() * 0.28),
-    size: 4 + Math.round(rnd() * 3),
+    size: 3.5 + Math.round(rnd() * 3),
     baseY: rnd() * 2 - 1,
-    amp: 18 + rnd() * 30,
+    amp: 16 + rnd() * 28,
     f1: 6 + rnd() * 9,
     p1: rnd() * Math.PI * 2,
     f2: 14 + rnd() * 14,
     p2: rnd() * Math.PI * 2,
   }));
 }
-
-/* ───────────────────────── partícula ────────────────────────────────────── */
 
 function Particle({ spec, width }: { spec: ParticleSpec; width: number }) {
   const prog = useSharedValue(0);
@@ -94,15 +91,14 @@ function Particle({ spec, width }: { spec: ParticleSpec; width: number }) {
     const p = prog.value;
     const x = interpolate(p, [0, 1], [-8, width + 8]);
 
-    // Grado de desorden: 1 antes del logo, 0 después (transición al cruzarlo).
-    const disorder = 1 - Math.min(1, Math.max(0, (p - 0.40) / 0.20));
+    // Grado de desorden: 1 antes del logo (0-40%), 0 después (40-100%)
+    const disorder = 1 - Math.min(1, Math.max(0, (p - 0.35) / 0.18));
 
-    // Trayectoria caótica (ruido) vs onda senoidal común (información).
     const yChaos =
-      spec.baseY * (FIELD_H / 2 - 24) +
+      spec.baseY * (FIELD_H / 2 - 20) +
       Math.sin(p * spec.f1 + spec.p1) * spec.amp +
       Math.sin(p * spec.f2 + spec.p2) * spec.amp * 0.5;
-    const yOrder = Math.sin(p * Math.PI * 2 * 2.4) * 20;
+    const yOrder = Math.sin(p * Math.PI * 2 * 2.5) * 22;
     const y = disorder * yChaos + (1 - disorder) * yOrder;
 
     const opacity =
@@ -112,10 +108,10 @@ function Particle({ spec, width }: { spec: ParticleSpec; width: number }) {
       transform: [
         { translateX: x },
         { translateY: y },
-        { scale: 0.9 + 0.5 * (1 - disorder) },
+        { scale: 0.85 + 0.5 * (1 - disorder) },
       ],
       opacity,
-      backgroundColor: interpolateColor(disorder, [0, 1], ['#FF7F00', '#B3A791']),
+      backgroundColor: interpolateColor(disorder, [0, 1], ['#FF7F00', '#A39988']),
     };
   });
 
@@ -131,17 +127,17 @@ function Particle({ spec, width }: { spec: ParticleSpec; width: number }) {
   );
 }
 
-/* ───────────────────────── screen ───────────────────────────────────────── */
-
 export default function BienvenidaScreen() {
   const navigation = useNavigation<Nav>();
   const { width: winW } = useWindowDimensions();
-  const fieldW = Math.min(winW - 48, 520);
+  const isTabletLandscape = winW >= 850;
+  const stageWidth = isTabletLandscape ? Math.min(winW * 0.48, 500) : Math.min(winW - 48, 480);
   const specs = useMemo(buildSpecs, []);
 
   const floatY = useSharedValue(0);
   const ring1 = useSharedValue(0);
   const ring2 = useSharedValue(0);
+  const waveProg = useSharedValue(0);
 
   useEffect(() => {
     floatY.value = withRepeat(
@@ -165,10 +161,17 @@ export default function BienvenidaScreen() {
     ring1.value = makePulse();
     ring2.value = withDelay(RING_DURATION / 2, makePulse());
 
+    waveProg.value = withRepeat(
+      withTiming(1, { duration: 4000, easing: Easing.linear }),
+      -1,
+      false,
+    );
+
     return () => {
       cancelAnimation(floatY);
       cancelAnimation(ring1);
       cancelAnimation(ring2);
+      cancelAnimation(waveProg);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -177,74 +180,140 @@ export default function BienvenidaScreen() {
     transform: [{ translateY: floatY.value }],
   }));
   const ring1Style = useAnimatedStyle(() => ({
-    transform: [{ scale: interpolate(ring1.value, [0, 1], [0.92, 1.6]) }],
+    transform: [{ scale: interpolate(ring1.value, [0, 1], [0.92, 1.65]) }],
     opacity: interpolate(ring1.value, [0, 1], [0.45, 0]),
   }));
   const ring2Style = useAnimatedStyle(() => ({
-    transform: [{ scale: interpolate(ring2.value, [0, 1], [0.92, 1.6]) }],
+    transform: [{ scale: interpolate(ring2.value, [0, 1], [0.92, 1.65]) }],
     opacity: interpolate(ring2.value, [0, 1], [0.45, 0]),
   }));
 
   return (
     <View style={styles.root}>
-      <StatusBar barStyle="dark-content" backgroundColor="#F1ECE2" />
+      <StatusBar barStyle="dark-content" backgroundColor="#F5F2EC" />
 
-      {/* Ambient blobs */}
+      {/* Ambient background glows */}
       <View style={styles.blobTopLeft} pointerEvents="none" />
       <View style={styles.blobBottomRight} pointerEvents="none" />
 
-      {/* Center content */}
-      <View style={styles.center}>
-        {/* Wordmark */}
-        <View style={styles.wordmark}>
-          <Text style={styles.wordmarkVia}>VIA</Text>
-          <Text style={styles.wordmarkPlus}>+</Text>
-        </View>
+      <ScrollView
+        contentContainerStyle={[
+          styles.scrollContent,
+          isTabletLandscape && styles.scrollContentLandscape,
+        ]}
+        showsVerticalScrollIndicator={false}>
+        
+        {/* ================================================================== */}
+        {/* COLUMNA IZQUIERDA: Escenario Cinemático de Partículas + Onda Dual  */}
+        {/* ================================================================== */}
+        <View style={[styles.stageColumn, { width: stageWidth }]}>
+          <View style={[styles.fieldContainer, { width: stageWidth }]}>
+            
+            {/* Partículas de fondo */}
+            <View style={styles.particleTrack} pointerEvents="none">
+              {specs.map((spec, i) => (
+                <Particle key={i} spec={spec} width={stageWidth} />
+              ))}
+            </View>
 
-        {/* ── Campo de partículas: caos → VIA+ → onda ordenada ── */}
-        <View style={[styles.field, { width: fieldW }]}>
-          <View style={styles.fieldCenterLine} pointerEvents="none">
-            {specs.map((spec, i) => (
-              <Particle key={i} spec={spec} width={fieldW} />
-            ))}
+            {/* Onda senoidal dual armónica renderizada en SVG */}
+            <View style={styles.waveLayer} pointerEvents="none">
+              <Svg width={stageWidth * 0.58} height={120} viewBox="0 0 240 120" fill="none">
+                {/* Onda 1: Naranja Radiante (Armónica fundamental) */}
+                <Path
+                  d="M 10 60 C 35 15, 60 105, 95 60 C 130 15, 160 105, 195 60 C 215 35, 230 45, 238 60"
+                  stroke="#FF7F00"
+                  strokeWidth="3.8"
+                  strokeLinecap="round"
+                  fill="none"
+                  opacity="0.9"
+                />
+                {/* Onda 2: Turquesa / Teal (Formante clínico secundario) */}
+                <Path
+                  d="M 10 60 C 40 30, 65 90, 105 60 C 145 30, 170 90, 205 60 C 220 48, 232 52, 238 60"
+                  stroke="#0D9488"
+                  strokeWidth="2.8"
+                  strokeLinecap="round"
+                  fill="none"
+                  opacity="0.8"
+                />
+              </Svg>
+            </View>
+
+            {/* Isotipo VIA+ con pulso de anillos concéntricos */}
+            <Animated.View style={[styles.iconWrapper, floatStyle]}>
+              <Animated.View style={[styles.ring, ring1Style]} />
+              <Animated.View style={[styles.ring, ring2Style]} />
+              <ViaIcon size={ICON_SIZE} variant="color" />
+            </Animated.View>
           </View>
 
-          <Animated.View style={[styles.iconWrapper, floatStyle]}>
-            <Animated.View style={[styles.ring, ring1Style]} />
-            <Animated.View style={[styles.ring, ring2Style]} />
-            <ViaIcon size={ICON_SIZE} variant="color" />
-          </Animated.View>
-
-          <Text style={[styles.stageLabel, styles.labelLeft]}>VOZ CON RUIDO</Text>
-          <Text style={[styles.stageLabel, styles.labelRight]}>INFORMACIÓN CLÍNICA</Text>
+          {/* Rótulos del flujo de señal */}
+          <View style={styles.stageLabelsRow}>
+            <Text style={styles.stageLabelLeft}>VOZ CON RUIDO</Text>
+            <View style={styles.arrowRow}>
+              <View style={styles.arrowLine} />
+              <Text style={styles.arrowHead}>→</Text>
+            </View>
+            <Text style={styles.stageLabelRight}>INFORMACIÓN CLÍNICA</Text>
+          </View>
         </View>
 
-        {/* Title — una sola frase */}
-        <Text style={styles.title}>
-          {'Del ruido a la '}
-          <Text style={styles.titleAccent}>información</Text>
-        </Text>
+        {/* ================================================================== */}
+        {/* COLUMNA DERECHA: Propuesta de Valor, Tarjetas y Botón de Inicio   */}
+        {/* ================================================================== */}
+        <View style={styles.narrativeColumn}>
+          {/* Wordmark VIA+ */}
+          <View style={styles.wordmark}>
+            <Text style={styles.wordmarkVia}>VIA</Text>
+            <Text style={styles.wordmarkPlus}>+</Text>
+          </View>
 
-        {/* Una línea de apoyo */}
-        <Text style={styles.description}>
-          VIA+ procesa cada voz y la convierte en medidas clínicas objetivas.
-        </Text>
-      </View>
+          {/* Titular destacado */}
+          <View style={styles.titleWrapper}>
+            <Text style={styles.titleLead}>Del ruido a la</Text>
+            <View style={styles.titleHighlightPill}>
+              <Text style={styles.titleHighlightText}>información clínica</Text>
+            </View>
+          </View>
 
-      {/* Continue button */}
-      <Pressable
-        style={({ pressed }) => [styles.button, pressed && styles.buttonPressed]}
-        onPress={() => navigation.navigate('Creditos')}
-      >
-        <Text style={styles.buttonText}>Comenzar</Text>
-        <Text style={styles.buttonArrow}>→</Text>
-      </Pressable>
+          {/* Párrafo explicativo */}
+          <Text style={styles.description}>
+            VIA+ procesa objetivamente la señal acústica y la transforma en parámetros diagnósticos precisos para optimizar la toma de decisiones clínicas.
+          </Text>
 
-      {/* Footer */}
-      <Text style={styles.footer}>
-        {'VIA+ · Evaluación de audición y lenguaje · '}
-        {new Date().getFullYear()}
-      </Text>
+          {/* 3 Tarjetas / Chips de Valor Clínico */}
+          <View style={styles.chipsContainer}>
+            <View style={styles.valueChip}>
+              <Stethoscope size={16} color="#0284C7" />
+              <Text style={styles.valueChipText}>12 Módulos Clínicos</Text>
+            </View>
+
+            <View style={styles.valueChip}>
+              <Lock size={15} color="#0D9488" />
+              <Text style={styles.valueChipText}>100% On-Device · Zero-PHI</Text>
+            </View>
+
+            <View style={styles.valueChip}>
+              <Trophy size={16} color="#D97706" />
+              <Text style={styles.valueChipText}>Sello ITEMAS 2024</Text>
+            </View>
+          </View>
+
+          {/* Botón de Acción Principal en Naranja Radiante */}
+          <Pressable
+            style={({ pressed }) => [styles.ctaButton, pressed && styles.ctaButtonPressed]}
+            onPress={() => navigation.navigate('Creditos')}>
+            <Text style={styles.ctaButtonText}>Comenzar Exploración</Text>
+            <ArrowRight size={18} color="#FFFFFF" strokeWidth={2.5} />
+          </Pressable>
+
+          {/* Nota regulatoria */}
+          <Text style={styles.regulatoryNote}>
+            VIA+ · SaMD Clase IIa · MDR 2017/745
+          </Text>
+        </View>
+      </ScrollView>
     </View>
   );
 }
@@ -254,63 +323,53 @@ const MONO = Platform.OS === 'ios' ? 'Courier' : 'monospace';
 const styles = StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: '#F1ECE2',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 24,
+    backgroundColor: '#F5F2EC',
   },
   blobTopLeft: {
     position: 'absolute',
-    top: -160,
-    left: -120,
-    width: 400,
-    height: 400,
-    borderRadius: 200,
-    backgroundColor: 'rgba(240,174,108,0.18)',
+    top: -140,
+    left: -100,
+    width: 420,
+    height: 420,
+    borderRadius: 210,
+    backgroundColor: 'rgba(240, 174, 108, 0.16)',
   },
   blobBottomRight: {
     position: 'absolute',
-    bottom: -180,
-    right: -130,
-    width: 380,
-    height: 380,
-    borderRadius: 190,
-    backgroundColor: 'rgba(255,204,128,0.14)',
+    bottom: -160,
+    right: -120,
+    width: 440,
+    height: 440,
+    borderRadius: 220,
+    backgroundColor: 'rgba(255, 204, 128, 0.14)',
   },
-  center: {
-    alignItems: 'center',
-    width: '100%',
-    maxWidth: 520,
-  },
-  wordmark: {
-    flexDirection: 'row',
-    alignItems: 'flex-end',
-    gap: 2,
-    marginBottom: 26,
-  },
-  wordmarkVia: {
-    fontSize: 46,
-    fontWeight: '800',
-    letterSpacing: -2,
-    lineHeight: 50,
-    color: '#3A352F',
-  },
-  wordmarkPlus: {
-    fontSize: 46,
-    fontWeight: '800',
-    letterSpacing: -1,
-    lineHeight: 50,
-    color: '#FF7F00',
-  },
-
-  /* ── campo de partículas ── */
-  field: {
-    height: FIELD_H + 26,
+  scrollContent: {
+    flexGrow: 1,
+    paddingHorizontal: 24,
+    paddingVertical: 32,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 30,
   },
-  fieldCenterLine: {
+  scrollContentLandscape: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-around',
+    paddingHorizontal: 40,
+  },
+
+  /* Columna Escenario */
+  stageColumn: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 24,
+  },
+  fieldContainer: {
+    height: FIELD_H,
+    alignItems: 'center',
+    justifyContent: 'center',
+    position: 'relative',
+  },
+  particleTrack: {
     position: 'absolute',
     left: 0,
     right: 0,
@@ -322,7 +381,18 @@ const styles = StyleSheet.create({
     left: 0,
     top: 0,
   },
+  waveLayer: {
+    position: 'absolute',
+    right: 0,
+    top: FIELD_H / 2 - 60,
+    width: '60%',
+    height: 120,
+    alignItems: 'flex-start',
+    justifyContent: 'center',
+  },
   iconWrapper: {
+    position: 'absolute',
+    left: 20,
     width: ICON_SIZE + 20,
     height: ICON_SIZE + 20,
     alignItems: 'center',
@@ -334,80 +404,161 @@ const styles = StyleSheet.create({
     height: ICON_SIZE,
     borderRadius: (ICON_SIZE * 42) / 150,
     borderWidth: 2,
-    borderColor: 'rgba(255,127,0,0.40)',
+    borderColor: 'rgba(255, 127, 0, 0.38)',
   },
-  stageLabel: {
-    position: 'absolute',
-    bottom: 0,
-    fontFamily: MONO,
-    fontSize: 9,
-    letterSpacing: 1.2,
-    color: '#A89F93',
-    fontWeight: '600',
-  },
-  labelLeft: {
-    left: 4,
-  },
-  labelRight: {
-    right: 4,
-    color: '#D98324',
-  },
-
-  title: {
-    fontSize: 30,
-    fontWeight: '800',
-    letterSpacing: -0.7,
-    lineHeight: 37,
-    textAlign: 'center',
-    color: '#3A352F',
-  },
-  titleAccent: {
-    color: '#FF7F00',
-  },
-  description: {
-    marginTop: 12,
-    fontSize: 15,
-    color: '#7A746B',
-    textAlign: 'center',
-    lineHeight: 23,
-    maxWidth: 340,
-  },
-  button: {
-    position: 'absolute',
-    bottom: 54,
+  stageLabelsRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 11,
-    backgroundColor: '#FF7F00',
-    borderRadius: 999,
-    paddingHorizontal: 34,
-    paddingVertical: 17,
-    shadowColor: '#FF7F00',
-    shadowOpacity: 0.36,
-    shadowRadius: 30,
-    shadowOffset: { width: 0, height: 14 },
-    elevation: 10,
+    justifyContent: 'space-between',
+    width: '100%',
+    paddingHorizontal: 12,
+    marginTop: 8,
   },
-  buttonPressed: {
-    opacity: 0.88,
-    transform: [{ translateY: -2 }],
-  },
-  buttonText: {
-    color: '#FFFFFF',
-    fontSize: 17,
-    fontWeight: '700',
-  },
-  buttonArrow: {
-    color: '#FFFFFF',
-    fontSize: 18,
-    fontWeight: '700',
-  },
-  footer: {
-    position: 'absolute',
-    bottom: 22,
+  stageLabelLeft: {
     fontFamily: MONO,
     fontSize: 10,
-    color: '#BDB5A8',
-    letterSpacing: 0.5,
+    fontWeight: '700',
+    letterSpacing: 1.1,
+    color: '#8C8275',
+  },
+  stageLabelRight: {
+    fontFamily: MONO,
+    fontSize: 10,
+    fontWeight: '700',
+    letterSpacing: 1.1,
+    color: '#D97706',
+  },
+  arrowRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+    marginHorizontal: 10,
+  },
+  arrowLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: '#D1C7B8',
+  },
+  arrowHead: {
+    color: '#8C8275',
+    fontSize: 12,
+    marginLeft: 2,
+  },
+
+  /* Columna Narrativa */
+  narrativeColumn: {
+    maxWidth: 440,
+    alignItems: 'flex-start',
+  },
+  wordmark: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    marginBottom: 12,
+  },
+  wordmarkVia: {
+    fontSize: 42,
+    fontWeight: '800',
+    letterSpacing: -2,
+    lineHeight: 46,
+    color: '#2B2620',
+  },
+  wordmarkPlus: {
+    fontSize: 42,
+    fontWeight: '800',
+    letterSpacing: -1,
+    lineHeight: 46,
+    color: '#FF7F00',
+  },
+  titleWrapper: {
+    marginBottom: 12,
+  },
+  titleLead: {
+    fontSize: 28,
+    fontWeight: '800',
+    letterSpacing: -0.6,
+    lineHeight: 34,
+    color: '#2B2620',
+  },
+  titleHighlightPill: {
+    backgroundColor: '#FED7AA',
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 3,
+    marginTop: 4,
+    alignSelf: 'flex-start',
+  },
+  titleHighlightText: {
+    fontSize: 26,
+    fontWeight: '800',
+    letterSpacing: -0.5,
+    color: '#9A3412',
+  },
+  description: {
+    fontSize: 14,
+    color: '#524B42',
+    lineHeight: 22,
+    marginBottom: 20,
+  },
+
+  /* Feature chips */
+  chipsContainer: {
+    gap: 10,
+    width: '100%',
+    marginBottom: 24,
+  },
+  valueChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 14,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    borderWidth: 1,
+    borderColor: '#E8E2D5',
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 6,
+    elevation: 1,
+  },
+  valueChipText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#2B2620',
+  },
+
+  /* Botón CTA */
+  ctaButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+    backgroundColor: '#FF7F00',
+    borderRadius: 24,
+    paddingVertical: 14,
+    paddingHorizontal: 28,
+    shadowColor: '#FF7F00',
+    shadowOpacity: 0.32,
+    shadowRadius: 16,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 5,
+  },
+  ctaButtonPressed: {
+    opacity: 0.9,
+    transform: [{ translateY: -1 }],
+  },
+  ctaButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '700',
+  },
+
+  regulatoryNote: {
+    fontFamily: MONO,
+    fontSize: 11,
+    color: '#9C9284',
+    marginTop: 20,
+    letterSpacing: 0.4,
   },
 });
