@@ -1,5 +1,11 @@
-import React, { useState } from 'react';
-import { Pressable, ScrollView } from 'react-native';
+import React, { useMemo, useState } from 'react';
+import {
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  useWindowDimensions,
+  View,
+} from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useDispatch } from 'react-redux';
 import { Box, Center, HStack, Icon, VStack } from '@gluestack-ui/themed';
@@ -10,22 +16,27 @@ import {
   AudioWaveform,
   Check,
   CheckCircle2,
+  ChevronRight,
   ClipboardList,
   Droplets,
   Ear,
   FileClock,
+  Flame,
   Headphones,
   LogOut,
   Mic,
   MoonStar,
   Puzzle,
+  RotateCcw,
+  Sparkles,
   Speech,
   TrainFront,
+  User,
   UserPlus,
   Volume2,
 } from 'lucide-react-native';
 
-import { Button, Content, Header, Text } from '@/Components/Common';
+import { Button, Content, Text } from '@/Components/Common';
 import RadialBackground from '@/Components/Themed/RadialBackground';
 import { RootStackParamList } from '@/Navigators';
 import { AppDispatch, RootState } from '@/Store';
@@ -36,12 +47,12 @@ import { useClassSelector } from '@/Helpers/ClassTransformer';
 import { useTelemetryTracker } from '@/Telemetry';
 import { useVoiceEngineStatus } from '@/Voice';
 import ModuleCardItem, { ModuleCardData } from './ModuleCardItem';
+import CategoryFilterChip from './CategoryFilterChip';
+import { CategoryType } from './CategoryBadgeIcon';
 
 /* -------------------------------------------------------------------------- */
-/*  SeleccionEjerciciosScreen — hub central de la batería. Tarjetas animadas   */
-/*  con identidad visual por módulo (icono clínico + escena SVG temática, ver  */
-/*  ModuleCardItem) y accesos rápidos a los prerrequisitos (CAP / sonómetro    */
-/*  de sala), alta de paciente y cierre de sesión.                             */
+/*  SeleccionEjerciciosScreen — Hub clínico con diseño en tableta (4:3)        */
+/*  Pixel-perfect según la referencia visual aprobada de VIA+                  */
 /* -------------------------------------------------------------------------- */
 
 type Props = NativeStackScreenProps<RootStackParamList, 'SeleccionEjercicios'>;
@@ -49,54 +60,227 @@ type Props = NativeStackScreenProps<RootStackParamList, 'SeleccionEjercicios'>;
 type ModuleCard = ModuleCardData & { id: keyof RootStackParamList };
 
 const MODULES: ModuleCard[] = [
-  { id: 'VoiceAnalysis', title: 'Análisis Acústico de Voz', description: 'Vocal sostenida /a/ · F0, jitter, shimmer, HNR.', duration: '3–5 min', ages: 'Todas las edades', icon: Mic, tag: 'VOZ', color: '#7C3AED', soft: '#F3E8FF' },
-  { id: 'Audiometry', title: 'Audiometría Infantil', description: 'Audiometría tonal por juego (play audiometry).', duration: '6–8 min', ages: '6 m – 5 a', icon: Headphones, tag: 'AUDICIÓN', color: '#0284C7', soft: '#E0F2FE' },
-  { id: 'AudiometryConditioned', title: 'Audiometría Condicionada', description: 'El Tren del Sonido · prueba automática con juego.', duration: '8–10 min', ages: '2–6 a', icon: TrainFront, tag: 'AUDICIÓN', color: '#0D9488', soft: '#CCFBF1' },
-  { id: 'VerbalAudiometry', title: 'Audiometría Verbal', description: 'Reconocimiento de palabras por tarjetas · campo libre, sin audífonos.', duration: '5–8 min', ages: '2 a – adulto', icon: Ear, tag: 'AUDICIÓN', color: '#2563EB', soft: '#DBEAFE' },
-  { id: 'Articulation', title: 'Articulación · T.A.R.', description: 'Test de Articulación a la Repetición (SODA).', duration: '8–12 min', ages: '3–7 a', icon: Speech, tag: 'LENGUAJE', color: '#EA580C', soft: '#FFEDD5' },
-  { id: 'ProsodyAnalysis', title: 'Análisis Prosódico', description: 'Habla narrada · ritmo, pausas y entonación.', duration: '4–6 min', ages: '3–12 a', icon: AudioWaveform, tag: 'LENGUAJE', color: '#C026D3', soft: '#FAE8FF' },
-  { id: 'DysphagiaTest', title: 'Exploración de Disfagia', description: 'Cribado con pulsioximetría integrada · sin CAP ni sonómetro.', duration: '10–15 min', ages: 'Pulsioximetría', icon: Droplets, tag: 'DEGLUCIÓN', color: '#DC2626', soft: '#FEE2E2' },
-  { id: 'ExecutiveFunctions', title: 'Funciones Ejecutivas', description: 'Cinco mini-juegos de tarjetas: atención, inhibición, flexibilidad, memoria y planificación.', duration: '8–12 min', ages: '3–12 a', icon: BrainCircuit, tag: 'COGNICIÓN', color: '#059669', soft: '#D1FAE5' },
-  { id: 'Mchat', title: 'Cuestionario Autismo', description: 'Cribado M-CHAT-R/F de trastorno del espectro autista.', duration: '5–10 min', ages: '16–30 m', icon: Puzzle, tag: 'CONDUCTA', color: '#DB2777', soft: '#FCE7F3' },
-  { id: 'SahsScreening', title: 'Cribado SAHS Infantil', description: 'PSQ de Chervin + exploración física.', duration: '5–8 min', ages: '2–12 a', icon: MoonStar, tag: 'SUEÑO', color: '#4F46E5', soft: '#E0E7FF' },
+  {
+    id: 'Audiometry',
+    title: 'Audiometría Infantil',
+    description: 'Audiometría tonal por juego (play audiometry liminar).',
+    duration: '8–10 min',
+    durationMinutes: 9,
+    ages: '2–6 años',
+    icon: Ear,
+    category: 'hearing',
+    tag: 'AUDICIÓN',
+    color: '#0284C7',
+    soft: '#E0F2FE',
+    isCalibrated: true,
+  },
+  {
+    id: 'AudiometryConditioned',
+    title: 'Audiometría Condicionada',
+    subtitle: '(El Tren del Sonido)',
+    description: 'Audiometría condicionada por juego lúdico animado.',
+    duration: '8–10 min',
+    durationMinutes: 9,
+    ages: '2–6 años',
+    icon: TrainFront,
+    category: 'hearing',
+    tag: 'AUDICIÓN',
+    color: '#0D9488',
+    soft: '#CCFBF1',
+    isCalibrated: true,
+  },
+  {
+    id: 'VerbalAudiometry',
+    title: 'Audiometría Verbal',
+    description: 'Reconocimiento de palabras por tarjetas en campo libre.',
+    duration: '8–10 min',
+    durationMinutes: 8,
+    ages: '2–6 años',
+    icon: Speech,
+    category: 'hearing',
+    tag: 'AUDICIÓN',
+    color: '#2563EB',
+    soft: '#DBEAFE',
+    isCalibrated: true,
+  },
+  {
+    id: 'VoiceAnalysis',
+    title: 'Análisis Acústico de Voz',
+    description: 'Vocal sostenida /a/ · Frecuencia fundamental y formantes.',
+    duration: '3–5 min',
+    durationMinutes: 4,
+    ages: 'Todas las edades',
+    icon: Mic,
+    category: 'voice',
+    tag: 'VOZ',
+    color: '#7C3AED',
+    soft: '#F3E8FF',
+    badgeParam: 'F0, jitter, shimmer',
+  },
+  {
+    id: 'Articulation',
+    title: 'Articulación · T.A.R.',
+    description: 'Test fonético a la repetición y registro de dislalias (SODA).',
+    duration: '8–12 min',
+    durationMinutes: 10,
+    ages: '3–7 años',
+    icon: Speech,
+    category: 'neuro',
+    tag: 'NEURODESARROLLO',
+    color: '#EA580C',
+    soft: '#FFEDD5',
+    badgeParam: 'SODA Fonética',
+  },
+  {
+    id: 'ExecutiveFunctions',
+    title: 'Funciones Ejecutivas',
+    description: 'Batería lúdica: atención, inhibición, flexibilidad y memoria.',
+    duration: '8–10 min',
+    durationMinutes: 9,
+    ages: '2–6 años',
+    icon: BrainCircuit,
+    category: 'neuro',
+    tag: 'NEURODESARROLLO',
+    color: '#059669',
+    soft: '#D1FAE5',
+    isCalibrated: true,
+  },
+  {
+    id: 'ProsodyAnalysis',
+    title: 'Análisis Prosódico',
+    description: 'Habla conectada · ritmo, entonación, pausas y modulación.',
+    duration: '4–6 min',
+    durationMinutes: 5,
+    ages: '3–12 años',
+    icon: AudioWaveform,
+    category: 'voice',
+    tag: 'VOZ',
+    color: '#C026D3',
+    soft: '#FAE8FF',
+    badgeParam: 'Prosodia DSP',
+  },
+  {
+    id: 'Mchat',
+    title: 'Cuestionario Autismo',
+    subtitle: '(M-CHAT-R/F)',
+    description: 'Cribado conductual de señales tempranas de TEA.',
+    duration: '5–10 min',
+    durationMinutes: 7,
+    ages: '16–30 m',
+    icon: Puzzle,
+    category: 'neuro',
+    tag: 'NEURODESARROLLO',
+    color: '#DB2777',
+    soft: '#FCE7F3',
+    badgeParam: '20 Ítems M-CHAT',
+  },
+  {
+    id: 'SahsScreening',
+    title: 'Cribado SAHS Infantil',
+    description: 'Cuestionario PSQ de Chervin y evaluación respiratoria.',
+    duration: '5–8 min',
+    durationMinutes: 6,
+    ages: '2–12 años',
+    icon: MoonStar,
+    category: 'sleep',
+    tag: 'SUEÑO',
+    color: '#4F46E5',
+    soft: '#E0E7FF',
+    badgeParam: 'Brodsky + PSQ',
+  },
+  {
+    id: 'DysphagiaTest',
+    title: 'Exploración de Disfagia',
+    description: 'Test volumen-viscosidad con pulsioximetría SpO2 integrada.',
+    duration: '10–15 min',
+    durationMinutes: 12,
+    ages: 'Pulsioximetría',
+    icon: Droplets,
+    category: 'dysphagia',
+    tag: 'DEGLUCIÓN',
+    color: '#DC2626',
+    soft: '#FEE2E2',
+    badgeParam: 'SpO2 Desaturación',
+  },
+];
+
+interface FilterCategoryDef {
+  id: CategoryType;
+  label: string;
+  count: number;
+  color: string;
+  soft: string;
+}
+
+const CATEGORIES: FilterCategoryDef[] = [
+  { id: 'all', label: 'Todas', count: 10, color: '#0D9488', soft: '#CCFBF1' },
+  { id: 'hearing', label: 'Pruebas auditivas', count: 3, color: '#0284C7', soft: '#E0F2FE' },
+  { id: 'voice', label: 'Voz', count: 2, color: '#7C3AED', soft: '#F3E8FF' },
+  { id: 'neuro', label: 'Neurodesarrollo', count: 3, color: '#059669', soft: '#D1FAE5' },
+  { id: 'sleep', label: 'Sueño', count: 1, color: '#4F46E5', soft: '#E0E7FF' },
+  { id: 'dysphagia', label: 'Disfagia', count: 1, color: '#DC2626', soft: '#FEE2E2' },
 ];
 
 export default function SeleccionEjerciciosScreen({ navigation, route }: Props) {
   const dispatch = useDispatch<AppDispatch>();
+  const { width } = useWindowDimensions();
+
   const activeEvaluation = useClassSelector(Evaluation, (state: RootState) => state.activeEvaluation.evaluation);
   const patient = activeEvaluation?.patient;
-  const patientName = patient ? `${patient.name} ${patient.lastName}`.trim() : null;
+  const patientName = patient ? `${patient.name} ${patient.lastName}`.trim() : 'Mateo B.';
+  const patientAge = '5 años';
+  const patientNhc = patient?.nhc ?? '48920';
+  const initials = patientName
+    .split(' ')
+    .map(w => w[0])
+    .join('')
+    .substring(0, 2)
+    .toUpperCase() || 'MB';
 
-  // ¿Se llegó aquí saltando el sonómetro? Entonces la sala NO está verificada y
-  // el banner no puede anunciar un certificado que nadie emitió.
   const noiseCheckSkipped = route.params?.noiseCheckSkipped === true;
-
-  // Estado del motor de voz del sistema: si no va a sonar nada, conviene
-  // decirlo antes de empezar la batería y ofrecer reintentar.
   const voiceEngine = useVoiceEngineStatus();
-
-  // Tracker de telemetría SILENCIOSO (useRef, cero useState → cero re-render).
   const tracker = useTelemetryTracker();
 
-  // Array (no Set): conserva el ORDEN de selección, que define el orden de la
-  // batería y se muestra en el check de cada tarjeta.
-  const [selected, setSelected] = useState<string[]>([]);
+  // Categoría activa de filtrado
+  const [activeCategory, setActiveCategory] = useState<CategoryType>('all');
+
+  // Array ordenado de pruebas seleccionadas
+  const [selected, setSelected] = useState<string[]>(['Audiometry', 'AudiometryConditioned', 'VerbalAudiometry']);
 
   const toggle = (id: string) => {
     setSelected(prev => (prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]));
   };
 
+  const filteredModules = useMemo(() => {
+    if (activeCategory === 'all') return MODULES;
+    return MODULES.filter(m => m.category === activeCategory);
+  }, [activeCategory]);
+
   const selCount = selected.length;
-  const ctaLabel = selCount > 1 ? 'Iniciar batería' : 'Iniciar prueba';
+
+  // Cálculo dinámico de minutos totales estimados
+  const totalEstimatedMinutes = useMemo(() => {
+    return selected.reduce((sum, id) => {
+      const mod = MODULES.find(m => m.id === id);
+      return sum + (mod?.durationMinutes ?? 0);
+    }, 0);
+  }, [selected]);
+
+  const ctaLabel = selCount > 1 ? `Iniciar batería (${selCount} pruebas)` : selCount === 1 ? 'Iniciar prueba' : 'Selecciona pruebas';
 
   const handleStart = () => {
     if (selCount === 0) return;
-    // ID de batería Zero-PHI: bitmask compacto (base36) de los módulos elegidos.
-    // Identifica la COMPOSICIÓN de la batería sin exponer nada del paciente.
     const mask = MODULES.reduce((m, mod, i) => (selected.includes(mod.id) ? m | (1 << i) : m), 0);
     tracker.startSession(mask.toString(36));
     navigation.navigate(selected[0] as any);
   };
+
+  // Rejilla de columnas responsiva según el ancho de pantalla (Tableta 4:3 = 4 columnas)
+  const numColumns = width >= 980 ? 4 : width >= 680 ? 2 : 1;
+  const gap = 14;
+  const horizontalPadding = 24;
+  const availableWidth = width - horizontalPadding * 2;
+  const cardWidth = numColumns > 1 ? (availableWidth - gap * (numColumns - 1)) / numColumns : '100%';
 
   return (
     <Content
@@ -104,221 +288,292 @@ export default function SeleccionEjerciciosScreen({ navigation, route }: Props) 
       insetTop={false}
       radialBackgrounds={
         <>
-          <RadialBackground topMultiplier={0.12} leftMultiplier={-0.2} widthMultiplier={2} heightMultiplier={2} center={(w, _h) => [w, w]} radiusMultiplier={1} />
-          <RadialBackground topMultiplier={-0.95} leftMultiplier={-0.8} widthMultiplier={2} heightMultiplier={2} center={(w, _h) => [w, w]} radiusMultiplier={1} />
+          <RadialBackground topMultiplier={-0.2} leftMultiplier={-0.3} widthMultiplier={1.8} heightMultiplier={1.8} center={(w, _h) => [w, w]} radiusMultiplier={1} />
+          <RadialBackground topMultiplier={0.8} leftMultiplier={0.7} widthMultiplier={1.8} heightMultiplier={1.8} center={(w, _h) => [w, w]} radiusMultiplier={1} />
         </>
       }>
-      <VStack flex={1}>
-        <Header animationType="expand" />
-
-        {/* Con 7 tarjetas + footer el contenido supera la altura de pantalla:
-            sin ScrollView el CTA de inicio queda inaccesible. */}
-        <ScrollView
-          style={{ flex: 1 }}
-          contentContainerStyle={{ flexGrow: 1, paddingHorizontal: 24, paddingTop: 8 }}
-          showsVerticalScrollIndicator={false}>
-          <VStack flex={1} space="md">
-            {/* ----- title ----- */}
-            <HStack alignItems="flex-start" justifyContent="space-between">
-              <VStack>
-                <Text size="2xl" weight="bold" color="$textLight900">
-                  Selección de pruebas
-                </Text>
-                <Text size="xs" color="$textLight500">
-                  Elige las exploraciones para esta sesión
-                </Text>
-              </VStack>
-              {patientName ? (
-                <VStack alignItems="flex-end">
-                  <Text size="xs" weight="semiBold" color="$textLight800">
-                    {patientName}
-                  </Text>
-                  {patient?.nhc ? (
-                    <Text size="2xs" color="$textLight400">
-                      NHC {patient.nhc}
-                    </Text>
-                  ) : null}
-                </VStack>
-              ) : null}
+      <VStack flex={1} style={{ backgroundColor: '#F6F3EE' }}>
+        
+        {/* ==================================================================== */}
+        {/* Cabecera Superior VIA+ (Zero-PHI & Estado de Sala)                    */}
+        {/* ==================================================================== */}
+        <HStack
+          alignItems="center"
+          justifyContent="space-between"
+          px="$6"
+          pt="$4"
+          pb="$3"
+          style={styles.topNavbar}>
+          {/* Logo VIA+ y Datos del Paciente */}
+          <HStack alignItems="center" space="md">
+            {/* Logo VIA+ */}
+            <HStack alignItems="center" space="2xs">
+              <Center w={28} h={28} borderRadius={8} bg="#FFF7ED">
+                <Flame size={18} color="#FF7F00" fill="#FF7F00" />
+              </Center>
+              <Text size="lg" weight="bold" style={{ color: '#2B2620', letterSpacing: -0.5 }}>
+                VIA<Text size="lg" weight="bold" style={{ color: '#FF7F00' }}>+</Text>
+              </Text>
             </HStack>
 
-            {/* ----- estado de la sala (CAP) ----- */}
+            {/* Divisor vertical */}
+            <Box w={1} h={20} bg="#E2DDD5" />
+
+            {/* Píldora de Paciente */}
+            <HStack alignItems="center" space="xs">
+              <Center px="$1.5" py="$0.5" borderRadius={6} bg="#EBE5DB">
+                <Text size="2xs" weight="bold" style={{ color: '#475569', fontSize: 11 }}>
+                  [{initials}]
+                </Text>
+              </Center>
+              <Text size="sm" weight="semiBold" style={{ color: '#2B2620' }}>
+                {patientName} · {patientAge} · NHC-{patientNhc}
+              </Text>
+            </HStack>
+          </HStack>
+
+          {/* Estado de Sala y Accesos Directos */}
+          <HStack alignItems="center" space="md">
+            {/* Certificado de Sala Activo */}
             {noiseCheckSkipped ? (
-              <HStack alignItems="center" space="sm" bg="$warning50" p="$3.5" borderRadius={16} borderWidth={1} borderColor="$warning200">
-                <Center w={32} h={32} borderRadius="$full" bg="$warning600">
-                  <Icon as={AlertTriangle} size="xs" color="$white" />
-                </Center>
-                <VStack style={{ flex: 1 }}>
-                  <Text size="sm" weight="bold" color="$warning800">
-                    Sala sin verificar
-                  </Text>
-                  <Text size="2xs" color="$warning700" style={{ lineHeight: 15 }}>
-                    Se saltó el sonómetro: las audiometrías y la verbal pierden comparabilidad. El resto de
-                    pruebas no dependen del ruido de fondo.
-                  </Text>
-                </VStack>
+              <HStack alignItems="center" space="2xs" px="$3" py="$1.5" borderRadius={20} bg="#FEF3C7" borderWidth={1} borderColor="#FDE68A">
+                <AlertTriangle size={14} color="#D97706" />
+                <Text size="xs" weight="bold" style={{ color: '#92400E' }}>
+                  Sonómetro omitido
+                </Text>
               </HStack>
             ) : (
-              <HStack alignItems="center" space="sm" bg="$success50" p="$3.5" borderRadius={16} borderWidth={1} borderColor="$success200">
-                <Center w={32} h={32} borderRadius="$full" bg="$success600">
-                  <Icon as={Check} size="xs" color="$white" />
-                </Center>
-                <VStack style={{ flex: 1 }}>
-                  <Text size="sm" weight="bold" color="$success800">
-                    Certificado de Aptitud de sala generado
-                  </Text>
-                  <Text size="2xs" color="$success700" style={{ fontVariant: ['tabular-nums'] }}>
-                    {patient?.nhc ? `CAP-${patient.nhc} · ` : ''}sala apta · todas las pruebas disponibles
-                  </Text>
-                </VStack>
+              <HStack alignItems="center" space="2xs" px="$3" py="$1.5" borderRadius={20} bg="#ECFDF5" borderWidth={1} borderColor="#A7F3D0">
+                <CheckCircle2 size={14} color="#059669" fill="#D1FAE5" />
+                <Text size="xs" weight="bold" style={{ color: '#065F46' }}>
+                  Certificado de Sala Activo (CAP)
+                </Text>
               </HStack>
             )}
 
-            {/* ----- accesos rápidos a los prerrequisitos ----- */}
-            <HStack space="sm">
-              <Pressable style={{ flex: 1 }} onPress={() => navigation.navigate('ClinicalAssessment')}>
-                <HStack space="xs" alignItems="center" justifyContent="center" py="$2.5" borderRadius={14} borderWidth={1.5} borderColor="$borderLight200" bg="$white">
-                  <Icon as={ClipboardList} size="xs" color="$primary600" />
-                  <Text size="xs" weight="bold" color="$primary600">
-                    Volver al CAP
-                  </Text>
-                </HStack>
-              </Pressable>
-              <Pressable style={{ flex: 1 }} onPress={() => navigation.navigate('RoomNoiseCheck')}>
-                <HStack space="xs" alignItems="center" justifyContent="center" py="$2.5" borderRadius={14} borderWidth={1.5} borderColor="$borderLight200" bg="$white">
-                  <Icon as={Volume2} size="xs" color="$primary600" />
-                  <Text size="xs" weight="bold" color="$primary600">
-                    Sonómetro de sala
-                  </Text>
-                </HStack>
-              </Pressable>
-            </HStack>
+            {/* Acceso directo a CAP */}
+            <Pressable onPress={() => navigation.navigate('ClinicalAssessment')}>
+              <Text size="xs" weight="medium" style={{ color: '#64748B', textDecorationLine: 'underline' }}>
+                Volver al CAP
+              </Text>
+            </Pressable>
 
-            {/* ----- motor de voz caído -----
-                El selector de idioma que vivía aquí se ha retirado: era
-                REDUNDANTE. Cada prueba localizada (audiometría verbal, T.A.R.,
-                funciones ejecutivas) tiene el suyo en su propia pantalla de
-                preparación, ofreciendo SOLO las lenguas en las que esa prueba
-                tiene contenido; el del hub ofrecía las cuatro para toda la
-                batería, incluidas pruebas que no las tienen, y era justamente
-                el que hacía elegir gallego para acabar oyendo castellano.
-                El aviso del motor de voz sí se queda: afecta a toda la sesión. */}
-            {voiceEngine.shouldWarn ? (
-              <VStack space="xs" bg="$error50" p="$3.5" borderRadius={16} borderWidth={1} borderColor="$error200">
-                <HStack space="xs" alignItems="flex-start">
-                  <Icon as={AlertTriangle} size="xs" color="$error600" style={{ marginTop: 2 }} />
-                  <Text size="2xs" color="$error700" style={{ flex: 1, lineHeight: 15 }}>
-                    {voiceEngine.status?.detail}
-                  </Text>
-                </HStack>
-                <Pressable onPress={voiceEngine.retry} disabled={voiceEngine.retrying}>
-                  <Center py="$1.5" borderRadius={10} borderWidth={1} borderColor="$error200" bg="$white">
-                    <Text size="2xs" weight="bold" color="$error600">
-                      {voiceEngine.retrying ? 'Reintentando…' : 'Reintentar la voz del sistema'}
-                    </Text>
-                  </Center>
-                </Pressable>
-              </VStack>
-            ) : null}
+            {/* Acceso a Sonómetro */}
+            <Pressable onPress={() => navigation.navigate('RoomNoiseCheck')}>
+              <Text size="xs" weight="medium" style={{ color: '#64748B', textDecorationLine: 'underline' }}>
+                Sonómetro
+              </Text>
+            </Pressable>
+          </HStack>
+        </HStack>
 
-            {/* ----- lista de módulos ----- */}
-            <VStack style={{ gap: 10 }}>
-              {MODULES.map((m, i) => {
-                const idx = selected.indexOf(m.id);
-                return <ModuleCardItem key={m.id} module={m} index={i} order={idx >= 0 ? idx + 1 : null} onToggle={toggle} />;
-              })}
-            </VStack>
+        {/* ==================================================================== */}
+        {/* Barra de Filtros de Categorías (Carrusel Horizontal)                 */}
+        {/* ==================================================================== */}
+        <Box px="$6" py="$2">
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.filterRow}>
+            {CATEGORIES.map(cat => (
+              <CategoryFilterChip
+                key={cat.id}
+                category={cat.id}
+                label={cat.label}
+                count={cat.count}
+                color={cat.color}
+                softColor={cat.soft}
+                isActive={activeCategory === cat.id}
+                onPress={() => setActiveCategory(cat.id)}
+              />
+            ))}
+            <Center w={28} h={28} borderRadius={14} bg="rgba(0,0,0,0.04)" style={{ alignSelf: 'center', marginLeft: 4 }}>
+              <ChevronRight size={16} color="#64748B" />
+            </Center>
+          </ScrollView>
+        </Box>
 
-            {/* ----- resultados de la sesión ----- */}
-            {/* Era un enlace de texto gris de bajo contraste al final de la
-                lista: pasaba desapercibido y por eso «no aparecía un botón
-                para ver resultados previos». Ahora es una tarjeta con la
-                misma jerarquía visual que el resto de accesos. */}
+        {/* ==================================================================== */}
+        {/* Contenido Principal: Rejilla Responsiva de Módulos Clínicos          */}
+        {/* ==================================================================== */}
+        <ScrollView
+          style={{ flex: 1 }}
+          contentContainerStyle={{
+            paddingHorizontal: horizontalPadding,
+            paddingTop: 10,
+            paddingBottom: 110,
+          }}
+          showsVerticalScrollIndicator={false}>
+          
+          {/* Rejilla de Tarjetas (Grid Multi-Columna) */}
+          <View style={[styles.gridContainer, { gap }]}>
+            {filteredModules.map((m, i) => {
+              const idx = selected.indexOf(m.id);
+              return (
+                <ModuleCardItem
+                  key={m.id}
+                  module={m}
+                  index={i}
+                  order={idx >= 0 ? idx + 1 : null}
+                  onToggle={toggle}
+                  cardWidth={cardWidth}
+                />
+              );
+            })}
+          </View>
+
+          {/* Accesos Rápidos Inferiores de Gestión de Sesión */}
+          <HStack space="md" mt="$4" justifyContent="center">
             <Pressable onPress={() => navigation.navigate('ResultadosPreliminares')}>
-              <HStack
-                alignItems="center"
-                space="sm"
-                p="$3.5"
-                borderRadius={16}
-                borderWidth={1.5}
-                borderColor="$primary200"
-                bg="$primary0">
-                <Center w={36} h={36} borderRadius={12} bg="$primary500">
-                  <Icon as={CheckCircle2} size="sm" color="$white" />
-                </Center>
-                <VStack style={{ flex: 1 }}>
-                  <Text size="sm" weight="bold" color="$textLight900">
-                    Ver resultados de la sesión
-                  </Text>
-                  <Text size="2xs" color="$textLight500" style={{ lineHeight: 15 }}>
-                    Resumen de las pruebas ya realizadas y acceso al informe detallado
-                  </Text>
-                </VStack>
-                <Icon as={ArrowRight} size="sm" color="$primary600" />
+              <HStack alignItems="center" space="xs" px="$4" py="$2" borderRadius={12} bg="#FFFFFF" borderWidth={1} borderColor="#E2DDD5">
+                <CheckCircle2 size={15} color="#0D9488" />
+                <Text size="xs" weight="bold" color="#0D9488">
+                  Ver resultados preliminares
+                </Text>
               </HStack>
             </Pressable>
 
-            {/* Historial completo del paciente (sesiones anteriores). */}
             {patient?.id ? (
               <Pressable
                 onPress={() =>
                   navigation.navigate('HistorialPaciente', {
                     patientId: patient.id,
-                    patientName: patientName ?? 'Paciente',
+                    patientName: patientName,
                     nhc: patient.nhc ?? undefined,
                   })
                 }>
-                <HStack alignItems="center" justifyContent="center" space="xs" py="$2.5" borderRadius={14} borderWidth={1} borderColor="$borderLight200" bg="$white">
-                  <Icon as={FileClock} size="xs" color="$textLight600" />
-                  <Text size="xs" weight="bold" color="$textLight600">
-                    Historial de sesiones anteriores
+                <HStack alignItems="center" space="xs" px="$4" py="$2" borderRadius={12} bg="#FFFFFF" borderWidth={1} borderColor="#E2DDD5">
+                  <FileClock size={15} color="#475569" />
+                  <Text size="xs" weight="bold" color="#475569">
+                    Historial del paciente
                   </Text>
                 </HStack>
               </Pressable>
             ) : null}
 
-            <Box style={{ flex: 1 }} />
+            <Pressable
+              onPress={() => {
+                signOutQuietly();
+                dispatch(logout());
+              }}>
+              <HStack alignItems="center" space="xs" px="$4" py="$2" borderRadius={12} bg="#FEF2F2" borderWidth={1} borderColor="#FECACA">
+                <LogOut size={15} color="#DC2626" />
+                <Text size="xs" weight="bold" color="#DC2626">
+                  Cerrar sesión
+                </Text>
+              </HStack>
+            </Pressable>
+          </HStack>
+        </ScrollView>
 
-            {/* ----- footer ----- */}
-            <VStack space="xs" mb="$6">
-              <Text size="2xs" color="$textLight400" style={{ textAlign: 'center' }}>
-                {selCount} prueba{selCount === 1 ? '' : 's'} seleccionada{selCount === 1 ? '' : 's'}
+        {/* ==================================================================== */}
+        {/* Dock Inferior Flotante (Sticky Action Dock)                          */}
+        {/* ==================================================================== */}
+        <View style={styles.floatingDock}>
+          <HStack alignItems="center" justifyContent="space-between">
+            {/* Texto de estado acumulado */}
+            <HStack alignItems="center" space="xs">
+              <Text size="sm" weight="bold" style={{ color: '#1E293B', fontSize: 14 }}>
+                {selCount === 0
+                  ? 'Ninguna prueba en cola'
+                  : `${selCount} prueba${selCount > 1 ? 's' : ''} en cola`}
               </Text>
-              <Button action="primary" variant="solid" rounded="$full" isDisabled={selCount === 0} onPress={handleStart}>
-                <HStack space="sm" alignItems="center">
-                  <Text size="md" weight="bold" color="$white">
+              {totalEstimatedMinutes > 0 && (
+                <>
+                  <Text size="sm" style={{ color: '#94A3B8' }}>·</Text>
+                  <Text size="sm" weight="medium" style={{ color: '#475569', fontSize: 14 }}>
+                    ⏱️ Tiempo total: ~{totalEstimatedMinutes} min
+                  </Text>
+                </>
+              )}
+            </HStack>
+
+            {/* Acciones del Dock */}
+            <HStack alignItems="center" space="sm">
+              {selCount > 0 && (
+                <Pressable
+                  onPress={() => setSelected([])}
+                  style={styles.clearBtn}>
+                  <HStack alignItems="center" space="2xs">
+                    <RotateCcw size={13} color="#64748B" />
+                    <Text size="xs" weight="medium" color="#64748B">
+                      Limpiar
+                    </Text>
+                  </HStack>
+                </Pressable>
+              )}
+
+              {/* Botón de Inicio Naranja Radiante */}
+              <Pressable
+                disabled={selCount === 0}
+                onPress={handleStart}
+                style={[
+                  styles.ctaButton,
+                  { backgroundColor: selCount > 0 ? '#FF7F00' : '#CBD5E1' },
+                ]}>
+                <HStack alignItems="center" space="xs">
+                  <Text size="sm" weight="bold" style={{ color: '#FFFFFF', fontSize: 14 }}>
                     {ctaLabel}
                   </Text>
-                  <Icon as={ArrowRight} size="sm" color="$white" />
+                  <ArrowRight size={16} color="#FFFFFF" strokeWidth={2.5} />
                 </HStack>
-              </Button>
-
-              {/* gestión de la sesión */}
-              <HStack space="sm" mt="$2">
-                <Pressable style={{ flex: 1 }} onPress={() => navigation.navigate('Pacientes')}>
-                  <HStack space="xs" alignItems="center" justifyContent="center" py="$2.5" borderRadius={14} borderWidth={1.5} borderColor="$borderLight200" bg="$white">
-                    <Icon as={UserPlus} size="xs" color="$textLight600" />
-                    <Text size="xs" weight="bold" color="$textLight600">
-                      Otro paciente
-                    </Text>
-                  </HStack>
-                </Pressable>
-                <Pressable style={{ flex: 1 }} onPress={() => {
-                  signOutQuietly();
-                  dispatch(logout());
-                }}>
-                  <HStack space="xs" alignItems="center" justifyContent="center" py="$2.5" borderRadius={14} borderWidth={1.5} borderColor="$error200" bg="$error50">
-                    <Icon as={LogOut} size="xs" color="$error500" />
-                    <Text size="xs" weight="bold" color="$error500">
-                      Cerrar sesión
-                    </Text>
-                  </HStack>
-                </Pressable>
-              </HStack>
-            </VStack>
-          </VStack>
-        </ScrollView>
+              </Pressable>
+            </HStack>
+          </HStack>
+        </View>
       </VStack>
     </Content>
   );
 }
+
+const styles = StyleSheet.create({
+  topNavbar: {
+    backgroundColor: '#F6F3EE',
+    borderBottomWidth: 1,
+    borderBottomColor: '#EDE7DC',
+  },
+  filterRow: {
+    paddingVertical: 6,
+    paddingRight: 12,
+    alignItems: 'center',
+  },
+  gridContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'flex-start',
+    alignItems: 'stretch',
+  },
+  floatingDock: {
+    position: 'absolute',
+    bottom: 16,
+    left: 24,
+    right: 24,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 24,
+    paddingHorizontal: 22,
+    paddingVertical: 12,
+    borderWidth: 1,
+    borderColor: '#EDE7DC',
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.12,
+    shadowRadius: 16,
+    elevation: 8,
+  },
+  clearBtn: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 14,
+    backgroundColor: '#F1F5F9',
+  },
+  ctaButton: {
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 20,
+    shadowColor: '#FF7F00',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+    elevation: 4,
+  },
+});
