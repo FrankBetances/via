@@ -3,10 +3,14 @@ import { VoiceAnalysisRepository } from '@/Repositories/VoiceAnalysisRepository'
 import { DysphagiaTestRepository } from '@/Repositories/DysphagiaTestRepository';
 import { SahsScreeningRepository } from '@/Repositories/SahsScreeningRepository';
 import { ArticulationTestRepository } from '@/Repositories/ArticulationTestRepository';
+import { ProsodyAnalysisRepository } from '@/Repositories/ProsodyAnalysisRepository';
+import { VerbalAudiometryRepository } from '@/Repositories/VerbalAudiometryRepository';
 import { ScreeningRepository } from '@/Repositories/ScreeningRepository';
 import { ExecutiveFunctionsRepository } from '@/Repositories/ExecutiveFunctionsRepository';
 
 import { interpretAudiometry, pta, severityOf } from '@/Screens/Audiometry/audiometryResult';
+import { verbalDiscriminationStatus } from '@/Screens/VerbalAudiometry/verbalAudiometryResult';
+import { prosodyInterpretation } from '@/Screens/ProsodyAnalysis/prosodyResult';
 import { buildInterpretation as buildVoiceInterpretation } from '@/Screens/VoiceAnalysis/voiceAnalysisResult';
 import { efStatus } from '@/Screens/ExecutiveFunctions/executiveFunctionsGame';
 
@@ -118,6 +122,48 @@ export async function loadEvaluationResultCards(evaluationId: number): Promise<R
         status: altered ? 'alt' : 'ok',
         headline: interp,
         metric: `F0 ${Math.round(v.f0)} Hz · Jitter ${v.jitter.toFixed(1)}% · Shimmer ${v.shimmer.toFixed(1)}%`,
+      });
+    });
+  });
+
+  await collect('audiometría verbal', async () => {
+    const verbals = await VerbalAudiometryRepository.getVerbalAudiometryByEvaluation(evaluationId);
+    verbals.forEach(v => {
+      // Sin ítems presentados la prueba quedó a medias: no es «normal».
+      const status: ResultStatus = v.presentedCount
+        ? verbalDiscriminationStatus(v.discriminationPct)
+        : 'warn';
+      cards.push({
+        key: `verbal-${v.id}`,
+        title: 'Audiometría Verbal',
+        status,
+        headline: v.interpretation || 'Audiometría verbal completada.',
+        metric: `Discriminación ${v.discriminationPct} % · ${v.correctCount}/${v.presentedCount} ítems${
+          v.srtDb != null ? ` · URV ≈ ${v.srtDb} dB` : ''
+        }`,
+      });
+    });
+  });
+
+  await collect('análisis prosódico', async () => {
+    const prosodies = await ProsodyAnalysisRepository.getProsodyAnalysisByEvaluation(evaluationId);
+    prosodies.forEach(p => {
+      // Sin baremo poblacional la prosodia no emite juicio: 'warn' aquí solo
+      // marca la toma que no dio métricas, no un hallazgo clínico.
+      const m = p.metrics;
+      const metric = [
+        m.f0RangeSt !== null ? `Rango tonal ${m.f0RangeSt.toFixed(1)} st` : null,
+        m.speechRateSps !== null ? `${m.speechRateSps.toFixed(1)} síl/s` : null,
+        m.pauseCount !== null ? `${m.pauseCount} pausa(s)` : null,
+      ]
+        .filter(Boolean)
+        .join(' · ');
+      cards.push({
+        key: `prosody-${p.id}`,
+        title: 'Análisis Prosódico',
+        status: p.reason === 'ok' ? 'ok' : 'warn',
+        headline: p.interpretation || prosodyInterpretation(p.metrics, p.reason),
+        metric: metric || 'Sin métricas estimables',
       });
     });
   });

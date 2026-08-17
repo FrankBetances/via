@@ -28,8 +28,8 @@ Este documento contiene la **referencia visual aprobada** para la pantalla de se
 ## 📐 2. Estructura de la Pantalla (Tableta 4:3)
 
 ### A. Cabecera del Paciente (Zero-PHI)
-- **Monograma de Iniciales**: Píldora naranja cálida con `[MB]`.
-- **Datos Clínicos**: `Mateo B. · 5 años · NHC-48920`.
+- **Monograma de Iniciales**: Píldora naranja cálida con las iniciales del paciente de la sesión (`—` si no hay).
+- **Datos Clínicos**: `Nombre Apellido · NHC-xxxxx`, tomados de la evaluación activa. Sin paciente asignado se rotula `Sin paciente asignado`: el «Mateo B. · 5 años» del render es un dato de ejemplo y no se escribe en el código (la vista de paciente ni siquiera lleva fecha de nacimiento, así que no hay edad que mostrar).
 - **Estado Ambiental**: `🟢 Sala verificada · sonómetro OK` (o `⚠️ Sala sin verificar · sonómetro omitido`). No se rotula como «CAP»: el CAP es el *Certificado de Aptitud para la Prueba* (pre-screening clínico), no la verificación acústica de la sala.
 - **Accesos Rápidos**: `Volver al CAP` y `Sonómetro de sala`.
 - **Aviso del motor de voz**: banda roja con el detalle del fallo y acción `Reintentar la voz del sistema`, visible solo si la locución no está disponible.
@@ -56,7 +56,7 @@ Cada tarjeta contiene:
    - 🎯 `Validación / Parámetro` (e.g. `Calibración OK`, `F0, jitter, shimmer`, `SODA Fonética`, `SpO₂ · desaturación`)
 
 ### D. Dock Inferior Flotante (Sticky Action Dock)
-- **Izquierda**: Conteo de pruebas en cola y tiempo estimado acumulado (`3 pruebas en cola · ⏱️ Tiempo total: ~22 min`).
+- **Izquierda**: Conteo de pruebas en cola y tiempo estimado acumulado (`3 pruebas en cola · ⏱️ Tiempo total: ~26 min`). La pantalla **arranca sin nada en cola**: las tres pruebas precargadas del render son parte del ejemplo, y la batería la compone el clínico.
 - **Derecha**: Botón de inicio en Naranja Radiante (`#FF7F00`): **`Iniciar batería (3 pruebas) →`**.
 
 ---

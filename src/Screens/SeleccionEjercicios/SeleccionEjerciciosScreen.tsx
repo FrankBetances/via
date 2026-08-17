@@ -37,6 +37,7 @@ import { logout } from '@/Store/slices/authSlice';
 import { signOutQuietly } from '@/Services/firebase';
 import { Evaluation } from '@/Models/Evaluation/Evaluation';
 import { useClassSelector } from '@/Helpers/ClassTransformer';
+import { describePatient } from '@/Helpers/patientHeader';
 import { useTelemetryTracker } from '@/Telemetry';
 import { useVoiceEngineStatus } from '@/Voice';
 import ModuleCardItem, { ModuleCardData } from './ModuleCardItem';
@@ -224,15 +225,8 @@ export default function SeleccionEjerciciosScreen({ navigation, route }: Props) 
 
   const activeEvaluation = useClassSelector(Evaluation, (state: RootState) => state.activeEvaluation.evaluation);
   const patient = activeEvaluation?.patient;
-  const patientName = patient ? `${patient.name} ${patient.lastName}`.trim() : 'Mateo B.';
-  const patientAge = '5 años';
-  const patientNhc = patient?.nhc ?? '48920';
-  const initials = patientName
-    .split(' ')
-    .map(w => w[0])
-    .join('')
-    .substring(0, 2)
-    .toUpperCase() || 'MB';
+  const { patientLabel, initials } = describePatient(patient);
+  const patientName = patient ? `${patient.name} ${patient.lastName}`.trim() : '';
 
   const noiseCheckSkipped = route.params?.noiseCheckSkipped === true;
   const voiceEngine = useVoiceEngineStatus();
@@ -241,8 +235,10 @@ export default function SeleccionEjerciciosScreen({ navigation, route }: Props) 
   // Categoría activa de filtrado
   const [activeCategory, setActiveCategory] = useState<CategoryType>('all');
 
-  // Array ordenado de pruebas seleccionadas
-  const [selected, setSelected] = useState<string[]>(['Audiometry', 'AudiometryConditioned', 'VerbalAudiometry']);
+  // Array ordenado de pruebas seleccionadas. Arranca VACÍO: la batería la
+  // compone el clínico. Las tres pruebas precargadas venían del render de
+  // referencia («3 pruebas en cola»), no de una decisión clínica.
+  const [selected, setSelected] = useState<string[]>([]);
 
   const toggle = (id: string) => {
     setSelected(prev => (prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]));
@@ -324,7 +320,7 @@ export default function SeleccionEjerciciosScreen({ navigation, route }: Props) 
                 </Text>
               </Center>
               <Text size="sm" weight="semiBold" style={{ color: '#2B2620' }}>
-                {patientName} · {patientAge} · NHC-{patientNhc}
+                {patientLabel}
               </Text>
             </HStack>
           </HStack>

@@ -16,6 +16,7 @@ import { RootStackParamList } from '@/Navigators';
 import { RootState } from '@/Store';
 import { Evaluation } from '@/Models/Evaluation/Evaluation';
 import { useClassSelector } from '@/Helpers/ClassTransformer';
+import { describePatient } from '@/Helpers/patientHeader';
 
 import {
   countResults,
@@ -33,6 +34,20 @@ import {
 type Props = NativeStackScreenProps<RootStackParamList, 'ResultadosPreliminares'>;
 
 type StatusKind = ResultStatus;
+
+/* Raíl de color por módulo, con el prefijo de `key` que fija `evaluationResults`.
+   Mismo color que la tarjeta del módulo en el hub de la batería. */
+const RAIL_COLORS: Record<string, string> = {
+  audio: '#0284C7',
+  verbal: '#2563EB',
+  voice: '#7C3AED',
+  prosody: '#C026D3',
+  art: '#EA580C',
+  ef: '#059669',
+  sahs: '#4F46E5',
+  screen: '#DB2777',
+  dys: '#DC2626',
+};
 
 const STATUS_TOKENS: Record<StatusKind, { fg: string; bg: string; dot: string; label: string }> = {
   ok: { fg: '#065F46', bg: '#D1FAE5', dot: '#10B981', label: 'Normal' },
@@ -94,15 +109,7 @@ export default function ResultadosPreliminaresScreen({ navigation }: Props) {
 
   const activeEvaluation = useClassSelector(Evaluation, (state: RootState) => state.activeEvaluation.evaluation);
   const patient = activeEvaluation?.patient;
-  const patientName = patient ? `${patient.name} ${patient.lastName}`.trim() : 'Mateo B.';
-  const patientAge = '5 años';
-  const patientNhc = patient?.nhc ?? '48920';
-  const initials = patientName
-    .split(' ')
-    .map(w => w[0])
-    .join('')
-    .substring(0, 2)
-    .toUpperCase() || 'MB';
+  const { patientLabel, initials } = describePatient(patient);
 
   const evaluationId = activeEvaluation?.id;
 
@@ -110,38 +117,9 @@ export default function ResultadosPreliminaresScreen({ navigation }: Props) {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    // Sin evaluación activa no hay nada que resumir: la pantalla se queda
+    // vacía en vez de rellenarse con resultados de ejemplo.
     if (!evaluationId) {
-      // Mock cards de respaldo clínico representativo si no hay datos guardados aún
-      setCards([
-        {
-          key: 'audio-mock',
-          title: 'Audiometría Infantil',
-          status: 'ok',
-          headline: 'Normal (15 dB HL bilateral)',
-          metric: 'OD 15 dB · OI 15 dB',
-        },
-        {
-          key: 'voice-mock',
-          title: 'Análisis Acústico de Voz',
-          status: 'warn',
-          headline: 'Revisar (Shimmer 4.2% elevado)',
-          metric: 'F0 245 Hz · Jitter 0.8% · Shimmer 4.2%',
-        },
-        {
-          key: 'art-mock',
-          title: 'Articulación · T.A.R.',
-          status: 'ok',
-          headline: 'Normal (SODA 100% adquirido)',
-          metric: '38/38 fonemas correctos',
-        },
-        {
-          key: 'ef-mock',
-          title: 'Funciones Ejecutivas',
-          status: 'ok',
-          headline: 'Normal (Percentil P85)',
-          metric: 'Índice global 88/100',
-        },
-      ]);
       setIsLoading(false);
       return;
     }
@@ -149,38 +127,7 @@ export default function ResultadosPreliminaresScreen({ navigation }: Props) {
     (async () => {
       try {
         const result = await loadEvaluationResultCards(evaluationId);
-        if (mounted) {
-          setCards(result.length > 0 ? result : [
-            {
-              key: 'audio-mock',
-              title: 'Audiometría Infantil',
-              status: 'ok',
-              headline: 'Normal (15 dB HL bilateral)',
-              metric: 'OD 15 dB · OI 15 dB',
-            },
-            {
-              key: 'voice-mock',
-              title: 'Análisis Acústico de Voz',
-              status: 'warn',
-              headline: 'Revisar (Shimmer 4.2% elevado)',
-              metric: 'F0 245 Hz · Jitter 0.8% · Shimmer 4.2%',
-            },
-            {
-              key: 'art-mock',
-              title: 'Articulación · T.A.R.',
-              status: 'ok',
-              headline: 'Normal (SODA 100% adquirido)',
-              metric: '38/38 fonemas correctos',
-            },
-            {
-              key: 'ef-mock',
-              title: 'Funciones Ejecutivas',
-              status: 'ok',
-              headline: 'Normal (Percentil P85)',
-              metric: 'Índice global 88/100',
-            },
-          ]);
-        }
+        if (mounted) setCards(result);
       } finally {
         if (mounted) setIsLoading(false);
       }
@@ -191,16 +138,19 @@ export default function ResultadosPreliminaresScreen({ navigation }: Props) {
   }, [evaluationId]);
 
   const counts = useMemo(() => countResults(cards), [cards]);
+  const hasResults = cards.length > 0;
 
-  // Cálculo del porcentaje de salud global (por defecto 85% o calculado según tests normales)
+  // Porcentaje global de normalidad: solo existe si hay pruebas. Sin datos NO
+  // hay un 85 % por defecto (era el número del mockup).
   const healthScore = useMemo(() => {
-    if (cards.length === 0) return 85;
+    if (!hasResults) return null;
     const okWeight = counts.ok * 1.0;
     const warnWeight = counts.warn * 0.5;
     return Math.round(((okWeight + warnWeight) / cards.length) * 100);
-  }, [cards, counts]);
+  }, [cards.length, counts, hasResults]);
 
   const alertMessage = useMemo(() => {
+    if (!hasResults) return 'Todavía no hay pruebas completadas en esta sesión.';
     if (counts.alt > 0) return 'Hallazgos alterados detectados en la evaluación.';
     if (counts.warn > 0) {
       // El aviso nombra las pruebas realmente marcadas, no una fija.
@@ -208,13 +158,13 @@ export default function ResultadosPreliminaresScreen({ navigation }: Props) {
       return `Revisar los parámetros de: ${pendientes.join(', ')}.`;
     }
     return 'Todos los parámetros dentro de los límites normales esperados.';
-  }, [cards, counts]);
+  }, [cards, counts, hasResults]);
 
   // Constantes del medidor circular SVG
   const radius = 80;
   const strokeWidth = 14;
   const circumference = 2 * Math.PI * radius;
-  const strokeDashoffset = circumference - (circumference * healthScore) / 100;
+  const strokeDashoffset = circumference - (circumference * (healthScore ?? 0)) / 100;
 
   return (
     <Content
@@ -236,9 +186,7 @@ export default function ResultadosPreliminaresScreen({ navigation }: Props) {
             <View style={styles.initialsBox}>
               <Text style={styles.initialsText}>[{initials}]</Text>
             </View>
-            <Text style={styles.patientInfoText}>
-              {patientName} · {patientAge} · NHC-{patientNhc}
-            </Text>
+            <Text style={styles.patientInfoText}>{patientLabel}</Text>
           </View>
 
           <View style={styles.statusPill}>
@@ -301,7 +249,9 @@ export default function ResultadosPreliminaresScreen({ navigation }: Props) {
 
               {/* Texto central del porcentaje */}
               <View style={styles.gaugeScoreCenter}>
-                <Text style={styles.gaugeScoreNumber}>{healthScore}%</Text>
+                <Text style={styles.gaugeScoreNumber}>
+                  {healthScore === null ? '—' : `${healthScore}%`}
+                </Text>
                 <Text style={styles.gaugeScoreLabel}>Normalidad</Text>
                 <Text style={styles.gaugeScoreLabel}>Global</Text>
               </View>
@@ -344,22 +294,19 @@ export default function ResultadosPreliminaresScreen({ navigation }: Props) {
           <View style={[styles.cardsColumn, isTablet && { flex: 1 }]}>
             {isLoading ? (
               <Text style={styles.loadingText}>Cargando resultados…</Text>
+            ) : !hasResults ? (
+              <View style={styles.emptyCard}>
+                <Text style={styles.emptyCardTitle}>Sin pruebas completadas</Text>
+                <Text style={styles.emptyCardBody}>
+                  Aquí aparecerá el resumen de cada módulo en cuanto guarde su resultado. Vuelve al
+                  hub de la batería para iniciar una prueba.
+                </Text>
+              </View>
             ) : (
               cards.map(c => {
                 const isAudio = c.key.startsWith('audio');
                 const isVoice = c.key.startsWith('voice');
-                const isArt = c.key.startsWith('art');
-                const isEf = c.key.startsWith('ef');
-
-                const railColor = isAudio
-                  ? '#0284C7'
-                  : isVoice
-                  ? '#7C3AED'
-                  : isArt
-                  ? '#EA580C'
-                  : isEf
-                  ? '#059669'
-                  : '#0D9488';
+                const railColor = RAIL_COLORS[c.key.split('-')[0]] ?? '#0D9488';
 
                 return (
                   <View
@@ -389,9 +336,11 @@ export default function ResultadosPreliminaresScreen({ navigation }: Props) {
                     </View>
 
                     {/* Micro-gráficas temáticas a la derecha */}
-                    {isAudio && <MiniAudiogramGraphic color={railColor} />}
-                    {isVoice && <MiniVoiceSpectrogram color={railColor} />}
-                    {(isArt || isEf) && (
+                    {isAudio ? (
+                      <MiniAudiogramGraphic color={railColor} />
+                    ) : isVoice ? (
+                      <MiniVoiceSpectrogram color={railColor} />
+                    ) : (
                       <ChevronRight size={20} color="#94A3B8" />
                     )}
                   </View>
@@ -603,6 +552,26 @@ const styles = StyleSheet.create({
     color: '#64748B',
     textAlign: 'center',
     marginVertical: 20,
+  },
+  emptyCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: '#EDE7DC',
+    padding: 24,
+    alignItems: 'center',
+    gap: 6,
+  },
+  emptyCardTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#334155',
+  },
+  emptyCardBody: {
+    fontSize: 13,
+    lineHeight: 20,
+    color: '#64748B',
+    textAlign: 'center',
   },
   resultCard: {
     backgroundColor: '#FFFFFF',

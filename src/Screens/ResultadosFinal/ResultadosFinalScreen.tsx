@@ -12,15 +12,21 @@ import Svg, {
 import QRCode from 'react-native-qrcode-svg';
 import {
   Activity,
+  AudioWaveform,
   BrainCircuit,
   Check,
+  Droplets,
   Ear,
   FileText,
   Flame,
   Mic2,
+  MoonStar,
+  Puzzle,
   Speech,
   Star,
+  TrainFront,
   UserCheck,
+  Volume2,
 } from 'lucide-react-native';
 
 import { Content, Text } from '@/Components/Common';
@@ -29,19 +35,37 @@ import { RootStackParamList } from '@/Navigators';
 import { RootState } from '@/Store';
 import { Evaluation } from '@/Models/Evaluation/Evaluation';
 import { useClassSelector } from '@/Helpers/ClassTransformer';
+import { describePatient } from '@/Helpers/patientHeader';
 import { useTelemetryTracker, compressTelemetry } from '@/Telemetry';
 import { useLuaClosingReward } from '@/Lua';
 
-/* TODO(pantalla_ejercicios): esta pantalla solo reconstruye 4 pruebas. Faltan
-   audiometría verbal, cribado SAHS, M-CHAT y disfagia, que sí llegaban al
-   informe antes del rediseño (ver ResultadosFinalScreen en `main`). Sus
-   repositorios y su lógica clínica se reincorporan al restaurar esos bloques. */
 import { AudiometryRepository } from '@/Repositories/AudiometryRepository';
 import { VoiceAnalysisRepository } from '@/Repositories/VoiceAnalysisRepository';
+import { DysphagiaTestRepository } from '@/Repositories/DysphagiaTestRepository';
+import { SahsScreeningRepository } from '@/Repositories/SahsScreeningRepository';
 import { ArticulationTestRepository } from '@/Repositories/ArticulationTestRepository';
+import { ProsodyAnalysisRepository } from '@/Repositories/ProsodyAnalysisRepository';
+import { VerbalAudiometryRepository } from '@/Repositories/VerbalAudiometryRepository';
+import { ScreeningRepository } from '@/Repositories/ScreeningRepository';
 import { ExecutiveFunctionsRepository } from '@/Repositories/ExecutiveFunctionsRepository';
 
 import { FREQS, interpretAudiometry } from '@/Screens/Audiometry/audiometryResult';
+import {
+  BAND_LABEL,
+  LEVEL_LABEL,
+  MODALITY_LABEL,
+  verbalDiscriminationStatus,
+} from '@/Screens/VerbalAudiometry/verbalAudiometryResult';
+import {
+  buildInterpretation as buildVoiceInterpretation,
+  statusF0,
+  statusHnr,
+  statusJitter,
+  statusShimmer,
+} from '@/Screens/VoiceAnalysis/voiceAnalysisResult';
+import { prosodyInterpretation, prosodyReportRows } from '@/Screens/ProsodyAnalysis/prosodyResult';
+import { imcLabel, suspicionLabel } from '@/Screens/SahsScreening/sahsScreeningResult';
+import { EF_DOMAIN_META, EF_DOMAIN_ORDER, efStatus } from '@/Screens/ExecutiveFunctions/executiveFunctionsGame';
 import { generateReport } from '@/PDF/templates/Report';
 import { showErrorToast, showSuccessToast } from '@/Helpers/showToast';
 
@@ -85,15 +109,6 @@ interface TestDetail {
   interp: string;
 }
 
-/* Umbrales de ejemplo (una entrada por frecuencia de FREQS: 500, 1k, 2k, 4k).
-   Solo se usan cuando la sesión no trae datos guardados. */
-const DEMO_OD: (number | null)[] = [15, 10, 20, 25];
-const DEMO_OI: (number | null)[] = [15, 10, 15, 20];
-
-/** Convierte una fila de umbrales en el mapa por frecuencia que espera la lógica clínica. */
-const demoThresholds = (vals: (number | null)[]): Record<number, number | null> =>
-  Object.fromEntries(FREQS.map((f, i) => [f, vals[i] ?? null]));
-
 const STATUS_TOKENS: Record<StatusKind, { fg: string; bg: string; label: string }> = {
   ok: { fg: '#059669', bg: '#ECFDF5', label: 'Normal' },
   warn: { fg: '#D97706', bg: '#FEF3C7', label: 'Revisar' },
@@ -106,14 +121,20 @@ const STATUS_TOKENS: Record<StatusKind, { fg: string; bg: string; label: string 
  * El eje X lo fijan las frecuencias REALES de la batería (`FREQS`): pintar más
  * columnas de las que se miden desplazaría cada umbral a una frecuencia que no
  * es la suya. Un umbral ausente (`null`) no se inventa: se deja sin marcar y la
- * línea se parte ahí.
+ * línea se parte ahí. No hay curvas por defecto: sin datos no hay gráfico.
+ *
+ * En cribado de campo libre (`cl`) la respuesta es binaural y no distingue
+ * oído: se pinta una sola curva con el símbolo convencional «S», nunca dos
+ * curvas OD/OI que nadie ha medido.
  */
 function ClinicalAudiogramChart({
-  od = [15, 10, 20, 25],
-  oi = [15, 10, 15, 20],
+  od = [],
+  oi = [],
+  cl,
 }: {
   od?: (number | null)[];
   oi?: (number | null)[];
+  cl?: (number | null)[];
 }) {
   const freqs = FREQS.map(f => (f >= 1000 ? `${f / 1000} kHz` : `${f} Hz`));
   const dbs = [0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 110, 120];
@@ -137,8 +158,13 @@ function ClinicalAudiogramChart({
       .map((val, idx) => (val === null ? null : { x: getX(idx), y: getY(val) }))
       .filter((p): p is { x: number; y: number } => p !== null);
 
-  const odPoints = toPoints(od); // OD 🔴 círculos
-  const oiPoints = toPoints(oi); // OI 🔵 cruces
+  const isSoundfield = Array.isArray(cl);
+  const odPoints = isSoundfield ? [] : toPoints(od); // OD 🔴 círculos
+  const oiPoints = isSoundfield ? [] : toPoints(oi); // OI 🔵 cruces
+  const clPoints = isSoundfield ? toPoints(cl!) : []; // Campo libre · símbolo «S»
+
+  const linePath = (pts: { x: number; y: number }[]) =>
+    pts.reduce((acc, p, i) => `${acc} ${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`, '');
 
   return (
     <View style={styles.chartWrapper}>
@@ -208,9 +234,28 @@ function ClinicalAudiogramChart({
           );
         })}
 
-        {/* Trazado OI (Left Ear - 🔵 Cruces) */}
+        {/* Trazado de campo libre (binaural, símbolo «S») */}
+        {isSoundfield ? (
+          <>
+            <Path d={linePath(clPoints)} stroke="#0D9488" strokeWidth={2} fill="none" />
+            {clPoints.map((p, i) => (
+              <SvgText
+                key={i}
+                x={p.x}
+                y={p.y + 4}
+                textAnchor="middle"
+                fontSize={12}
+                fontWeight="700"
+                fill="#0D9488">
+                S
+              </SvgText>
+            ))}
+          </>
+        ) : null}
+
+        {/* Trazado OI (oído izquierdo · 🔵 cruces) */}
         <Path
-          d={oiPoints.reduce((acc, p, i) => `${acc} ${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`, '')}
+          d={linePath(oiPoints)}
           stroke="#2563EB"
           strokeWidth={2}
           fill="none"
@@ -222,9 +267,9 @@ function ClinicalAudiogramChart({
           </G>
         ))}
 
-        {/* Trazado OD (Right Ear - 🔴 Círculos) */}
+        {/* Trazado OD (oído derecho · 🔴 círculos) */}
         <Path
-          d={odPoints.reduce((acc, p, i) => `${acc} ${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`, '')}
+          d={linePath(odPoints)}
           stroke="#DC2626"
           strokeWidth={2}
           fill="none"
@@ -244,14 +289,23 @@ function ClinicalAudiogramChart({
 
       {/* Leyenda inferior */}
       <View style={styles.chartLegend}>
-        <View style={styles.legendItem}>
-          <View style={[styles.legendDot, { borderColor: '#DC2626' }]} />
-          <Text style={styles.legendText}>Oído derecho (OD)</Text>
-        </View>
-        <View style={styles.legendItem}>
-          <Text style={{ color: '#2563EB', fontWeight: 'bold', fontSize: 13 }}>✕</Text>
-          <Text style={styles.legendText}>Oído izquierdo (OI)</Text>
-        </View>
+        {isSoundfield ? (
+          <View style={styles.legendItem}>
+            <Text style={{ color: '#0D9488', fontWeight: 'bold', fontSize: 13 }}>S</Text>
+            <Text style={styles.legendText}>Campo libre · binaural</Text>
+          </View>
+        ) : (
+          <>
+            <View style={styles.legendItem}>
+              <View style={[styles.legendDot, { borderColor: '#DC2626' }]} />
+              <Text style={styles.legendText}>Oído derecho (OD)</Text>
+            </View>
+            <View style={styles.legendItem}>
+              <Text style={{ color: '#2563EB', fontWeight: 'bold', fontSize: 13 }}>✕</Text>
+              <Text style={styles.legendText}>Oído izquierdo (OI)</Text>
+            </View>
+          </>
+        )}
       </View>
     </View>
   );
@@ -260,15 +314,7 @@ function ClinicalAudiogramChart({
 export default function ResultadosFinalScreen({ navigation }: Props) {
   const activeEvaluation = useClassSelector(Evaluation, (state: RootState) => state.activeEvaluation.evaluation);
   const patient = activeEvaluation?.patient;
-  const patientName = patient ? `${patient.name} ${patient.lastName}`.trim() : 'Mateo B.';
-  const patientAge = '5 años';
-  const patientNhc = patient?.nhc ?? '48920';
-  const initials = patientName
-    .split(' ')
-    .map(w => w[0])
-    .join('')
-    .substring(0, 2)
-    .toUpperCase() || 'MB';
+  const { patientLabel, initials } = describePatient(patient);
 
   const evaluationId = activeEvaluation?.id;
 
@@ -305,168 +351,325 @@ export default function ResultadosFinalScreen({ navigation }: Props) {
   }, [likert, telemetry]);
 
   useEffect(() => {
+    if (!evaluationId) {
+      setIsLoading(false);
+      return;
+    }
     let mounted = true;
     (async () => {
       try {
         const result: TestDetail[] = [];
 
-        if (evaluationId) {
+        /* El fallo de un módulo no puede dejar el informe entero en blanco: cada
+           lectura se aísla y se registra. */
+        const collect = async (label: string, read: () => Promise<void>) => {
+          try {
+            await read();
+          } catch (e) {
+            console.warn(`VIA+: no se pudieron leer los resultados de ${label}`, e);
+          }
+        };
+
+        /* ---------------------------- Audiometría tonal --------------------- */
+        await collect('audiometría', async () => {
           const audiometries = await AudiometryRepository.getAudiometryByEvaluation(evaluationId);
           audiometries.forEach(a => {
-            // Umbral ausente = sin respuesta: se propaga como null, nunca como
-            // un valor normal de relleno.
+            // Umbral ausente = sin respuesta al nivel máximo. Se propaga como
+            // null; nunca se rellena con un valor normal inventado.
+            const cl = a.thresholds.CL ? FREQS.map(f => a.thresholds.CL?.[f] ?? null) : undefined;
             const od = FREQS.map(f => a.thresholds.OD[f] ?? null);
             const oi = FREQS.map(f => a.thresholds.OI[f] ?? null);
-            const vals = [...od, ...oi];
-            const status: StatusKind = vals.some(v => v != null && v > 40)
-              ? 'alt'
-              : vals.some(v => v != null && v > 20)
-              ? 'warn'
-              : 'ok';
+            const vals = cl ?? [...od, ...oi];
+            const worst: StatusKind = vals.some(v => v != null && v > 20) ? 'warn' : 'ok';
+            const alt = vals.some(v => v != null && v > 40) || (cl ? cl.some(v => v == null) : false);
             result.push({
               id: `audio-${a.id}`,
               kind: 'audio',
-              status,
+              status: alt ? 'alt' : worst,
               title: a.method === 'conditioned' ? 'Audiometría Condicionada' : 'Audiometría Infantil',
-              subtitle: 'Umbrales por vía aérea',
-              icon: Ear,
-              color: '#0284C7',
+              subtitle:
+                a.method === 'conditioned'
+                  ? cl
+                    ? 'Cribado en campo libre · respuesta condicionada'
+                    : 'Respuesta condicionada visual (VRA)'
+                  : 'Umbrales por vía aérea · juego de refuerzo',
+              icon: a.method === 'conditioned' ? TrainFront : Ear,
+              color: a.method === 'conditioned' ? '#0D9488' : '#0284C7',
               od,
               oi,
+              cl,
               interp: interpretAudiometry(a.thresholds),
             });
           });
+        });
 
+        /* --------------------------- Audiometría verbal --------------------- */
+        await collect('audiometría verbal', async () => {
+          const verbals = await VerbalAudiometryRepository.getVerbalAudiometryByEvaluation(evaluationId);
+          verbals.forEach(v => {
+            const status: StatusKind = v.presentedCount
+              ? verbalDiscriminationStatus(v.discriminationPct)
+              : 'warn';
+            const rows: SimpleRow[] = [
+              {
+                label: 'Banda / modalidad',
+                value: BAND_LABEL[v.ageBand] ?? v.ageBand,
+                status: 'ok',
+                tag: MODALITY_LABEL[v.modality] ?? v.modality,
+              },
+              ...(v.levelScores ?? []).map(ls => ({
+                label: `Discriminación · ${ls.level} dB${LEVEL_LABEL[ls.level] ? ` (${LEVEL_LABEL[ls.level]})` : ''}`,
+                value: `${ls.pct} %`,
+                status: verbalDiscriminationStatus(ls.pct),
+                tag: `${ls.correct}/${ls.presented}`,
+              })),
+              ...(v.srtDb != null
+                ? [{ label: 'URV · umbral de recepción verbal', value: `≈ ${v.srtDb} dB`, status: 'ok' as StatusKind, tag: 'estimado' }]
+                : []),
+            ];
+            result.push({
+              id: `verbal-${v.id}`,
+              kind: 'rows',
+              status,
+              title: 'Audiometría Verbal',
+              subtitle: 'Reconocimiento por tarjetas · campo libre · sin audífonos',
+              icon: Volume2,
+              color: '#2563EB',
+              rows,
+              interp: v.interpretation || 'Audiometría verbal completada.',
+            });
+          });
+        });
+
+        /* ------------------------- Análisis acústico de voz ----------------- */
+        await collect('análisis de voz', async () => {
           const voiceAnalyses = await VoiceAnalysisRepository.getVoiceAnalysisByEvaluation(evaluationId);
           voiceAnalyses.forEach(v => {
+            // Cierre manual: sin parámetros acústicos, la prueba se registró con
+            // la valoración perceptual GRBAS y la firma del explorador.
+            if (v.f0 == null || v.jitter == null || v.shimmer == null || v.hnr == null) {
+              const g = v.grbas;
+              result.push({
+                id: `voice-${v.id}`,
+                kind: 'rows',
+                status: g && g.g >= 2 ? 'alt' : g && g.g === 1 ? 'warn' : 'ok',
+                title: 'Análisis Acústico de Voz',
+                subtitle: 'Cierre manual · valoración perceptual GRBAS',
+                icon: Mic2,
+                color: '#7C3AED',
+                rows: g
+                  ? [
+                      {
+                        label: 'GRBAS · valoración perceptual',
+                        value: `G${g.g} R${g.r} B${g.b} A${g.a} S${g.s}`,
+                        status: g.g >= 2 ? 'alt' : g.g === 1 ? 'warn' : 'ok',
+                        tag: `total ${g.g + g.r + g.b + g.a + g.s}/15`,
+                      },
+                    ]
+                  : [],
+                interp: v.interpretation || 'Prueba de voz cerrada manualmente (análisis acústico no disponible).',
+              });
+              return;
+            }
+            const toKind = (s: string): StatusKind => (s === 'normal' ? 'ok' : s === 'borderline' ? 'warn' : 'alt');
+            const params: ParamRow[] = [
+              { label: 'F0 · frecuencia fundamental', value: `${Math.round(v.f0)} Hz`, status: toKind(statusF0(v.f0)), ref: '200–320 Hz' },
+              { label: 'Jitter', value: `${v.jitter.toFixed(1)} %`, status: toKind(statusJitter(v.jitter)), ref: '< 1.0 %' },
+              { label: 'Shimmer', value: `${v.shimmer.toFixed(1)} %`, status: toKind(statusShimmer(v.shimmer)), ref: '< 3.0 %' },
+              { label: 'HNR · relación armónico-ruido', value: `${Math.round(v.hnr)} dB`, status: toKind(statusHnr(v.hnr)), ref: '> 20 dB' },
+            ];
+            const overall: StatusKind = params.some(p => p.status === 'alt')
+              ? 'alt'
+              : params.some(p => p.status === 'warn')
+              ? 'warn'
+              : 'ok';
             result.push({
               id: `voice-${v.id}`,
               kind: 'params',
-              status: 'warn',
-              title: 'Análisis Acústico',
-              subtitle: 'Vocal sostenida /a/ · Perturbación',
+              status: overall,
+              title: 'Análisis Acústico de Voz',
+              subtitle: 'Vocal sostenida /a/ · parámetros perturbatorios',
               icon: Mic2,
               color: '#7C3AED',
-              params: [
-                { label: 'F0 · Frecuencia fundamental', value: `${Math.round(v.f0 ?? 245)} Hz`, status: 'ok', ref: '200–320 Hz' },
-                { label: 'Jitter', value: `${(v.jitter ?? 0.8).toFixed(1)} %`, status: 'ok', ref: '< 1.0 %' },
-                { label: 'Shimmer', value: `${(v.shimmer ?? 4.2).toFixed(1)} %`, status: 'warn', ref: '< 3.0 %' },
-                { label: 'HNR · Armónico-Ruido', value: `${Math.round(v.hnr ?? 22)} dB`, status: 'ok', ref: '> 20 dB' },
-              ],
-              interp: 'Leve inestabilidad de amplitud (shimmer elevado) compatible con hiperfunción vocal transitoria.',
+              params,
+              interp: buildVoiceInterpretation({
+                f0: v.f0,
+                jitter: v.jitter,
+                shimmer: v.shimmer,
+                hnr: v.hnr,
+                formants: v.formants,
+              }),
             });
           });
+        });
 
+        /* ---------------------------- Análisis prosódico -------------------- */
+        await collect('análisis prosódico', async () => {
+          const prosodies = await ProsodyAnalysisRepository.getProsodyAnalysisByEvaluation(evaluationId);
+          prosodies.forEach(p => {
+            // La prosodia NO emite juicio clínico (no hay baremo poblacional):
+            // el estado solo distingue toma válida de toma que no dio métricas.
+            const failed = p.reason !== 'ok';
+            const rows: SimpleRow[] = prosodyReportRows(p.metrics).map(r => ({
+              label: r.label,
+              value: r.value !== null ? `${r.value} ${r.unit}` : '—',
+              status: r.value !== null ? ('ok' as StatusKind) : ('warn' as StatusKind),
+              tag: r.hint,
+            }));
+            result.push({
+              id: `prosody-${p.id}`,
+              kind: 'rows',
+              status: failed ? 'warn' : 'ok',
+              title: 'Análisis Prosódico',
+              subtitle: `Habla conectada · ${p.task} · banda ${p.ageBand}`,
+              icon: AudioWaveform,
+              color: '#C026D3',
+              rows,
+              interp: p.interpretation || prosodyInterpretation(p.metrics, p.reason),
+            });
+          });
+        });
+
+        /* ---------------------------- Articulación T.A.R. ------------------- */
+        await collect('articulación', async () => {
           const articulations = await ArticulationTestRepository.getArticulationByEvaluation(evaluationId);
           articulations.forEach(a => {
+            const rows: SimpleRow[] = [
+              {
+                label: 'Ítems acertados',
+                value: `${a.evaluatedCount} / ${a.totalCount}`,
+                status: a.correctPct >= 90 ? 'ok' : a.correctPct >= 70 ? 'warn' : 'alt',
+                tag: `${a.correctPct} %`,
+              },
+              {
+                label: 'Sustituciones · S',
+                value: `${a.sodaCounts.S ?? 0}`,
+                status: (a.sodaCounts.S ?? 0) > 0 ? 'warn' : 'ok',
+                tag: a.affectedPhonemes.map(p => p.phoneme).join(', ') || '—',
+              },
+              { label: 'Omisiones · O', value: `${a.sodaCounts.O ?? 0}`, status: (a.sodaCounts.O ?? 0) > 0 ? 'warn' : 'ok', tag: '—' },
+              { label: 'Distorsiones · D', value: `${a.sodaCounts.D ?? 0}`, status: (a.sodaCounts.D ?? 0) > 0 ? 'warn' : 'ok', tag: '—' },
+              { label: 'Adiciones · A', value: `${a.sodaCounts.A ?? 0}`, status: (a.sodaCounts.A ?? 0) > 0 ? 'warn' : 'ok', tag: '—' },
+            ];
             result.push({
               id: `art-${a.id}`,
               kind: 'rows',
-              status: 'ok',
+              status: a.correctPct >= 90 ? 'ok' : a.correctPct >= 70 ? 'warn' : 'alt',
               title: 'Articulación · T.A.R.',
-              subtitle: 'Registro Fonético SODA',
+              subtitle: 'Test de Articulación a la Repetición · registro SODA',
               icon: Speech,
               color: '#EA580C',
-              rows: [
-                { label: 'Ítems correctos', value: '38 / 38', status: 'ok', tag: '100 %' },
-                { label: 'Sustituciones (S)', value: '0', status: 'ok', tag: 'Ninguna' },
-                { label: 'Omisiones (O)', value: '0', status: 'ok', tag: 'Ninguna' },
-              ],
-              interp: 'Desarrollo fonético-articulatorio adecuado para la edad cronológica.',
+              rows,
+              interp: `${a.correctPct}% de producción correcta. ${a.affectedPhonemes.length} fonema(s) afectado(s).`,
             });
           });
+        });
 
+        /* --------------------------- Funciones ejecutivas ------------------- */
+        await collect('funciones ejecutivas', async () => {
           const efTests = await ExecutiveFunctionsRepository.getExecutiveFunctionsByEvaluation(evaluationId);
           efTests.forEach(ef => {
+            const domainScores: Record<string, number | null> = {
+              attention: ef.attentionScore,
+              inhibition: ef.inhibitionScore,
+              flexibility: ef.flexibilityScore,
+              workingMemory: ef.workingMemoryScore,
+              planning: ef.planningScore,
+            };
+            const params: ParamRow[] = EF_DOMAIN_ORDER.map(domain => {
+              const s = domainScores[domain];
+              return {
+                label: `${EF_DOMAIN_META[domain].title} · ${EF_DOMAIN_META[domain].game}`,
+                value: s !== null ? `${s}/100` : '—',
+                status: s !== null ? efStatus(s) : 'warn',
+                ref: '≥ 80 esperado',
+              };
+            });
             result.push({
               id: `ef-${ef.id}`,
               kind: 'params',
-              status: 'ok',
+              status: ef.overallScore === null ? 'warn' : efStatus(ef.overallScore),
               title: 'Funciones Ejecutivas',
-              subtitle: 'Batería Lúdica de Tarjetas',
+              subtitle: `Mini-juegos de tarjetas · banda ${ef.ageBand} · índice global ${ef.overallScore ?? '—'}/100`,
               icon: BrainCircuit,
               color: '#059669',
-              params: [
-                { label: 'Atención sostenida', value: '90/100', status: 'ok', ref: '≥ 80' },
-                { label: 'Inhibición', value: '85/100', status: 'ok', ref: '≥ 80' },
-                { label: 'Flexibilidad (cambio de norma)', value: '86/100', status: 'ok', ref: '≥ 80' },
-                { label: 'Memoria de trabajo', value: '88/100', status: 'ok', ref: '≥ 80' },
-                { label: 'Planificación', value: '84/100', status: 'ok', ref: '≥ 80' },
-              ],
-              interp: 'Excelente flexibilidad cognitiva y control inhibitorio.',
+              params,
+              interp: ef.interpretation || 'Exploración lúdica de funciones ejecutivas completada.',
             });
           });
-        }
+        });
 
-        // Si no hay datos previos, suministrar catálogo clínico completo representativo del render
-        if (result.length === 0) {
-          result.push(
-            {
-              id: 'audio-demo',
-              kind: 'audio',
-              status: 'ok',
-              title: 'Audiometría Infantil',
-              subtitle: 'Umbrales por vía aérea',
-              icon: Ear,
-              color: '#0284C7',
-              od: DEMO_OD,
-              oi: DEMO_OI,
-              interp: interpretAudiometry({
-                OD: demoThresholds(DEMO_OD),
-                OI: demoThresholds(DEMO_OI),
-              }),
-            },
-            {
-              id: 'voice-demo',
+        /* ----------------------------- Cribado SAHS ------------------------- */
+        await collect('cribado SAHS', async () => {
+          const sahsScreenings = await SahsScreeningRepository.getSahsScreeningsByEvaluation(evaluationId);
+          sahsScreenings.forEach(s => {
+            const status: StatusKind = s.suspicionLevel === 'high' ? 'alt' : s.suspicionLevel === 'med' ? 'warn' : 'ok';
+            const params: ParamRow[] = [
+              { label: 'PSQ de Chervin', value: `${(s.psqYesCount / s.psqTotal).toFixed(2)}`, status, ref: '< 0.33 (positivo ≥ 0.33)' },
+              { label: 'Hipertrofia amigdalar · Brodsky', value: s.brodsky != null ? `Grado ${s.brodsky}` : '—', status, ref: 'I–II bajo · III–IV alto' },
+              { label: 'IMC · categoría', value: imcLabel(s.imc), status, ref: 'normopeso esperado' },
+            ];
+            result.push({
+              id: `sahs-${s.id}`,
               kind: 'params',
-              status: 'warn',
-              title: 'Análisis Acústico',
-              subtitle: 'Vocal sostenida /a/ · Perturbación',
-              icon: Mic2,
-              color: '#7C3AED',
-              params: [
-                { label: 'F0 · Frecuencia fundamental', value: '245 Hz', status: 'ok', ref: '200–320 Hz' },
-                { label: 'Jitter', value: '0.8 %', status: 'ok', ref: '< 1.0 %' },
-                { label: 'Shimmer', value: '4.2 %', status: 'warn', ref: '< 3.0 %' },
-                { label: 'HNR · Armónico-Ruido', value: '22 dB', status: 'ok', ref: '> 20 dB' },
-              ],
-              interp: 'Leve inestabilidad de amplitud (shimmer elevado) compatible con hiperfunción vocal transitoria.',
-            },
-            {
-              id: 'art-demo',
+              status,
+              title: 'Cribado SAHS Infantil',
+              subtitle: 'PSQ de Chervin · Brodsky · IMC',
+              icon: MoonStar,
+              color: '#4F46E5',
+              params,
+              interp: `${suspicionLabel(s.suspicionLevel)}. ${s.recommendation}`,
+            });
+          });
+        });
+
+        /* -------------------------- Cribado TEA (M-CHAT) -------------------- */
+        await collect('cribado de autismo', async () => {
+          const screenings = await ScreeningRepository.getScreeningsByEvaluation(evaluationId);
+          screenings.forEach(s => {
+            const status: StatusKind = s.riskLevel === 'high' ? 'alt' : s.riskLevel === 'med' ? 'warn' : 'ok';
+            result.push({
+              id: `screen-${s.id}`,
+              kind: 'params',
+              status,
+              title: s.instrument === 'autism-tea' ? 'Cuestionario Autismo' : s.instrument,
+              subtitle: 'Cribado de TEA · 20 ítems (M-CHAT-R/F)',
+              icon: Puzzle,
+              color: '#DB2777',
+              params: [{ label: 'Puntuación total', value: `${s.score} / ${s.total}`, status, ref: s.rangeLabel }],
+              interp: s.recommendation,
+            });
+          });
+        });
+
+        /* ---------------------------- Disfagia MECV-V ----------------------- */
+        await collect('disfagia', async () => {
+          const dysphagias = await DysphagiaTestRepository.getDysphagiaByEvaluation(evaluationId);
+          dysphagias.forEach(d => {
+            const status: StatusKind = d.verdict === 'safe' ? 'ok' : d.verdict === 'safety' ? 'alt' : 'warn';
+            const rows: SimpleRow[] = [
+              { label: 'SpO₂ basal', value: `${d.basalSpO2} %`, status: d.basalSpO2 >= 95 ? 'ok' : 'warn', tag: '≥ 95 %' },
+              { label: 'SpO₂ mínima', value: `${d.minSpO2 ?? '—'} %`, status: (d.minSpO2 ?? 100) >= 95 ? 'ok' : 'warn', tag: '≥ 95 %' },
+              { label: 'Alteración de seguridad', value: d.safetyAltered ? 'Sí' : 'No', status: d.safetyAltered ? 'alt' : 'ok', tag: 'tos / voz húmeda' },
+              { label: 'Alteración de eficacia', value: d.efficacyAltered ? 'Sí' : 'No', status: d.efficacyAltered ? 'warn' : 'ok', tag: 'sello / residuo' },
+            ];
+            result.push({
+              id: `dys-${d.id}`,
               kind: 'rows',
-              status: 'ok',
-              title: 'Articulación',
-              subtitle: 'Registro Fonético SODA',
-              icon: Speech,
-              color: '#EA580C',
-              rows: [
-                { label: 'Ítems correctos', value: '38 / 38', status: 'ok', tag: '100 %' },
-                { label: 'Sustituciones (S)', value: '0', status: 'ok', tag: 'Ninguna' },
-              ],
-              interp: 'Desarrollo fonético-articulatorio adecuado para la edad cronológica.',
-            },
-            {
-              id: 'ef-demo',
-              kind: 'params',
-              status: 'ok',
-              title: 'Funciones Ejecutivas',
-              subtitle: 'Batería Lúdica de Tarjetas',
-              icon: BrainCircuit,
-              color: '#059669',
-              params: [
-                { label: 'Atención sostenida', value: '90/100', status: 'ok', ref: '≥ 80' },
-                { label: 'Inhibición', value: '85/100', status: 'ok', ref: '≥ 80' },
-                { label: 'Flexibilidad (cambio de norma)', value: '86/100', status: 'ok', ref: '≥ 80' },
-              ],
-              interp: 'Excelente flexibilidad cognitiva y control inhibitorio.',
-            }
-          );
-        }
+              status,
+              title: 'Exploración de Disfagia',
+              subtitle: 'MECV-V · volumen-viscosidad · pulsioximetría integrada',
+              icon: Droplets,
+              color: '#DC2626',
+              rows,
+              interp: d.interpretation || 'Exploración MECV-V completada.',
+            });
+          });
+        });
 
         if (mounted) {
           setTests(result);
-          setActiveId(result[0]?.id ?? null);
+          setActiveId(prev => prev ?? result[0]?.id ?? null);
         }
       } finally {
         if (mounted) setIsLoading(false);
@@ -532,9 +735,7 @@ export default function ResultadosFinalScreen({ navigation }: Props) {
             <View style={styles.initialsBox}>
               <Text style={styles.initialsText}>[{initials}]</Text>
             </View>
-            <Text style={styles.patientInfoText}>
-              {patientName} · {patientAge} · NHC-{patientNhc}
-            </Text>
+            <Text style={styles.patientInfoText}>{patientLabel}</Text>
           </View>
 
           <View style={styles.sealedStatusPill}>
@@ -627,36 +828,76 @@ export default function ResultadosFinalScreen({ navigation }: Props) {
             contentContainerStyle={styles.detailStageContent}
             showsVerticalScrollIndicator={false}>
             
+            {/* Sin pruebas registradas no se dibuja un informe de ejemplo. */}
+            {!active ? (
+              <View style={styles.emptyStage}>
+                <Text style={styles.emptyStageTitle}>
+                  {isLoading ? 'Cargando resultados…' : 'Esta sesión no tiene pruebas registradas'}
+                </Text>
+                {!isLoading ? (
+                  <Text style={styles.emptyStageBody}>
+                    El informe se compone con lo que cada módulo haya guardado. Vuelve al hub de la
+                    batería y completa al menos una prueba.
+                  </Text>
+                ) : null}
+              </View>
+            ) : (
+              <>
             {/* Título Principal de la Prueba Activa */}
             <View style={styles.detailHeader}>
               <Text style={styles.detailMainTitle}>
-                {active?.title} · <Text style={{ color: '#475569', fontWeight: '500' }}>{active?.subtitle}</Text>
+                {active.title} · <Text style={{ color: '#475569', fontWeight: '500' }}>{active.subtitle}</Text>
               </Text>
+              <View style={[styles.statusBadge, { backgroundColor: STATUS_TOKENS[active.status].bg }]}>
+                <Text style={[styles.statusBadgeText, { color: STATUS_TOKENS[active.status].fg }]}>
+                  {STATUS_TOKENS[active.status].label}
+                </Text>
+              </View>
             </View>
 
             {/* Cuadrícula de 2 Tarjetas Clínicas (Audiograma / Params + Interpretación) */}
             <View style={styles.stageGrid}>
-              
+
               {/* Tarjeta 1: Gráfico Clínico o Parámetros */}
-              {active?.kind === 'audio' ? (
-                <ClinicalAudiogramChart od={active.od} oi={active.oi} />
+              {active.kind === 'audio' ? (
+                <ClinicalAudiogramChart od={active.od} oi={active.oi} cl={active.cl} />
               ) : (
                 <View style={styles.paramsCard}>
                   <Text style={styles.paramsCardTitle}>Parámetros Objetivos</Text>
                   <View style={styles.paramsList}>
-                    {active?.params?.map((p, idx) => (
+                    {active.params?.map((p, idx) => (
                       <View key={idx} style={styles.paramRow}>
-                        <Text style={styles.paramLabel}>{p.label}</Text>
-                        <View style={styles.paramValuePill}>
-                          <Text style={styles.paramValueText}>{p.value}</Text>
+                        <View style={{ flex: 1 }}>
+                          <Text style={styles.paramLabel}>{p.label}</Text>
+                          <Text style={styles.paramRef}>Referencia: {p.ref}</Text>
+                        </View>
+                        <View
+                          style={[
+                            styles.paramValuePill,
+                            { backgroundColor: STATUS_TOKENS[p.status].bg },
+                          ]}>
+                          <Text
+                            style={[styles.paramValueText, { color: STATUS_TOKENS[p.status].fg }]}>
+                            {p.value}
+                          </Text>
                         </View>
                       </View>
                     ))}
-                    {active?.rows?.map((r, idx) => (
+                    {active.rows?.map((r, idx) => (
                       <View key={idx} style={styles.paramRow}>
-                        <Text style={styles.paramLabel}>{r.label}</Text>
-                        <View style={styles.paramValuePill}>
-                          <Text style={styles.paramValueText}>{r.value}</Text>
+                        <View style={{ flex: 1 }}>
+                          <Text style={styles.paramLabel}>{r.label}</Text>
+                          {r.tag ? <Text style={styles.paramRef}>{r.tag}</Text> : null}
+                        </View>
+                        <View
+                          style={[
+                            styles.paramValuePill,
+                            { backgroundColor: STATUS_TOKENS[r.status].bg },
+                          ]}>
+                          <Text
+                            style={[styles.paramValueText, { color: STATUS_TOKENS[r.status].fg }]}>
+                            {r.value}
+                          </Text>
                         </View>
                       </View>
                     ))}
@@ -669,7 +910,7 @@ export default function ResultadosFinalScreen({ navigation }: Props) {
                 <Text style={styles.interpCardTitle}>Interpretación clínica</Text>
 
                 <Text style={styles.interpBodyText}>
-                  {active?.interp}
+                  {active.interp}
                 </Text>
 
                 <View style={styles.interpDivider} />
@@ -690,6 +931,8 @@ export default function ResultadosFinalScreen({ navigation }: Props) {
                 </View>
               </View>
             </View>
+              </>
+            )}
           </ScrollView>
         </View>
 
@@ -914,7 +1157,42 @@ const styles = StyleSheet.create({
     padding: 24,
   },
   detailHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 12,
     marginBottom: 16,
+  },
+  statusBadge: {
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 999,
+  },
+  statusBadgeText: {
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  emptyStage: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#EDE7DC',
+    padding: 28,
+    alignItems: 'center',
+    gap: 8,
+  },
+  emptyStageTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#334155',
+    textAlign: 'center',
+  },
+  emptyStageBody: {
+    fontSize: 13,
+    lineHeight: 20,
+    color: '#64748B',
+    textAlign: 'center',
+    maxWidth: 420,
   },
   detailMainTitle: {
     fontSize: 22,
@@ -1007,6 +1285,11 @@ const styles = StyleSheet.create({
   paramLabel: {
     fontSize: 12,
     color: '#475569',
+  },
+  paramRef: {
+    fontSize: 10,
+    color: '#94A3B8',
+    marginTop: 1,
   },
   paramValuePill: {
     backgroundColor: '#F8FAFC',
