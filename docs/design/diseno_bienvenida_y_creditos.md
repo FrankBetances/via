@@ -6,10 +6,10 @@ Este documento recopila las referencias visuales aprobadas para las pantallas de
 
 ## 1. 🌅 Pantalla de Inicio / Bienvenida (`BienvenidaScreen`)
 
-### Render Visual Aprobado:
+### Render Visual Aprobado
 ![Render Bienvenida Tableta](./render_bienvenida_tableta.jpg)
 
-### Estructura de la Pantalla:
+### Estructura de la Pantalla
 1. **Columna Izquierda (Escenario Cinematográfico de Partículas)**:
    - Enjambre de partículas sonoras que entran caóticas por la izquierda (`VOZ CON RUIDO`), atraviesan el isotipo iluminado `VIA+` con anillos de pulso y emergen a la derecha como una onda senoidal armónica en naranja y turquesa (`INFORMACIÓN CLÍNICA`).
 2. **Columna Derecha (Propuesta de Valor y Acción Principal)**:
@@ -26,10 +26,10 @@ Este documento recopila las referencias visuales aprobadas para las pantallas de
 
 ## 2. 🏛️ Pantalla de Créditos (`CreditosScreen`)
 
-### Render Visual Aprobado:
+### Render Visual Aprobado
 ![Render Créditos Tableta](./render_creditos_tableta.jpg)
 
-### Estructura de la Pantalla:
+### Estructura de la Pantalla
 1. **Columna Izquierda (Identidad y Autoría)**:
    - **Emblema Central de Órbita**: Isotipo `VIA+` rodeado de 12 puntos de colores correspondientes a cada uno de los 12 módulos de la batería girando en órbitas elípticas vivas (`DOCE MÓDULOS · UNA SOLA BATERÍA`).
    - **Tarjeta de Autoría** (`AUTORÍA Y DIRECCIÓN CLÍNICA`): Tarjeta blanca con raíl naranja y corriente de partículas ordenadas, con el sello y crédito al **`Dr. Frank Alberto Betances Reinoso`** *(Otorrinolaringólogo y desarrollador principal)*.
