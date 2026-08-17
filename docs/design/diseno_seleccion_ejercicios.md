@@ -18,7 +18,7 @@ Este documento contiene la **referencia visual aprobada** para la pantalla de se
 - **Dominios Clínicos (Colores de Acento y Fondos Suaves)**:
   - 🟣 **Voz**: Acento `#7C3AED` | Fondo suave `#F3E8FF`
   - 🔵 **Audición (Infantil / Condicionada / Verbal)**: Acento `#0284C7` / `#0D9488` / `#2563EB` | Fondo suave `#E0F2FE` / `#CCFBF1`
-  - 🟠 **Lenguaje / T.A.R.**: Acento `#EA580C` | Fondo suave `#FFEDD5`
+  - 🟠 **Articulación / T.A.R.** (filtrada bajo *Neurodesarrollo*): Acento `#EA580C` | Fondo suave `#FFEDD5`
   - 🟢 **Funciones Ejecutivas / Cognición**: Acento `#059669` | Fondo suave `#D1FAE5`
   - 🔴 **Disfagia**: Acento `#DC2626` | Fondo suave `#FEE2E2`
   - 🔵 **Sueño**: Acento `#4F46E5` | Fondo suave `#E0E7FF`
@@ -30,8 +30,9 @@ Este documento contiene la **referencia visual aprobada** para la pantalla de se
 ### A. Cabecera del Paciente (Zero-PHI)
 - **Monograma de Iniciales**: Píldora naranja cálida con `[MB]`.
 - **Datos Clínicos**: `Mateo B. · 5 años · NHC-48920`.
-- **Estado Ambiental**: `🟢 Certificado de Sala Activo (CAP)`.
+- **Estado Ambiental**: `🟢 Sala verificada · sonómetro OK` (o `⚠️ Sala sin verificar · sonómetro omitido`). No se rotula como «CAP»: el CAP es el *Certificado de Aptitud para la Prueba* (pre-screening clínico), no la verificación acústica de la sala.
 - **Accesos Rápidos**: `Volver al CAP` y `Sonómetro de sala`.
+- **Aviso del motor de voz**: banda roja con el detalle del fallo y acción `Reintentar la voz del sistema`, visible solo si la locución no está disponible.
 
 ### B. Barra de Filtros con Insignias Vectoriales Multicapa
 Carrusel horizontal con 6 categorías ilustradas:
@@ -51,8 +52,8 @@ Cada tarjeta contiene:
 5. **Micro-gráfica / Ilustración central temática** (mini curva de audiograma, vía de tren del sonido, espectrograma de voz, ondas de habla o red sináptica).
 6. **Fila inferior de metadatos**:
    - ⏱️ `Duración` (e.g. `8–10 min`)
-   - 👶 `Edad diana` (e.g. `2–6 años`)
-   - 🎯 `Validación / Parámetro` (e.g. `Calibración OK`, `F0, jitter`, `SODA Fonética`)
+   - 👶 `Edad diana` (e.g. `2–6 años`) — siempre una franja de edad; los parámetros técnicos van en el badge, no aquí
+   - 🎯 `Validación / Parámetro` (e.g. `Calibración OK`, `F0, jitter, shimmer`, `SODA Fonética`, `SpO₂ · desaturación`)
 
 ### D. Dock Inferior Flotante (Sticky Action Dock)
 - **Izquierda**: Conteo de pruebas en cola y tiempo estimado acumulado (`3 pruebas en cola · ⏱️ Tiempo total: ~22 min`).

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet } from 'react-native';
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
@@ -11,12 +11,12 @@ import CategoryBadgeIcon, { CategoryType } from './CategoryBadgeIcon';
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
+/* El color del dominio lo pinta `CategoryBadgeIcon` a partir de la categoría:
+   la píldora activa es siempre naranja de marca, así que no recibe colores. */
 interface Props {
   category: CategoryType;
   label: string;
   count: number;
-  color: string;
-  softColor: string;
   isActive: boolean;
   onPress: () => void;
 }
@@ -27,8 +27,6 @@ export default function CategoryFilterChip({
   category,
   label,
   count,
-  color,
-  softColor,
   isActive,
   onPress,
 }: Props) {
@@ -58,7 +56,7 @@ export default function CategoryFilterChip({
       ]}
       accessibilityRole="button"
       accessibilityState={{ selected: isActive }}
-      accessibilityLabel={`Filtro ${label}, ${count} pruebas`}>
+      accessibilityLabel={`Filtro ${label}, ${count} prueba${count === 1 ? '' : 's'}`}>
       <HStack alignItems="center" space="xs" style={styles.content}>
         {/* Icono vectorial */}
         <CategoryBadgeIcon category={category} size={20} isActive={isActive} />

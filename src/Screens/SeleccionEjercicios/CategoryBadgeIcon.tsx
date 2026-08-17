@@ -1,15 +1,6 @@
 import React from 'react';
 import { View } from 'react-native';
-import Svg, {
-  Circle,
-  Defs,
-  G,
-  LinearGradient,
-  Path,
-  Rect,
-  Stop,
-  Text as SvgText,
-} from 'react-native-svg';
+import Svg, { Path, Rect, Text as SvgText } from 'react-native-svg';
 
 export type CategoryType = 'all' | 'hearing' | 'voice' | 'neuro' | 'sleep' | 'dysphagia';
 

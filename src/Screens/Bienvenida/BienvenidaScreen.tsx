@@ -24,7 +24,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { ArrowRight, Lock, ShieldCheck, Stethoscope, Trophy } from 'lucide-react-native';
+import { ArrowRight, Lock, Stethoscope, Trophy } from 'lucide-react-native';
 
 import type { RootStackParamList } from '@/Navigators/screenTypeNavigator';
 import ViaIcon from '@/Components/Common/ViaIcon';
@@ -84,6 +84,7 @@ function Particle({ spec, width }: { spec: ParticleSpec; width: number }) {
       withRepeat(withTiming(1, { duration: spec.duration, easing: Easing.linear }), -1, false),
     );
     return () => cancelAnimation(prog);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [spec, width]);
 
   const style = useAnimatedStyle(() => {
@@ -172,6 +173,7 @@ export default function BienvenidaScreen() {
       cancelAnimation(ring2);
       cancelAnimation(waveProg);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const floatStyle = useAnimatedStyle(() => ({

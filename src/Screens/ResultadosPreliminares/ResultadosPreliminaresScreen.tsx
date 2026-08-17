@@ -7,15 +7,8 @@ import {
   View,
 } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import Svg, { Circle, Defs, G, Line, LinearGradient, Path, Stop } from 'react-native-svg';
-import {
-  AlertCircle,
-  ArrowRight,
-  CheckCircle2,
-  ChevronLeft,
-  ChevronRight,
-  Info,
-} from 'lucide-react-native';
+import Svg, { Circle, Defs, Line, LinearGradient, Path, Stop } from 'react-native-svg';
+import { AlertCircle, ArrowRight, ChevronRight } from 'lucide-react-native';
 
 import { Content, Text } from '@/Components/Common';
 import RadialBackground from '@/Components/Themed/RadialBackground';
@@ -33,8 +26,8 @@ import {
 
 /* -------------------------------------------------------------------------- */
 /*  ResultadosPreliminaresScreen — Vista rápida en tableta (4:3) con medidor   */
-/*  circular de salud global a la izquierda y cuadrícula de tarjetas a la      */
-/*  derecha según el diseño médico de react-expo-medical-uiux-expert.         */
+/*  circular de normalidad global a la izquierda y cuadrícula de tarjetas a    */
+/*  la derecha (docs/design/diseno_resultados.md).                             */
 /* -------------------------------------------------------------------------- */
 
 type Props = NativeStackScreenProps<RootStackParamList, 'ResultadosPreliminares'>;
@@ -209,9 +202,13 @@ export default function ResultadosPreliminaresScreen({ navigation }: Props) {
 
   const alertMessage = useMemo(() => {
     if (counts.alt > 0) return 'Hallazgos alterados detectados en la evaluación.';
-    if (counts.warn > 0) return 'Revisar parámetros acústicos de voz';
+    if (counts.warn > 0) {
+      // El aviso nombra las pruebas realmente marcadas, no una fija.
+      const pendientes = cards.filter(c => c.status === 'warn').map(c => c.title);
+      return `Revisar los parámetros de: ${pendientes.join(', ')}.`;
+    }
     return 'Todos los parámetros dentro de los límites normales esperados.';
-  }, [counts]);
+  }, [cards, counts]);
 
   // Constantes del medidor circular SVG
   const radius = 80;
@@ -263,7 +260,7 @@ export default function ResultadosPreliminaresScreen({ navigation }: Props) {
           
           {/* ----- COLUMNA IZQUIERDA: Medidor de Salud Global (Score Card) ----- */}
           <View style={[styles.gaugeCard, isTablet && { width: '42%' }]}>
-            <Text style={styles.gaugeTitle}>Health Executive Score</Text>
+            <Text style={styles.gaugeTitle}>Índice global de normalidad</Text>
 
             {/* Medidor Circular SVG */}
             <View style={styles.gaugeContainer}>
@@ -348,7 +345,7 @@ export default function ResultadosPreliminaresScreen({ navigation }: Props) {
             {isLoading ? (
               <Text style={styles.loadingText}>Cargando resultados…</Text>
             ) : (
-              cards.map((c, idx) => {
+              cards.map(c => {
                 const isAudio = c.key.startsWith('audio');
                 const isVoice = c.key.startsWith('voice');
                 const isArt = c.key.startsWith('art');
@@ -409,7 +406,8 @@ export default function ResultadosPreliminaresScreen({ navigation }: Props) {
         {/* ==================================================================== */}
         <View style={styles.actionDock}>
           <Text style={styles.dockStatusText}>
-            {cards.length} pruebas evaluadas · Sesión activa
+            {cards.length} prueba{cards.length === 1 ? '' : 's'} evaluada
+            {cards.length === 1 ? '' : 's'} · Sesión activa
           </Text>
 
           <View style={styles.dockButtonsRow}>

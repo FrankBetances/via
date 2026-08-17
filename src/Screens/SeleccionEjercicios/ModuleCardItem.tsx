@@ -1,8 +1,8 @@
 import React, { useEffect } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
-import { Box, Center, HStack, VStack } from '@gluestack-ui/themed';
+import { Center, HStack, VStack } from '@gluestack-ui/themed';
 import type { LucideIcon } from 'lucide-react-native';
-import { Check, Clock, Compass, Sparkles, User } from 'lucide-react-native';
+import { Clock, Compass, Sparkles, User } from 'lucide-react-native';
 import Animated, {
   FadeInDown,
   interpolate,
@@ -164,7 +164,7 @@ export default function ModuleCardItem({
           </HStack>
 
           {/* Título y Subtítulo / Descripción */}
-          <VStack space="2xs" style={{ minHeight: 64 }}>
+          <VStack space="xs" style={{ minHeight: 64 }}>
             <Text
               size="sm"
               weight="bold"
@@ -203,7 +203,7 @@ export default function ModuleCardItem({
           <VStack space="xs" mt="$1">
             {/* Duración y Rango de Edad */}
             <HStack alignItems="center" space="md">
-              <HStack alignItems="center" space="2xs">
+              <HStack alignItems="center" space="xs">
                 <Clock size={12} color="#64748B" />
                 <Text
                   size="2xs"
@@ -212,7 +212,7 @@ export default function ModuleCardItem({
                   {m.duration}
                 </Text>
               </HStack>
-              <HStack alignItems="center" space="2xs">
+              <HStack alignItems="center" space="xs">
                 <User size={12} color="#64748B" />
                 <Text
                   size="2xs"
@@ -224,11 +224,11 @@ export default function ModuleCardItem({
             </HStack>
 
             {/* Badge de Parámetro o Calibración */}
-            <HStack alignItems="center" space="2xs" mt="$0.5">
+            <HStack alignItems="center" space="xs" mt="$0.5">
               {m.badgeParam ? (
                 <HStack
                   alignItems="center"
-                  space="2xs"
+                  space="xs"
                   px="$2"
                   py="$0.5"
                   borderRadius={8}
@@ -246,7 +246,7 @@ export default function ModuleCardItem({
                   </Text>
                 </HStack>
               ) : (
-                <HStack alignItems="center" space="2xs">
+                <HStack alignItems="center" space="xs">
                   <Compass size={12} color="#0D9488" />
                   <Text
                     size="2xs"

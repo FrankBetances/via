@@ -23,19 +23,16 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { ArrowRight, Award, Flame, Globe2, Sparkles, UserCheck } from 'lucide-react-native';
+import { ArrowRight, Flame, UserCheck } from 'lucide-react-native';
 
-import { Header } from '@/Components/Common';
-import ViaIcon from '@/Components/Common/ViaIcon';
 import { RootStackParamList } from '@/Navigators';
 import {
   AcoprosMark,
-  DrBetancesMark,
   EarlifyMark,
   ItemasSealMark,
   QuisqueyaHablaMark,
 } from './BrandMarks';
-import { ORBIT_MODULES, ORBIT_MAX_REACH, OrbitModule } from './orbitModules';
+import { ORBIT_MODULES, OrbitModule } from './orbitModules';
 
 /* -------------------------------------------------------------------------- */
 /*  CreditosScreen — Quién hay detrás de VIA+ en formato Tableta 4:3           */
@@ -45,7 +42,6 @@ import { ORBIT_MODULES, ORBIT_MAX_REACH, OrbitModule } from './orbitModules';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Creditos'>;
 
-const YEAR = new Date().getFullYear();
 const EMBLEM = 88;
 const RING_DURATION = 2600;
 const ORBIT_TILT = 0.82;
@@ -55,9 +51,11 @@ const ORBIT_LABEL = `Los doce módulos de la batería VIA+ orbitando el isotipo:
 ).join(', ')}.`;
 
 const LANGUAGE_CREDITS = [
-  { flag: '🇩🇴', name: 'Quisqueya Habla (es-DO)', role: 'Variante dominicana · 86 locuciones aprobadas (FONDOCYT)' },
+  { flag: '🇩🇴', name: 'Quisqueya Habla (es-DO)', role: 'Variante dominicana: banco y locuciones propios (FONDOCYT)' },
   { flag: '🇪🇸', name: 'Español (España)', role: 'Idioma base de la batería de evaluación clínica' },
-  { flag: '🌐', name: 'Proxecto Nós (Gallego)', role: 'Voz neuronal Celtia (ILENIA) aprobada por ACOPROS' },
+  { flag: '🌐', name: 'Proxecto Nós · ILENIA', role: 'Voz neuronal Celtia (gallego), banco aprobado por ACOPROS' },
+  { flag: '🎙️', name: 'Piper · rhasspy/piper-voices', role: 'Voces neuronales VITS para español y variantes' },
+  { flag: '🔊', name: 'eSpeak NG', role: 'Síntesis de respaldo offline (español latinoamericano)' },
 ];
 
 /* ----------------------- Banda de partículas del autor ---------------------- */
@@ -109,6 +107,7 @@ function FlowParticle({ cfg, width }: { cfg: ParticleCfg; width: number }) {
       withRepeat(withTiming(1, { duration: cfg.duration, easing: Easing.linear }), -1, false),
     );
     return () => cancelAnimation(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [width]);
 
   const style = useAnimatedStyle(() => {
@@ -154,6 +153,7 @@ function OrbitDot({ module: m }: { module: OrbitModule }) {
       false,
     );
     return () => cancelAnimation(spin);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const style = useAnimatedStyle(() => {
@@ -221,6 +221,7 @@ export default function CreditosScreen({ navigation }: Props) {
       cancelAnimation(ring2);
       cancelAnimation(float);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const ring1Style = useAnimatedStyle(() => ({
@@ -297,7 +298,7 @@ export default function CreditosScreen({ navigation }: Props) {
           <View style={styles.authorCard}>
             <View style={styles.authorBadgeRow}>
               <UserCheck size={14} color="#EA580C" />
-              <Text style={styles.authorBadgeText}>Autor</Text>
+              <Text style={styles.authorBadgeText}>AUTORÍA Y DIRECCIÓN CLÍNICA</Text>
             </View>
 
             <View
@@ -310,7 +311,7 @@ export default function CreditosScreen({ navigation }: Props) {
 
             <View style={styles.authorInfo}>
               <Text style={styles.authorName}>Dr. Frank Alberto Betances Reinoso</Text>
-              <Text style={styles.authorRole}>Otorrinolaringólogo & Desarrollador Principal</Text>
+              <Text style={styles.authorRole}>Otorrinolaringólogo y desarrollador principal</Text>
             </View>
           </View>
         </View>
@@ -321,7 +322,7 @@ export default function CreditosScreen({ navigation }: Props) {
         <View style={[styles.rightColumn, isTabletLandscape && styles.columnHalf]}>
           {/* Tarjeta 1: Entidades Colaboradoras */}
           <View style={styles.cardBlock}>
-            <Text style={styles.cardBlockTitle}>Institucional Partners Card</Text>
+            <Text style={styles.cardBlockTitle}>COLABORADORES</Text>
             
             <View style={styles.partnerList}>
               <View style={styles.partnerItem}>
@@ -330,7 +331,7 @@ export default function CreditosScreen({ navigation }: Props) {
                 </View>
                 <View style={{ flex: 1 }}>
                   <Text style={styles.partnerName}>Quisqueya Habla (FONDOCYT)</Text>
-                  <Text style={styles.partnerSubtitle}>Ensayo clínico y validación de instrumentos</Text>
+                  <Text style={styles.partnerSubtitle}>Proyecto FONDOCYT · variante dominicana de la batería</Text>
                 </View>
               </View>
 
@@ -362,7 +363,7 @@ export default function CreditosScreen({ navigation }: Props) {
 
           {/* Tarjeta 2: Voces y Variantes */}
           <View style={styles.cardBlock}>
-            <Text style={styles.cardBlockTitle}>Voices & Language Variants Card</Text>
+            <Text style={styles.cardBlockTitle}>VOCES Y LENGUAJES</Text>
             
             <View style={styles.langList}>
               {LANGUAGE_CREDITS.map((item, idx) => (
@@ -379,7 +380,7 @@ export default function CreditosScreen({ navigation }: Props) {
 
           {/* Tarjeta 3: Calidad y Marco Regulatorio */}
           <View style={styles.cardBlock}>
-            <Text style={styles.cardBlockTitle}>Regulatory & Quality Card</Text>
+            <Text style={styles.cardBlockTitle}>CALIDAD Y NORMATIVA</Text>
             
             <View style={styles.sealRow}>
               <ItemasSealMark size={36} />

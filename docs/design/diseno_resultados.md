@@ -10,10 +10,10 @@ Este documento recopila las referencias visuales aprobadas para las pantallas de
 ![Render Resultados Preliminares Tableta](./render_resultados_preliminares_tableta.jpg)
 
 ### Estructura de la Pantalla:
-1. **Columna Izquierda (Medidor de Salud Global)**:
-   - **Anillo de Score Visual (85%)**: Gradiente verde menta a teal que sintetiza el porcentaje global de normalidad de la batería.
-   - **Semáforo Diagnóstico**: Chips con conteo de `4 Normales`, `1 En Observación` y `0 Alterados`.
-   - **Alerta Clínica Resumida**: Recomendación rápida (*"Revisar parámetros acústicos de voz"*).
+1. **Columna Izquierda (Medidor de Normalidad Global)** — rotulada `Índice global de normalidad`, en castellano:
+   - **Anillo de Score Visual**: Gradiente verde menta a teal que sintetiza el porcentaje global de normalidad de la batería (calculado, no fijo).
+   - **Semáforo Diagnóstico**: Chips con conteo de `Normales`, `En Observación` y `Alterados`.
+   - **Alerta Clínica Resumida**: Nombra las pruebas realmente marcadas (*"Revisar los parámetros de: Análisis Acústico de Voz."*), nunca un dominio fijo.
 2. **Columna Derecha (Rejilla de Pruebas Evaluadas)**:
    - Tarjetas con **raíl lateral de dominio** (*Azul para audición, Púrpura para voz, Naranja para TAR, Esmeralda para ejecutivas*).
    - Micro-curvas y gráficos integrados (audiograma, espectrograma).
@@ -32,9 +32,9 @@ Este documento recopila las referencias visuales aprobadas para las pantallas de
 1. **Barra Lateral Izquierda (Master Navigation Sidebar)**:
    - Lista de pruebas completadas con sus badges de estado (`Normal`, `Revisar`).
    - Módulo inferior de **Telemetría Zero-PHI** con escala de satisfacción Likert (1 a 5 estrellas) y código QR comprimido.
-2. **Escenario Principal Derecho (Clinical Detail Stage)**:
-   - **Audiograma Gráfico Clínico de Alta Definición**: Curvas OD (🔴 Círculos) y OI (🔵 Cruces) sobre la franja sombreada de normalidad (<20 dB HL) y frecuencias de 250 Hz a 8 kHz.
-   - **Tarjeta de Interpretación Médica**: Juicio clínico objetivo con cálculo automático del Promedio Tonal Puro (PTA).
-   - **Sello y Firma Médica**: Validado por el facultativo colegiado (*Dr. Frank Betances*).
+2. **Escenario Principal Derecho (Detalle Clínico)**:
+   - **Audiograma Gráfico Clínico**: Curvas OD (🔴 Círculos) y OI (🔵 Cruces) sobre la franja sombreada de normalidad (<20 dB HL). El eje de frecuencias es el de la batería (`FREQS` = 500 Hz, 1 kHz, 2 kHz, 4 kHz): no se pintan columnas que no se miden, y un umbral sin respuesta se deja sin marcar en vez de rellenarse.
+   - **Tarjeta de Interpretación Médica**: Juicio clínico calculado por `interpretAudiometry` (incluye el PTA); nunca texto fijo.
+   - **Sello y Firma Médica**: El facultativo de la sesión activa (nombre y número de colegiado del profesional en curso), no un firmante fijo.
 3. **Dock Inferior de Cierre**:
    - Botón de descarga de informe oficial **`📄 Exportar PDF`** y botón en Naranja Radiante **`✅ Finalizar y Archivar`**.

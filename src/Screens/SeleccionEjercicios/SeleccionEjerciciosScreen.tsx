@@ -8,35 +8,28 @@ import {
 } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useDispatch } from 'react-redux';
-import { Box, Center, HStack, Icon, VStack } from '@gluestack-ui/themed';
+import { Box, Center, HStack, VStack } from '@gluestack-ui/themed';
 import {
   AlertTriangle,
   ArrowRight,
   BrainCircuit,
   AudioWaveform,
-  Check,
   CheckCircle2,
   ChevronRight,
-  ClipboardList,
   Droplets,
   Ear,
   FileClock,
   Flame,
-  Headphones,
   LogOut,
   Mic,
   MoonStar,
   Puzzle,
   RotateCcw,
-  Sparkles,
   Speech,
   TrainFront,
-  User,
-  UserPlus,
-  Volume2,
 } from 'lucide-react-native';
 
-import { Button, Content, Text } from '@/Components/Common';
+import { Content, Text } from '@/Components/Common';
 import RadialBackground from '@/Components/Themed/RadialBackground';
 import { RootStackParamList } from '@/Navigators';
 import { AppDispatch, RootState } from '@/Store';
@@ -63,7 +56,7 @@ const MODULES: ModuleCard[] = [
   {
     id: 'Audiometry',
     title: 'Audiometría Infantil',
-    description: 'Audiometría tonal por juego (play audiometry liminar).',
+    description: 'Audiometría tonal liminar por juego (play audiometry).',
     duration: '8–10 min',
     durationMinutes: 9,
     ages: '2–6 años',
@@ -78,7 +71,7 @@ const MODULES: ModuleCard[] = [
     id: 'AudiometryConditioned',
     title: 'Audiometría Condicionada',
     subtitle: '(El Tren del Sonido)',
-    description: 'Audiometría condicionada por juego lúdico animado.',
+    description: 'Audiometría por condicionamiento con refuerzo visual animado.',
     duration: '8–10 min',
     durationMinutes: 9,
     ages: '2–6 años',
@@ -95,7 +88,7 @@ const MODULES: ModuleCard[] = [
     description: 'Reconocimiento de palabras por tarjetas en campo libre.',
     duration: '8–10 min',
     durationMinutes: 8,
-    ages: '2–6 años',
+    ages: '2 años – adulto',
     icon: Speech,
     category: 'hearing',
     tag: 'AUDICIÓN',
@@ -120,7 +113,7 @@ const MODULES: ModuleCard[] = [
   {
     id: 'Articulation',
     title: 'Articulación · T.A.R.',
-    description: 'Test fonético a la repetición y registro de dislalias (SODA).',
+    description: 'Test de Articulación a la Repetición · registro SODA.',
     duration: '8–12 min',
     durationMinutes: 10,
     ages: '3–7 años',
@@ -134,10 +127,10 @@ const MODULES: ModuleCard[] = [
   {
     id: 'ExecutiveFunctions',
     title: 'Funciones Ejecutivas',
-    description: 'Batería lúdica: atención, inhibición, flexibilidad y memoria.',
+    description: 'Cinco mini-juegos: atención, inhibición, flexibilidad, memoria y planificación.',
     duration: '8–10 min',
     durationMinutes: 9,
-    ages: '2–6 años',
+    ages: '3–12 años',
     icon: BrainCircuit,
     category: 'neuro',
     tag: 'NEURODESARROLLO',
@@ -166,7 +159,7 @@ const MODULES: ModuleCard[] = [
     description: 'Cribado conductual de señales tempranas de TEA.',
     duration: '5–10 min',
     durationMinutes: 7,
-    ages: '16–30 m',
+    ages: '16–30 meses',
     icon: Puzzle,
     category: 'neuro',
     tag: 'NEURODESARROLLO',
@@ -177,7 +170,7 @@ const MODULES: ModuleCard[] = [
   {
     id: 'SahsScreening',
     title: 'Cribado SAHS Infantil',
-    description: 'Cuestionario PSQ de Chervin y evaluación respiratoria.',
+    description: 'Cuestionario PSQ de Chervin y exploración física (Brodsky, IMC).',
     duration: '5–8 min',
     durationMinutes: 6,
     ages: '2–12 años',
@@ -191,16 +184,16 @@ const MODULES: ModuleCard[] = [
   {
     id: 'DysphagiaTest',
     title: 'Exploración de Disfagia',
-    description: 'Test volumen-viscosidad con pulsioximetría SpO2 integrada.',
+    description: 'MECV-V volumen-viscosidad con pulsioximetría integrada · sin CAP ni sonómetro.',
     duration: '10–15 min',
     durationMinutes: 12,
-    ages: 'Pulsioximetría',
+    ages: 'Todas las edades',
     icon: Droplets,
     category: 'dysphagia',
     tag: 'DEGLUCIÓN',
     color: '#DC2626',
     soft: '#FEE2E2',
-    badgeParam: 'SpO2 Desaturación',
+    badgeParam: 'SpO₂ · desaturación',
   },
 ];
 
@@ -212,13 +205,17 @@ interface FilterCategoryDef {
   soft: string;
 }
 
+/** Los contadores se derivan de MODULES: añadir una prueba no deja el filtro mintiendo. */
+const countOf = (id: CategoryType) =>
+  id === 'all' ? MODULES.length : MODULES.filter(m => m.category === id).length;
+
 const CATEGORIES: FilterCategoryDef[] = [
-  { id: 'all', label: 'Todas', count: 10, color: '#0D9488', soft: '#CCFBF1' },
-  { id: 'hearing', label: 'Pruebas auditivas', count: 3, color: '#0284C7', soft: '#E0F2FE' },
-  { id: 'voice', label: 'Voz', count: 2, color: '#7C3AED', soft: '#F3E8FF' },
-  { id: 'neuro', label: 'Neurodesarrollo', count: 3, color: '#059669', soft: '#D1FAE5' },
-  { id: 'sleep', label: 'Sueño', count: 1, color: '#4F46E5', soft: '#E0E7FF' },
-  { id: 'dysphagia', label: 'Disfagia', count: 1, color: '#DC2626', soft: '#FEE2E2' },
+  { id: 'all', label: 'Todas', count: countOf('all'), color: '#0D9488', soft: '#CCFBF1' },
+  { id: 'hearing', label: 'Pruebas auditivas', count: countOf('hearing'), color: '#0284C7', soft: '#E0F2FE' },
+  { id: 'voice', label: 'Voz', count: countOf('voice'), color: '#7C3AED', soft: '#F3E8FF' },
+  { id: 'neuro', label: 'Neurodesarrollo', count: countOf('neuro'), color: '#059669', soft: '#D1FAE5' },
+  { id: 'sleep', label: 'Sueño', count: countOf('sleep'), color: '#4F46E5', soft: '#E0E7FF' },
+  { id: 'dysphagia', label: 'Disfagia', count: countOf('dysphagia'), color: '#DC2626', soft: '#FEE2E2' },
 ];
 
 export default function SeleccionEjerciciosScreen({ navigation, route }: Props) {
@@ -307,7 +304,7 @@ export default function SeleccionEjerciciosScreen({ navigation, route }: Props) 
           {/* Logo VIA+ y Datos del Paciente */}
           <HStack alignItems="center" space="md">
             {/* Logo VIA+ */}
-            <HStack alignItems="center" space="2xs">
+            <HStack alignItems="center" space="xs">
               <Center w={28} h={28} borderRadius={8} bg="#FFF7ED">
                 <Flame size={18} color="#FF7F00" fill="#FF7F00" />
               </Center>
@@ -336,17 +333,17 @@ export default function SeleccionEjerciciosScreen({ navigation, route }: Props) 
           <HStack alignItems="center" space="md">
             {/* Certificado de Sala Activo */}
             {noiseCheckSkipped ? (
-              <HStack alignItems="center" space="2xs" px="$3" py="$1.5" borderRadius={20} bg="#FEF3C7" borderWidth={1} borderColor="#FDE68A">
+              <HStack alignItems="center" space="xs" px="$3" py="$1.5" borderRadius={20} bg="#FEF3C7" borderWidth={1} borderColor="#FDE68A">
                 <AlertTriangle size={14} color="#D97706" />
                 <Text size="xs" weight="bold" style={{ color: '#92400E' }}>
-                  Sonómetro omitido
+                  Sala sin verificar · sonómetro omitido
                 </Text>
               </HStack>
             ) : (
-              <HStack alignItems="center" space="2xs" px="$3" py="$1.5" borderRadius={20} bg="#ECFDF5" borderWidth={1} borderColor="#A7F3D0">
+              <HStack alignItems="center" space="xs" px="$3" py="$1.5" borderRadius={20} bg="#ECFDF5" borderWidth={1} borderColor="#A7F3D0">
                 <CheckCircle2 size={14} color="#059669" fill="#D1FAE5" />
                 <Text size="xs" weight="bold" style={{ color: '#065F46' }}>
-                  Certificado de Sala Activo (CAP)
+                  Sala verificada · sonómetro OK
                 </Text>
               </HStack>
             )}
@@ -361,11 +358,34 @@ export default function SeleccionEjerciciosScreen({ navigation, route }: Props) 
             {/* Acceso a Sonómetro */}
             <Pressable onPress={() => navigation.navigate('RoomNoiseCheck')}>
               <Text size="xs" weight="medium" style={{ color: '#64748B', textDecorationLine: 'underline' }}>
-                Sonómetro
+                Sonómetro de sala
               </Text>
             </Pressable>
           </HStack>
         </HStack>
+
+        {/* ==================================================================== */}
+        {/* Aviso del motor de voz (si la locución no está disponible)           */}
+        {/* ==================================================================== */}
+        {voiceEngine.shouldWarn ? (
+          <Box px="$6" pt="$2">
+            <VStack space="xs" bg="#FEF2F2" p="$3" borderRadius={14} borderWidth={1} borderColor="#FECACA">
+              <HStack space="xs" alignItems="flex-start">
+                <AlertTriangle size={14} color="#DC2626" />
+                <Text size="2xs" style={{ flex: 1, color: '#B91C1C', lineHeight: 15 }}>
+                  {voiceEngine.status?.detail}
+                </Text>
+              </HStack>
+              <Pressable onPress={voiceEngine.retry} disabled={voiceEngine.retrying}>
+                <Center py="$1.5" borderRadius={10} borderWidth={1} borderColor="#FECACA" bg="#FFFFFF">
+                  <Text size="2xs" weight="bold" style={{ color: '#DC2626' }}>
+                    {voiceEngine.retrying ? 'Reintentando…' : 'Reintentar la voz del sistema'}
+                  </Text>
+                </Center>
+              </Pressable>
+            </VStack>
+          </Box>
+        ) : null}
 
         {/* ==================================================================== */}
         {/* Barra de Filtros de Categorías (Carrusel Horizontal)                 */}
@@ -381,8 +401,6 @@ export default function SeleccionEjerciciosScreen({ navigation, route }: Props) 
                 category={cat.id}
                 label={cat.label}
                 count={cat.count}
-                color={cat.color}
-                softColor={cat.soft}
                 isActive={activeCategory === cat.id}
                 onPress={() => setActiveCategory(cat.id)}
               />
@@ -494,7 +512,7 @@ export default function SeleccionEjerciciosScreen({ navigation, route }: Props) 
                 <Pressable
                   onPress={() => setSelected([])}
                   style={styles.clearBtn}>
-                  <HStack alignItems="center" space="2xs">
+                  <HStack alignItems="center" space="xs">
                     <RotateCcw size={13} color="#64748B" />
                     <Text size="xs" weight="medium" color="#64748B">
                       Limpiar

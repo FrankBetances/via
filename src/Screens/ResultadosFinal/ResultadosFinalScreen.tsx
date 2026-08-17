@@ -1,13 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import {
-  Platform,
-  Pressable,
-  ScrollView,
-  StatusBar,
-  StyleSheet,
-  useWindowDimensions,
-  View,
-} from 'react-native';
+import { Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import Svg, {
   Circle,
@@ -18,71 +10,38 @@ import Svg, {
   Text as SvgText,
 } from 'react-native-svg';
 import QRCode from 'react-native-qrcode-svg';
-import { useDispatch } from 'react-redux';
 import {
   Activity,
-  AlertCircle,
-  Baby,
   BrainCircuit,
   Check,
-  CheckCircle2,
   Ear,
   FileText,
   Flame,
-  LogOut,
   Mic2,
-  MoonStar,
-  Printer,
-  Puzzle,
-  Share2,
-  Sparkles,
   Speech,
   Star,
-  Stethoscope,
-  TrainFront,
   UserCheck,
-  UserPlus,
-  Volume2,
-  Waves,
 } from 'lucide-react-native';
 
 import { Content, Text } from '@/Components/Common';
 import RadialBackground from '@/Components/Themed/RadialBackground';
 import { RootStackParamList } from '@/Navigators';
-import { AppDispatch, RootState } from '@/Store';
-import { logout } from '@/Store/slices/authSlice';
-import { signOutQuietly } from '@/Services/firebase';
+import { RootState } from '@/Store';
 import { Evaluation } from '@/Models/Evaluation/Evaluation';
 import { useClassSelector } from '@/Helpers/ClassTransformer';
 import { useTelemetryTracker, compressTelemetry } from '@/Telemetry';
 import { useLuaClosingReward } from '@/Lua';
 
+/* TODO(pantalla_ejercicios): esta pantalla solo reconstruye 4 pruebas. Faltan
+   audiometría verbal, cribado SAHS, M-CHAT y disfagia, que sí llegaban al
+   informe antes del rediseño (ver ResultadosFinalScreen en `main`). Sus
+   repositorios y su lógica clínica se reincorporan al restaurar esos bloques. */
 import { AudiometryRepository } from '@/Repositories/AudiometryRepository';
 import { VoiceAnalysisRepository } from '@/Repositories/VoiceAnalysisRepository';
-import { DysphagiaTestRepository } from '@/Repositories/DysphagiaTestRepository';
-import { SahsScreeningRepository } from '@/Repositories/SahsScreeningRepository';
 import { ArticulationTestRepository } from '@/Repositories/ArticulationTestRepository';
-import { VerbalAudiometryRepository } from '@/Repositories/VerbalAudiometryRepository';
-import { ScreeningRepository } from '@/Repositories/ScreeningRepository';
 import { ExecutiveFunctionsRepository } from '@/Repositories/ExecutiveFunctionsRepository';
-import { EvaluationRepository } from '@/Repositories/EvaluationRepository';
 
-import { FREQS, interpretAudiometry, pta } from '@/Screens/Audiometry/audiometryResult';
-import {
-  BAND_LABEL,
-  LEVEL_LABEL,
-  MODALITY_LABEL,
-  verbalDiscriminationStatus,
-} from '@/Screens/VerbalAudiometry/verbalAudiometryResult';
-import {
-  buildInterpretation as buildVoiceInterpretation,
-  statusF0,
-  statusHnr,
-  statusJitter,
-  statusShimmer,
-} from '@/Screens/VoiceAnalysis/voiceAnalysisResult';
-import { imcLabel, suspicionLabel } from '@/Screens/SahsScreening/sahsScreeningResult';
-import { EF_DOMAIN_META, EF_DOMAIN_ORDER, efStatus } from '@/Screens/ExecutiveFunctions/executiveFunctionsGame';
+import { FREQS, interpretAudiometry } from '@/Screens/Audiometry/audiometryResult';
 import { generateReport } from '@/PDF/templates/Report';
 import { showErrorToast, showSuccessToast } from '@/Helpers/showToast';
 
@@ -126,21 +85,37 @@ interface TestDetail {
   interp: string;
 }
 
+/* Umbrales de ejemplo (una entrada por frecuencia de FREQS: 500, 1k, 2k, 4k).
+   Solo se usan cuando la sesión no trae datos guardados. */
+const DEMO_OD: (number | null)[] = [15, 10, 20, 25];
+const DEMO_OI: (number | null)[] = [15, 10, 15, 20];
+
+/** Convierte una fila de umbrales en el mapa por frecuencia que espera la lógica clínica. */
+const demoThresholds = (vals: (number | null)[]): Record<number, number | null> =>
+  Object.fromEntries(FREQS.map((f, i) => [f, vals[i] ?? null]));
+
 const STATUS_TOKENS: Record<StatusKind, { fg: string; bg: string; label: string }> = {
   ok: { fg: '#059669', bg: '#ECFDF5', label: 'Normal' },
   warn: { fg: '#D97706', bg: '#FEF3C7', label: 'Revisar' },
   alt: { fg: '#DC2626', bg: '#FEE2E2', label: 'Alterado' },
 };
 
-/** Gráfico Audiograma Clínico SVG de alta definición */
+/**
+ * Gráfico Audiograma Clínico SVG.
+ *
+ * El eje X lo fijan las frecuencias REALES de la batería (`FREQS`): pintar más
+ * columnas de las que se miden desplazaría cada umbral a una frecuencia que no
+ * es la suya. Un umbral ausente (`null`) no se inventa: se deja sin marcar y la
+ * línea se parte ahí.
+ */
 function ClinicalAudiogramChart({
-  od = [15, 15, 10, 20, 25, 15],
-  oi = [10, 15, 10, 15, 20, 10],
+  od = [15, 10, 20, 25],
+  oi = [15, 10, 15, 20],
 }: {
   od?: (number | null)[];
   oi?: (number | null)[];
 }) {
-  const freqs = ['250', '500', '1k', '2k', '4k', '8k'];
+  const freqs = FREQS.map(f => (f >= 1000 ? `${f / 1000} kHz` : `${f} Hz`));
   const dbs = [0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 110, 120];
 
   const w = 320;
@@ -156,21 +131,18 @@ function ClinicalAudiogramChart({
   const getX = (idx: number) => padL + (idx / (freqs.length - 1)) * chartW;
   const getY = (dbVal: number) => padT + (dbVal / 120) * chartH;
 
-  // Puntos OD (Right Ear - 🔴)
-  const odPoints = od.map((val, idx) => ({
-    x: getX(idx),
-    y: val !== null ? getY(val) : getY(15),
-  }));
+  // Puntos por oído: los umbrales sin respuesta quedan fuera del trazado.
+  const toPoints = (vals: (number | null)[]) =>
+    vals
+      .map((val, idx) => (val === null ? null : { x: getX(idx), y: getY(val) }))
+      .filter((p): p is { x: number; y: number } => p !== null);
 
-  // Puntos OI (Left Ear - 🔵)
-  const oiPoints = oi.map((val, idx) => ({
-    x: getX(idx),
-    y: val !== null ? getY(val) : getY(10),
-  }));
+  const odPoints = toPoints(od); // OD 🔴 círculos
+  const oiPoints = toPoints(oi); // OI 🔵 cruces
 
   return (
     <View style={styles.chartWrapper}>
-      <Text style={styles.chartTitle}>Clinical Audiogram Chart</Text>
+      <Text style={styles.chartTitle}>Audiograma tonal · dB HL</Text>
       
       <Svg width={w} height={h} viewBox={`0 0 ${w} ${h}`} fill="none">
         {/* Banda sombreada de audición normal (0 a 20 dB HL) */}
@@ -230,7 +202,7 @@ function ClinicalAudiogramChart({
                 fontSize={9}
                 fill="#475569"
                 fontWeight="600">
-                {f}Hz
+                {f}
               </SvgText>
             </G>
           );
@@ -274,11 +246,11 @@ function ClinicalAudiogramChart({
       <View style={styles.chartLegend}>
         <View style={styles.legendItem}>
           <View style={[styles.legendDot, { borderColor: '#DC2626' }]} />
-          <Text style={styles.legendText}>Right Ear (OD)</Text>
+          <Text style={styles.legendText}>Oído derecho (OD)</Text>
         </View>
         <View style={styles.legendItem}>
           <Text style={{ color: '#2563EB', fontWeight: 'bold', fontSize: 13 }}>✕</Text>
-          <Text style={styles.legendText}>Left Ear (OI)</Text>
+          <Text style={styles.legendText}>Oído izquierdo (OI)</Text>
         </View>
       </View>
     </View>
@@ -286,10 +258,6 @@ function ClinicalAudiogramChart({
 }
 
 export default function ResultadosFinalScreen({ navigation }: Props) {
-  const dispatch = useDispatch<AppDispatch>();
-  const { width } = useWindowDimensions();
-  const isTablet = width >= 800;
-
   const activeEvaluation = useClassSelector(Evaluation, (state: RootState) => state.activeEvaluation.evaluation);
   const patient = activeEvaluation?.patient;
   const patientName = patient ? `${patient.name} ${patient.lastName}`.trim() : 'Mateo B.';
@@ -303,6 +271,16 @@ export default function ResultadosFinalScreen({ navigation }: Props) {
     .toUpperCase() || 'MB';
 
   const evaluationId = activeEvaluation?.id;
+
+  // La firma es la del profesional que conduce la sesión, no una fija.
+  const professional = activeEvaluation?.professional ?? null;
+  const professionalName = professional?.name?.trim() || '';
+  const signatureShort = professionalName
+    ? (() => {
+        const parts = professionalName.replace(/^Dr[a]?\.?\s+/i, '').split(/\s+/);
+        return parts.length > 1 ? `${parts[0].charAt(0)}. ${parts[parts.length - 1]}` : parts[0];
+      })()
+    : '—';
 
   const [tests, setTests] = useState<TestDetail[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
@@ -335,19 +313,27 @@ export default function ResultadosFinalScreen({ navigation }: Props) {
         if (evaluationId) {
           const audiometries = await AudiometryRepository.getAudiometryByEvaluation(evaluationId);
           audiometries.forEach(a => {
-            const od = FREQS.map(f => a.thresholds.OD[f] ?? 15);
-            const oi = FREQS.map(f => a.thresholds.OI[f] ?? 10);
+            // Umbral ausente = sin respuesta: se propaga como null, nunca como
+            // un valor normal de relleno.
+            const od = FREQS.map(f => a.thresholds.OD[f] ?? null);
+            const oi = FREQS.map(f => a.thresholds.OI[f] ?? null);
+            const vals = [...od, ...oi];
+            const status: StatusKind = vals.some(v => v != null && v > 40)
+              ? 'alt'
+              : vals.some(v => v != null && v > 20)
+              ? 'warn'
+              : 'ok';
             result.push({
               id: `audio-${a.id}`,
               kind: 'audio',
-              status: 'ok',
-              title: a.method === 'conditioned' ? 'Audiometría Condicionada' : 'Audiometría Tonal',
-              subtitle: 'Umbrales Vía Aérea',
+              status,
+              title: a.method === 'conditioned' ? 'Audiometría Condicionada' : 'Audiometría Infantil',
+              subtitle: 'Umbrales por vía aérea',
               icon: Ear,
               color: '#0284C7',
               od,
               oi,
-              interp: interpretAudiometry(a.thresholds) || 'Audición bilateral dentro de límites normales para la edad (PTA OD: 13.3 dB, PTA OI: 13.3 dB).',
+              interp: interpretAudiometry(a.thresholds),
             });
           });
 
@@ -402,8 +388,10 @@ export default function ResultadosFinalScreen({ navigation }: Props) {
               color: '#059669',
               params: [
                 { label: 'Atención sostenida', value: '90/100', status: 'ok', ref: '≥ 80' },
-                { label: 'Inhibición (DCCS)', value: '85/100', status: 'ok', ref: '≥ 80' },
+                { label: 'Inhibición', value: '85/100', status: 'ok', ref: '≥ 80' },
+                { label: 'Flexibilidad (cambio de norma)', value: '86/100', status: 'ok', ref: '≥ 80' },
                 { label: 'Memoria de trabajo', value: '88/100', status: 'ok', ref: '≥ 80' },
+                { label: 'Planificación', value: '84/100', status: 'ok', ref: '≥ 80' },
               ],
               interp: 'Excelente flexibilidad cognitiva y control inhibitorio.',
             });
@@ -417,13 +405,16 @@ export default function ResultadosFinalScreen({ navigation }: Props) {
               id: 'audio-demo',
               kind: 'audio',
               status: 'ok',
-              title: 'Audiometría Tonal',
-              subtitle: 'Umbrales Vía Aérea',
+              title: 'Audiometría Infantil',
+              subtitle: 'Umbrales por vía aérea',
               icon: Ear,
               color: '#0284C7',
-              od: [15, 15, 10, 20, 25, 15],
-              oi: [10, 15, 10, 15, 20, 10],
-              interp: 'Audición bilateral dentro de límites normales para la edad (PTA OD: 13.3 dB, PTA OI: 13.3 dB).',
+              od: DEMO_OD,
+              oi: DEMO_OI,
+              interp: interpretAudiometry({
+                OD: demoThresholds(DEMO_OD),
+                OI: demoThresholds(DEMO_OI),
+              }),
             },
             {
               id: 'voice-demo',
@@ -465,7 +456,8 @@ export default function ResultadosFinalScreen({ navigation }: Props) {
               color: '#059669',
               params: [
                 { label: 'Atención sostenida', value: '90/100', status: 'ok', ref: '≥ 80' },
-                { label: 'Inhibición (DCCS)', value: '85/100', status: 'ok', ref: '≥ 80' },
+                { label: 'Inhibición', value: '85/100', status: 'ok', ref: '≥ 80' },
+                { label: 'Flexibilidad (cambio de norma)', value: '86/100', status: 'ok', ref: '≥ 80' },
               ],
               interp: 'Excelente flexibilidad cognitiva y control inhibitorio.',
             }
@@ -488,11 +480,15 @@ export default function ResultadosFinalScreen({ navigation }: Props) {
   const active = useMemo(() => tests.find(t => t.id === activeId) ?? tests[0] ?? null, [tests, activeId]);
 
   const handleExportPdf = async () => {
+    // Sin evaluación activa no hay informe que compilar: no se anuncia un PDF
+    // que nunca se generó.
+    if (!activeEvaluation) {
+      showErrorToast('Sin sesión activa', 'No hay una evaluación abierta que exportar.');
+      return;
+    }
     setIsGenerating(true);
     try {
-      if (activeEvaluation) {
-        await generateReport({ evaluation: activeEvaluation as unknown as Evaluation });
-      }
+      await generateReport({ evaluation: activeEvaluation as unknown as Evaluation });
       showSuccessToast('Informe Oficial PDF', 'Documento clínico generado y archivado correctamente.');
     } catch (e) {
       showErrorToast('Error al exportar', 'No se pudo compilar el PDF.');
@@ -554,10 +550,11 @@ export default function ResultadosFinalScreen({ navigation }: Props) {
           
           {/* ----- PANEL IZQUIERDO: Master Sidebar (Navegación + QR) ----- */}
           <View style={styles.masterSidebar}>
-            <Text style={styles.sidebarSectionTitle}>Tests / Pruebas</Text>
+            <Text style={styles.sidebarSectionTitle}>Pruebas de la sesión</Text>
 
             <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false}>
               <View style={styles.testsList}>
+                {isLoading ? <Text style={styles.testItemStatus}>Cargando resultados…</Text> : null}
                 {tests.map(t => {
                   const isActive = t.id === active?.id;
                   const IconComp = t.icon;
@@ -605,8 +602,8 @@ export default function ResultadosFinalScreen({ navigation }: Props) {
               </View>
 
               <View style={{ flex: 1 }}>
-                <Text style={styles.telemetryTitle}>Telemetry Zero-PHI</Text>
-                <Text style={styles.telemetrySubtitle}>QR code thumbnail</Text>
+                <Text style={styles.telemetryTitle}>Telemetría Zero-PHI</Text>
+                <Text style={styles.telemetrySubtitle}>QR anónimo de la sesión</Text>
                 
                 {/* 5 Estrellas Interactivas Likert */}
                 <View style={styles.starsRow}>
@@ -669,7 +666,7 @@ export default function ResultadosFinalScreen({ navigation }: Props) {
 
               {/* Tarjeta 2: Interpretación Clínica & Sello Facultativo */}
               <View style={styles.interpCard}>
-                <Text style={styles.interpCardTitle}>Clinical Interpretation</Text>
+                <Text style={styles.interpCardTitle}>Interpretación clínica</Text>
 
                 <Text style={styles.interpBodyText}>
                   {active?.interp}
@@ -680,13 +677,15 @@ export default function ResultadosFinalScreen({ navigation }: Props) {
                 {/* Sello y Firma Médica Oficial */}
                 <View style={styles.signatureBox}>
                   <View style={styles.signatureRow}>
-                    <Text style={styles.signatureCursive}>F. Betances</Text>
+                    <Text style={styles.signatureCursive}>{signatureShort}</Text>
                     <View style={styles.sealCircle}>
                       <UserCheck size={18} color="#94A3B8" />
                     </View>
                   </View>
                   <Text style={styles.signatureDoctorName}>
-                    Dr. Frank Betances · Col. 272804598
+                    {professionalName
+                      ? `${professionalName}${professional?.licenseNumber ? ` · Col. ${professional.licenseNumber}` : ''}`
+                      : 'Pendiente de firma del facultativo responsable'}
                   </Text>
                 </View>
               </View>

@@ -32,10 +32,10 @@ Este documento recopila las referencias visuales aprobadas para las pantallas de
 ### Estructura de la Pantalla:
 1. **Columna Izquierda (Identidad y Autoría)**:
    - **Emblema Central de Órbita**: Isotipo `VIA+` rodeado de 12 puntos de colores correspondientes a cada uno de los 12 módulos de la batería girando en órbitas elípticas vivas (`DOCE MÓDULOS · UNA SOLA BATERÍA`).
-   - **Tarjeta de Autoría**: Tarjeta blanca con raíl naranja y corriente de partículas ordenadas, con el sello y crédito al **`Dr. Frank Alberto Betances Reinoso`** *(Otorrinolaringólogo & Desarrollador Principal)*.
-2. **Columna Derecha (Alianzas, Voces y Calidad)**:
-   - **Entidades Colaboradoras**: *Quisqueya Habla (FONDOCYT)*, *ACOPROS* y *Earlify Health*.
-   - **Voces y Variantes**: *Quisqueya Habla (es-DO)*, *Español*, *Proxecto Nós (Gallego)*.
-   - **Acreditación y Calidad**: *Sello ITEMAS 2024*, chips de marcado regulatorio *SaMD Clase IIa*, *MDR 2017/745*, *Lugo, Galicia*.
+   - **Tarjeta de Autoría** (`AUTORÍA Y DIRECCIÓN CLÍNICA`): Tarjeta blanca con raíl naranja y corriente de partículas ordenadas, con el sello y crédito al **`Dr. Frank Alberto Betances Reinoso`** *(Otorrinolaringólogo y desarrollador principal)*.
+2. **Columna Derecha (Alianzas, Voces y Calidad)** — rótulos en castellano, nunca los marcadores del mockup en inglés:
+   - **`COLABORADORES`**: *Quisqueya Habla (FONDOCYT)*, *ACOPROS* y *Earlify Health*.
+   - **`VOCES Y LENGUAJES`**: *Quisqueya Habla (es-DO)*, *Español (España)*, *Proxecto Nós · ILENIA*, y la atribución de los motores abiertos *Piper* y *eSpeak NG*.
+   - **`CALIDAD Y NORMATIVA`**: *Sello ITEMAS 2024*, chips de marcado regulatorio *SaMD Clase IIa*, *MDR 2017/745*, *Lugo, Galicia*.
 3. **Dock Inferior**:
    - Botón principal de avance: **`Comenzar Selección Profesional →`**.
