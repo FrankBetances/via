@@ -6,6 +6,7 @@ import {
   StatusBar,
   StyleSheet,
   Text,
+  useWindowDimensions,
   View,
 } from 'react-native';
 import Animated, {
@@ -22,6 +23,7 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { ArrowRight, Award, Flame, Globe2, Sparkles, UserCheck } from 'lucide-react-native';
 
 import { Header } from '@/Components/Common';
 import ViaIcon from '@/Components/Common/ViaIcon';
@@ -36,68 +38,35 @@ import {
 import { ORBIT_MODULES, ORBIT_MAX_REACH, OrbitModule } from './orbitModules';
 
 /* -------------------------------------------------------------------------- */
-/*  CreditosScreen — quién hay detrás de VIA+.                                 */
-/*  Mismo lenguaje visual que Bienvenida (crema + naranja + etiquetas mono).   */
-/*                                                                            */
-/*  El emblema es el isotipo V+ rodeado de anillos de pulso y de DOCE puntos   */
-/*  diminutos: uno por cada módulo de la batería, del CAP a Funciones          */
-/*  Ejecutivas (ver orbitModules.ts). Cada punto lleva su radio, su periodo y  */
-/*  el color de su módulo, así que la constelación no gira en bloque: se       */
-/*  recompone sola y nunca repite la misma figura.                             */
-/*                                                                            */
-/*  La tarjeta de autoría es una banda de partículas: fluyen caóticas desde    */
-/*  la izquierda y, tras atravesar el nombre, se ordenan en carriles naranjas  */
-/*  (el nombre actúa como filtro que ordena el caos). El CTA continúa a la     */
-/*  selección de perfil profesional (esta ruta solo existe en el flujo de      */
-/*  acceso, antes de abrir sesión).                                            */
+/*  CreditosScreen — Quién hay detrás de VIA+ en formato Tableta 4:3           */
+/*  Diseño de 2 columnas panorámicas: Emblema y Autor a la izquierda,          */
+/*  Alianzas, Voces y Calidad a la derecha, con Action Dock inferior.          */
 /* -------------------------------------------------------------------------- */
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Creditos'>;
 
 const YEAR = new Date().getFullYear();
-const EMBLEM = 92;
+const EMBLEM = 88;
 const RING_DURATION = 2600;
-/** El isotipo tiene rx = 42 sobre una tesela de 150: los anillos lo copian. */
-const EMBLEM_RADIUS = EMBLEM * (42 / 150);
-
-/* Onda separadora (perfil simétrico, "respira" por barra). */
-const WAVE_BARS = [10, 18, 30, 44, 56, 44, 30, 18, 10];
-
-/* Lienzo de la constelación: el radio mayor más aire para el punto y su halo. */
-const ORBIT_CANVAS = Math.ceil(ORBIT_MAX_REACH + 12) * 2;
-/** Achatamiento vertical: da profundidad sin salirse del ancho de pantalla. */
-const ORBIT_TILT = 0.84;
+const ORBIT_TILT = 0.82;
 
 const ORBIT_LABEL = `Los doce módulos de la batería VIA+ orbitando el isotipo: ${ORBIT_MODULES.map(
   m => m.label,
 ).join(', ')}.`;
 
-/* Idiomas/variantes de la batería y motor de voz neural abierto que los hace
-   posibles (ver docs/design/integracion-*.md y tools/nos/). */
 const LANGUAGE_CREDITS = [
-  { flag: '🇩🇴', name: 'Quisqueya Habla', role: 'Variante en español dominicano (es-DO): banco y locuciones propios' },
-  { flag: '🇪🇸', name: 'Español (España)', role: 'Idioma base de la batería de evaluación' },
-  { flag: '🌐', name: 'Proxecto Nós · ILENIA', role: 'Voz neural Celtia (gallego) — TTS abierto (VITS/Coqui)' },
-  { flag: '🎙️', name: 'Piper · rhasspy/piper-voices', role: 'Voces neuronales VITS para español y variantes' },
-  { flag: '🔊', name: 'eSpeak NG', role: 'Síntesis de respaldo offline (español latinoamericano)' },
+  { flag: '🇩🇴', name: 'Quisqueya Habla (es-DO)', role: 'Variante dominicana · 86 locuciones aprobadas (FONDOCYT)' },
+  { flag: '🇪🇸', name: 'Español (España)', role: 'Idioma base de la batería de evaluación clínica' },
+  { flag: '🌐', name: 'Proxecto Nós (Gallego)', role: 'Voz neuronal Celtia (ILENIA) aprobada por ACOPROS' },
 ];
 
-/* ----------------------- banda de partículas del autor ---------------------- */
-/*  Cada partícula recorre la banda de izquierda a derecha en bucle. En la     */
-/*  mitad izquierda deambula caótica (trayectoria aleatoria + temblor, tonos   */
-/*  apagados y tamaños dispares); al atravesar la zona del nombre (55–78 % del */
-/*  ancho) converge a su carril: y fija, temblor nulo, naranja de marca y      */
-/*  opacidad plena. Todo se calcula en el hilo de UI a partir de un único      */
-/*  valor de progreso por partícula.                                           */
-
-const BAND_H = 118;
-const PARTICLE_COUNT = 30;
-/** Carriles ordenados (offsets respecto al centro de la banda). */
-const LANES = [-18, -6, 6, 18];
+/* ----------------------- Banda de partículas del autor ---------------------- */
+const BAND_H = 110;
+const PARTICLE_COUNT = 26;
+const LANES = [-16, -5, 5, 16];
 const CHAOS_COLORS = ['#C9BEA9', '#B3A791', '#D8CFC0', '#F0AE6C'];
 const ORDER_COLOR = '#FF7F00';
 
-/* Generación determinista (misma constelación en cada montaje). */
 const makeRand = (seed: number) => () => {
   seed = (seed * 1103515245 + 12345) & 0x7fffffff;
   return seed / 0x7fffffff;
@@ -110,9 +79,7 @@ interface ParticleCfg {
   delay: number;
   size: number;
   color: string;
-  /** Trayectoria caótica: y (px) en 5 puntos del recorrido. */
   yStops: number[];
-  /** Carril al que converge tras atravesar el nombre. */
   lane: number;
   phase: number;
   wobbleAmp: number;
@@ -121,14 +88,14 @@ interface ParticleCfg {
 
 const PARTICLES: ParticleCfg[] = Array.from({ length: PARTICLE_COUNT }, (_, id) => ({
   id,
-  duration: 5200 + prand() * 4200,
-  delay: prand() * 7000,
-  size: 3.5 + prand() * 3.5,
+  duration: 5000 + prand() * 3800,
+  delay: prand() * 6000,
+  size: 3 + prand() * 3.5,
   color: CHAOS_COLORS[id % CHAOS_COLORS.length],
-  yStops: Array.from({ length: 5 }, () => 16 + prand() * (BAND_H - 32)),
+  yStops: Array.from({ length: 5 }, () => 14 + prand() * (BAND_H - 28)),
   lane: LANES[id % LANES.length],
   phase: prand() * Math.PI * 2,
-  wobbleAmp: 3 + prand() * 6,
+  wobbleAmp: 3 + prand() * 5,
   wobbleFreq: 2 + prand() * 3,
 }));
 
@@ -142,19 +109,16 @@ function FlowParticle({ cfg, width }: { cfg: ParticleCfg; width: number }) {
       withRepeat(withTiming(1, { duration: cfg.duration, easing: Easing.linear }), -1, false),
     );
     return () => cancelAnimation(t);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [width]);
 
   const style = useAnimatedStyle(() => {
     const x = interpolate(t.value, [0, 1], [-16, width + 16]);
-    // Grado de orden: 0 = caos (antes del nombre), 1 = carril (después).
-    const k = interpolate(x, [width * 0.55, width * 0.78], [0, 1], Extrapolation.CLAMP);
+    const k = interpolate(x, [width * 0.50, width * 0.76], [0, 1], Extrapolation.CLAMP);
     const chaosY = interpolate(t.value, [0, 0.25, 0.5, 0.75, 1], cfg.yStops);
     const wobble =
       Math.sin(t.value * cfg.wobbleFreq * 2 * Math.PI + cfg.phase) * cfg.wobbleAmp * (1 - k);
-    const orderY = BAND_H / 2 + cfg.lane + Math.sin(x / 30 + cfg.phase) * 2 * k;
+    const orderY = BAND_H / 2 + cfg.lane + Math.sin(x / 28 + cfg.phase) * 2 * k;
     const y = chaosY + (orderY - chaosY) * k + wobble;
-    // Evita el "pop" al reiniciar el bucle en los bordes.
     const edgeFade = interpolate(t.value, [0, 0.05, 0.95, 1], [0, 1, 1, 0]);
     return {
       transform: [
@@ -179,13 +143,7 @@ function FlowParticle({ cfg, width }: { cfg: ParticleCfg; width: number }) {
   );
 }
 
-/* --------------------------- punto en órbita ------------------------------ */
-/*  Un módulo de la batería. Cada punto tiene su propio reloj (periodo propio  */
-/*  = velocidad propia), así que la figura del conjunto nunca se repite. La    */
-/*  órbita se pinta achatada y el punto se aclara y encoge en la mitad         */
-/*  superior, la que "pasa por detrás" del isotipo: eso es toda la             */
-/*  profundidad que necesita.                                                  */
-
+/* --------------------------- Punto en órbita ------------------------------ */
 function OrbitDot({ module: m }: { module: OrbitModule }) {
   const spin = useSharedValue(0);
 
@@ -196,12 +154,10 @@ function OrbitDot({ module: m }: { module: OrbitModule }) {
       false,
     );
     return () => cancelAnimation(spin);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const style = useAnimatedStyle(() => {
     const rad = ((m.phase + spin.value) * Math.PI) / 180;
-    // 0 = mitad de atrás (arriba), 1 = mitad de delante (abajo).
     const depth = (Math.sin(rad) + 1) / 2;
     return {
       transform: [
@@ -231,65 +187,14 @@ function OrbitDot({ module: m }: { module: OrbitModule }) {
   );
 }
 
-function WaveBar({ index, height }: { index: number; height: number }) {
-  const breathe = useSharedValue(0);
-  useEffect(() => {
-    breathe.value = withDelay(
-      index * 120,
-      withRepeat(
-        withSequence(
-          withTiming(1, { duration: 1500, easing: Easing.inOut(Easing.sin) }),
-          withTiming(0, { duration: 1500, easing: Easing.inOut(Easing.sin) }),
-        ),
-        -1,
-        false,
-      ),
-    );
-    return () => cancelAnimation(breathe);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-  const style = useAnimatedStyle(() => ({
-    transform: [{ scaleY: interpolate(breathe.value, [0, 1], [0.8, 1]) }],
-    opacity: interpolate(breathe.value, [0, 1], [0.75, 1]),
-  }));
-  return <Animated.View style={[styles.waveBar, { height }, style]} />;
-}
-
-function SectionRule({ label }: { label: string }) {
-  return (
-    <View style={styles.sectionRow}>
-      <View style={styles.sectionLine} />
-      <Text style={styles.sectionLabel}>{label}</Text>
-      <View style={styles.sectionLine} />
-    </View>
-  );
-}
-
-function PartnerRow({
-  mark,
-  name,
-  role,
-}: {
-  mark: React.ReactNode;
-  name: string;
-  role: string;
-}) {
-  return (
-    <View style={styles.partnerRow}>
-      <View style={styles.partnerLogo}>{mark}</View>
-      <View style={{ flex: 1 }}>
-        <Text style={styles.partnerName}>{name}</Text>
-        <Text style={styles.partnerRole}>{role}</Text>
-      </View>
-    </View>
-  );
-}
-
 export default function CreditosScreen({ navigation }: Props) {
+  const { width: winW } = useWindowDimensions();
+  const isTabletLandscape = winW >= 850;
+  const [bandWidth, setBandWidth] = useState(0);
+
   const ring1 = useSharedValue(0);
   const ring2 = useSharedValue(0);
   const float = useSharedValue(0);
-  const [bandWidth, setBandWidth] = useState(0);
 
   useEffect(() => {
     const makePulse = () =>
@@ -316,7 +221,6 @@ export default function CreditosScreen({ navigation }: Props) {
       cancelAnimation(ring2);
       cancelAnimation(float);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const ring1Style = useAnimatedStyle(() => ({
@@ -333,147 +237,180 @@ export default function CreditosScreen({ navigation }: Props) {
 
   return (
     <View style={styles.root}>
-      <StatusBar barStyle="dark-content" backgroundColor="#F1ECE2" />
+      <StatusBar barStyle="dark-content" backgroundColor="#F5F2EC" />
       <View style={styles.blobTopRight} pointerEvents="none" />
       <View style={styles.blobBottomLeft} pointerEvents="none" />
 
-      <Header animationType="expand" />
+      {/* Top Navbar */}
+      <View style={styles.topNavbar}>
+        <View style={styles.navLogoRow}>
+          <View style={styles.iconSquare}>
+            <Flame size={18} color="#FF7F00" fill="#FF7F00" />
+          </View>
+          <Text style={styles.navLogoText}>
+            VIA<Text style={{ color: '#FF7F00' }}>+</Text>
+          </Text>
+        </View>
+        <Text style={styles.navTitle}>Créditos</Text>
+        <View style={{ width: 60 }} />
+      </View>
 
       <ScrollView
         style={{ flex: 1 }}
-        contentContainerStyle={styles.scroll}
+        contentContainerStyle={[
+          styles.scroll,
+          isTabletLandscape && styles.scrollLandscape,
+        ]}
         showsVerticalScrollIndicator={false}>
-        {/* ----- overline ----- */}
-        <View style={styles.badge}>
-          <View style={styles.badgeDot} />
-          <Text style={styles.badgeText}>VIA+ · CDSS AUDICIÓN Y LENGUAJE</Text>
-        </View>
-
-        {/* ----- emblema: isotipo V+ y los doce módulos en órbita ----- */}
-        <Animated.View
-          style={[styles.emblemWrapper, floatStyle]}
-          accessible
-          accessibilityRole="image"
-          accessibilityLabel={ORBIT_LABEL}>
-          <Animated.View style={[styles.ring, ring1Style]} />
-          <Animated.View style={[styles.ring, ring2Style]} />
-          <View style={styles.emblem}>
-            <ViaIcon size={EMBLEM} />
-          </View>
-          <View style={styles.orbitLayer} pointerEvents="none">
-            {ORBIT_MODULES.map(m => (
-              <OrbitDot key={m.key} module={m} />
-            ))}
-          </View>
-        </Animated.View>
-
-        {/* ----- título ----- */}
-        <Text style={styles.overline}>DOCE MÓDULOS · UNA SOLA BATERÍA</Text>
-        <Text style={styles.title}>
-          VIA<Text style={styles.titleAccent}>+</Text>
-        </Text>
-        <Text style={styles.subtitle}>
-          Tecnología clínica al servicio de la evaluación y la rehabilitación del lenguaje.
-        </Text>
-
-        {/* ----- onda separadora ----- */}
-        <View style={styles.wave}>
-          {WAVE_BARS.map((h, i) => (
-            <WaveBar key={i} index={i} height={h} />
-          ))}
-        </View>
-
-        {/* ----- autoría y dirección clínica ----- */}
-        <SectionRule label="AUTORÍA Y DIRECCIÓN CLÍNICA" />
-
-        {/* Banda de partículas: caos → nombre → orden. */}
-        <View style={styles.authorCard}>
-          <View style={styles.authorAccent} />
-          <View
-            style={styles.particleBand}
-            onLayout={e => setBandWidth(Math.round(e.nativeEvent.layout.width))}>
-            {bandWidth > 0
-              ? PARTICLES.map(cfg => <FlowParticle key={cfg.id} cfg={cfg} width={bandWidth} />)
-              : null}
-            <View style={styles.authorOverlay} pointerEvents="none">
-              <View style={styles.authorLogo}>
-                <DrBetancesMark size={46} />
+        
+        {/* ================================================================== */}
+        {/* COLUMNA IZQUIERDA: Emblema de Órbita + Tarjeta del Autor           */}
+        {/* ================================================================== */}
+        <View style={[styles.leftColumn, isTabletLandscape && styles.columnHalf]}>
+          {/* Emblema de 12 módulos orbitando */}
+          <View style={styles.emblemCard}>
+            <Text style={styles.emblemHeading}>DOCE MÓDULOS · UNA SOLA BATERÍA</Text>
+            
+            <Animated.View
+              style={[styles.emblemWrapper, floatStyle]}
+              accessible
+              accessibilityRole="image"
+              accessibilityLabel={ORBIT_LABEL}>
+              <Animated.View style={[styles.ring, ring1Style]} />
+              <Animated.View style={[styles.ring, ring2Style]} />
+              
+              <View style={styles.emblemCore}>
+                <Text style={styles.emblemCoreText}>
+                  VIA<Text style={{ color: '#FF7F00' }}>+</Text>
+                </Text>
               </View>
-              <Text style={styles.authorName}>Dr. Frank Alberto Betances</Text>
-              <Text style={styles.authorRole}>Otorrinolaringólogo y desarrollador</Text>
+
+              <View style={styles.orbitLayer} pointerEvents="none">
+                {ORBIT_MODULES.map(m => (
+                  <OrbitDot key={m.key} module={m} />
+                ))}
+              </View>
+            </Animated.View>
+          </View>
+
+          {/* Tarjeta del Autor (Dr. Betances) */}
+          <View style={styles.authorCard}>
+            <View style={styles.authorBadgeRow}>
+              <UserCheck size={14} color="#EA580C" />
+              <Text style={styles.authorBadgeText}>Autor</Text>
+            </View>
+
+            <View
+              style={styles.particleBand}
+              onLayout={e => setBandWidth(Math.round(e.nativeEvent.layout.width))}>
+              {bandWidth > 0
+                ? PARTICLES.map(cfg => <FlowParticle key={cfg.id} cfg={cfg} width={bandWidth} />)
+                : null}
+            </View>
+
+            <View style={styles.authorInfo}>
+              <Text style={styles.authorName}>Dr. Frank Alberto Betances Reinoso</Text>
+              <Text style={styles.authorRole}>Otorrinolaringólogo & Desarrollador Principal</Text>
             </View>
           </View>
         </View>
 
-        {/* ----- colaboradores ----- */}
-        <SectionRule label="COLABORADORES" />
-
-        <View style={styles.partnerCard}>
-          <PartnerRow
-            mark={<QuisqueyaHablaMark size={40} />}
-            name="Quisqueya Habla"
-            role="Proyecto FONDOCYT · variante dominicana de la batería"
-          />
-          <View style={styles.partnerDivider} />
-          <PartnerRow
-            mark={<AcoprosMark size={40} />}
-            name="ACOPROS"
-            role="Asociación de Colaboración y Promoción del Sordo"
-          />
-          <View style={styles.partnerDivider} />
-          <PartnerRow
-            mark={<EarlifyMark size={40} />}
-            name="Earlify Health"
-            role="Tecnología e ingeniería"
-          />
-        </View>
-
-        {/* ----- voces y lenguajes ----- */}
-        <SectionRule label="VOCES Y LENGUAJES" />
-
-        <View style={styles.langCard}>
-          {LANGUAGE_CREDITS.map((c, i) => (
-            <View key={c.name} style={[styles.langRow, i > 0 && styles.langRowDivider]}>
-              <View style={styles.langFlag}>
-                <Text style={styles.langFlagText}>{c.flag}</Text>
+        {/* ================================================================== */}
+        {/* COLUMNA DERECHA: Colaboradores, Voces y Calidad Regulatoria        */}
+        {/* ================================================================== */}
+        <View style={[styles.rightColumn, isTabletLandscape && styles.columnHalf]}>
+          {/* Tarjeta 1: Entidades Colaboradoras */}
+          <View style={styles.cardBlock}>
+            <Text style={styles.cardBlockTitle}>Institucional Partners Card</Text>
+            
+            <View style={styles.partnerList}>
+              <View style={styles.partnerItem}>
+                <View style={styles.partnerIconBox}>
+                  <QuisqueyaHablaMark size={32} />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.partnerName}>Quisqueya Habla (FONDOCYT)</Text>
+                  <Text style={styles.partnerSubtitle}>Ensayo clínico y validación de instrumentos</Text>
+                </View>
               </View>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.langName}>{c.name}</Text>
-                <Text style={styles.langRole}>{c.role}</Text>
+
+              <View style={styles.divider} />
+
+              <View style={styles.partnerItem}>
+                <View style={styles.partnerIconBox}>
+                  <AcoprosMark size={32} />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.partnerName}>ACOPROS</Text>
+                  <Text style={styles.partnerSubtitle}>Asociación de Colaboración y Promoción del Sordo</Text>
+                </View>
+              </View>
+
+              <View style={styles.divider} />
+
+              <View style={styles.partnerItem}>
+                <View style={styles.partnerIconBox}>
+                  <EarlifyMark size={32} />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.partnerName}>Earlify Health</Text>
+                  <Text style={styles.partnerSubtitle}>Tecnología e ingeniería clínica</Text>
+                </View>
               </View>
             </View>
-          ))}
-        </View>
-
-        {/* ----- calidad y normativa ----- */}
-        <SectionRule label="CALIDAD Y NORMATIVA" />
-
-        <View style={styles.sealCard}>
-          <ItemasSealMark size={64} />
-          <Text style={styles.sealTitle}>Sello de Calidad ITEMAS 2024</Text>
-          <Text style={styles.sealRole}>Calidad en innovación tecnológica</Text>
-        </View>
-
-        <View style={styles.sealRow}>
-          <View style={styles.sealChip}>
-            <Text style={styles.sealChipText}>SaMD · Clase IIa</Text>
           </View>
-          <View style={styles.sealChip}>
-            <Text style={styles.sealChipText}>MDR 2017/745</Text>
+
+          {/* Tarjeta 2: Voces y Variantes */}
+          <View style={styles.cardBlock}>
+            <Text style={styles.cardBlockTitle}>Voices & Language Variants Card</Text>
+            
+            <View style={styles.langList}>
+              {LANGUAGE_CREDITS.map((item, idx) => (
+                <View key={idx} style={[styles.langItem, idx > 0 && { marginTop: 10 }]}>
+                  <Text style={styles.langFlag}>{item.flag}</Text>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.langName}>{item.name}</Text>
+                    <Text style={styles.langRole}>{item.role}</Text>
+                  </View>
+                </View>
+              ))}
+            </View>
           </View>
-          <View style={styles.sealChip}>
-            <Text style={styles.sealChipText}>Lugo · Galicia · {YEAR}</Text>
+
+          {/* Tarjeta 3: Calidad y Marco Regulatorio */}
+          <View style={styles.cardBlock}>
+            <Text style={styles.cardBlockTitle}>Regulatory & Quality Card</Text>
+            
+            <View style={styles.sealRow}>
+              <ItemasSealMark size={36} />
+              <View style={{ flex: 1, marginLeft: 12 }}>
+                <Text style={styles.sealTitle}>Sello ITEMAS 2024</Text>
+                <Text style={styles.sealSubtitle}>Innovación tecnológica en salud</Text>
+              </View>
+            </View>
+
+            <View style={styles.chipsRow}>
+              <View style={styles.chipPill}>
+                <Text style={styles.chipText}>SaMD Clase IIa</Text>
+              </View>
+              <View style={styles.chipPill}>
+                <Text style={styles.chipText}>MDR 2017/745</Text>
+              </View>
+              <View style={styles.chipPill}>
+                <Text style={styles.chipText}>Lugo, Galicia</Text>
+              </View>
+            </View>
           </View>
         </View>
       </ScrollView>
 
-      {/* ----- CTA ----- */}
-      <View style={styles.footer}>
+      {/* Action Dock Inferior */}
+      <View style={styles.actionDock}>
         <Pressable
-          style={({ pressed }) => [styles.button, pressed && styles.buttonPressed]}
+          style={({ pressed }) => [styles.dockButton, pressed && styles.dockButtonPressed]}
           onPress={() => navigation.navigate('SeleccionProfesional')}>
-          <Text style={styles.buttonText}>Comenzar</Text>
-          <Text style={styles.buttonArrow}>→</Text>
+          <Text style={styles.dockButtonText}>Comenzar Selección Profesional</Text>
+          <ArrowRight size={18} color="#FFFFFF" strokeWidth={2.5} />
         </Pressable>
       </View>
     </View>
@@ -485,374 +422,353 @@ const MONO = Platform.OS === 'ios' ? 'Courier' : 'monospace';
 const styles = StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: '#F1ECE2',
+    backgroundColor: '#F5F2EC',
   },
   blobTopRight: {
     position: 'absolute',
-    top: -150,
-    right: -120,
+    top: -140,
+    right: -100,
     width: 380,
     height: 380,
     borderRadius: 190,
-    backgroundColor: 'rgba(240,174,108,0.18)',
+    backgroundColor: 'rgba(240, 174, 108, 0.16)',
   },
   blobBottomLeft: {
     position: 'absolute',
-    bottom: -170,
-    left: -130,
-    width: 360,
-    height: 360,
-    borderRadius: 180,
-    backgroundColor: 'rgba(255,204,128,0.14)',
+    bottom: -150,
+    left: -100,
+    width: 380,
+    height: 380,
+    borderRadius: 190,
+    backgroundColor: 'rgba(255, 204, 128, 0.14)',
   },
-  scroll: {
-    alignItems: 'center',
-    paddingHorizontal: 24,
-    paddingBottom: 130,
-  },
-
-  badge: {
+  topNavbar: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 7,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 999,
-    borderWidth: 1,
-    borderColor: '#E9E2D5',
-    paddingHorizontal: 13,
-    paddingVertical: 6,
-    marginTop: 4,
+    justifyContent: 'space-between',
+    paddingHorizontal: 24,
+    paddingTop: 16,
+    paddingBottom: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#EDE7DC',
   },
-  badgeDot: {
-    width: 7,
-    height: 7,
-    borderRadius: 4,
-    backgroundColor: '#FF7F00',
+  navLogoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
   },
-  badgeText: {
-    fontFamily: MONO,
-    fontSize: 9,
-    letterSpacing: 0.8,
-    fontWeight: '700',
-    color: '#8A8274',
-  },
-
-  emblemWrapper: {
-    width: ORBIT_CANVAS,
-    height: ORBIT_CANVAS * ORBIT_TILT,
-    maxWidth: '100%',
+  iconSquare: {
+    width: 28,
+    height: 28,
+    borderRadius: 8,
+    backgroundColor: '#FFF7ED',
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: 18,
+  },
+  navLogoText: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: '#2B2620',
+  },
+  navTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#2B2620',
+  },
+  scroll: {
+    paddingHorizontal: 24,
+    paddingTop: 16,
+    paddingBottom: 100,
+  },
+  scrollLandscape: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 24,
+    paddingHorizontal: 36,
+  },
+  leftColumn: {
+    gap: 20,
+    marginBottom: 20,
+  },
+  rightColumn: {
+    gap: 16,
+    marginBottom: 20,
+  },
+  columnHalf: {
+    flex: 1,
+    marginBottom: 0,
+  },
+
+  /* Emblema */
+  emblemCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 24,
+    paddingVertical: 20,
+    paddingHorizontal: 16,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#EDE7DC',
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.04,
+    shadowRadius: 10,
+    elevation: 2,
+  },
+  emblemHeading: {
+    fontFamily: MONO,
+    fontSize: 11,
+    fontWeight: '700',
+    letterSpacing: 1.2,
+    color: '#2B2620',
+    marginBottom: 16,
+  },
+  emblemWrapper: {
+    width: 200,
+    height: 200,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   ring: {
     position: 'absolute',
+    width: EMBLEM + 30,
+    height: EMBLEM + 30,
+    borderRadius: (EMBLEM + 30) / 2,
+    borderWidth: 1.5,
+    borderColor: 'rgba(255, 127, 0, 0.35)',
+  },
+  emblemCore: {
     width: EMBLEM,
     height: EMBLEM,
-    borderRadius: EMBLEM_RADIUS,
+    borderRadius: EMBLEM / 2,
+    backgroundColor: '#FFF7ED',
     borderWidth: 2,
-    borderColor: 'rgba(255,127,0,0.4)',
-  },
-  emblem: {
-    borderRadius: EMBLEM_RADIUS,
+    borderColor: '#FF7F00',
+    alignItems: 'center',
+    justifyContent: 'center',
     shadowColor: '#FF7F00',
-    shadowOpacity: 0.35,
-    shadowRadius: 18,
-    shadowOffset: { width: 0, height: 8 },
-    elevation: 8,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  emblemCoreText: {
+    fontSize: 22,
+    fontWeight: '800',
+    color: '#2B2620',
   },
   orbitLayer: {
-    ...StyleSheet.absoluteFillObject,
+    position: 'absolute',
+    width: 200,
+    height: 200,
     alignItems: 'center',
     justifyContent: 'center',
   },
   orbitDot: {
     position: 'absolute',
-    shadowOpacity: 0.5,
-    shadowRadius: 4,
     shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.4,
+    shadowRadius: 2,
     elevation: 2,
   },
 
-  overline: {
-    fontFamily: MONO,
-    fontSize: 10,
-    letterSpacing: 2,
-    fontWeight: '700',
-    color: '#B3A791',
-    marginTop: 14,
-    textAlign: 'center',
-  },
-  title: {
-    fontSize: 36,
-    fontWeight: '800',
-    letterSpacing: -1,
-    color: '#3A352F',
-    marginTop: 4,
-    textAlign: 'center',
-  },
-  titleAccent: {
-    color: '#FF7F00',
-  },
-  subtitle: {
-    fontSize: 14,
-    lineHeight: 21,
-    color: '#7A746B',
-    textAlign: 'center',
-    maxWidth: 300,
-    marginTop: 8,
-  },
-
-  wave: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 5,
-    height: 56,
-    marginTop: 20,
-    marginBottom: 6,
-  },
-  waveBar: {
-    width: 6,
-    borderRadius: 3,
-    backgroundColor: '#FF7F00',
-  },
-
-  sectionRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    alignSelf: 'stretch',
-    marginTop: 20,
-    marginBottom: 10,
-  },
-  sectionLine: {
-    flex: 1,
-    height: 1,
-    backgroundColor: '#E5DECF',
-  },
-  sectionLabel: {
-    fontFamily: MONO,
-    fontSize: 9,
-    letterSpacing: 1.4,
-    fontWeight: '700',
-    color: '#A89F93',
-  },
-
+  /* Autor */
   authorCard: {
-    alignSelf: 'stretch',
     backgroundColor: '#FFFFFF',
-    borderRadius: 18,
+    borderRadius: 24,
     borderWidth: 1,
-    borderColor: '#EFE8DB',
+    borderColor: '#EDE7DC',
+    borderLeftWidth: 4,
+    borderLeftColor: '#FF7F00',
     overflow: 'hidden',
+    padding: 18,
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.04,
+    shadowRadius: 10,
+    elevation: 2,
   },
-  authorAccent: {
-    position: 'absolute',
-    left: 0,
-    top: 0,
-    bottom: 0,
-    width: 4,
-    backgroundColor: '#FF7F00',
-    zIndex: 1,
+  authorBadgeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 8,
+  },
+  authorBadgeText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#EA580C',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
   particleBand: {
-    alignSelf: 'stretch',
-    height: BAND_H + 46,
-    justifyContent: 'center',
+    height: 36,
+    width: '100%',
+    marginVertical: 4,
   },
   particle: {
     position: 'absolute',
     left: 0,
-    top: 23, // centra la franja de partículas (BAND_H) dentro de la banda
+    top: 0,
   },
-  authorOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 18,
-  },
-  authorLogo: {
-    borderRadius: 14,
-    overflow: 'hidden',
-    marginBottom: 8,
+  authorInfo: {
+    marginTop: 4,
   },
   authorName: {
-    // 16 y no 17: «Dr. Frank Alberto Betances» ocupa casi todo el ancho de la
-    // tarjeta en un móvil de 360 dp y a 17 se partía en dos líneas.
-    fontSize: 16,
+    fontSize: 17,
     fontWeight: '800',
-    color: '#3A352F',
-    textAlign: 'center',
+    color: '#2B2620',
+    lineHeight: 22,
   },
   authorRole: {
-    fontSize: 11,
-    color: '#8A8274',
-    marginTop: 3,
-    textAlign: 'center',
+    fontSize: 12,
+    fontWeight: '500',
+    color: '#64748B',
+    marginTop: 2,
   },
 
-  partnerCard: {
-    alignSelf: 'stretch',
+  /* Tarjetas Bloque Derecha */
+  cardBlock: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 18,
+    borderRadius: 20,
+    padding: 16,
     borderWidth: 1,
-    borderColor: '#EFE8DB',
-    paddingHorizontal: 14,
+    borderColor: '#EDE7DC',
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.04,
+    shadowRadius: 8,
+    elevation: 1.5,
   },
-  partnerRow: {
+  cardBlockTitle: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#475569',
+    marginBottom: 12,
+    textTransform: 'uppercase',
+    letterSpacing: 0.6,
+  },
+  partnerList: {
+    gap: 8,
+  },
+  partnerItem: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-    paddingVertical: 12,
   },
-  partnerDivider: {
-    height: 1,
-    backgroundColor: '#F1ECE2',
-  },
-  partnerLogo: {
-    width: 40,
-    height: 40,
-    borderRadius: 13,
-    overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: '#EFE8DB',
+  partnerIconBox: {
+    width: 38,
+    height: 38,
+    borderRadius: 10,
+    backgroundColor: '#F8FAFC',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   partnerName: {
     fontSize: 13,
-    fontWeight: '800',
-    color: '#3A352F',
+    fontWeight: '700',
+    color: '#1E293B',
   },
-  partnerRole: {
-    fontSize: 10.5,
-    lineHeight: 15,
-    color: '#8A8274',
-    marginTop: 2,
+  partnerSubtitle: {
+    fontSize: 11,
+    color: '#64748B',
   },
-
-  langCard: {
-    alignSelf: 'stretch',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 18,
-    borderWidth: 1,
-    borderColor: '#EFE8DB',
-    paddingHorizontal: 14,
+  divider: {
+    height: 1,
+    backgroundColor: '#F1F5F9',
   },
-  langRow: {
+  langList: {
+    gap: 8,
+  },
+  langItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
-    paddingVertical: 12,
-  },
-  langRowDivider: {
-    borderTopWidth: 1,
-    borderTopColor: '#F1ECE2',
+    gap: 10,
   },
   langFlag: {
-    width: 34,
-    height: 34,
-    borderRadius: 12,
-    backgroundColor: '#F7F3EA',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  langFlagText: {
-    fontSize: 17,
+    fontSize: 20,
   },
   langName: {
     fontSize: 13,
-    fontWeight: '800',
-    color: '#3A352F',
+    fontWeight: '700',
+    color: '#1E293B',
   },
   langRole: {
-    fontSize: 10.5,
-    lineHeight: 15,
-    color: '#8A8274',
-    marginTop: 2,
+    fontSize: 11,
+    color: '#64748B',
   },
-
-  sealCard: {
-    alignSelf: 'stretch',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 18,
-    borderWidth: 1,
-    borderColor: '#EFE8DB',
-    paddingVertical: 16,
-    paddingHorizontal: 14,
-    alignItems: 'center',
-  },
-  sealTitle: {
-    fontSize: 13,
-    fontWeight: '800',
-    color: '#3A352F',
-    marginTop: 8,
-    textAlign: 'center',
-  },
-  sealRole: {
-    fontSize: 10.5,
-    color: '#8A8274',
-    marginTop: 2,
-    textAlign: 'center',
-  },
-
   sealRow: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'center',
-    gap: 7,
-    marginTop: 20,
+    alignItems: 'center',
+    marginBottom: 12,
   },
-  sealChip: {
-    backgroundColor: 'rgba(255,255,255,0.7)',
-    borderWidth: 1,
-    borderColor: '#E5DECF',
-    borderRadius: 999,
-    paddingHorizontal: 11,
-    paddingVertical: 5,
-  },
-  sealChipText: {
-    fontFamily: MONO,
-    fontSize: 9,
+  sealTitle: {
+    fontSize: 14,
     fontWeight: '700',
-    letterSpacing: 0.5,
-    color: '#8A8274',
+    color: '#B45309',
+  },
+  sealSubtitle: {
+    fontSize: 11,
+    color: '#64748B',
+  },
+  chipsRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+  },
+  chipPill: {
+    backgroundColor: '#F1F5F9',
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  chipText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#475569',
   },
 
-  footer: {
+  /* Dock Inferior */
+  actionDock: {
     position: 'absolute',
+    bottom: 0,
     left: 0,
     right: 0,
-    bottom: 0,
-    paddingHorizontal: 24,
-    paddingBottom: 28,
-    paddingTop: 12,
+    backgroundColor: '#FFFFFF',
+    borderTopWidth: 1,
+    borderTopColor: '#EDE7DC',
+    paddingVertical: 14,
     alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 10,
+    elevation: 8,
   },
-  button: {
+  dockButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 11,
+    justifyContent: 'center',
+    gap: 10,
     backgroundColor: '#FF7F00',
-    borderRadius: 999,
-    paddingHorizontal: 44,
-    paddingVertical: 17,
+    borderRadius: 24,
+    paddingVertical: 12,
+    paddingHorizontal: 32,
     shadowColor: '#FF7F00',
-    shadowOpacity: 0.36,
-    shadowRadius: 30,
-    shadowOffset: { width: 0, height: 14 },
-    elevation: 10,
+    shadowOpacity: 0.3,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 4,
   },
-  buttonPressed: {
-    opacity: 0.88,
-    transform: [{ translateY: -2 }],
+  dockButtonPressed: {
+    opacity: 0.9,
+    transform: [{ translateY: -1 }],
   },
-  buttonText: {
+  dockButtonText: {
     color: '#FFFFFF',
-    fontSize: 17,
-    fontWeight: '700',
-  },
-  buttonArrow: {
-    color: '#FFFFFF',
-    fontSize: 18,
+    fontSize: 15,
     fontWeight: '700',
   },
 });
