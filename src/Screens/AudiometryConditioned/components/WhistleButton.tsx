@@ -1,8 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import { Animated, Easing, Pressable, View } from 'react-native';
-import { Center, Icon } from '@gluestack-ui/themed';
-import { Bell } from 'lucide-react-native';
-
+import { Center, HStack, Icon, VStack } from '@gluestack-ui/themed';
+import { Bell, Sparkles, Volume2 } from 'lucide-react-native';
 import { Text } from '@/Components/Common';
 
 interface Props {
@@ -15,11 +14,11 @@ interface Props {
    * para que el niño responda al sonido y no al color (validez del umbral).
    */
   highlight?: boolean;
-  label: string;
-  sublabel: string;
+  label?: string;
+  sublabel?: string;
 }
 
-/** Onda expansiva tipo sónar alrededor del botón (mientras `active`). */
+/** Onda expansiva tipo halo alrededor del botón interactivo (mientras `active`). */
 const SonarRing = ({ active, delay }: { active: boolean; delay: number }) => {
   const v = useRef(new Animated.Value(0)).current;
 
@@ -30,7 +29,7 @@ const SonarRing = ({ active, delay }: { active: boolean; delay: number }) => {
       loop = Animated.loop(
         Animated.sequence([
           Animated.delay(delay),
-          Animated.timing(v, { toValue: 1, duration: 1000, easing: Easing.out(Easing.quad), useNativeDriver: true }),
+          Animated.timing(v, { toValue: 1, duration: 1100, easing: Easing.out(Easing.quad), useNativeDriver: true }),
           Animated.timing(v, { toValue: 0, duration: 0, useNativeDriver: true }),
         ]),
       );
@@ -43,8 +42,8 @@ const SonarRing = ({ active, delay }: { active: boolean; delay: number }) => {
 
   if (!active) return null;
 
-  const scale = v.interpolate({ inputRange: [0, 1], outputRange: [1, 1.25] });
-  const opacity = v.interpolate({ inputRange: [0, 0.15, 1], outputRange: [0, 0.55, 0] });
+  const scale = v.interpolate({ inputRange: [0, 1], outputRange: [1, 1.28] });
+  const opacity = v.interpolate({ inputRange: [0, 0.15, 1], outputRange: [0, 0.6, 0] });
 
   return (
     <Animated.View
@@ -55,9 +54,9 @@ const SonarRing = ({ active, delay }: { active: boolean; delay: number }) => {
         left: 0,
         right: 0,
         bottom: 0,
-        borderRadius: 28,
-        borderWidth: 3,
-        borderColor: '#2A9D6B',
+        borderRadius: 32,
+        borderWidth: 3.5,
+        borderColor: '#10B981',
         opacity,
         transform: [{ scale }],
       }}
@@ -65,36 +64,39 @@ const SonarRing = ({ active, delay }: { active: boolean; delay: number }) => {
   );
 };
 
-/**
- * Botón grande del silbato. Respira suavemente SIEMPRE (atractivo constante,
- * sin información sobre el estímulo); con `highlight` añade el estado
- * encendido + ondas para el condicionamiento de la práctica.
- */
-export default function WhistleButton({ onPress, disabled = false, highlight = false, label, sublabel }: Props) {
+export default function WhistleButton({
+  onPress,
+  disabled = false,
+  highlight = false,
+  label = '¡Toca la pantalla!',
+  sublabel = 'Pulsa cuando oigas la música o el silbido',
+}: Props) {
   const breath = useRef(new Animated.Value(0)).current;
+  const pressScale = useRef(new Animated.Value(1)).current;
   const ring = useRef(new Animated.Value(0)).current;
 
+  // Respiración suave permanente para llamar la atención del niño
   useEffect(() => {
     const loop = Animated.loop(
       Animated.sequence([
-        Animated.timing(breath, { toValue: 1, duration: 1100, easing: Easing.inOut(Easing.quad), useNativeDriver: true }),
-        Animated.timing(breath, { toValue: 0, duration: 1100, easing: Easing.inOut(Easing.quad), useNativeDriver: true }),
+        Animated.timing(breath, { toValue: 1, duration: 1200, easing: Easing.inOut(Easing.quad), useNativeDriver: true }),
+        Animated.timing(breath, { toValue: 0, duration: 1200, easing: Easing.inOut(Easing.quad), useNativeDriver: true }),
       ]),
     );
     loop.start();
     return () => loop.stop();
   }, [breath]);
 
-  // Campanilla que se agita cuando el botón está encendido (práctica).
+  // Campanilla que se agita cuando el botón está encendido (práctica)
   useEffect(() => {
     let loop: Animated.CompositeAnimation | null = null;
     if (highlight) {
       ring.setValue(0);
       loop = Animated.loop(
         Animated.sequence([
-          Animated.timing(ring, { toValue: 1, duration: 120, easing: Easing.linear, useNativeDriver: true }),
-          Animated.timing(ring, { toValue: -1, duration: 240, easing: Easing.linear, useNativeDriver: true }),
-          Animated.timing(ring, { toValue: 0, duration: 120, easing: Easing.linear, useNativeDriver: true }),
+          Animated.timing(ring, { toValue: 1, duration: 110, easing: Easing.linear, useNativeDriver: true }),
+          Animated.timing(ring, { toValue: -1, duration: 220, easing: Easing.linear, useNativeDriver: true }),
+          Animated.timing(ring, { toValue: 0, duration: 110, easing: Easing.linear, useNativeDriver: true }),
         ]),
       );
       loop.start();
@@ -104,30 +106,74 @@ export default function WhistleButton({ onPress, disabled = false, highlight = f
     return () => loop?.stop();
   }, [highlight, ring]);
 
-  const scale = breath.interpolate({ inputRange: [0, 1], outputRange: [1, 1.025] });
-  const wobble = ring.interpolate({ inputRange: [-1, 1], outputRange: ['-18deg', '18deg'] });
+  const handlePressIn = () => {
+    Animated.spring(pressScale, { toValue: 0.94, useNativeDriver: true }).start();
+  };
+
+  const handlePressOut = () => {
+    Animated.spring(pressScale, { toValue: 1, friction: 3.5, tension: 120, useNativeDriver: true }).start();
+  };
+
+  const breathScale = breath.interpolate({ inputRange: [0, 1], outputRange: [1, 1.03] });
+  const wobble = ring.interpolate({ inputRange: [-1, 1], outputRange: ['-16deg', '16deg'] });
 
   return (
-    <Pressable onPress={onPress} disabled={disabled}>
-      <View>
+    <Pressable
+      onPress={onPress}
+      onPressIn={handlePressIn}
+      onPressOut={handlePressOut}
+      disabled={disabled}
+      style={{ width: '100%' }}>
+      <View style={{ position: 'relative' }}>
         <SonarRing active={highlight && !disabled} delay={0} />
-        <SonarRing active={highlight && !disabled} delay={500} />
-        <Animated.View style={{ transform: [{ scale }] }}>
+        <SonarRing active={highlight && !disabled} delay={550} />
+
+        <Animated.View style={{ transform: [{ scale: pressScale }, { scale: breathScale }] }}>
           <Center
-            py="$6"
-            borderRadius={28}
-            bg={disabled ? '$backgroundLight300' : highlight ? '$success600' : '$primary600'}
-            borderWidth={3}
-            borderColor={disabled ? '$backgroundLight300' : highlight ? '$success400' : '$primary400'}>
-            <Animated.View style={{ transform: [{ rotate: wobble }] }}>
-              <Icon as={Bell} size="xl" color="$white" />
-            </Animated.View>
-            <Text size="lg" weight="bold" color="$white" mt="$1">
-              {label}
-            </Text>
-            <Text size="xs" color="$white" style={{ opacity: 0.9 }}>
-              {sublabel}
-            </Text>
+            py="$7"
+            px="$4"
+            borderRadius={32}
+            bg={
+              disabled
+                ? '$backgroundLight300'
+                : highlight
+                ? '$success500'
+                : '$primary500'
+            }
+            borderWidth={3.5}
+            borderColor={
+              disabled
+                ? '$backgroundLight400'
+                : highlight
+                ? '$success300'
+                : '$primary300'
+            }
+            shadowColor={highlight ? '$success700' : '$primary800'}
+            shadowOpacity={0.25}
+            shadowRadius={12}
+            elevation={6}>
+            <HStack space="md" alignItems="center">
+              <Center
+                w={56}
+                h={56}
+                borderRadius="$full"
+                bg={highlight ? '$success600' : '$primary600'}
+                borderWidth={2}
+                borderColor="$white">
+                <Animated.View style={{ transform: [{ rotate: wobble }] }}>
+                  <Icon as={highlight ? Sparkles : Bell} size="xl" color="$white" />
+                </Animated.View>
+              </Center>
+
+              <VStack style={{ flex: 1 }}>
+                <Text size="xl" weight="bold" color="$white" style={{ letterSpacing: 0.3 }}>
+                  {label}
+                </Text>
+                <Text size="sm" weight="medium" color="$white" style={{ opacity: 0.95, lineHeight: 18 }}>
+                  {sublabel}
+                </Text>
+              </VStack>
+            </HStack>
           </Center>
         </Animated.View>
       </View>
