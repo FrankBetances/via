@@ -12,7 +12,12 @@ import SwiftUI
 
 struct WelcomeView: View {
     @EnvironmentObject private var router: AppRouter
+    @Environment(\.horizontalSizeClass) private var sizeClass
     @State private var animate = false
+
+    /// Cuerpo del titular. En iPad hay sitio de sobra para escala de titular.
+    private var titleSize: CGFloat { sizeClass == .regular ? 52 : 36 }
+    private var bodySize: CGFloat { sizeClass == .regular ? 18 : 16 }
 
     var body: some View {
         ZStack {
@@ -53,21 +58,32 @@ struct WelcomeView: View {
                     .padding(.horizontal, 40)
                     .padding(.top, 8)
 
-                // Titular
+                // Antetítulo en versal: es lo que hace que el bloque LEA como
+                // el titular de una bienvenida y no como un párrafo destacado.
+                Text("BIENVENIDO A VIA+")
+                    .font(.system(size: 12, weight: .bold, design: .monospaced))
+                    .tracking(2)
+                    .foregroundStyle(VIA.accent)
+                    .padding(.top, 34)
+
+                // Titular. La escala se elige por clase de tamaño: en iPad
+                // (clase regular) 30 pt es tamaño de párrafo, no de titular.
                 (Text("Del ruido a la ")
                     .foregroundColor(VIA.ink)
-                 + Text("información")
+                 + Text("información clínica")
                     .foregroundColor(VIA.accent))
-                    .font(.system(size: 30, weight: .bold))
+                    .font(.system(size: titleSize, weight: .heavy))
+                    .tracking(-1)
+                    .lineSpacing(2)
                     .multilineTextAlignment(.center)
-                    .padding(.top, 36)
+                    .padding(.top, 8)
                     .padding(.horizontal, 24)
 
                 Text("VIA+ procesa cada voz y la convierte en medidas clínicas objetivas.")
-                    .font(.system(size: 15))
+                    .font(.system(size: bodySize))
                     .foregroundStyle(VIA.muted)
                     .multilineTextAlignment(.center)
-                    .padding(.top, 12)
+                    .padding(.top, 14)
                     .padding(.horizontal, 40)
 
                 Spacer()
