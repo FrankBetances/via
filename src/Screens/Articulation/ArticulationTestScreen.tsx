@@ -57,6 +57,8 @@ import {
   firstIndexOfPhoneme,
   firstIndexOfSection,
 } from './articulationResult';
+import { LuaCompanionWidget } from '@/Components/Mascot/LuaCompanionWidget';
+import { useLuaCompanion, LuaEmotion } from '@/Lua';
 
 /* -------------------------------------------------------------------------- */
 /*  Test de Articulación a la Repetición (T.A.R.)                              */
@@ -172,14 +174,33 @@ export default function ArticulationTestScreen({ navigation }: Props) {
   const patient = activeEvaluation?.patient;
   const patientName = patient ? `${patient.name} ${patient.lastName}`.trim() : null;
 
+  const lua = useLuaCompanion({
+    moduleKey: 'articulation_tar',
+    initialEmotion: LuaEmotion.Tranquility,
+    initialLevel: 1,
+  });
+
   const cur = items[idx];
   const curCode = results[cur.id] ?? null;
-  /* ¿Va a sonar el modelo de ESTA palabra? Se pregunta por palabra y no una
-   * vez por sesión porque las vías son distintas: unas tienen recorte propio y
-   * otras dependen del sintetizador del sistema. */
+  /* ¿Va a sonar el modelo de ESTA palabra? */
   const modelWillSound = audio.canSpeakModel(cur.word);
 
   const score = useMemo(() => computeArticulationScore(items, results), [items, results]);
+
+  useEffect(() => {
+    if (view === 'setup') {
+      lua.setPhase(0);
+      lua.setEmotion(LuaEmotion.Tranquility);
+    } else if (view === 'test') {
+      lua.setPhase(1);
+      lua.setEmotion(LuaEmotion.Attentive ?? LuaEmotion.Tranquility);
+      lua.setProgressLevel(Math.min(12, Math.floor((idx / items.length) * 12) + 1));
+    } else if (view === 'report') {
+      lua.setVerdict(2);
+      lua.triggerReward('articulation_tar', 2);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [view, idx]);
 
   // Telemetría: cada reactivo que se activa durante la prueba abre su ventana
   // de tiempo. `tracker` es estable (useRef) → no reintroduce el efecto.
@@ -207,16 +228,16 @@ export default function ArticulationTestScreen({ navigation }: Props) {
   };
 
   const recordCode = (code: SodaCode) => {
-    // Telemetría: 1ª clasificación fija el tiempo de respuesta; reclasificar
-    // el mismo reactivo cuenta como rectificación (duda del clínico).
     tracker.classifyReactivo(`art-${cur.id}`);
     setResults(prev => ({ ...prev, [cur.id]: code }));
     audio.reset();
-    // avance automático al clasificar como correcto (igual que el mockup)
     if (code === 'C') {
+      lua.setVerdict(2);
       setTimeout(() => {
         setIdx(p => Math.min(items.length - 1, p + 1));
-      }, 320);
+      }, 350);
+    } else {
+      lua.setVerdict(1);
     }
   };
 
@@ -317,6 +338,22 @@ export default function ArticulationTestScreen({ navigation }: Props) {
                 : 'Test de articulación a la repetición · registro SODA por fonema'}
             </Text>
           </VStack>
+
+          {/* Acompañamiento Lúa (Espejo de Repetición y Recompensa SODA) */}
+          <LuaCompanionWidget
+            emotion={lua.currentEmotion}
+            activeBadge={view === 'report' ? lua.activeBadge : null}
+            connected={lua.connected}
+            level={lua.currentLevel}
+            size={view === 'test' ? 'compact' : 'normal'}
+            message={
+              view === 'setup'
+                ? '¡Hola! Escucha cada palabra con atención y repítela conmigo.'
+                : view === 'test'
+                ? `Palabra ${idx + 1}/${items.length}: «${cur.word}». ¡Tú puedes!`
+                : '¡Registro completado! Has ganado la insignia Maestro Articulatorio.'
+            }
+          />
 
           {/* =====================  SETUP  ===================== */}
           {view === 'setup' && (

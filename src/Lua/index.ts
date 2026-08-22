@@ -47,15 +47,22 @@ export {
   getLuaAdapter,
   installBleLua,
   isLuaConnected,
+  luaAffect,
+  luaAward,
+  luaCall,
   luaCelebrate,
   luaClinicalSilence,
   luaCtrl,
   luaGrant,
   luaHeartbeat,
   luaIdle,
+  luaLevel,
   luaMute,
+  luaPhase,
+  luaPicto,
   luaState,
   luaUnlock,
+  luaVerdict,
   setLuaAdapter,
 } from './luaAdapter';
 export type { LuaAdapter } from './luaAdapter';
@@ -86,5 +93,8 @@ export type { CatPalette, CatPose } from '@/Components/Mascot/LuaPixel';
 
 export { useLuaClosingReward, useLuaDiagnostics } from './useLua';
 export type { LuaDiagnostics } from './useLua';
+
+export { useLuaCompanion, LuaEmotion, LUA_CLINICAL_BADGES } from './useLuaCompanion';
+export type { LuaBadgeInfo, UseLuaCompanionOptions } from './useLuaCompanion';
 
 export { installLua } from './installLua';

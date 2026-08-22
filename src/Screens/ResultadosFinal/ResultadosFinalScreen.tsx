@@ -42,7 +42,8 @@ import { PatientRepository } from '@/Repositories/PatientRepository';
 import { useClassSelector } from '@/Helpers/ClassTransformer';
 import { describePatient } from '@/Helpers/patientHeader';
 import { useTelemetryTracker, compressTelemetry } from '@/Telemetry';
-import { useLuaClosingReward } from '@/Lua';
+import { useLuaClosingReward, LuaEmotion, LUA_CLINICAL_BADGES } from '@/Lua';
+import { LuaCompanionWidget } from '@/Components/Mascot/LuaCompanionWidget';
 
 import { AudiometryRepository } from '@/Repositories/AudiometryRepository';
 import { VoiceAnalysisRepository } from '@/Repositories/VoiceAnalysisRepository';
@@ -909,6 +910,16 @@ export default function ResultadosFinalScreen({ navigation }: Props) {
               </View>
             ) : (
               <>
+            {/* Celebración de Lúa y Entrega de la Gran Insignia Final */}
+            <View style={{ marginBottom: 16 }}>
+              <LuaCompanionWidget
+                emotion={LuaEmotion.Pride}
+                activeBadge={LUA_CLINICAL_BADGES.final_champion}
+                level={12}
+                message="¡Enhorabuena! Has completado la valoración clínica. Lúa te entrega la insignia Campeón de la Comunicación."
+              />
+            </View>
+
             {/* Título Principal de la Prueba Activa */}
             <View style={styles.detailHeader}>
               <Text style={styles.detailMainTitle}>

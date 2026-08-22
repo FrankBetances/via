@@ -48,6 +48,8 @@ import FlexibilityGame from './components/FlexibilityGame';
 import MemoryGame from './components/MemoryGame';
 import PlanningGame from './components/PlanningGame';
 import { speakConsigna, stopConsigna } from './efSpeech';
+import { LuaCompanionWidget } from '@/Components/Mascot/LuaCompanionWidget';
+import { useLuaCompanion, LuaEmotion } from '@/Lua';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'ExecutiveFunctions'>;
 
@@ -95,9 +97,33 @@ export default function ExecutiveFunctionsScreen({ navigation }: Props) {
   const patient = activeEvaluation?.patient;
   const patientName = patient ? `${patient.name} ${patient.lastName}`.trim() : null;
 
+  const lua = useLuaCompanion({
+    moduleKey: 'executive_functions',
+    initialEmotion: LuaEmotion.Tranquility,
+    initialLevel: 1,
+  });
+
   const domain: EfDomain = EF_DOMAIN_ORDER[Math.min(gameIndex, EF_DOMAIN_ORDER.length - 1)];
   const meta = EF_DOMAIN_META[domain];
   const overall = efOverallScore(scores);
+
+  useEffect(() => {
+    if (phase === 'setup') {
+      lua.setPhase(0);
+      lua.setEmotion(LuaEmotion.Tranquility);
+    } else if (phase === 'intro') {
+      lua.setPhase(0);
+      lua.setEmotion(LuaEmotion.Tranquility);
+    } else if (phase === 'play') {
+      lua.setPhase(1);
+      lua.setEmotion(LuaEmotion.Fun);
+      lua.setProgressLevel((gameIndex + 1) * 2);
+    } else if (phase === 'results') {
+      lua.setVerdict(2);
+      lua.triggerReward('executive_functions', 2);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [phase, gameIndex]);
 
   // Dictado de la consigna al entrar en la antesala de cada juego (motor
   // es-ES de la audiometría verbal; silencioso si no hay voz española). Al
@@ -130,8 +156,6 @@ export default function ExecutiveFunctionsScreen({ navigation }: Props) {
   /* ------------------------------- acciones -------------------------------- */
 
   const startBattery = () => {
-    // Semilla nueva en cada pasada: repetir los juegos no debe presentar las
-    // mismas láminas (el niño las recordaría).
     setSeed(Math.floor(Math.random() * 0xffffffff));
     setScores(EMPTY_EF_SCORES);
     setRaw({});
@@ -154,10 +178,10 @@ export default function ExecutiveFunctionsScreen({ navigation }: Props) {
   }, [phase, domain, tracker]);
 
   const finishGame = (gameDomain: EfDomain, score: number, detail: EfRawResults[keyof EfRawResults]) => {
-    // Telemetría: fija el tiempo de resolución del juego al completarlo.
     tracker.classifyReactivo(`ef-${gameDomain}`);
     setScores(prev => ({ ...prev, [gameDomain]: score }));
     setRaw(prev => ({ ...prev, [gameDomain]: detail }) as EfRawResults);
+    lua.setVerdict(2);
     if (gameIndex + 1 >= EF_DOMAIN_ORDER.length) {
       setPhase('results');
     } else {
@@ -223,6 +247,15 @@ export default function ExecutiveFunctionsScreen({ navigation }: Props) {
           {patientName ?? 'Atención · inhibición · flexibilidad · memoria de trabajo · planificación'}
         </Text>
       </VStack>
+
+      {/* Acompañamiento Lúa (Guardiana de Normas y Progresión por Dominios) */}
+      <LuaCompanionWidget
+        emotion={lua.currentEmotion}
+        activeBadge={lua.activeBadge}
+        connected={lua.connected}
+        level={lua.currentLevel}
+        message="¡Vamos a jugar a 5 mini-juegos de retos mentales! Supera cada reto para ganar insignias."
+      />
 
       <Card bgColor="$white" borderRadius={20} p="$4">
         <Text size="sm" color="$textLight700" style={{ lineHeight: 20 }}>

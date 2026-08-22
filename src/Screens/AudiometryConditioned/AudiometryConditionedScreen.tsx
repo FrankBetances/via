@@ -25,6 +25,8 @@ import {
 } from '@/Screens/Audiometry';
 import TrainScene from './components/TrainScene';
 import WhistleButton from './components/WhistleButton';
+import { LuaCompanionWidget } from '@/Components/Mascot/LuaCompanionWidget';
+import { useLuaCompanion, LuaEmotion } from '@/Lua';
 
 /* -------------------------------------------------------------------------- */
 /*  Audiometría condicionada AUTOMÁTICA en CAMPO LIBRE — «El Tren del Sonido»  */
@@ -92,6 +94,12 @@ export default function AudiometryConditionedScreen({ navigation }: Props) {
 
   const patient = activeEvaluation?.patient;
   const patientName = patient ? `${patient.name} ${patient.lastName}`.trim() : null;
+
+  const lua = useLuaCompanion({
+    moduleKey: 'audiometry_conditioned',
+    initialEmotion: LuaEmotion.Tranquility,
+    initialLevel: 1,
+  });
 
   const clearTimers = useCallback(() => {
     if (presentTimer.current) clearTimeout(presentTimer.current);
@@ -166,11 +174,13 @@ export default function AudiometryConditionedScreen({ navigation }: Props) {
     if (nextFreq !== undefined) {
       a.setFreq(nextFreq);
       a.setDb(40);
+      lua.setEmotion(LuaEmotion.Tranquility);
       return;
     }
     clearTimers();
     setPhase('done');
-  }, [a, clearTimers]);
+    lua.triggerReward('audiometry_conditioned', 2);
+  }, [a, clearTimers, lua]);
 
   // Telemetría: cada frecuencia de la pasada en campo libre (CL) es un
   // reactivo. Abrimos la ventana al presentarla y la cerramos al confirmar su
@@ -260,6 +270,7 @@ export default function AudiometryConditionedScreen({ navigation }: Props) {
         a.stop();
         setPracticeHits(h => h + 1);
         flashCelebrate();
+        lua.setVerdict(2);
         setPracticeTick(t => t + 1);
       } else {
         flashWarn();
@@ -272,6 +283,7 @@ export default function AudiometryConditionedScreen({ navigation }: Props) {
         a.stop();
         const r = a.responded(); // HW: baja 10 dB o confirma umbral
         flashCelebrate();
+        lua.setVerdict(2);
         if (r.confirmed) advance();
         else setTrialTick(t => t + 1);
       } else {
@@ -364,6 +376,24 @@ export default function AudiometryConditionedScreen({ navigation }: Props) {
                 </HStack>
               ) : null}
             </HStack>
+
+            {/* Acompañamiento Lúa (Fusión Biofeedback y Recompensas) */}
+            <LuaCompanionWidget
+              emotion={lua.currentEmotion}
+              activeBadge={phase === 'done' ? lua.activeBadge : null}
+              connected={lua.connected}
+              level={phase === 'done' ? 12 : phase === 'test' ? a.stars * 3 : 1}
+              size={phase === 'test' ? 'compact' : 'normal'}
+              message={
+                phase === 'intro'
+                  ? '¡Hola! Te acompaño en el Tren del Sonido. Respira tranquilo.'
+                  : phase === 'practice'
+                  ? 'Toca el silbato cada vez que oigas el tren silbar.'
+                  : phase === 'test'
+                  ? 'Escucha con atención… ¡muy bien!'
+                  : '¡Prueba completada! Has ganado la insignia Oído Atento.'
+              }
+            />
 
             {/* ============================ INTRO ============================ */}
             {phase === 'intro' && (

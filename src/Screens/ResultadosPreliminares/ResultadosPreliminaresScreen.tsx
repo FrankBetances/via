@@ -29,6 +29,8 @@ import {
   type ResultCard,
   type ResultStatus,
 } from './evaluationResults';
+import { LuaCompanionWidget } from '@/Components/Mascot/LuaCompanionWidget';
+import { LuaEmotion, LUA_CLINICAL_BADGES } from '@/Lua';
 
 /* -------------------------------------------------------------------------- */
 /*  ResultadosPreliminaresScreen — Vista rápida en tableta (4:3) con medidor   */
@@ -353,6 +355,19 @@ export default function ResultadosPreliminaresScreen({ navigation }: Props) {
 
           {/* ----- COLUMNA DERECHA: Lista de Tarjetas Clínicas ----- */}
           <View style={[styles.cardsColumn, isTablet && { flex: 1 }]}>
+            <View style={{ marginBottom: 12 }}>
+              <LuaCompanionWidget
+                emotion={hasResults ? LuaEmotion.Pride : LuaEmotion.Tranquility}
+                activeBadge={hasResults ? LUA_CLINICAL_BADGES.final_champion : null}
+                level={hasResults ? Math.min(12, cards.length * 2) : 1}
+                message={
+                  hasResults
+                    ? `¡Gran trabajo! Lúa ha registrado ${cards.length} pruebas completadas.`
+                    : 'Lúa te acompaña en la sesión. Los resultados de tus pruebas aparecerán aquí.'
+                }
+              />
+            </View>
+
             {isLoading ? (
               <Text style={styles.loadingText}>Cargando resultados…</Text>
             ) : !hasResults ? (
