@@ -79,7 +79,10 @@ export const TAR_LEXICON: Record<string, TarLexEntry> = {
   /* --------------------------- Labiodental -------------------------------- */
   /* F /f/ */
   Foca: { 'es-DO': 'Foca', gl: 'Foca', eu: 'Festa' },
-  'Búfalo': { 'es-DO': 'Búfalo', gl: 'Búfalo', eu: 'Bufalo' },
+  'Búfalo': {
+    'es-DO': 'Elefante', gl: 'Búfalo', eu: 'Bufalo',
+    note: 'es-DO: el búfalo no es fauna reconocible en RD; el elefante sí, y conserva /f/ media.',
+  },
   'Café': { 'es-DO': 'Café', gl: 'Café', eu: 'Kafe' },
   Aftosa: { 'es-DO': 'Aftosa', gl: 'Aftosa', eu: 'Asfalto' },
 
@@ -95,17 +98,29 @@ export const TAR_LEXICON: Record<string, TarLexEntry> = {
   /* T /t/ */
   Tapa: { 'es-DO': 'Tapa', gl: 'Tapa', eu: 'Tomate' },
   Mata: { 'es-DO': 'Mata', gl: 'Mata', eu: 'Ate' },
-  Torta: { 'es-DO': 'Torta', gl: 'Torta', eu: 'Bertso' },
+  Torta: {
+    'es-DO': 'Puerta', gl: 'Torta', eu: 'Bertso',
+    note: 'es-DO: en RD el pastel es «bizcocho» y «torta» tiene otro sentido; «puerta» conserva /r/ trabada.',
+  },
   Etna: { 'es-DO': 'Etna', gl: 'Etna', eu: 'Etna' },
 
   /* ---------------------------- Alveolares -------------------------------- */
   /* S /s/ */
   Sapo: { 'es-DO': 'Sapo', gl: 'Sapo', eu: 'Sagu' },
-  Rosa: { 'es-DO': 'Rosa', gl: 'Rosa', eu: 'Basoa' },
-  Pasto: { 'es-DO': 'Pasto', gl: 'Pasto', eu: 'Asto' },
+  Rosa: {
+    'es-DO': 'Rosa', gl: 'Rosa', eu: 'Arrosa',
+    note: 'Este ítem cubre dos casillas: /s/ media y /r/ inicial. «Arrosa» mantiene ambas consonantes y el mismo referente, pero el euskara no admite /r/ en posición inicial —la desplaza a media—, así que esa casilla no queda explorada en euskara y su ausencia no debe puntuarse como error.',
+  },
+  Bosque: {
+    'es-DO': 'Fiesta', gl: 'Bosque', eu: 'Asto',
+    note: 'es-DO: «bosque» compite con «monte» en RD; «fiesta» es de uso diario y mantiene /s/ trabada.',
+  },
   /* N /n/ */
   Nido: { 'es-DO': 'Nido', gl: 'Niño', eu: 'Neska' },
-  Panera: { 'es-DO': 'Panera', gl: 'Panadeira', eu: 'Anaia' },
+  Panera: {
+    'es-DO': 'Banana', gl: 'Panadeira', eu: 'Anaia',
+    note: 'es-DO: «panera» no es de uso en RD; «banana» es cotidiana y conserva /n/ media.',
+  },
   Canto: { 'es-DO': 'Canto', gl: 'Canto', eu: 'Kanta' },
   /* L /l/ */
   Luna: { 'es-DO': 'Luna', gl: 'Lúa', eu: 'Lore' },
@@ -113,10 +128,7 @@ export const TAR_LEXICON: Record<string, TarLexEntry> = {
   Dulce: { 'es-DO': 'Dulce', gl: 'Doce', eu: 'Zaldi' },
   /* R /ɾ/ */
   Coro: { 'es-DO': 'Coro', gl: 'Coro', eu: 'Euri' },
-  Poroto: {
-    'es-DO': 'Loro', gl: 'Cenoria', eu: 'Ura',
-    note: 'es-DO/gl: «poroto» es chilenismo; se sustituye conservando /ɾ/ media.',
-  },
+  Loro: { 'es-DO': 'Loro', gl: 'Loro', eu: 'Ura' },
   /* RR /r/ */
   Perro: {
     'es-DO': 'Perro', gl: 'Carro', eu: 'Txakurra',
@@ -133,17 +145,14 @@ export const TAR_LEXICON: Record<string, TarLexEntry> = {
   Payaso: { 'es-DO': 'Payaso', gl: 'Pallaso', eu: 'Oilo' },
   Malla: { 'es-DO': 'Malla', gl: 'Malla', eu: 'Mailu' },
   /* Ñ /ɲ/ */
-  'Ñandú': {
+  'Ñu': {
     'es-DO': 'Ñame', gl: 'Ñu', eu: 'Ñu',
-    note: 'es-DO: el ñandú no es fauna local; «ñame» es de uso cotidiano en RD.',
+    note: 'es-DO: el ñame es alimento cotidiano en RD y lo nombra cualquier niño; el ñu solo se ve en documentales.',
   },
-  Puñete: {
-    'es-DO': 'Muñeca', gl: 'Piñeiro', eu: 'Andereño',
-    note: 'es-DO/gl: «puñete» es chilenismo; se sustituye conservando /ɲ/ media.',
-  },
+  Muñeca: { 'es-DO': 'Muñeca', gl: 'Piñeiro', eu: 'Andereño' },
   'Caña': {
-    'es-DO': 'Caña', gl: 'Mañá', eu: 'Muño',
-    note: 'gl: «cana» es la forma galega pero se realiza con /n/; se elige otro portador de /ɲ/.',
+    'es-DO': 'Caña', gl: 'Mañá', eu: 'Iñaki',
+    note: 'gl: «cana» es la forma galega pero se realiza con /n/; se elige otro portador de /ɲ/. eu: nombre propio de uso corriente, que el niño reconoce sin explicación.',
   },
   /* CH /tʃ/ */
   'Chándal': {
@@ -175,8 +184,8 @@ export const TAR_LEXICON: Record<string, TarLexEntry> = {
     note: 'gl: el galego no tiene /x/; su correspondiente sistemático es /ʃ/.',
   },
   Tejido: {
-    'es-DO': 'Tejido', gl: 'Caixa', eu: 'Ijito',
-    note: 'gl: /ʃ/ como correspondiente de /x/; «tecido» no lo porta.',
+    'es-DO': 'Tejido', gl: 'Caixa', eu: 'Garaje',
+    note: 'gl: /ʃ/ como correspondiente de /x/; «tecido» no lo porta. eu: se descarta el etnónimo que portaba este fonema por otro portador neutro.',
   },
   Reloj: { 'es-DO': 'Reloj', gl: 'Reloxo', eu: 'Erloju' },
 
@@ -184,11 +193,11 @@ export const TAR_LEXICON: Record<string, TarLexEntry> = {
   Piano: { 'es-DO': 'Piano', gl: 'Piano', eu: 'Piano' },
   Vaina: { 'es-DO': 'Vaina', gl: 'Vaina', eu: 'Ainara' },
   'Violín': { 'es-DO': 'Violín', gl: 'Violín', eu: 'Biolin' },
-  Auto: { 'es-DO': 'Auto', gl: 'Auto', eu: 'Auto' },
-  Diuca: {
-    'es-DO': 'Ciudad', gl: 'Viúva', eu: 'Ziur',
-    note: 'La diuca es un ave chilena; se sustituye conservando el dífono /iu/.',
+  'Autobús': {
+    'es-DO': 'Jaula', gl: 'Autobús', eu: 'Autobus',
+    note: 'es-DO: en RD el autobús es «la guagua»; se elige otro portador de /au/ para no introducir el término que ya causaba el equívoco en las frases.',
   },
+  Ciudad: { 'es-DO': 'Ciudad', gl: 'Miúdo', eu: 'Ziur' },
   Fui: { 'es-DO': 'Fui', gl: 'Ruído', eu: 'Kuia' },
 
   /* --------------------- Dífonos consonánticos ---------------------------- */
@@ -211,13 +220,16 @@ export const TAR_LEXICON: Record<string, TarLexEntry> = {
     note: 'gl: la forma galega es /pɾ/, no /pl/.' },
 
   /* ---------------------------- Polisílabas ------------------------------- */
-  Carabinero: {
-    'es-DO': 'Carpintero', gl: 'Carabineiro', eu: 'Ikastetxea',
-    note: 'es-DO: «carabinero» designa a la policía chilena; sin uso en RD.',
+  Locomotora: {
+    'es-DO': 'Carpintero', gl: 'Locomotora', eu: 'Ikastetxea',
+    note: 'es-DO: el carpintero es un pájaro corriente en RD; conserva la palabra polisilábica con un referente que el niño reconoce.',
   },
   'Panadería': { 'es-DO': 'Panadería', gl: 'Panadaría', eu: 'Okindegia' },
   Caperucita: { 'es-DO': 'Caperucita', gl: 'Carrapuchiña', eu: 'Txanogorritxu' },
-  Ametralladora: { 'es-DO': 'Ametralladora', gl: 'Ametralladora', eu: 'Metrailadorea' },
+  Ametralladora: {
+    'es-DO': 'Ametralladora', gl: 'Metralladora', eu: 'Metrailadorea',
+    note: 'gl: la forma galega es «metralladora», sin a- inicial. PENDIENTE DE CRITERIO CLÍNICO: el referente es un arma y esto no es una cuestión regional sino de adecuación infantil; «mantequilla» conservaría /ʎ/ y el carácter polisilábico.',
+  },
   'Helicóptero': { 'es-DO': 'Helicóptero', gl: 'Helicóptero', eu: 'Helikopteroa' },
   Bicicleta: { 'es-DO': 'Bicicleta', gl: 'Bicicleta', eu: 'Bizikleta' },
 
@@ -237,11 +249,11 @@ export const TAR_LEXICON: Record<string, TarLexEntry> = {
     gl: 'Ana foi ao xardín coa súa gatiña.',
     eu: 'Ana lorategira joan zen bere katutxoarekin.',
   },
-  'La guagua lloraba porque tenía hambre.': {
+  'El bebé lloraba porque tenía hambre.': {
     'es-DO': 'El bebé lloraba porque tenía hambre.',
     gl: 'O bebé choraba porque tiña fame.',
     eu: 'Haurra negarrez zegoen gose zelako.',
-    note: 'es-DO: «guagua» es bebé en Chile pero AUTOBÚS en RD; la frase original resultaba ininteligible.',
+    note: 'El original chileno decía «la guagua», que en RD significa AUTOBÚS y en España no significa nada.',
   },
   'El mono que estaba dentro de la jaula se perdió.': {
     'es-DO': 'El mono que estaba dentro de la jaula se perdió.',

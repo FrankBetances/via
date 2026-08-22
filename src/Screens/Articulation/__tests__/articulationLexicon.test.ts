@@ -1,6 +1,7 @@
 import { buildArticulationItems } from '../articulationResult';
 import { TAR_LEXICON } from '../articulationLexicon';
 import { tarModelByLang } from '@/Voice/viaVoiceConsignas';
+import { WORD_EMOJI } from '../articulationPictograms';
 
 /* El banco multilingüe del T.A.R. solo vale si está COMPLETO: `bankLangs`
    deriva del contenido, así que un solo ítem sin cubrir retira la lengua del
@@ -39,19 +40,49 @@ describe('léxico del T.A.R. · las cuatro variedades, sin huecos', () => {
     }
   });
 
-  /* Los chilenismos del léxico original eran justamente los que no podían
-     quedarse igual: «guagua» es bebé en Chile y AUTOBÚS en RD. */
-  it('los chilenismos no sobreviven intactos en la columna dominicana', () => {
-    expect(TAR_LEXICON['Poroto']['es-DO']).not.toBe('Poroto');
-    expect(TAR_LEXICON['Diuca']['es-DO']).not.toBe('Diuca');
-    expect(TAR_LEXICON['Carabinero']['es-DO']).not.toBe('Carabinero');
-    expect(TAR_LEXICON['La guagua lloraba porque tenía hambre.']['es-DO']).not.toMatch(
-      /guagua/i,
-    );
+  /* El T.A.R. de origen es chileno y su léxico venía con americanismos y
+     referentes locales. Ninguna de las cuatro columnas es Chile: la castellana
+     es IBÉRICA, así que estas formas no deben sobrevivir en ninguna parte del
+     banco, ni siquiera en `es`. «Guagua» merece mención propia: es bebé en
+     Chile, AUTOBÚS en RD y nada en España. */
+  const CHILENISMOS = [
+    /\bporoto/i, /\bdiuca/i, /\bcarabinero/i, /\bguagua/i, /\bpu[ñn]ete/i,
+    /\b[ñn]and[uú]/i,
+  ];
+
+  it('ningún chilenismo del inventario original sobrevive en ninguna columna', () => {
+    const survivors: string[] = [];
+    for (const [key, e] of Object.entries(TAR_LEXICON)) {
+      for (const text of [key, e['es-DO'], e.gl, e.eu]) {
+        if (CHILENISMOS.some(rx => rx.test(text))) survivors.push(`${key} -> ${text}`);
+      }
+    }
+    expect(survivors).toEqual([]);
+  });
+
+  it('«pasto» y «auto» no se cuelan como castellano peninsular', () => {
+    // Americanismos que un niño de la Península no usa: césped y coche.
+    expect(Object.keys(TAR_LEXICON)).not.toContain('Pasto');
+    expect(Object.keys(TAR_LEXICON)).not.toContain('Auto');
   });
 
   /* Una desviación de la regla «mismo fonema, misma posición» está validada,
      pero NUNCA es silenciosa: el clínico tiene que poder leerla en el ítem. */
+  /* El pictograma se indexa por la clave castellana del ítem. Al adaptar la
+     columna ibérica, las claves cambiaron y el emoji se quedó apuntando a las
+     antiguas: «Locomotora» heredó el policía de «Carabinero». */
+  it('cada ítem no-frase conserva su pictograma', () => {
+    const sinEmoji = buildArticulationItems()
+      .filter(i => i.section !== 'frases' && !WORD_EMOJI[i.word])
+      .map(i => i.word);
+    expect(sinEmoji).toEqual([]);
+  });
+
+  it('el mapa de pictogramas no arrastra claves muertas', () => {
+    const known = new Set(buildArticulationItems().map(i => i.word));
+    expect(Object.keys(WORD_EMOJI).filter(k => !known.has(k))).toEqual([]);
+  });
+
   it('toda entrada que se aparta de la rejilla lleva su nota', () => {
     const documented = Object.entries(TAR_LEXICON).filter(([, e]) => e.note);
     expect(documented.length).toBeGreaterThan(0);

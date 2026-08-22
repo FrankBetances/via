@@ -35,7 +35,8 @@ import { finishModule, RootStackParamList } from '@/Navigators';
 import { AppDispatch, RootState } from '@/Store';
 import { SESSION_LANG_LABEL, setSessionLanguage } from '@/Store/slices/localeSlice';
 import type { SessionLang } from '@/Store/slices/sessionLangs';
-import { TAR_MODEL_LANGS } from '@/Voice';
+import { TAR_MODEL_LANGS, resolveSpokenText, tarModelByLang } from '@/Voice';
+import type { VoiceLang } from '@/Voice';
 import { Evaluation } from '@/Models/Evaluation/Evaluation';
 import { ArticulationTest } from '@/Models/ArticulationTest/ArticulationTest';
 import { useClassSelector } from '@/Helpers/ClassTransformer';
@@ -43,6 +44,7 @@ import { useCreateArticulationMutation } from '@/Services/local/modules/articula
 import { useTelemetryTracker } from '@/Telemetry';
 import { showErrorToast, showSuccessToast } from '@/Helpers/showToast';
 import { useArticulationAudio } from './articulationAudio';
+import { WORD_EMOJI } from './articulationPictograms';
 import {
   ArticulationItem,
   ArticulationSection,
@@ -89,39 +91,6 @@ const SETUP_ITEMS = [
 
 /* Ilustración (emoji) por palabra del inventario T.A.R. Las frases y las
  * palabras sin pictograma razonable caen al fallback (inicial de la palabra). */
-const WORD_EMOJI: Record<string, string> = {
-  // Bilabiales
-  Bote: '🚤', Cabeza: '👦', Nube: '☁️', Objeto: '📦',
-  Pato: '🦆', Zapato: '👟', Copa: '🏆', Apto: '✅',
-  Mano: '✋', Camisa: '👕', Suma: '➕', Campo: '🌾',
-  // Labiodental
-  Foca: '🦭', Búfalo: '🐃', Café: '☕', Aftosa: '🤒',
-  // Dentales
-  Dama: '👸', Cadena: '⛓️', Codo: '💪', Pared: '🧱',
-  Tapa: '🫙', Mata: '🌿', Torta: '🎂', Etna: '🌋',
-  // Alveolares
-  Sapo: '🐸', Rosa: '🌹', Pasto: '🌱',
-  Nido: '🪺', Panera: '🧺', Canto: '🎵',
-  Luna: '🌙', Pala: '⛏️', Dulce: '🍬',
-  Coro: '🎶', Poroto: '🫘',
-  Perro: '🐶', Carroza: '🎠',
-  // Palatales
-  Llave: '🔑', Payaso: '🤡', Malla: '🩱',
-  Ñandú: '🐦', Puñete: '👊', Caña: '🎣',
-  Chándal: '🏃', Lechuga: '🥬', Noche: '🌃',
-  // Velares
-  Casa: '🏠', Paquete: '📦', Taco: '🌮', Acto: '🎭',
-  Gato: '🐱', Laguna: '🏞️', Signo: '❓',
-  José: '👨', Tejido: '🧶', Reloj: '⏰',
-  // Dífonos vocálicos
-  Piano: '🎹', Vaina: '🫛', Violín: '🎻', Auto: '🚗', Diuca: '🐦', Fui: '🏃‍♂️',
-  // Dífonos consonánticos
-  Tabla: '🪵', Regla: '📏', Premio: '🏅', Clavo: '🔩', Brazo: '💪', Atlas: '🗺️',
-  Flecha: '🏹', Fruta: '🍎', Tigre: '🐯', Dragón: '🐉', Crema: '🍦', Plato: '🍽️',
-  // Polisílabas
-  Carabinero: '👮', Panadería: '🥖', Caperucita: '👧', Ametralladora: '🔫',
-  Helicóptero: '🚁', Bicicleta: '🚲',
-};
 
 /* Color base por categoría SODA (alineado con el mockup). */
 const SODA_COLOR: Record<SodaCode, string> = {
@@ -184,6 +153,15 @@ export default function ArticulationTestScreen({ navigation }: Props) {
   const curCode = results[cur.id] ?? null;
   /* ¿Va a sonar el modelo de ESTA palabra? */
   const modelWillSound = audio.canSpeakModel(cur.word);
+
+  /* El niño tiene que LEER y OÍR la misma palabra: la de su variedad. El audio
+     ya resolvía por lengua (`canSpeakModel`/`speakModel`), pero el rótulo
+     seguía escribiendo siempre el castellano, de modo que en una sesión galega
+     se veía «Llave» y sonaba «Lle». `cur.word` se conserva como CLAVE del ítem
+     —es la que indexa el pictograma y la que viaja al registro SODA—; lo que
+     cambia es únicamente lo que se muestra. */
+  const shownWord =
+    resolveSpokenText(tarModelByLang(cur.word), sessionLanguage as VoiceLang)?.text ?? cur.word;
 
   const score = useMemo(() => computeArticulationScore(items, results), [items, results]);
 
@@ -350,7 +328,7 @@ export default function ArticulationTestScreen({ navigation }: Props) {
               view === 'setup'
                 ? '¡Hola! Escucha cada palabra con atención y repítela conmigo.'
                 : view === 'test'
-                ? `Palabra ${idx + 1}/${items.length}: «${cur.word}». ¡Tú puedes!`
+                ? `Palabra ${idx + 1}/${items.length}: «${shownWord}». ¡Tú puedes!`
                 : '¡Registro completado! Has ganado la insignia Maestro Articulatorio.'
             }
           />
@@ -569,7 +547,7 @@ export default function ArticulationTestScreen({ navigation }: Props) {
                   ) : (
                     <Center w={84} h={84} borderRadius={42} bg="$primary100">
                       <Text size="4xl" weight="bold" color="$primary700">
-                        {cur.word[0]}
+                        {shownWord[0]}
                       </Text>
                     </Center>
                   )}
@@ -579,7 +557,7 @@ export default function ArticulationTestScreen({ navigation }: Props) {
                   weight="bold"
                   color="$textLight900"
                   style={{ fontSize: cur.section === 'frases' ? 22 : 40, lineHeight: cur.section === 'frases' ? 28 : 44 }}>
-                  {cur.word}
+                  {shownWord}
                 </Text>
 
                 {/* controles de audio */}
@@ -629,7 +607,7 @@ export default function ArticulationTestScreen({ navigation }: Props) {
                   <HStack space="xs" alignItems="flex-start" mt="$3" p="$2.5" borderRadius={12} bg="$warning50">
                     <Icon as={AlertTriangle} size="xs" color="$warning700" style={{ marginTop: 2 }} />
                     <Text size="2xs" color="$warning800" style={{ flex: 1, lineHeight: 15 }}>
-                      Este dispositivo no tiene voz para locutar el modelo. Pronuncie «{cur.word}»
+                      Este dispositivo no tiene voz para locutar el modelo. Pronuncie «{shownWord}»
                       usted mismo/a: el registro SODA funciona igual.
                     </Text>
                   </HStack>
