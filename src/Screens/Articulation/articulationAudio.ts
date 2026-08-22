@@ -198,7 +198,14 @@ export const matchesTarget = (target: string, heard: string): boolean => {
  *  colgada: se trata como «no se ha podido confirmar». */
 const PROBE_TIMEOUT_MS = 1500;
 
-const nativeRecognitionProbe = (): NativeRecognitionProbe | null => {
+/**
+ * Sondeo de la capa nativa de reconocimiento. Exportado porque la pantalla de
+ * comprobación de audio tiene que interrogar EXACTAMENTE la misma superficie
+ * que usa el T.A.R.: un diagnóstico que preguntase por otra vía podría decir
+ * «reconocimiento disponible» mientras el módulo clínico se queda mudo, que es
+ * el falso positivo que esa pantalla existe para eliminar.
+ */
+export const nativeRecognitionProbe = (): NativeRecognitionProbe | null => {
   let native: any = null;
   try {
     native = require('react-native').NativeModules?.Voice ?? null;

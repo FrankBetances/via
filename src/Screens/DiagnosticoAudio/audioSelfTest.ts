@@ -9,6 +9,12 @@ import {
   setRecorderPermissionGranted,
   type RecorderHealth,
 } from '@/Audio';
+import { nativeRecognitionProbe } from '@/Screens/Articulation/articulationAudio';
+import {
+  probeRecognitionCaps,
+  recognitionBlockLabel,
+  resolveRecognitionMode,
+} from '@/Screens/Articulation/articulationRecognition';
 import type { TtsPhase } from '@/Screens/VerbalAudiometry/verbalAudiometryAudio';
 import { VOICE_ASSETS, VOICE_ASSETS_VERSION, playVoiceAsset, voiceStatus } from '@/Voice';
 
@@ -379,4 +385,39 @@ export async function checkMicCapture(): Promise<CheckResult> {
   const peakDb = peak > 0 ? 20 * Math.log10(peak) : -Infinity;
   const rmsDb = samples > 0 && sumSquares > 0 ? 20 * Math.log10(Math.sqrt(sumSquares / samples)) : -Infinity;
   return describeCapture(blocks, samples, peakDb, rmsDb, recorderHealth());
+}
+
+/**
+ * 8 · Reconocimiento de voz del T.A.R.
+ *
+ * Se interroga la MISMA superficie nativa que usa el módulo clínico, no una
+ * paralela: un diagnóstico que preguntase por otra vía podría declarar
+ * «disponible» mientras el T.A.R. se queda mudo.
+ *
+ * VIA+ exige reconocimiento EN EL DISPOSITIVO y falla CERRADO (Zero-PHI: la voz
+ * de un menor no sale del equipo). La consecuencia hay que decirla, porque no
+ * es una anomalía sino el caso normal en buena parte del parque: Android exige
+ * API 33 y el modelo de la lengua descargado, y NINGUNA imagen de emulador lo
+ * trae. Un «no funciona el T.A.R.» sobre un emulador es esto, y hasta ahora no
+ * se distinguía de una avería.
+ */
+export async function checkSpeechRecognition(locale = 'es-ES'): Promise<CheckResult> {
+  const base = { id: 'asr', label: 'Reconocimiento de voz (T.A.R.)' } as const;
+  const caps = await probeRecognitionCaps(nativeRecognitionProbe(), locale);
+  const decision = resolveRecognitionMode(caps);
+  if (decision.mode === 'on-device') {
+    return { ...base, status: 'ok', detail: 'Reconocimiento garantizado en el dispositivo.' };
+  }
+  return {
+    ...base,
+    // AVISO y no FALLO: sin reconocimiento el T.A.R. sigue siendo válido con
+    // clasificación SODA manual. Llamarlo «fallo» mandaría a buscar una avería
+    // donde solo hay una capacidad que este equipo no tiene.
+    status: 'warn',
+    detail: recognitionBlockLabel(decision.reason),
+    hint:
+      decision.reason === 'no-local-model'
+        ? 'Ajustes del sistema ▸ Idiomas ▸ Reconocimiento de voz: descargue el paquete de la lengua para uso sin conexión.'
+        : 'El T.A.R. funciona con clasificación SODA manual. Para transcripción automática hace falta Android 13 o superior con el modelo de la lengua descargado — los emuladores no lo incluyen.',
+  };
 }

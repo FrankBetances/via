@@ -1,5 +1,5 @@
 diff --git a/node_modules/@react-native-voice/voice/android/src/main/java/com/wenkesj/voice/VoiceModule.java b/node_modules/@react-native-voice/voice/android/src/main/java/com/wenkesj/voice/VoiceModule.java
-index f22833e..478da95 100644
+index f22833e..d05094e 100644
 --- a/node_modules/@react-native-voice/voice/android/src/main/java/com/wenkesj/voice/VoiceModule.java
 +++ b/node_modules/@react-native-voice/voice/android/src/main/java/com/wenkesj/voice/VoiceModule.java
 @@ -5,6 +5,7 @@ import android.content.ComponentName;
@@ -21,7 +21,7 @@ index f22833e..478da95 100644
    private boolean isRecognizing = false;
    private String locale = null;
  
-@@ -60,7 +65,20 @@ public class VoiceModule extends ReactContextBaseJavaModule implements Recogniti
+@@ -60,7 +65,45 @@ public class VoiceModule extends ReactContextBaseJavaModule implements Recogniti
        speech = null;
      }
      
@@ -36,6 +36,31 @@ index f22833e..478da95 100644
 +      if (isOnDeviceAvailable()) {
 +        speech = SpeechRecognizer.createOnDeviceSpeechRecognizer(this.reactContext);
 +      } else {
++        /* VIA+: NO se arranca —la alternativa sería reconocer por red justo
++           cuando se ha pedido no hacerlo—, pero TAMPOCO se vuelve en silencio.
++
++           La versión anterior hacía `return` a secas: el JS se quedaba
++           esperando un resultado que no iba a llegar nunca, sin `onSpeechError`
++           ni rechazo de la promesa, y la pantalla del T.A.R. daba la sensación
++           de que el micrófono estaba escuchando cuando no se había arrancado
++           nada. Es el «se activa pero no pasa nada» reportado en campo, y en el
++           emulador de Android es el caso NORMAL, no la excepción:
++           `isOnDeviceRecognitionAvailable()` exige API 33 y un modelo local
++           descargado, y las imágenes de AVD no lo traen.
++
++           Se emite el error por el mismo canal que cualquier otro fallo del
++           reconocedor, con un código propio fuera del rango de
++           SpeechRecognizer.ERROR_* (1..9) para que el JS pueda distinguirlo. */
++        WritableMap viaError = Arguments.createMap();
++        viaError.putString("code", "on_device_unavailable");
++        viaError.putString(
++            "message",
++            "Se exigió reconocimiento en el dispositivo y esta plataforma no lo "
++                + "garantiza (requiere Android 13+ y el modelo de la lengua descargado). "
++                + "No se arranca el reconocedor: la voz del paciente no sale del equipo.");
++        WritableMap viaEvent = Arguments.createMap();
++        viaEvent.putMap("error", viaError);
++        sendEvent("onSpeechError", viaEvent);
 +        Log.w("VIA+", "Se exigió reconocimiento local y no está disponible: no se arranca.");
 +        return;
 +      }
@@ -43,7 +68,7 @@ index f22833e..478da95 100644
        switch (opts.getString("RECOGNIZER_ENGINE")) {
          case "GOOGLE": {
            speech = SpeechRecognizer.createSpeechRecognizer(this.reactContext, ComponentName.unflattenFromString("com.google.android.googlequicksearchbox/com.google.android.voicesearch.serviceapi.GoogleRecognitionService"));
-@@ -144,6 +162,49 @@ public class VoiceModule extends ReactContextBaseJavaModule implements Recogniti
+@@ -144,6 +187,49 @@ public class VoiceModule extends ReactContextBaseJavaModule implements Recogniti
      });
    }
  

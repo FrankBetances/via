@@ -104,3 +104,22 @@ describe('resumen', () => {
     expect(text).toMatch(/Banco de voz:/);
   });
 });
+
+/* -------------------------------------------------------------------------- */
+/*  El T.A.R. exige reconocimiento EN EL DISPOSITIVO y falla cerrado. Eso hay  */
+/*  que DECIRLO, no dejarlo en un silencio indistinguible de una avería: en    */
+/*  cualquier emulador de Android —y en buena parte del parque real— es el     */
+/*  caso normal, porque hace falta API 33 y el modelo de la lengua descargado. */
+/* -------------------------------------------------------------------------- */
+describe('reconocimiento de voz del T.A.R.', () => {
+  const { checkSpeechRecognition } = require('../audioSelfTest');
+
+  it('sin capa nativa avisa, NO declara avería, y explica la alternativa', async () => {
+    const r = await checkSpeechRecognition('es-ES');
+    // AVISO y no FALLO: el T.A.R. sigue siendo válido con SODA manual, así que
+    // marcarlo como roto mandaría a buscar una avería que no existe.
+    expect(r.status).toBe('warn');
+    expect(r.id).toBe('asr');
+    expect(r.hint).toMatch(/SODA manual|modelo de la lengua/);
+  });
+});

@@ -20,6 +20,7 @@ import {
   checkMicPermission,
   checkNativeEngine,
   checkOutputContext,
+  checkSpeechRecognition,
   checkSystemVoice,
   checkVoiceBank,
   playTestTone,
@@ -110,6 +111,9 @@ export default function DiagnosticoAudioScreen() {
 
     setStep('Sintetizador del sistema…');
     push(checkSystemVoice());
+
+    setStep('Reconocimiento de voz…');
+    push(await checkSpeechRecognition());
 
     setStep('Permiso de micrófono…');
     push(await checkMicPermission(requestMic));
