@@ -1,7 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import { Animated, Easing, Pressable, View } from 'react-native';
 import { Center, HStack, Icon, VStack } from '@gluestack-ui/themed';
-import { Bell, Sparkles, Volume2 } from 'lucide-react-native';
+import { Bell, Sparkles } from 'lucide-react-native';
 import { Text } from '@/Components/Common';
 
 interface Props {

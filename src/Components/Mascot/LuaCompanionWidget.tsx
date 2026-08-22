@@ -7,12 +7,14 @@ import {
   Box,
   VStack,
   HStack,
-  Text,
   Center,
   Card,
   Icon,
 } from '@gluestack-ui/themed';
-import { Sparkles, Wind, Award, Heart, CheckCircle2 } from 'lucide-react-native';
+// El `Text` del proyecto, no el de Gluestack: aporta `weight` y aplica el
+// `fontScale` con que el clínico agranda la letra durante la prueba.
+import { Text } from '@/Components/Common';
+import { Sparkles, Wind, Award, Heart, CheckCircle2, Ear } from 'lucide-react-native';
 import { CatPixel } from './LuaPixel';
 import { LuaEmotion, LuaBadgeInfo } from '@/Lua';
 
@@ -87,6 +89,15 @@ const EMOTION_META: Record<
     color: '$amber600',
     cue: '¡Qué buen juego!',
   },
+  [LuaEmotion.Attentive]: {
+    label: 'Escucha atenta',
+    bg: '$backgroundLight50',
+    icon: Ear,
+    // Neutro de pizarra: la escucha atenta no compite con el estímulo. Se usa
+    // la escala `textLight` del tema, no un `blueGray` que aquí no existe.
+    color: '$textLight600',
+    cue: 'Lúa escucha contigo…',
+  },
 };
 
 export const LuaCompanionWidget: React.FC<LuaCompanionWidgetProps> = ({
@@ -148,7 +159,7 @@ export const LuaCompanionWidget: React.FC<LuaCompanionWidgetProps> = ({
     return () => {
       anim?.stop();
     };
-  }, [isBreathing]);
+  }, [isBreathing, breathAnim]);
 
   const catPxSize = size === 'compact' ? 44 : size === 'large' ? 80 : 60;
 
@@ -176,7 +187,7 @@ export const LuaCompanionWidget: React.FC<LuaCompanionWidgetProps> = ({
         </Center>
 
         {/* Información de estado, mensaje y retroalimentación */}
-        <VStack flex={1} space="2xs">
+        <VStack flex={1} space="xs">
           <HStack alignItems="center" justifyContent="space-between">
             <HStack alignItems="center" space="xs">
               <Icon as={meta.icon} size="xs" color={meta.color} />
@@ -186,15 +197,15 @@ export const LuaCompanionWidget: React.FC<LuaCompanionWidgetProps> = ({
             </HStack>
 
             {connected ? (
-              <HStack alignItems="center" space="2xs" bg="$emerald100" px="$2" py="$0.5" borderRadius="$full">
+              <HStack alignItems="center" space="xs" bg="$emerald100" px="$2" py="$0.5" borderRadius="$full">
                 <Icon as={CheckCircle2} size="2xs" color="$emerald700" />
-                <Text size="3xs" weight="bold" color="$emerald800">
+                <Text size="2xs" weight="bold" color="$emerald800">
                   ESP32 BLE
                 </Text>
               </HStack>
             ) : level ? (
               <Box bg="$primary100" px="$2" py="$0.5" borderRadius="$full">
-                <Text size="3xs" weight="bold" color="$primary800">
+                <Text size="2xs" weight="bold" color="$primary800">
                   Nivel {level}/12
                 </Text>
               </Box>

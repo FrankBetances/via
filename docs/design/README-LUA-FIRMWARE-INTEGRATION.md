@@ -34,7 +34,7 @@ El periférico físico consiste en un dispositivo autónomo de bajo consumo equi
 |         |                     |                                             |
 |         v                     v                                             |
 |  [ Anillo LED/Ring ]   [ GC9A01 Circular SPI ]                              |
-|   (12 niveles)          (24x24 px Pixel Art, 21 colores, 8 emociones)       |
+|   (12 niveles)          (24x24 px Pixel Art, 21 colores, 9 emociones)       |
 +-----------------------------------------------------------------------------+
 ```
 
@@ -58,7 +58,8 @@ El periférico físico consiste en un dispositivo autónomo de bajo consumo equi
 ## 3. Formato de Tramas y Tabla de Opcodes (`CTRL` / `SAFE`)
 
 Cada trama de control enviada a la característica `CTRL` o `SAFE` se compone de **4 bytes**:
-```
+
+```text
 Byte 0: Opcode (uint8_t)
 Byte 1: Param1 (uint8_t)
 Byte 2: Param2 (uint8_t)
@@ -74,7 +75,7 @@ Byte 3: Checksum XOR o reservado (uint8_t = Byte0 ^ Byte1 ^ Byte2)
 | **`0x03`** | `CELEBRATE`| `intensity` (1=media, 2=estelar) | `duration_s` | Animación ceremonial de confeti/estrellas en pantalla circular. |
 | **`0x04`** | `IDLE` | `mode` (0=reposo, 1=respiración) | `tempo_bpm` | Retorno al ciclo orgánico de respiración y parpadeo. |
 | **`0x05`** | `CALL` | `variant` (0=saludo, 1=atención) | `0x00` | Llamada visual de atención al niño. |
-| **`0x06`** | `AFFECT` | `emotion_id` (0–7) | `intensity` | Conmuta inmediatamente a una de las 8 emociones básicas. |
+| **`0x06`** | `AFFECT` | `emotion_id` (0–15) | `intensity` | Conmuta inmediatamente a una de las emociones de la tabla §4. Los ids no reconocidos se repliegan a `kExprTranquility` (3). |
 | **`0x07`** | `PICTO` | `picto_id` (0–255) | `frame` | Muestra un pictograma/estímulo 24×24 en el centro de la pantalla. |
 | **`0x08`** | `AWARD` | `badge_id` (0–8) | `stars` (1–3) | Despliega y activa la insignia clínica otorgada. |
 | **`0x09`** | `LEVEL` | `level` (1–12) | `0x00` | Actualiza el arco circular de progreso (1 a 12 segmentos activos). |
@@ -83,9 +84,9 @@ Byte 3: Checksum XOR o reservado (uint8_t = Byte0 ^ Byte1 ^ Byte2)
 
 ---
 
-## 4. Matriz de Emociones (`AFFECT 0–7`)
+## 4. Matriz de Emociones (`AFFECT 0–15`)
 
-Lúa implementa 8 estados afectivos canónicos basados en pixel art de 24×24 px con paleta indexada de 21 colores:
+Lúa implementa 9 estados afectivos canónicos basados en pixel art de 24×24 px con paleta indexada de 21 colores. El campo admite hasta 16 ids para poder ampliar la tabla sin revisar el protocolo; todo id no implementado DEBE replegarse a `kExprTranquility` (3):
 
 | ID | Emoción | Nombre Clínico | Ojos / Expresión | Color de Acento | Uso en Batería VIA+ |
 | :---: | :--- | :--- | :--- | :--- | :--- |
@@ -97,6 +98,7 @@ Lúa implementa 8 estados afectivos canónicos basados en pixel art de 24×24 px
 | **5** | `kExprPride` | **Orgullo** | Mentón alto, pecho erguido, estrella | Esmeralda (`#10B981`) | Finalización de prueba e informes finales. |
 | **6** | `kExprInspire`| **Inspiración** | Ojos firmes enfocados, postura activa | Índigo (`#6366F1`) | Sostén fonatorio de la `/a/` sostenida (5 s). |
 | **7** | `kExprFun` | **Diversión** | Guiño cómplice y rebote juguetón | Naranja (`#FF7F00`) | Mini-juegos de funciones ejecutivas. |
+| **8** | `kExprAttentive`| **Escucha atenta** | Orejas erguidas, ojos abiertos, quietud alerta | Pizarra (`#64748B`) | Audiometría verbal y T.A.R.: Lúa acompaña sin intervenir. |
 
 ---
 
@@ -145,7 +147,23 @@ enum Opcode {
   OP_HEARTBEAT = 0x11
 };
 
-uint8_t current_emotion = 3; // Tranquility
+// Expresiones de la tabla §4. `kExprCount` cierra la lista: el manejador de
+// AFFECT lo usa para replegar a calma todo id que este firmware aún no pinte,
+// de modo que una app más nueva nunca deje a Lúa con una cara equivocada.
+enum Expression {
+  kExprJoy = 0,
+  kExprLove,
+  kExprGratitude,
+  kExprTranquility,
+  kExprHope,
+  kExprPride,
+  kExprInspire,
+  kExprFun,
+  kExprAttentive,
+  kExprCount
+};
+
+uint8_t current_emotion = kExprTranquility;
 uint8_t current_level = 1;
 uint32_t last_heartbeat_ms = 0;
 uint16_t grant_ttl_sec = 0;
@@ -165,7 +183,9 @@ class ControlCallbacks : public NimBLECharacteristicCallbacks {
 
     switch (op) {
       case OP_AFFECT:
-        current_emotion = p1 % 8;
+        // Repliegue explícito, NO módulo: `p1 % 8` convertiría la escucha atenta
+        // (8) en Alegría (0) justo cuando Lúa debe permanecer quieta.
+        current_emotion = (p1 < kExprCount) ? p1 : kExprTranquility;
         renderEmotion(current_emotion);
         break;
 

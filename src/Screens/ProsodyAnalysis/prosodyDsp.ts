@@ -174,12 +174,16 @@ export const ABSOLUTE_SILENCE_DB = 20 * Math.log10(SILENCE_RMS);
 /*  MÍNIMOS PARA PUBLICAR UNA MEDIDA                                           */
 /* -------------------------------------------------------------------------- */
 
-/** Tramo de habla mínimo (s) para publicar tasas de habla y articulación. */
-export const MIN_SPAN_FOR_RATE_SEC = 1.0;
-/** Núcleos silábicos mínimos para publicar tasas. */
-export const MIN_SYLLABLES_FOR_RATE = 2;
-/** Tramas sonoras mínimas para publicar estadística de F0. */
-export const MIN_VOICED_FRAMES_FOR_F0 = 4;
+/** Tramo de habla mínimo (s) para publicar tasas de habla y articulación.
+ *  Compatible con `MIN_SPEECH_SEC = 3`: el span va del primer al último núcleo
+ *  silábico e incluye las pausas, luego nunca es menor que el habla acumulada. */
+export const MIN_SPAN_FOR_RATE_SEC = 3;
+/** Núcleos silábicos mínimos para publicar tasas. Con dos núcleos la «tasa»
+ *  la fija un único intervalo: es una medida sin dispersión, no un promedio. */
+export const MIN_SYLLABLES_FOR_RATE = 3;
+/** Tramas sonoras mínimas para publicar estadística de F0. Por debajo de diez,
+ *  la mediana y la desviación describen el ruido de estimación, no la voz. */
+export const MIN_VOICED_FRAMES_FOR_F0 = 10;
 /**
  * Ventana final (s) sobre la que se mide el contorno de cierre, contada hacia
  * atrás desde la última trama sonora.

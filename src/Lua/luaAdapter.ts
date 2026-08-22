@@ -123,11 +123,17 @@ export const luaCelebrate = (intensity: number): void =>
   luaCtrl(LUA_OP.CELEBRATE, Math.max(0, Math.min(2, Math.round(intensity))));
 
 /**
- * Estado afectivo emocional (0-7):
- * 0: Alegría, 1: Amor, 2: Gratitud, 3: Tranquilidad, 4: Esperanza, 5: Orgullo, 6: Inspiración, 7: Diversión
+ * Estado afectivo emocional (0-15):
+ * 0: Alegría, 1: Amor, 2: Gratitud, 3: Tranquilidad, 4: Esperanza, 5: Orgullo,
+ * 6: Inspiración, 7: Diversión, 8: Escucha atenta.
+ *
+ * El rango se acota a 0-15 (medio byte) para dejar sitio a nuevas emociones sin
+ * volver a tocar el protocolo. Un firmware que solo conozca las 8 originales
+ * debe replegar los identificadores que no reconozca a `Tranquility` (3), NO
+ * tomar el módulo: `8 % 8` pintaría Alegría en plena escucha.
  */
 export const luaAffect = (emotion: number): void =>
-  luaCtrl(LUA_OP.AFFECT, Math.max(0, Math.min(7, Math.round(emotion))));
+  luaCtrl(LUA_OP.AFFECT, Math.max(0, Math.min(15, Math.round(emotion))));
 
 /** Fase del turno clínico (0-3): 0: escucha, 1: repite/fonación, 2: veredicto, 3: misión */
 export const luaPhase = (phase: number): void =>

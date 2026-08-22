@@ -193,7 +193,7 @@ export default function ArticulationTestScreen({ navigation }: Props) {
       lua.setEmotion(LuaEmotion.Tranquility);
     } else if (view === 'test') {
       lua.setPhase(1);
-      lua.setEmotion(LuaEmotion.Attentive ?? LuaEmotion.Tranquility);
+      lua.setEmotion(LuaEmotion.Attentive);
       lua.setProgressLevel(Math.min(12, Math.floor((idx / items.length) * 12) + 1));
     } else if (view === 'report') {
       lua.setVerdict(2);

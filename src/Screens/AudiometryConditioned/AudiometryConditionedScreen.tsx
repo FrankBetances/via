@@ -10,7 +10,6 @@ import {
   Play,
   RotateCcw,
   Save,
-  Sparkles,
   Train,
   Volume2,
 } from 'lucide-react-native';
@@ -366,7 +365,7 @@ export default function AudiometryConditionedScreen({ navigation }: Props) {
                     El Tren Mágico de Lúa
                   </Text>
                   <Box bg="$primary50" px="$2" py="$0.5" borderRadius="$full">
-                    <Text size="3xs" weight="bold" color="$primary800">
+                    <Text size="2xs" weight="bold" color="$primary800">
                       CPA INFANTIL
                     </Text>
                   </Box>
@@ -585,7 +584,7 @@ export default function AudiometryConditionedScreen({ navigation }: Props) {
                       </Text>
                       <HStack space="sm" justifyContent="flex-end">
                         <Button size="xs" variant="outline" action="secondary" onPress={() => setPaused(p => !p)}>
-                          <HStack space="2xs" alignItems="center">
+                          <HStack space="xs" alignItems="center">
                             <Icon as={paused ? Play : Pause} size="2xs" color="$textLight600" />
                             <Text size="2xs" weight="bold" color="$textLight700">
                               {paused ? 'Reanudar' : 'Pausar'}
@@ -593,7 +592,7 @@ export default function AudiometryConditionedScreen({ navigation }: Props) {
                           </HStack>
                         </Button>
                         <Button size="xs" variant="outline" action="secondary" onPress={restartAll}>
-                          <HStack space="2xs" alignItems="center">
+                          <HStack space="xs" alignItems="center">
                             <Icon as={RotateCcw} size="2xs" color="$textLight600" />
                             <Text size="2xs" weight="bold" color="$textLight700">
                               Reiniciar

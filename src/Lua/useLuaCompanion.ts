@@ -27,6 +27,10 @@ export enum LuaEmotion {
   Pride = 5,      // Orgullo (pecho erguido, postura satisfecha)
   Inspire = 6,    // Inspiración (destello creativo, ojos abiertos)
   Fun = 7,        // Diversión (guiño travieso, micro-salto)
+  /* Escucha atenta: orejas erguidas, quietud alerta. Se usa en las pruebas
+     en que Lúa acompaña sin intervenir (audiometría verbal, T.A.R.). Exige
+     firmware >= el que documenta README-LUA-FIRMWARE-INTEGRATION §4. */
+  Attentive = 8,  // Escucha atenta (orejas erguidas, quietud alerta)
 }
 
 export interface LuaBadgeInfo {

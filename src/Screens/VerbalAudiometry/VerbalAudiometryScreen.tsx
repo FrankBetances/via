@@ -115,7 +115,7 @@ export default function VerbalAudiometryScreen({ navigation }: Props) {
     v.setRunning(phase === 'play');
     if (phase === 'play') {
       lua.setPhase(0);
-      lua.setEmotion(LuaEmotion.Attentive ?? LuaEmotion.Tranquility);
+      lua.setEmotion(LuaEmotion.Attentive);
     } else if (phase === 'results') {
       lua.triggerReward('verbal_audiometry', 2);
     }
