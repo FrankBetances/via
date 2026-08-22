@@ -15,6 +15,8 @@ export interface PatientHeaderSource {
   name?: string | null;
   lastName?: string | null;
   nhc?: string | null;
+  nameEnc?: string | null;
+  idHash?: string | null;
 }
 
 export interface PatientHeader {
@@ -35,7 +37,12 @@ const EMPTY: PatientHeader = {
 export function describePatient(patient: PatientHeaderSource | null | undefined): PatientHeader {
   if (!patient) return EMPTY;
 
-  const fullName = `${patient.name ?? ''} ${patient.lastName ?? ''}`.trim();
+  const directName = patient.name?.trim() || '';
+  const directLastName = patient.lastName?.trim() || '';
+  const directCombined = `${directName} ${directLastName}`.trim();
+  const encName = patient.nameEnc?.trim() || '';
+
+  const fullName = directCombined || encName;
   if (!fullName) return EMPTY;
 
   const initials =
@@ -46,7 +53,7 @@ export function describePatient(patient: PatientHeaderSource | null | undefined)
       .substring(0, 2)
       .toUpperCase() || '—';
 
-  const nhc = patient.nhc?.trim();
+  const nhc = (patient.nhc?.trim() || patient.idHash?.trim() || '');
 
   return {
     patientLabel: nhc ? `${fullName} · NHC-${nhc}` : fullName,

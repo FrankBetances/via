@@ -7,14 +7,19 @@ import {
   View,
 } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { useDispatch } from 'react-redux';
 import Svg, { Circle, Defs, Line, LinearGradient, Path, Stop } from 'react-native-svg';
 import { AlertCircle, ArrowRight, ChevronRight } from 'lucide-react-native';
 
 import { Content, Text } from '@/Components/Common';
+import ViaIcon from '@/Components/Common/ViaIcon';
 import RadialBackground from '@/Components/Themed/RadialBackground';
 import { RootStackParamList } from '@/Navigators';
-import { RootState } from '@/Store';
+import { AppDispatch, RootState } from '@/Store';
+import { setActiveEvaluation } from '@/Store/slices/activeEvaluationSlice';
 import { Evaluation } from '@/Models/Evaluation/Evaluation';
+import { EvaluationRepository } from '@/Repositories/EvaluationRepository';
+import { PatientRepository } from '@/Repositories/PatientRepository';
 import { useClassSelector } from '@/Helpers/ClassTransformer';
 import { describePatient } from '@/Helpers/patientHeader';
 
@@ -104,6 +109,7 @@ function MiniVoiceSpectrogram({ color = '#7C3AED' }: { color?: string }) {
 }
 
 export default function ResultadosPreliminaresScreen({ navigation }: Props) {
+  const dispatch = useDispatch<AppDispatch>();
   const { width } = useWindowDimensions();
   const isTablet = width >= 800;
 
@@ -112,6 +118,50 @@ export default function ResultadosPreliminaresScreen({ navigation }: Props) {
   const { patientLabel, initials } = describePatient(patient);
 
   const evaluationId = activeEvaluation?.id;
+
+  useEffect(() => {
+    if (!patient || !evaluationId) {
+      let mounted = true;
+      (async () => {
+        try {
+          const patients = await PatientRepository.getAllPatients();
+          if (patients.length > 0 && mounted) {
+            const latestPatient = patients[patients.length - 1];
+            const evals = await EvaluationRepository.getEvaluationsByPatient(latestPatient.id);
+            const latestEval = evals[0];
+            if (latestEval && mounted) {
+              dispatch(
+                setActiveEvaluation({
+                  id: latestEval.id,
+                  status: latestEval.status,
+                  patient: {
+                    id: latestPatient.id,
+                    name: latestPatient.nameEnc.split(' ')[0] ?? latestPatient.nameEnc,
+                    lastName: latestPatient.nameEnc.split(' ').slice(1).join(' '),
+                    nhc: latestPatient.idHash,
+                    nameEnc: latestPatient.nameEnc,
+                    idHash: latestPatient.idHash,
+                  },
+                  professional: latestEval.professional
+                    ? {
+                        id: latestEval.professional.id,
+                        name: latestEval.professional.fullName,
+                        licenseNumber: latestEval.professional.licenseNumber,
+                      }
+                    : null,
+                }),
+              );
+            }
+          }
+        } catch {
+          // ignore
+        }
+      })();
+      return () => {
+        mounted = false;
+      };
+    }
+  }, [dispatch, evaluationId, patient]);
 
   const [cards, setCards] = useState<ResultCard[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -182,16 +232,27 @@ export default function ResultadosPreliminaresScreen({ navigation }: Props) {
         {/* Cabecera Superior del Paciente                                       */}
         {/* ==================================================================== */}
         <View style={styles.topHeader}>
-          <View style={styles.patientBadge}>
-            <View style={styles.initialsBox}>
-              <Text style={styles.initialsText}>[{initials}]</Text>
+          <View style={styles.headerLeftGroup}>
+            <View style={styles.navLogoRow}>
+              <ViaIcon size={28} variant="color" />
+              <Text style={styles.navLogoText}>
+                VIA<Text style={{ color: '#FF7F00' }}>+</Text>
+              </Text>
             </View>
-            <Text style={styles.patientInfoText}>{patientLabel}</Text>
+
+            <View style={styles.headerDivider} />
+
+            <View style={styles.patientBadge}>
+              <View style={styles.initialsBox}>
+                <Text style={styles.initialsText}>[{initials}]</Text>
+              </View>
+              <Text style={styles.patientInfoText}>{patientLabel}</Text>
+            </View>
           </View>
 
           <View style={styles.statusPill}>
             <View style={styles.statusDot} />
-            <Text style={styles.statusPillText}>Sesión de Evaluación Completada</Text>
+            <Text style={styles.statusPillText}>Sesión de Evaluación</Text>
           </View>
         </View>
 
@@ -393,6 +454,26 @@ const styles = StyleSheet.create({
     paddingBottom: 12,
     borderBottomWidth: 1,
     borderBottomColor: '#EDE7DC',
+  },
+  headerLeftGroup: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  navLogoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  navLogoText: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: '#2B2620',
+  },
+  headerDivider: {
+    width: 1,
+    height: 20,
+    backgroundColor: '#E2DDD5',
   },
   patientBadge: {
     flexDirection: 'row',

@@ -250,7 +250,7 @@ export default function BienvenidaScreen() {
 
           {/* Rótulos del flujo de señal */}
           <View style={styles.stageLabelsRow}>
-            <Text style={styles.stageLabelLeft}>VOZ CON RUIDO</Text>
+            <Text style={styles.stageLabelLeft}>RUIDO</Text>
             <View style={styles.arrowRow}>
               <View style={styles.arrowLine} />
               <Text style={styles.arrowHead}>→</Text>

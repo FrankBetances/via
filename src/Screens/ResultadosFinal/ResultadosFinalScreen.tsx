@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { useDispatch } from 'react-redux';
 import Svg, {
   Circle,
   G,
@@ -12,13 +13,13 @@ import Svg, {
 import QRCode from 'react-native-qrcode-svg';
 import {
   Activity,
+  ArrowLeft,
   AudioWaveform,
   BrainCircuit,
   Check,
   Droplets,
   Ear,
   FileText,
-  Flame,
   Mic2,
   MoonStar,
   Puzzle,
@@ -30,10 +31,14 @@ import {
 } from 'lucide-react-native';
 
 import { Content, Text } from '@/Components/Common';
+import ViaIcon from '@/Components/Common/ViaIcon';
 import RadialBackground from '@/Components/Themed/RadialBackground';
 import { RootStackParamList } from '@/Navigators';
-import { RootState } from '@/Store';
+import { AppDispatch, RootState } from '@/Store';
+import { setActiveEvaluation } from '@/Store/slices/activeEvaluationSlice';
 import { Evaluation } from '@/Models/Evaluation/Evaluation';
+import { EvaluationRepository } from '@/Repositories/EvaluationRepository';
+import { PatientRepository } from '@/Repositories/PatientRepository';
 import { useClassSelector } from '@/Helpers/ClassTransformer';
 import { describePatient } from '@/Helpers/patientHeader';
 import { useTelemetryTracker, compressTelemetry } from '@/Telemetry';
@@ -312,11 +317,56 @@ function ClinicalAudiogramChart({
 }
 
 export default function ResultadosFinalScreen({ navigation }: Props) {
+  const dispatch = useDispatch<AppDispatch>();
   const activeEvaluation = useClassSelector(Evaluation, (state: RootState) => state.activeEvaluation.evaluation);
   const patient = activeEvaluation?.patient;
   const { patientLabel, initials } = describePatient(patient);
 
   const evaluationId = activeEvaluation?.id;
+
+  useEffect(() => {
+    if (!patient || !evaluationId) {
+      let mounted = true;
+      (async () => {
+        try {
+          const patients = await PatientRepository.getAllPatients();
+          if (patients.length > 0 && mounted) {
+            const latestPatient = patients[patients.length - 1];
+            const evals = await EvaluationRepository.getEvaluationsByPatient(latestPatient.id);
+            const latestEval = evals[0];
+            if (latestEval && mounted) {
+              dispatch(
+                setActiveEvaluation({
+                  id: latestEval.id,
+                  status: latestEval.status,
+                  patient: {
+                    id: latestPatient.id,
+                    name: latestPatient.nameEnc.split(' ')[0] ?? latestPatient.nameEnc,
+                    lastName: latestPatient.nameEnc.split(' ').slice(1).join(' '),
+                    nhc: latestPatient.idHash,
+                    nameEnc: latestPatient.nameEnc,
+                    idHash: latestPatient.idHash,
+                  },
+                  professional: latestEval.professional
+                    ? {
+                        id: latestEval.professional.id,
+                        name: latestEval.professional.fullName,
+                        licenseNumber: latestEval.professional.licenseNumber,
+                      }
+                    : null,
+                }),
+              );
+            }
+          }
+        } catch {
+          // ignore
+        }
+      })();
+      return () => {
+        mounted = false;
+      };
+    }
+  }, [dispatch, evaluationId, patient]);
 
   // La firma es la del profesional que conduce la sesión, no una fija.
   const professional = activeEvaluation?.professional ?? null;
@@ -721,21 +771,37 @@ export default function ResultadosFinalScreen({ navigation }: Props) {
         {/* Top Header Panorámico                                                */}
         {/* ==================================================================== */}
         <View style={styles.topNavbar}>
-          <View style={styles.navLogoRow}>
-            <View style={styles.iconSquare}>
-              <Flame size={18} color="#FF7F00" fill="#FF7F00" />
-            </View>
-            <Text style={styles.navLogoText}>
-              VIA<Text style={{ color: '#FF7F00' }}>+</Text>
-            </Text>
-          </View>
+          <View style={styles.headerLeftGroup}>
+            <Pressable
+              style={({ pressed }) => [styles.backBtn, pressed && styles.backBtnPressed]}
+              onPress={() => {
+                if (navigation.canGoBack()) {
+                  navigation.goBack();
+                } else {
+                  navigation.navigate('ResultadosPreliminares');
+                }
+              }}
+              accessibilityRole="button"
+              accessibilityLabel="Volver a resultados preliminares">
+              <ArrowLeft size={18} color="#334155" strokeWidth={2.2} />
+            </Pressable>
 
-          {/* Datos del Paciente y Estado de Sesión */}
-          <View style={styles.patientBadge}>
-            <View style={styles.initialsBox}>
-              <Text style={styles.initialsText}>[{initials}]</Text>
+            <View style={styles.navLogoRow}>
+              <ViaIcon size={28} variant="color" />
+              <Text style={styles.navLogoText}>
+                VIA<Text style={{ color: '#FF7F00' }}>+</Text>
+              </Text>
             </View>
-            <Text style={styles.patientInfoText}>{patientLabel}</Text>
+
+            <View style={styles.headerDivider} />
+
+            {/* Datos del Paciente */}
+            <View style={styles.patientBadge}>
+              <View style={styles.initialsBox}>
+                <Text style={styles.initialsText}>[{initials}]</Text>
+              </View>
+              <Text style={styles.patientInfoText}>{patientLabel}</Text>
+            </View>
           </View>
 
           <View style={styles.sealedStatusPill}>
@@ -981,23 +1047,44 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#EDE7DC',
   },
+  headerLeftGroup: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  backBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#E2DDD5',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
+  },
+  backBtnPressed: {
+    backgroundColor: '#F1F5F9',
+    transform: [{ scale: 0.96 }],
+  },
   navLogoRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
   },
-  iconSquare: {
-    width: 28,
-    height: 28,
-    borderRadius: 8,
-    backgroundColor: '#FFF7ED',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
   navLogoText: {
     fontSize: 18,
     fontWeight: '800',
     color: '#2B2620',
+  },
+  headerDivider: {
+    width: 1,
+    height: 20,
+    backgroundColor: '#E2DDD5',
   },
   patientBadge: {
     flexDirection: 'row',

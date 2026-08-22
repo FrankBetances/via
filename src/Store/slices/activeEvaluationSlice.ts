@@ -22,6 +22,8 @@ export interface ActiveEvaluationPatientView {
   name: string;
   lastName: string;
   nhc?: string;
+  nameEnc?: string;
+  idHash?: string;
 }
 
 export interface ActiveEvaluationProfessionalView {

@@ -160,6 +160,8 @@ export default function RegistroPacienteScreen({ navigation }: Props) {
             name: nombre.trim(),
             lastName: lastName.trim(),
             nhc: trimmedNhc,
+            nameEnc: fullName,
+            idHash: trimmedNhc,
           },
           professional: currentProfessional
             ? { id: currentProfessional.id, name: currentProfessional.fullName, licenseNumber: currentProfessional.licenseNumber }

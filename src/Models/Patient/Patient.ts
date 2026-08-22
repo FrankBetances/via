@@ -58,18 +58,38 @@ export class Patient {
   @Transform(({ value }) => (value ? new Date(value) : null), { toClassOnly: true })
   createdAt: Date;
 
+  private _name?: string;
+  private _lastName?: string;
+  private _nhc?: string;
+
   /** Alias de lectura sobre `idHash` para las pantallas que muestran el NHC. */
   get nhc(): string {
-    return this.idHash;
+    return this._nhc || this.idHash || '';
+  }
+
+  set nhc(val: string) {
+    this._nhc = val;
   }
 
   /** Nombre(s) — primer token de `nameEnc` (sin cifrado real en Fase 1). */
   get name(): string {
-    return this.nameEnc?.split(' ')[0] ?? '';
+    if (this._name) return this._name;
+    if (this.nameEnc) return this.nameEnc.split(' ')[0] ?? '';
+    return '';
+  }
+
+  set name(val: string) {
+    this._name = val;
   }
 
   /** Apellidos — resto de tokens de `nameEnc` (sin cifrado real en Fase 1). */
   get lastName(): string {
-    return this.nameEnc?.split(' ').slice(1).join(' ') ?? '';
+    if (this._lastName) return this._lastName;
+    if (this.nameEnc) return this.nameEnc.split(' ').slice(1).join(' ') ?? '';
+    return '';
+  }
+
+  set lastName(val: string) {
+    this._lastName = val;
   }
 }
