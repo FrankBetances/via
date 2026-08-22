@@ -271,14 +271,20 @@ export default function BienvenidaScreen() {
 
           {/* Titular destacado */}
           <View style={styles.titleWrapper}>
-            <Text style={styles.titleLead}>Del ruido a la</Text>
+            <Text style={styles.titleEyebrow}>BIENVENIDO A VIA+</Text>
+            <Text style={[styles.titleLead, isTabletLandscape && styles.titleLeadWide]}>
+              Del ruido a la
+            </Text>
             <View style={styles.titleHighlightPill}>
-              <Text style={styles.titleHighlightText}>información clínica</Text>
+              <Text
+                style={[styles.titleHighlightText, isTabletLandscape && styles.titleHighlightWide]}>
+                información clínica
+              </Text>
             </View>
           </View>
 
           {/* Párrafo explicativo */}
-          <Text style={styles.description}>
+          <Text style={[styles.description, isTabletLandscape && styles.descriptionWide]}>
             VIA+ procesa objetivamente la señal acústica y la transforma en parámetros diagnósticos precisos para optimizar la toma de decisiones clínicas.
           </Text>
 
@@ -447,7 +453,7 @@ const styles = StyleSheet.create({
 
   /* Columna Narrativa */
   narrativeColumn: {
-    maxWidth: 440,
+    maxWidth: 520,
     alignItems: 'flex-start',
   },
   wordmark: {
@@ -470,34 +476,59 @@ const styles = StyleSheet.create({
     color: '#FF7F00',
   },
   titleWrapper: {
-    marginBottom: 12,
+    marginBottom: 16,
+  },
+  /* Antetítulo en versal: es lo que hace que el bloque LEA como el titular de
+   * una pantalla de bienvenida y no como un párrafo destacado. */
+  titleEyebrow: {
+    fontFamily: MONO,
+    fontSize: 12,
+    fontWeight: '700',
+    letterSpacing: 2,
+    color: '#B45309',
+    marginBottom: 8,
   },
   titleLead: {
-    fontSize: 28,
+    fontSize: 38,
     fontWeight: '800',
-    letterSpacing: -0.6,
-    lineHeight: 34,
+    letterSpacing: -1,
+    lineHeight: 44,
     color: '#2B2620',
+  },
+  titleLeadWide: {
+    fontSize: 48,
+    lineHeight: 54,
+    letterSpacing: -1.4,
   },
   titleHighlightPill: {
     backgroundColor: '#FED7AA',
-    borderRadius: 8,
-    paddingHorizontal: 10,
-    paddingVertical: 3,
-    marginTop: 4,
+    borderRadius: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 5,
+    marginTop: 6,
     alignSelf: 'flex-start',
   },
   titleHighlightText: {
-    fontSize: 26,
+    fontSize: 36,
     fontWeight: '800',
-    letterSpacing: -0.5,
+    letterSpacing: -0.9,
+    lineHeight: 44,
     color: '#9A3412',
   },
+  titleHighlightWide: {
+    fontSize: 46,
+    lineHeight: 54,
+    letterSpacing: -1.3,
+  },
   description: {
-    fontSize: 14,
+    fontSize: 15,
     color: '#524B42',
-    lineHeight: 22,
-    marginBottom: 20,
+    lineHeight: 24,
+    marginBottom: 22,
+  },
+  descriptionWide: {
+    fontSize: 17,
+    lineHeight: 27,
   },
 
   /* Feature chips */

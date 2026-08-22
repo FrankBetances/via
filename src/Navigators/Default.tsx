@@ -28,6 +28,7 @@ import SeleccionEjerciciosScreen from '@/Screens/SeleccionEjercicios/SeleccionEj
 import ResultadosPreliminaresScreen from '@/Screens/ResultadosPreliminares/ResultadosPreliminaresScreen';
 import ResultadosFinalScreen from '@/Screens/ResultadosFinal/ResultadosFinalScreen';
 import { HistorialPacienteScreen } from '@/Screens/HistorialPaciente';
+import { DiagnosticoAudioScreen } from '@/Screens/DiagnosticoAudio';
 
 /* -------------------------------------------------------------------------- */
 /*  Navigator raíz — VIA+ (patrón "auth flow" de React Navigation).           */
@@ -86,6 +87,9 @@ export default function DefaultNavigator() {
           <RootStack.Screen name="ResultadosPreliminares" component={ResultadosPreliminaresScreen} />
           <RootStack.Screen name="ResultadosFinal" component={ResultadosFinalScreen} />
           <RootStack.Screen name="HistorialPaciente" component={HistorialPacienteScreen} />
+
+          {/* Diagnóstico del dispositivo (no clínico) */}
+          <RootStack.Screen name="DiagnosticoAudio" component={DiagnosticoAudioScreen} />
         </RootStack.Group>
       )}
     </RootStack.Navigator>

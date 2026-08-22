@@ -402,6 +402,16 @@ export default function SeleccionEjerciciosScreen({ navigation, route }: Props) 
                 Sonómetro de sala
               </Text>
             </Pressable>
+
+            {/* Comprobación de audio del dispositivo. Va aquí, siempre visible y
+                no solo cuando algo ya ha fallado: cuando las pruebas de voz no
+                suenan ni graban, la app degrada en silencio y el profesional no
+                tiene desde dónde averiguar qué eslabón está roto. */}
+            <Pressable onPress={() => navigation.navigate('DiagnosticoAudio')}>
+              <Text size="xs" weight="medium" style={{ color: '#64748B', textDecorationLine: 'underline' }}>
+                Comprobar audio
+              </Text>
+            </Pressable>
           </HStack>
         </HStack>
 
@@ -417,13 +427,25 @@ export default function SeleccionEjerciciosScreen({ navigation, route }: Props) 
                   {voiceEngine.status?.detail}
                 </Text>
               </HStack>
-              <Pressable onPress={voiceEngine.retry} disabled={voiceEngine.retrying}>
-                <Center py="$1.5" borderRadius={10} borderWidth={1} borderColor="#FECACA" bg="#FFFFFF">
-                  <Text size="2xs" weight="bold" style={{ color: '#DC2626' }}>
-                    {voiceEngine.retrying ? 'Reintentando…' : 'Reintentar la voz del sistema'}
-                  </Text>
-                </Center>
-              </Pressable>
+              <HStack space="xs">
+                <Pressable style={{ flex: 1 }} onPress={voiceEngine.retry} disabled={voiceEngine.retrying}>
+                  <Center py="$1.5" borderRadius={10} borderWidth={1} borderColor="#FECACA" bg="#FFFFFF">
+                    <Text size="2xs" weight="bold" style={{ color: '#DC2626' }}>
+                      {voiceEngine.retrying ? 'Reintentando…' : 'Reintentar la voz del sistema'}
+                    </Text>
+                  </Center>
+                </Pressable>
+                {/* El reintento solo cubre el sintetizador del sistema. Si lo que
+                    falla es el motor nativo, el banco de locuciones o el propio
+                    micrófono, este aviso se quedaría corto. */}
+                <Pressable style={{ flex: 1 }} onPress={() => navigation.navigate('DiagnosticoAudio')}>
+                  <Center py="$1.5" borderRadius={10} borderWidth={1} borderColor="#FECACA" bg="#FFFFFF">
+                    <Text size="2xs" weight="bold" style={{ color: '#DC2626' }}>
+                      Comprobar toda la cadena
+                    </Text>
+                  </Center>
+                </Pressable>
+              </HStack>
             </VStack>
           </Box>
         ) : null}
