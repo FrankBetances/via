@@ -87,14 +87,25 @@ describe('consignas · deriva cero con el corpus de voz', () => {
   /* Sin esto, la consigna existiría en pantalla pero no en el pipeline de
    * síntesis: saldría con la voz del sistema, distinta en cada dispositivo, y
    * el niño imitaría un modelo distinto en cada exploración. */
-  it('las consignas llegan al corpus de voz', () => {
+  it('las consignas llegan al corpus de voz, en TODAS las lenguas que declaran', () => {
     const corpus = buildVoiceCorpus().filter(e => e.source === 'prosodyAnalysis');
-    expect(corpus.length).toBe(PROSODY_AGE_BANDS.length * 2); // es + es-DO
 
+    /* El recuento se DERIVA de la tabla en vez de fijarse a mano: cuando el
+       banco pasó de dos lenguas a cuatro, un `* 2` escrito aquí convirtió la
+       ampliación en un fallo de prueba en lugar de comprobarla. Lo que importa
+       no es cuántas lenguas hay, sino que cada texto declarado en la tabla
+       tenga su locución en el corpus, y ninguna de más. */
+    const declaradas = PROSODY_AGE_BANDS.flatMap(band =>
+      Object.entries(PROSODY_STIMULI[band].consigna).map(([lang, text]) => ({ lang, text })),
+    );
+    expect(corpus).toHaveLength(declaradas.length);
+
+    for (const { lang, text } of declaradas) {
+      expect(corpus.some(e => e.lang === lang && e.text === text)).toBe(true);
+    }
+    // El castellano no es opcional: es la base de la que cuelga toda la cadena.
     for (const band of PROSODY_AGE_BANDS) {
-      const text = PROSODY_STIMULI[band].consigna.es;
-      expect(corpus.some(e => e.lang === 'es' && e.text === text)).toBe(true);
-      expect(corpus.some(e => e.lang === 'es-DO' && e.text === text)).toBe(true);
+      expect(PROSODY_STIMULI[band].consigna.es).toBeTruthy();
     }
     for (const entry of corpus) expect(entry.style).toBe('tutor');
   });

@@ -1,26 +1,21 @@
 {
   "schema": "via-plus/voice-corpus@1",
-  "entries": 194,
+  "entries": 388,
   "byLang": {
     "es": 97,
+    "gl": 97,
+    "eu": 97,
     "es-DO": 97
   },
   "byStyle": {
-    "tutor": 194
+    "tutor": 388
   },
   "bySource": {
-    "executiveFunctions": 18,
-    "articulation": 172,
-    "prosodyAnalysis": 4
+    "executiveFunctions": 36,
+    "articulation": 344,
+    "prosodyAnalysis": 8
   },
   "corpus": [
-    {
-      "id": "es-DO_tutor_003d9986_66",
-      "lang": "es-DO",
-      "style": "tutor",
-      "text": "Juanito se metió debajo de la cama para que no lo pillara su mamá.",
-      "source": "articulation"
-    },
     {
       "id": "es-DO_tutor_010fe67e_5",
       "lang": "es-DO",
@@ -50,17 +45,17 @@
       "source": "articulation"
     },
     {
-      "id": "es-DO_tutor_097855b3_6",
-      "lang": "es-DO",
-      "style": "tutor",
-      "text": "Puñete",
-      "source": "articulation"
-    },
-    {
       "id": "es-DO_tutor_09e129d9_11",
       "lang": "es-DO",
       "style": "tutor",
       "text": "Helicóptero",
+      "source": "articulation"
+    },
+    {
+      "id": "es-DO_tutor_0b53ad5d_6",
+      "lang": "es-DO",
+      "style": "tutor",
+      "text": "Ciudad",
       "source": "articulation"
     },
     {
@@ -92,10 +87,10 @@
       "source": "articulation"
     },
     {
-      "id": "es-DO_tutor_126befb6_4",
+      "id": "es-DO_tutor_13c6b559_6",
       "lang": "es-DO",
       "style": "tutor",
-      "text": "Auto",
+      "text": "Muñeca",
       "source": "articulation"
     },
     {
@@ -113,24 +108,10 @@
       "source": "articulation"
     },
     {
-      "id": "es-DO_tutor_1ce091cd_38",
-      "lang": "es-DO",
-      "style": "tutor",
-      "text": "La guagua lloraba porque tenía hambre.",
-      "source": "articulation"
-    },
-    {
       "id": "es-DO_tutor_1d67f411_5",
       "lang": "es-DO",
       "style": "tutor",
       "text": "Llave",
-      "source": "articulation"
-    },
-    {
-      "id": "es-DO_tutor_1e186b41_6",
-      "lang": "es-DO",
-      "style": "tutor",
-      "text": "Búfalo",
       "source": "articulation"
     },
     {
@@ -155,10 +136,10 @@
       "source": "articulation"
     },
     {
-      "id": "es-DO_tutor_2d9e0a99_5",
+      "id": "es-DO_tutor_3265472c_67",
       "lang": "es-DO",
       "style": "tutor",
-      "text": "Torta",
+      "text": "Juanito se metió debajo de la cama para que no lo agarrara su mamá.",
       "source": "articulation"
     },
     {
@@ -190,13 +171,6 @@
       "source": "articulation"
     },
     {
-      "id": "es-DO_tutor_387fbf0e_78",
-      "lang": "es-DO",
-      "style": "tutor",
-      "text": "Busca y encuentra. Toca TODOS los gatitos que veas, ¡lo más rápido que puedas!",
-      "source": "executiveFunctions"
-    },
-    {
       "id": "es-DO_tutor_3a0654eb_6",
       "lang": "es-DO",
       "style": "tutor",
@@ -211,6 +185,13 @@
       "source": "articulation"
     },
     {
+      "id": "es-DO_tutor_43b8cfa4_5",
+      "lang": "es-DO",
+      "style": "tutor",
+      "text": "Jaula",
+      "source": "articulation"
+    },
+    {
       "id": "es-DO_tutor_4b08850b_5",
       "lang": "es-DO",
       "style": "tutor",
@@ -218,10 +199,17 @@
       "source": "articulation"
     },
     {
-      "id": "es-DO_tutor_4b12236a_7",
+      "id": "es-DO_tutor_4d230d72_9",
       "lang": "es-DO",
       "style": "tutor",
-      "text": "Chándal",
+      "text": "Chancleta",
+      "source": "articulation"
+    },
+    {
+      "id": "es-DO_tutor_4e4c86fc_10",
+      "lang": "es-DO",
+      "style": "tutor",
+      "text": "Carpintero",
       "source": "articulation"
     },
     {
@@ -230,6 +218,13 @@
       "style": "tutor",
       "text": "¡Atención! La norma ha cambiado: ahora se juega por forma.",
       "source": "executiveFunctions"
+    },
+    {
+      "id": "es-DO_tutor_52b60cc1_36",
+      "lang": "es-DO",
+      "style": "tutor",
+      "text": "El bebé lloraba porque tenía hambre.",
+      "source": "articulation"
     },
     {
       "id": "es-DO_tutor_532b2a94_9",
@@ -253,10 +248,24 @@
       "source": "prosodyAnalysis"
     },
     {
+      "id": "es-DO_tutor_54b7f201_4",
+      "lang": "es-DO",
+      "style": "tutor",
+      "text": "Ñame",
+      "source": "articulation"
+    },
+    {
       "id": "es-DO_tutor_566320a1_4",
       "lang": "es-DO",
       "style": "tutor",
       "text": "Bote",
+      "source": "articulation"
+    },
+    {
+      "id": "es-DO_tutor_5947bdb7_8",
+      "lang": "es-DO",
+      "style": "tutor",
+      "text": "Elefante",
       "source": "articulation"
     },
     {
@@ -316,13 +325,6 @@
       "source": "articulation"
     },
     {
-      "id": "es-DO_tutor_65674aae_13",
-      "lang": "es-DO",
-      "style": "tutor",
-      "text": "Ametralladora",
-      "source": "articulation"
-    },
-    {
       "id": "es-DO_tutor_68f16619_4",
       "lang": "es-DO",
       "style": "tutor",
@@ -334,6 +336,13 @@
       "lang": "es-DO",
       "style": "tutor",
       "text": "Copa",
+      "source": "articulation"
+    },
+    {
+      "id": "es-DO_tutor_6dd8f7ef_4",
+      "lang": "es-DO",
+      "style": "tutor",
+      "text": "Loro",
       "source": "articulation"
     },
     {
@@ -442,6 +451,13 @@
       "source": "articulation"
     },
     {
+      "id": "es-DO_tutor_8f1d6b2e_6",
+      "lang": "es-DO",
+      "style": "tutor",
+      "text": "Flauta",
+      "source": "articulation"
+    },
+    {
       "id": "es-DO_tutor_92c6c730_4",
       "lang": "es-DO",
       "style": "tutor",
@@ -526,13 +542,6 @@
       "source": "articulation"
     },
     {
-      "id": "es-DO_tutor_ad49f916_5",
-      "lang": "es-DO",
-      "style": "tutor",
-      "text": "Pasto",
-      "source": "articulation"
-    },
-    {
       "id": "es-DO_tutor_ada2429b_7",
       "lang": "es-DO",
       "style": "tutor",
@@ -544,13 +553,6 @@
       "lang": "es-DO",
       "style": "tutor",
       "text": "Regla",
-      "source": "articulation"
-    },
-    {
-      "id": "es-DO_tutor_afa71ed7_10",
-      "lang": "es-DO",
-      "style": "tutor",
-      "text": "Carabinero",
       "source": "articulation"
     },
     {
@@ -582,6 +584,13 @@
       "source": "articulation"
     },
     {
+      "id": "es-DO_tutor_bbf283f3_6",
+      "lang": "es-DO",
+      "style": "tutor",
+      "text": "Fiesta",
+      "source": "articulation"
+    },
+    {
       "id": "es-DO_tutor_c2345f0e_5",
       "lang": "es-DO",
       "style": "tutor",
@@ -589,17 +598,17 @@
       "source": "articulation"
     },
     {
+      "id": "es-DO_tutor_c6e3dc70_6",
+      "lang": "es-DO",
+      "style": "tutor",
+      "text": "Banana",
+      "source": "articulation"
+    },
+    {
       "id": "es-DO_tutor_c77c6da8_7",
       "lang": "es-DO",
       "style": "tutor",
       "text": "Paquete",
-      "source": "articulation"
-    },
-    {
-      "id": "es-DO_tutor_d2174676_6",
-      "lang": "es-DO",
-      "style": "tutor",
-      "text": "Poroto",
       "source": "articulation"
     },
     {
@@ -624,24 +633,24 @@
       "source": "articulation"
     },
     {
-      "id": "es-DO_tutor_d88dc9ae_6",
+      "id": "es-DO_tutor_d8b99306_78",
       "lang": "es-DO",
       "style": "tutor",
-      "text": "Panera",
-      "source": "articulation"
-    },
-    {
-      "id": "es-DO_tutor_defaa905_5",
-      "lang": "es-DO",
-      "style": "tutor",
-      "text": "Diuca",
-      "source": "articulation"
+      "text": "Busca y encuentra. ¡Toca TODOS los gatitos que veas, lo más rápido que puedas!",
+      "source": "executiveFunctions"
     },
     {
       "id": "es-DO_tutor_e42c4229_4",
       "lang": "es-DO",
       "style": "tutor",
       "text": "Pala",
+      "source": "articulation"
+    },
+    {
+      "id": "es-DO_tutor_e767a762_6",
+      "lang": "es-DO",
+      "style": "tutor",
+      "text": "Puerta",
       "source": "articulation"
     },
     {
@@ -673,13 +682,6 @@
       "source": "articulation"
     },
     {
-      "id": "es-DO_tutor_f3bc4825_5",
-      "lang": "es-DO",
-      "style": "tutor",
-      "text": "Ñandú",
-      "source": "articulation"
-    },
-    {
       "id": "es-DO_tutor_f593bd57_6",
       "lang": "es-DO",
       "style": "tutor",
@@ -687,10 +689,1368 @@
       "source": "articulation"
     },
     {
-      "id": "es-DO_tutor_fb94cb94_6",
+      "id": "es-DO_tutor_fcd23f97_8",
       "lang": "es-DO",
       "style": "tutor",
-      "text": "Flecha",
+      "text": "Mariposa",
+      "source": "articulation"
+    },
+    {
+      "id": "eu_tutor_010fe67e_5",
+      "lang": "eu",
+      "style": "tutor",
+      "text": "Piano",
+      "source": "articulation"
+    },
+    {
+      "id": "eu_tutor_014fefe3_5",
+      "lang": "eu",
+      "style": "tutor",
+      "text": "Mahai",
+      "source": "articulation"
+    },
+    {
+      "id": "eu_tutor_0a9b1bf4_5",
+      "lang": "eu",
+      "style": "tutor",
+      "text": "Oilar",
+      "source": "articulation"
+    },
+    {
+      "id": "eu_tutor_0f14179b_8",
+      "lang": "eu",
+      "style": "tutor",
+      "text": "Txakurra",
+      "source": "articulation"
+    },
+    {
+      "id": "eu_tutor_126e4e2c_6",
+      "lang": "eu",
+      "style": "tutor",
+      "text": "Biolin",
+      "source": "articulation"
+    },
+    {
+      "id": "eu_tutor_12a4bf8a_6",
+      "lang": "eu",
+      "style": "tutor",
+      "text": "Erloju",
+      "source": "articulation"
+    },
+    {
+      "id": "eu_tutor_15bdd9b8_81",
+      "lang": "eu",
+      "style": "tutor",
+      "text": "Begiratu ondo marrazki honi. Kontatu ikusten duzun guztia eta gertatzen ari dena.",
+      "source": "prosodyAnalysis"
+    },
+    {
+      "id": "eu_tutor_18cc9e5a_4",
+      "lang": "eu",
+      "style": "tutor",
+      "text": "Agur",
+      "source": "articulation"
+    },
+    {
+      "id": "eu_tutor_1b7ff3d7_4",
+      "lang": "eu",
+      "style": "tutor",
+      "text": "Kuia",
+      "source": "articulation"
+    },
+    {
+      "id": "eu_tutor_1e691347_5",
+      "lang": "eu",
+      "style": "tutor",
+      "text": "Zaldi",
+      "source": "articulation"
+    },
+    {
+      "id": "eu_tutor_1fd7ceb8_5",
+      "lang": "eu",
+      "style": "tutor",
+      "text": "Kanpo",
+      "source": "articulation"
+    },
+    {
+      "id": "eu_tutor_2606b35c_4",
+      "lang": "eu",
+      "style": "tutor",
+      "text": "Oilo",
+      "source": "articulation"
+    },
+    {
+      "id": "eu_tutor_28519e04_85",
+      "lang": "eu",
+      "style": "tutor",
+      "text": "Begiratu hiru binetei hurrenez hurren. Kontatu istorio osoa, hasieratik amaieraraino.",
+      "source": "prosodyAnalysis"
+    },
+    {
+      "id": "eu_tutor_289f0c86_5",
+      "lang": "eu",
+      "style": "tutor",
+      "text": "Festa",
+      "source": "articulation"
+    },
+    {
+      "id": "eu_tutor_2c012bb4_4",
+      "lang": "eu",
+      "style": "tutor",
+      "text": "Kopa",
+      "source": "articulation"
+    },
+    {
+      "id": "eu_tutor_31bafc4d_60",
+      "lang": "eu",
+      "style": "tutor",
+      "text": "Kontuz! Araua aldatu da: orain formaren arabera jolasten da.",
+      "source": "executiveFunctions"
+    },
+    {
+      "id": "eu_tutor_32f36592_9",
+      "lang": "eu",
+      "style": "tutor",
+      "text": "Tximeleta",
+      "source": "articulation"
+    },
+    {
+      "id": "eu_tutor_37abbbae_76",
+      "lang": "eu",
+      "style": "tutor",
+      "text": "Bilatu eta aurkitu. Ukitu ikusten dituzun katu GUZTIAK, ahalik eta azkarren!",
+      "source": "executiveFunctions"
+    },
+    {
+      "id": "eu_tutor_37b43f92_5",
+      "lang": "eu",
+      "style": "tutor",
+      "text": "Jauna",
+      "source": "articulation"
+    },
+    {
+      "id": "eu_tutor_41521b5d_4",
+      "lang": "eu",
+      "style": "tutor",
+      "text": "Sagu",
+      "source": "articulation"
+    },
+    {
+      "id": "eu_tutor_45cd7d2e_5",
+      "lang": "eu",
+      "style": "tutor",
+      "text": "Kanta",
+      "source": "articulation"
+    },
+    {
+      "id": "eu_tutor_46be1617_87",
+      "lang": "eu",
+      "style": "tutor",
+      "text": "Ordenatu istorioa. Txartel hauek desordenatuta daude: ukitu istorioaren ordena egokian.",
+      "source": "executiveFunctions"
+    },
+    {
+      "id": "eu_tutor_46e48fec_29",
+      "lang": "eu",
+      "style": "tutor",
+      "text": "Formaren arabera jolasten da.",
+      "source": "executiveFunctions"
+    },
+    {
+      "id": "eu_tutor_49e833c8_7",
+      "lang": "eu",
+      "style": "tutor",
+      "text": "Autobus",
+      "source": "articulation"
+    },
+    {
+      "id": "eu_tutor_4e81e0cb_4",
+      "lang": "eu",
+      "style": "tutor",
+      "text": "Ziur",
+      "source": "articulation"
+    },
+    {
+      "id": "eu_tutor_5183cb43_8",
+      "lang": "eu",
+      "style": "tutor",
+      "text": "Adiskide",
+      "source": "articulation"
+    },
+    {
+      "id": "eu_tutor_51b3f348_8",
+      "lang": "eu",
+      "style": "tutor",
+      "text": "Andereño",
+      "source": "articulation"
+    },
+    {
+      "id": "eu_tutor_55409894_43",
+      "lang": "eu",
+      "style": "tutor",
+      "text": "Ana lorategira joan zen bere katutxoarekin.",
+      "source": "articulation"
+    },
+    {
+      "id": "eu_tutor_56bf402b_2",
+      "lang": "eu",
+      "style": "tutor",
+      "text": "Ñu",
+      "source": "articulation"
+    },
+    {
+      "id": "eu_tutor_581f48ce_5",
+      "lang": "eu",
+      "style": "tutor",
+      "text": "Iñaki",
+      "source": "articulation"
+    },
+    {
+      "id": "eu_tutor_5db3fb56_25",
+      "lang": "eu",
+      "style": "tutor",
+      "text": "Neska ilehoriak jaten du.",
+      "source": "articulation"
+    },
+    {
+      "id": "eu_tutor_5ee723e8_5",
+      "lang": "eu",
+      "style": "tutor",
+      "text": "Ikusi",
+      "source": "articulation"
+    },
+    {
+      "id": "eu_tutor_625270d7_13",
+      "lang": "eu",
+      "style": "tutor",
+      "text": "Txanogorritxu",
+      "source": "articulation"
+    },
+    {
+      "id": "eu_tutor_694aafc3_5",
+      "lang": "eu",
+      "style": "tutor",
+      "text": "Bitxi",
+      "source": "articulation"
+    },
+    {
+      "id": "eu_tutor_6bb9b306_9",
+      "lang": "eu",
+      "style": "tutor",
+      "text": "Okindegia",
+      "source": "articulation"
+    },
+    {
+      "id": "eu_tutor_6c6b4da1_6",
+      "lang": "eu",
+      "style": "tutor",
+      "text": "Tomate",
+      "source": "articulation"
+    },
+    {
+      "id": "eu_tutor_707ad16e_5",
+      "lang": "eu",
+      "style": "tutor",
+      "text": "Hodei",
+      "source": "articulation"
+    },
+    {
+      "id": "eu_tutor_7316350c_6",
+      "lang": "eu",
+      "style": "tutor",
+      "text": "Fruitu",
+      "source": "articulation"
+    },
+    {
+      "id": "eu_tutor_734f216c_5",
+      "lang": "eu",
+      "style": "tutor",
+      "text": "Atlas",
+      "source": "articulation"
+    },
+    {
+      "id": "eu_tutor_75ab83ca_5",
+      "lang": "eu",
+      "style": "tutor",
+      "text": "Tigre",
+      "source": "articulation"
+    },
+    {
+      "id": "eu_tutor_771b4fcc_95",
+      "lang": "eu",
+      "style": "tutor",
+      "text": "Ez esnatu otsoa. Ukitu agertzen den animalia bakoitza… baina INOIZ ez ukitu otsoa, lo dago eta!",
+      "source": "executiveFunctions"
+    },
+    {
+      "id": "eu_tutor_77d907ad_4",
+      "lang": "eu",
+      "style": "tutor",
+      "text": "Lore",
+      "source": "articulation"
+    },
+    {
+      "id": "eu_tutor_7de4052b_4",
+      "lang": "eu",
+      "style": "tutor",
+      "text": "Etxe",
+      "source": "articulation"
+    },
+    {
+      "id": "eu_tutor_7eec1bb7_3",
+      "lang": "eu",
+      "style": "tutor",
+      "text": "Ate",
+      "source": "articulation"
+    },
+    {
+      "id": "eu_tutor_80014e3d_7",
+      "lang": "eu",
+      "style": "tutor",
+      "text": "Asfalto",
+      "source": "articulation"
+    },
+    {
+      "id": "eu_tutor_88d5d0d3_5",
+      "lang": "eu",
+      "style": "tutor",
+      "text": "Bakea",
+      "source": "articulation"
+    },
+    {
+      "id": "eu_tutor_89ae57e6_4",
+      "lang": "eu",
+      "style": "tutor",
+      "text": "Kale",
+      "source": "articulation"
+    },
+    {
+      "id": "eu_tutor_8aae6656_39",
+      "lang": "eu",
+      "style": "tutor",
+      "text": "Kaiolan zegoen tximinoa galdu egin zen.",
+      "source": "articulation"
+    },
+    {
+      "id": "eu_tutor_8c1456b6_54",
+      "lang": "eu",
+      "style": "tutor",
+      "text": "Joanito ohe azpian ezkutatu zen amak harrapa ez zezan.",
+      "source": "articulation"
+    },
+    {
+      "id": "eu_tutor_8eb24956_3",
+      "lang": "eu",
+      "style": "tutor",
+      "text": "Ama",
+      "source": "articulation"
+    },
+    {
+      "id": "eu_tutor_8ef36fe0_5",
+      "lang": "eu",
+      "style": "tutor",
+      "text": "Bloke",
+      "source": "articulation"
+    },
+    {
+      "id": "eu_tutor_8f1d6b2e_6",
+      "lang": "eu",
+      "style": "tutor",
+      "text": "Flauta",
+      "source": "articulation"
+    },
+    {
+      "id": "eu_tutor_8f8c47b5_7",
+      "lang": "eu",
+      "style": "tutor",
+      "text": "Brontze",
+      "source": "articulation"
+    },
+    {
+      "id": "eu_tutor_9219df05_3",
+      "lang": "eu",
+      "style": "tutor",
+      "text": "Ura",
+      "source": "articulation"
+    },
+    {
+      "id": "eu_tutor_93155225_6",
+      "lang": "eu",
+      "style": "tutor",
+      "text": "Aktore",
+      "source": "articulation"
+    },
+    {
+      "id": "eu_tutor_94c76485_7",
+      "lang": "eu",
+      "style": "tutor",
+      "text": "Objektu",
+      "source": "articulation"
+    },
+    {
+      "id": "eu_tutor_951390e1_5",
+      "lang": "eu",
+      "style": "tutor",
+      "text": "Mailu",
+      "source": "articulation"
+    },
+    {
+      "id": "eu_tutor_9522c0bf_5",
+      "lang": "eu",
+      "style": "tutor",
+      "text": "Dorre",
+      "source": "articulation"
+    },
+    {
+      "id": "eu_tutor_9606bd35_4",
+      "lang": "eu",
+      "style": "tutor",
+      "text": "Etna",
+      "source": "articulation"
+    },
+    {
+      "id": "eu_tutor_964891a6_5",
+      "lang": "eu",
+      "style": "tutor",
+      "text": "Alaba",
+      "source": "articulation"
+    },
+    {
+      "id": "eu_tutor_9bcc3256_26",
+      "lang": "eu",
+      "style": "tutor",
+      "text": "Txakurrak salto egiten du.",
+      "source": "articulation"
+    },
+    {
+      "id": "eu_tutor_a0106d1c_4",
+      "lang": "eu",
+      "style": "tutor",
+      "text": "Asto",
+      "source": "articulation"
+    },
+    {
+      "id": "eu_tutor_a2143ac0_107",
+      "lang": "eu",
+      "style": "tutor",
+      "text": "Arauen jokoa. Begiratu txartela eta ukitu arauaren arabera dagokion lekuan. Kontuz, araua aldatu egiten da!",
+      "source": "executiveFunctions"
+    },
+    {
+      "id": "eu_tutor_a41a5ac9_62",
+      "lang": "eu",
+      "style": "tutor",
+      "text": "Kontuz! Araua aldatu da: orain kolorearen arabera jolasten da.",
+      "source": "executiveFunctions"
+    },
+    {
+      "id": "eu_tutor_a59f7970_4",
+      "lang": "eu",
+      "style": "tutor",
+      "text": "Kafe",
+      "source": "articulation"
+    },
+    {
+      "id": "eu_tutor_a831d808_5",
+      "lang": "eu",
+      "style": "tutor",
+      "text": "Abere",
+      "source": "articulation"
+    },
+    {
+      "id": "eu_tutor_a94f5d5a_35",
+      "lang": "eu",
+      "style": "tutor",
+      "text": "Haurra negarrez zegoen gose zelako.",
+      "source": "articulation"
+    },
+    {
+      "id": "eu_tutor_a972601e_4",
+      "lang": "eu",
+      "style": "tutor",
+      "text": "Katu",
+      "source": "articulation"
+    },
+    {
+      "id": "eu_tutor_aa906b18_6",
+      "lang": "eu",
+      "style": "tutor",
+      "text": "Prezio",
+      "source": "articulation"
+    },
+    {
+      "id": "eu_tutor_ad899971_5",
+      "lang": "eu",
+      "style": "tutor",
+      "text": "Klase",
+      "source": "articulation"
+    },
+    {
+      "id": "eu_tutor_b561c11a_6",
+      "lang": "eu",
+      "style": "tutor",
+      "text": "Txakur",
+      "source": "articulation"
+    },
+    {
+      "id": "eu_tutor_b5d3e8f0_5",
+      "lang": "eu",
+      "style": "tutor",
+      "text": "Gizon",
+      "source": "articulation"
+    },
+    {
+      "id": "eu_tutor_baa2f966_6",
+      "lang": "eu",
+      "style": "tutor",
+      "text": "Elurra",
+      "source": "articulation"
+    },
+    {
+      "id": "eu_tutor_bb20081f_5",
+      "lang": "eu",
+      "style": "tutor",
+      "text": "Anaia",
+      "source": "articulation"
+    },
+    {
+      "id": "eu_tutor_c1d4e8e9_6",
+      "lang": "eu",
+      "style": "tutor",
+      "text": "Arrosa",
+      "source": "articulation"
+    },
+    {
+      "id": "eu_tutor_c29ad879_5",
+      "lang": "eu",
+      "style": "tutor",
+      "text": "Neska",
+      "source": "articulation"
+    },
+    {
+      "id": "eu_tutor_c479e554_31",
+      "lang": "eu",
+      "style": "tutor",
+      "text": "Kolorearen arabera jolasten da.",
+      "source": "executiveFunctions"
+    },
+    {
+      "id": "eu_tutor_c6d8da4c_12",
+      "lang": "eu",
+      "style": "tutor",
+      "text": "Helikopteroa",
+      "source": "articulation"
+    },
+    {
+      "id": "eu_tutor_c797d5e5_6",
+      "lang": "eu",
+      "style": "tutor",
+      "text": "Garaje",
+      "source": "articulation"
+    },
+    {
+      "id": "eu_tutor_cafcff8b_4",
+      "lang": "eu",
+      "style": "tutor",
+      "text": "Adar",
+      "source": "articulation"
+    },
+    {
+      "id": "eu_tutor_cb0e6b03_6",
+      "lang": "eu",
+      "style": "tutor",
+      "text": "Plater",
+      "source": "articulation"
+    },
+    {
+      "id": "eu_tutor_ccfbd8cc_104",
+      "lang": "eu",
+      "style": "tutor",
+      "text": "Loro errepikatzailea. Begiratu zein txartel pizten diren eta errepikatu sekuentzia ordena berean ukituz.",
+      "source": "executiveFunctions"
+    },
+    {
+      "id": "eu_tutor_cd3ab51d_5",
+      "lang": "eu",
+      "style": "tutor",
+      "text": "Krema",
+      "source": "articulation"
+    },
+    {
+      "id": "eu_tutor_cd945fcb_11",
+      "lang": "eu",
+      "style": "tutor",
+      "text": "Diagnostiko",
+      "source": "articulation"
+    },
+    {
+      "id": "eu_tutor_cdaac6a0_10",
+      "lang": "eu",
+      "style": "tutor",
+      "text": "Ikastetxea",
+      "source": "articulation"
+    },
+    {
+      "id": "eu_tutor_ce971c2e_6",
+      "lang": "eu",
+      "style": "tutor",
+      "text": "Botila",
+      "source": "articulation"
+    },
+    {
+      "id": "eu_tutor_cf1ec2f7_6",
+      "lang": "eu",
+      "style": "tutor",
+      "text": "Dragoi",
+      "source": "articulation"
+    },
+    {
+      "id": "eu_tutor_d3b588a0_6",
+      "lang": "eu",
+      "style": "tutor",
+      "text": "Pilota",
+      "source": "articulation"
+    },
+    {
+      "id": "eu_tutor_d4221a00_6",
+      "lang": "eu",
+      "style": "tutor",
+      "text": "Bufalo",
+      "source": "articulation"
+    },
+    {
+      "id": "eu_tutor_d590052a_9",
+      "lang": "eu",
+      "style": "tutor",
+      "text": "Bizikleta",
+      "source": "articulation"
+    },
+    {
+      "id": "eu_tutor_d97fa004_8",
+      "lang": "eu",
+      "style": "tutor",
+      "text": "Erregela",
+      "source": "articulation"
+    },
+    {
+      "id": "eu_tutor_d9b3ce87_6",
+      "lang": "eu",
+      "style": "tutor",
+      "text": "Ainara",
+      "source": "articulation"
+    },
+    {
+      "id": "eu_tutor_dcbd8074_8",
+      "lang": "eu",
+      "style": "tutor",
+      "text": "Kamiseta",
+      "source": "articulation"
+    },
+    {
+      "id": "eu_tutor_e012b780_6",
+      "lang": "eu",
+      "style": "tutor",
+      "text": "Bertso",
+      "source": "articulation"
+    },
+    {
+      "id": "eu_tutor_ea8a598a_4",
+      "lang": "eu",
+      "style": "tutor",
+      "text": "Euri",
+      "source": "articulation"
+    },
+    {
+      "id": "eu_tutor_f6199b65_6",
+      "lang": "eu",
+      "style": "tutor",
+      "text": "Optika",
+      "source": "articulation"
+    },
+    {
+      "id": "eu_tutor_f70b0ad1_6",
+      "lang": "eu",
+      "style": "tutor",
+      "text": "Kapela",
+      "source": "articulation"
+    },
+    {
+      "id": "gl_tutor_010fe67e_5",
+      "lang": "gl",
+      "style": "tutor",
+      "text": "Piano",
+      "source": "articulation"
+    },
+    {
+      "id": "gl_tutor_04563e7d_4",
+      "lang": "gl",
+      "style": "tutor",
+      "text": "Nube",
+      "source": "articulation"
+    },
+    {
+      "id": "gl_tutor_06c2191f_6",
+      "lang": "gl",
+      "style": "tutor",
+      "text": "Camisa",
+      "source": "articulation"
+    },
+    {
+      "id": "gl_tutor_09e129d9_11",
+      "lang": "gl",
+      "style": "tutor",
+      "text": "Helicóptero",
+      "source": "articulation"
+    },
+    {
+      "id": "gl_tutor_0bbb4871_33",
+      "lang": "gl",
+      "style": "tutor",
+      "text": "Ana foi ao xardín coa súa gatiña.",
+      "source": "articulation"
+    },
+    {
+      "id": "gl_tutor_0d918bf1_91",
+      "lang": "gl",
+      "style": "tutor",
+      "text": "Ordena a historia. Estas tarxetas están desordenadas: tócalas na orde correcta da historia.",
+      "source": "executiveFunctions"
+    },
+    {
+      "id": "gl_tutor_0d955b49_6",
+      "lang": "gl",
+      "style": "tutor",
+      "text": "Bloque",
+      "source": "articulation"
+    },
+    {
+      "id": "gl_tutor_0e4b3412_5",
+      "lang": "gl",
+      "style": "tutor",
+      "text": "Carro",
+      "source": "articulation"
+    },
+    {
+      "id": "gl_tutor_15f98a60_7",
+      "lang": "gl",
+      "style": "tutor",
+      "text": "Piñeiro",
+      "source": "articulation"
+    },
+    {
+      "id": "gl_tutor_18993700_6",
+      "lang": "gl",
+      "style": "tutor",
+      "text": "Bosque",
+      "source": "articulation"
+    },
+    {
+      "id": "gl_tutor_19702d43_6",
+      "lang": "gl",
+      "style": "tutor",
+      "text": "Aftosa",
+      "source": "articulation"
+    },
+    {
+      "id": "gl_tutor_1e08fa95_96",
+      "lang": "gl",
+      "style": "tutor",
+      "text": "O papagaio repetidor. Mira que tarxetas se acenden e repite a secuencia tocándoas na mesma orde.",
+      "source": "executiveFunctions"
+    },
+    {
+      "id": "gl_tutor_1e186b41_6",
+      "lang": "gl",
+      "style": "tutor",
+      "text": "Búfalo",
+      "source": "articulation"
+    },
+    {
+      "id": "gl_tutor_1ec989d2_5",
+      "lang": "gl",
+      "style": "tutor",
+      "text": "Ruído",
+      "source": "articulation"
+    },
+    {
+      "id": "gl_tutor_1f518b1d_4",
+      "lang": "gl",
+      "style": "tutor",
+      "text": "Casa",
+      "source": "articulation"
+    },
+    {
+      "id": "gl_tutor_208df53a_90",
+      "lang": "gl",
+      "style": "tutor",
+      "text": "Mira as tres viñetas por orde. Cóntame a historia completa, desde o principio ata o final.",
+      "source": "prosodyAnalysis"
+    },
+    {
+      "id": "gl_tutor_271e170c_4",
+      "lang": "gl",
+      "style": "tutor",
+      "text": "Sapo",
+      "source": "articulation"
+    },
+    {
+      "id": "gl_tutor_2d9e0a99_5",
+      "lang": "gl",
+      "style": "tutor",
+      "text": "Torta",
+      "source": "articulation"
+    },
+    {
+      "id": "gl_tutor_2ef0ddf2_10",
+      "lang": "gl",
+      "style": "tutor",
+      "text": "Locomotora",
+      "source": "articulation"
+    },
+    {
+      "id": "gl_tutor_3390cfa0_4",
+      "lang": "gl",
+      "style": "tutor",
+      "text": "Dama",
+      "source": "articulation"
+    },
+    {
+      "id": "gl_tutor_3597d495_5",
+      "lang": "gl",
+      "style": "tutor",
+      "text": "Cadea",
+      "source": "articulation"
+    },
+    {
+      "id": "gl_tutor_37cff43d_4",
+      "lang": "gl",
+      "style": "tutor",
+      "text": "Apto",
+      "source": "articulation"
+    },
+    {
+      "id": "gl_tutor_38a42a53_7",
+      "lang": "gl",
+      "style": "tutor",
+      "text": "Autobús",
+      "source": "articulation"
+    },
+    {
+      "id": "gl_tutor_3d22a4db_101",
+      "lang": "gl",
+      "style": "tutor",
+      "text": "O xogo das normas. Mira a tarxeta e tócaa onde corresponda segundo a norma. Atención, a norma cambia!",
+      "source": "executiveFunctions"
+    },
+    {
+      "id": "gl_tutor_45824f1c_6",
+      "lang": "gl",
+      "style": "tutor",
+      "text": "Reloxo",
+      "source": "articulation"
+    },
+    {
+      "id": "gl_tutor_45c11d0f_12",
+      "lang": "gl",
+      "style": "tutor",
+      "text": "O can salta.",
+      "source": "articulation"
+    },
+    {
+      "id": "gl_tutor_46ccf2e2_49",
+      "lang": "gl",
+      "style": "tutor",
+      "text": "¡Atención! A norma cambiou: agora xógase por cor.",
+      "source": "executiveFunctions"
+    },
+    {
+      "id": "gl_tutor_48eefcab_6",
+      "lang": "gl",
+      "style": "tutor",
+      "text": "Cóbado",
+      "source": "articulation"
+    },
+    {
+      "id": "gl_tutor_4ea8000f_3",
+      "lang": "gl",
+      "style": "tutor",
+      "text": "Man",
+      "source": "articulation"
+    },
+    {
+      "id": "gl_tutor_5227a212_32",
+      "lang": "gl",
+      "style": "tutor",
+      "text": "O bebé choraba porque tiña fame.",
+      "source": "articulation"
+    },
+    {
+      "id": "gl_tutor_538a9ce0_4",
+      "lang": "gl",
+      "style": "tutor",
+      "text": "Coro",
+      "source": "articulation"
+    },
+    {
+      "id": "gl_tutor_5606def1_15",
+      "lang": "gl",
+      "style": "tutor",
+      "text": "Xógase por cor.",
+      "source": "executiveFunctions"
+    },
+    {
+      "id": "gl_tutor_566320a1_4",
+      "lang": "gl",
+      "style": "tutor",
+      "text": "Bote",
+      "source": "articulation"
+    },
+    {
+      "id": "gl_tutor_56bf402b_2",
+      "lang": "gl",
+      "style": "tutor",
+      "text": "Ñu",
+      "source": "articulation"
+    },
+    {
+      "id": "gl_tutor_5c69ceb4_4",
+      "lang": "gl",
+      "style": "tutor",
+      "text": "Mata",
+      "source": "articulation"
+    },
+    {
+      "id": "gl_tutor_643ecd31_5",
+      "lang": "gl",
+      "style": "tutor",
+      "text": "Signo",
+      "source": "articulation"
+    },
+    {
+      "id": "gl_tutor_644dd081_5",
+      "lang": "gl",
+      "style": "tutor",
+      "text": "Campo",
+      "source": "articulation"
+    },
+    {
+      "id": "gl_tutor_6647e7e6_5",
+      "lang": "gl",
+      "style": "tutor",
+      "text": "Miúdo",
+      "source": "articulation"
+    },
+    {
+      "id": "gl_tutor_68f16619_4",
+      "lang": "gl",
+      "style": "tutor",
+      "text": "Tapa",
+      "source": "articulation"
+    },
+    {
+      "id": "gl_tutor_6b1cde18_9",
+      "lang": "gl",
+      "style": "tutor",
+      "text": "Panadaría",
+      "source": "articulation"
+    },
+    {
+      "id": "gl_tutor_6d8f42fc_4",
+      "lang": "gl",
+      "style": "tutor",
+      "text": "Copa",
+      "source": "articulation"
+    },
+    {
+      "id": "gl_tutor_6dd8f7ef_4",
+      "lang": "gl",
+      "style": "tutor",
+      "text": "Loro",
+      "source": "articulation"
+    },
+    {
+      "id": "gl_tutor_6dfcbb65_6",
+      "lang": "gl",
+      "style": "tutor",
+      "text": "Premio",
+      "source": "articulation"
+    },
+    {
+      "id": "gl_tutor_734f216c_5",
+      "lang": "gl",
+      "style": "tutor",
+      "text": "Atlas",
+      "source": "articulation"
+    },
+    {
+      "id": "gl_tutor_73fe7487_5",
+      "lang": "gl",
+      "style": "tutor",
+      "text": "Brazo",
+      "source": "articulation"
+    },
+    {
+      "id": "gl_tutor_75ab83ca_5",
+      "lang": "gl",
+      "style": "tutor",
+      "text": "Tigre",
+      "source": "articulation"
+    },
+    {
+      "id": "gl_tutor_7a546549_6",
+      "lang": "gl",
+      "style": "tutor",
+      "text": "Cabeza",
+      "source": "articulation"
+    },
+    {
+      "id": "gl_tutor_7c56aa84_71",
+      "lang": "gl",
+      "style": "tutor",
+      "text": "Mira ben este debuxo. Cóntame todo o que ves e todo o que está a pasar.",
+      "source": "prosodyAnalysis"
+    },
+    {
+      "id": "gl_tutor_7dd20e07_5",
+      "lang": "gl",
+      "style": "tutor",
+      "text": "Lagoa",
+      "source": "articulation"
+    },
+    {
+      "id": "gl_tutor_7e287e95_5",
+      "lang": "gl",
+      "style": "tutor",
+      "text": "Crema",
+      "source": "articulation"
+    },
+    {
+      "id": "gl_tutor_81a4a42c_5",
+      "lang": "gl",
+      "style": "tutor",
+      "text": "Regra",
+      "source": "articulation"
+    },
+    {
+      "id": "gl_tutor_853c733a_9",
+      "lang": "gl",
+      "style": "tutor",
+      "text": "Panadeira",
+      "source": "articulation"
+    },
+    {
+      "id": "gl_tutor_8a4f5101_9",
+      "lang": "gl",
+      "style": "tutor",
+      "text": "Bicicleta",
+      "source": "articulation"
+    },
+    {
+      "id": "gl_tutor_8c353864_5",
+      "lang": "gl",
+      "style": "tutor",
+      "text": "Canto",
+      "source": "articulation"
+    },
+    {
+      "id": "gl_tutor_8c8c2d07_5",
+      "lang": "gl",
+      "style": "tutor",
+      "text": "Prato",
+      "source": "articulation"
+    },
+    {
+      "id": "gl_tutor_8da50792_6",
+      "lang": "gl",
+      "style": "tutor",
+      "text": "Froita",
+      "source": "articulation"
+    },
+    {
+      "id": "gl_tutor_8ec07ec6_3",
+      "lang": "gl",
+      "style": "tutor",
+      "text": "Lúa",
+      "source": "articulation"
+    },
+    {
+      "id": "gl_tutor_8fe41b60_3",
+      "lang": "gl",
+      "style": "tutor",
+      "text": "Lle",
+      "source": "articulation"
+    },
+    {
+      "id": "gl_tutor_92c6c730_4",
+      "lang": "gl",
+      "style": "tutor",
+      "text": "Taco",
+      "source": "articulation"
+    },
+    {
+      "id": "gl_tutor_940401ab_5",
+      "lang": "gl",
+      "style": "tutor",
+      "text": "Caixa",
+      "source": "articulation"
+    },
+    {
+      "id": "gl_tutor_946e6a72_4",
+      "lang": "gl",
+      "style": "tutor",
+      "text": "Rosa",
+      "source": "articulation"
+    },
+    {
+      "id": "gl_tutor_9606bd35_4",
+      "lang": "gl",
+      "style": "tutor",
+      "text": "Etna",
+      "source": "articulation"
+    },
+    {
+      "id": "gl_tutor_970afcb9_44",
+      "lang": "gl",
+      "style": "tutor",
+      "text": "O mono que estaba dentro da gaiola perdeuse.",
+      "source": "articulation"
+    },
+    {
+      "id": "gl_tutor_99cadbb0_4",
+      "lang": "gl",
+      "style": "tutor",
+      "text": "Doce",
+      "source": "articulation"
+    },
+    {
+      "id": "gl_tutor_9b44ee9c_4",
+      "lang": "gl",
+      "style": "tutor",
+      "text": "Niño",
+      "source": "articulation"
+    },
+    {
+      "id": "gl_tutor_9c8d40a4_4",
+      "lang": "gl",
+      "style": "tutor",
+      "text": "Gato",
+      "source": "articulation"
+    },
+    {
+      "id": "gl_tutor_9cff83a2_5",
+      "lang": "gl",
+      "style": "tutor",
+      "text": "Vaina",
+      "source": "articulation"
+    },
+    {
+      "id": "gl_tutor_a1cbecef_18",
+      "lang": "gl",
+      "style": "tutor",
+      "text": "A nena loura come.",
+      "source": "articulation"
+    },
+    {
+      "id": "gl_tutor_a769f4e5_94",
+      "lang": "gl",
+      "style": "tutor",
+      "text": "Non espertes o lobo. Toca cada animal que apareza… pero NUNCA toques o lobo, que está durmido!",
+      "source": "executiveFunctions"
+    },
+    {
+      "id": "gl_tutor_ab52d68b_4",
+      "lang": "gl",
+      "style": "tutor",
+      "text": "Suma",
+      "source": "articulation"
+    },
+    {
+      "id": "gl_tutor_ac495584_6",
+      "lang": "gl",
+      "style": "tutor",
+      "text": "Parede",
+      "source": "articulation"
+    },
+    {
+      "id": "gl_tutor_ada2429b_7",
+      "lang": "gl",
+      "style": "tutor",
+      "text": "Carroza",
+      "source": "articulation"
+    },
+    {
+      "id": "gl_tutor_ae71afdb_7",
+      "lang": "gl",
+      "style": "tutor",
+      "text": "Pallaso",
+      "source": "articulation"
+    },
+    {
+      "id": "gl_tutor_b018520c_4",
+      "lang": "gl",
+      "style": "tutor",
+      "text": "Acto",
+      "source": "articulation"
+    },
+    {
+      "id": "gl_tutor_b3369d9c_4",
+      "lang": "gl",
+      "style": "tutor",
+      "text": "Café",
+      "source": "articulation"
+    },
+    {
+      "id": "gl_tutor_b47d0812_6",
+      "lang": "gl",
+      "style": "tutor",
+      "text": "Zapato",
+      "source": "articulation"
+    },
+    {
+      "id": "gl_tutor_b86035f6_4",
+      "lang": "gl",
+      "style": "tutor",
+      "text": "Foca",
+      "source": "articulation"
+    },
+    {
+      "id": "gl_tutor_bfda4150_6",
+      "lang": "gl",
+      "style": "tutor",
+      "text": "Frauta",
+      "source": "articulation"
+    },
+    {
+      "id": "gl_tutor_c2345f0e_5",
+      "lang": "gl",
+      "style": "tutor",
+      "text": "Malla",
+      "source": "articulation"
+    },
+    {
+      "id": "gl_tutor_c2a0033d_65",
+      "lang": "gl",
+      "style": "tutor",
+      "text": "Xoaniño meteuse debaixo da cama para que non o collera a súa nai.",
+      "source": "articulation"
+    },
+    {
+      "id": "gl_tutor_c45c0ad9_7",
+      "lang": "gl",
+      "style": "tutor",
+      "text": "Obxecto",
+      "source": "articulation"
+    },
+    {
+      "id": "gl_tutor_c7066a92_17",
+      "lang": "gl",
+      "style": "tutor",
+      "text": "Xógase por forma.",
+      "source": "executiveFunctions"
+    },
+    {
+      "id": "gl_tutor_c77c6da8_7",
+      "lang": "gl",
+      "style": "tutor",
+      "text": "Paquete",
+      "source": "articulation"
+    },
+    {
+      "id": "gl_tutor_ccbe4f09_51",
+      "lang": "gl",
+      "style": "tutor",
+      "text": "¡Atención! A norma cambiou: agora xógase por forma.",
+      "source": "executiveFunctions"
+    },
+    {
+      "id": "gl_tutor_cdc91bd0_5",
+      "lang": "gl",
+      "style": "tutor",
+      "text": "Cravo",
+      "source": "articulation"
+    },
+    {
+      "id": "gl_tutor_d830f4b9_5",
+      "lang": "gl",
+      "style": "tutor",
+      "text": "Cocho",
+      "source": "articulation"
+    },
+    {
+      "id": "gl_tutor_d8f92688_4",
+      "lang": "gl",
+      "style": "tutor",
+      "text": "Xosé",
+      "source": "articulation"
+    },
+    {
+      "id": "gl_tutor_de30fe2b_5",
+      "lang": "gl",
+      "style": "tutor",
+      "text": "Coche",
+      "source": "articulation"
+    },
+    {
+      "id": "gl_tutor_e19b070d_4",
+      "lang": "gl",
+      "style": "tutor",
+      "text": "Mañá",
+      "source": "articulation"
+    },
+    {
+      "id": "gl_tutor_e42c4229_4",
+      "lang": "gl",
+      "style": "tutor",
+      "text": "Pala",
+      "source": "articulation"
+    },
+    {
+      "id": "gl_tutor_e4e5e70f_73",
+      "lang": "gl",
+      "style": "tutor",
+      "text": "Busca e atopa. Toca TODOS os gatiños que vexas, o máis rápido que poidas!",
+      "source": "executiveFunctions"
+    },
+    {
+      "id": "gl_tutor_e78c8b8c_6",
+      "lang": "gl",
+      "style": "tutor",
+      "text": "Violín",
+      "source": "articulation"
+    },
+    {
+      "id": "gl_tutor_ed66b27a_6",
+      "lang": "gl",
+      "style": "tutor",
+      "text": "Dragón",
+      "source": "articulation"
+    },
+    {
+      "id": "gl_tutor_ee20b641_12",
+      "lang": "gl",
+      "style": "tutor",
+      "text": "Carrapuchiña",
+      "source": "articulation"
+    },
+    {
+      "id": "gl_tutor_ee66e90f_4",
+      "lang": "gl",
+      "style": "tutor",
+      "text": "Pato",
+      "source": "articulation"
+    },
+    {
+      "id": "gl_tutor_ef0f7a4b_9",
+      "lang": "gl",
+      "style": "tutor",
+      "text": "Bolboreta",
+      "source": "articulation"
+    },
+    {
+      "id": "gl_tutor_ffd4a9fc_5",
+      "lang": "gl",
+      "style": "tutor",
+      "text": "Chave",
       "source": "articulation"
     },
     {
@@ -729,17 +2089,17 @@
       "source": "articulation"
     },
     {
-      "id": "tutor_097855b3_6",
-      "lang": "es",
-      "style": "tutor",
-      "text": "Puñete",
-      "source": "articulation"
-    },
-    {
       "id": "tutor_09e129d9_11",
       "lang": "es",
       "style": "tutor",
       "text": "Helicóptero",
+      "source": "articulation"
+    },
+    {
+      "id": "tutor_0b53ad5d_6",
+      "lang": "es",
+      "style": "tutor",
+      "text": "Ciudad",
       "source": "articulation"
     },
     {
@@ -771,10 +2131,10 @@
       "source": "articulation"
     },
     {
-      "id": "tutor_126befb6_4",
+      "id": "tutor_13c6b559_6",
       "lang": "es",
       "style": "tutor",
-      "text": "Auto",
+      "text": "Muñeca",
       "source": "articulation"
     },
     {
@@ -785,17 +2145,17 @@
       "source": "articulation"
     },
     {
+      "id": "tutor_18993700_6",
+      "lang": "es",
+      "style": "tutor",
+      "text": "Bosque",
+      "source": "articulation"
+    },
+    {
       "id": "tutor_19702d43_6",
       "lang": "es",
       "style": "tutor",
       "text": "Aftosa",
-      "source": "articulation"
-    },
-    {
-      "id": "tutor_1ce091cd_38",
-      "lang": "es",
-      "style": "tutor",
-      "text": "La guagua lloraba porque tenía hambre.",
       "source": "articulation"
     },
     {
@@ -841,6 +2201,13 @@
       "source": "articulation"
     },
     {
+      "id": "tutor_2ef0ddf2_10",
+      "lang": "es",
+      "style": "tutor",
+      "text": "Locomotora",
+      "source": "articulation"
+    },
+    {
       "id": "tutor_32789720_4",
       "lang": "es",
       "style": "tutor",
@@ -874,6 +2241,13 @@
       "style": "tutor",
       "text": "Busca y encuentra. Toca TODOS los gatitos que veas, ¡lo más rápido que puedas!",
       "source": "executiveFunctions"
+    },
+    {
+      "id": "tutor_38a42a53_7",
+      "lang": "es",
+      "style": "tutor",
+      "text": "Autobús",
+      "source": "articulation"
     },
     {
       "id": "tutor_3a0654eb_6",
@@ -911,6 +2285,13 @@
       "source": "executiveFunctions"
     },
     {
+      "id": "tutor_52b60cc1_36",
+      "lang": "es",
+      "style": "tutor",
+      "text": "El bebé lloraba porque tenía hambre.",
+      "source": "articulation"
+    },
+    {
       "id": "tutor_532b2a94_9",
       "lang": "es",
       "style": "tutor",
@@ -936,6 +2317,13 @@
       "lang": "es",
       "style": "tutor",
       "text": "Bote",
+      "source": "articulation"
+    },
+    {
+      "id": "tutor_56bf402b_2",
+      "lang": "es",
+      "style": "tutor",
+      "text": "Ñu",
       "source": "articulation"
     },
     {
@@ -995,13 +2383,6 @@
       "source": "articulation"
     },
     {
-      "id": "tutor_65674aae_13",
-      "lang": "es",
-      "style": "tutor",
-      "text": "Ametralladora",
-      "source": "articulation"
-    },
-    {
       "id": "tutor_68f16619_4",
       "lang": "es",
       "style": "tutor",
@@ -1013,6 +2394,13 @@
       "lang": "es",
       "style": "tutor",
       "text": "Copa",
+      "source": "articulation"
+    },
+    {
+      "id": "tutor_6dd8f7ef_4",
+      "lang": "es",
+      "style": "tutor",
+      "text": "Loro",
       "source": "articulation"
     },
     {
@@ -1121,6 +2509,13 @@
       "source": "articulation"
     },
     {
+      "id": "tutor_8f1d6b2e_6",
+      "lang": "es",
+      "style": "tutor",
+      "text": "Flauta",
+      "source": "articulation"
+    },
+    {
       "id": "tutor_92c6c730_4",
       "lang": "es",
       "style": "tutor",
@@ -1205,13 +2600,6 @@
       "source": "articulation"
     },
     {
-      "id": "tutor_ad49f916_5",
-      "lang": "es",
-      "style": "tutor",
-      "text": "Pasto",
-      "source": "articulation"
-    },
-    {
       "id": "tutor_ada2429b_7",
       "lang": "es",
       "style": "tutor",
@@ -1223,13 +2611,6 @@
       "lang": "es",
       "style": "tutor",
       "text": "Regla",
-      "source": "articulation"
-    },
-    {
-      "id": "tutor_afa71ed7_10",
-      "lang": "es",
-      "style": "tutor",
-      "text": "Carabinero",
       "source": "articulation"
     },
     {
@@ -1275,13 +2656,6 @@
       "source": "articulation"
     },
     {
-      "id": "tutor_d2174676_6",
-      "lang": "es",
-      "style": "tutor",
-      "text": "Poroto",
-      "source": "articulation"
-    },
-    {
       "id": "tutor_d21e608b_101",
       "lang": "es",
       "style": "tutor",
@@ -1307,13 +2681,6 @@
       "lang": "es",
       "style": "tutor",
       "text": "Panera",
-      "source": "articulation"
-    },
-    {
-      "id": "tutor_defaa905_5",
-      "lang": "es",
-      "style": "tutor",
-      "text": "Diuca",
       "source": "articulation"
     },
     {
@@ -1352,13 +2719,6 @@
       "source": "articulation"
     },
     {
-      "id": "tutor_f3bc4825_5",
-      "lang": "es",
-      "style": "tutor",
-      "text": "Ñandú",
-      "source": "articulation"
-    },
-    {
       "id": "tutor_f593bd57_6",
       "lang": "es",
       "style": "tutor",
@@ -1366,10 +2726,10 @@
       "source": "articulation"
     },
     {
-      "id": "tutor_fb94cb94_6",
+      "id": "tutor_fcd23f97_8",
       "lang": "es",
       "style": "tutor",
-      "text": "Flecha",
+      "text": "Mariposa",
       "source": "articulation"
     }
   ]

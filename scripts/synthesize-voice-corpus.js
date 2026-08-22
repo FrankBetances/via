@@ -3,11 +3,11 @@
 /**
  * Síntesis de los assets del CORPUS GENERAL de voz (herramienta de build-time).
  *
- *   node scripts/synthesize-voice-corpus.js [--lang es|gl|es-DO] [--force]
+ *   node scripts/synthesize-voice-corpus.js [--lang es|gl|eu|es-DO] [--force]
  *
  * Consume `voice-corpus.json`, filtra por idioma y sintetiza SOLO las
  * locuciones que aún no tienen asset (incremental → sin churn en git). Para
- * cada entrada: voz neural (`tools/nos/tts.py`: Piper es/es-DO, Celtia gl) →
+ * cada entrada: voz neural (`tools/nos/tts.py`: Piper es/es-DO, Celtia gl, AhoTTS eu) →
  * WAV → post-proceso ffmpeg (loudnorm + m4a mono 44.1k, IDÉNTICO al de la
  * audiometría verbal, mismo objetivo LUFS) → `assets/voice/<id>.m4a`.
  *

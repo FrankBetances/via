@@ -38,6 +38,8 @@ import { useCreateVoiceAnalysisMutation } from '@/Services/local/modules/voiceAn
 import { showErrorToast, showSuccessToast } from '@/Helpers/showToast';
 import { useVoiceAnalysis, VoiceTake } from './useVoiceAnalysis';
 import { registerVoiceMicAdapter, unregisterVoiceMicAdapter } from './voiceMicAdapter';
+import { LuaCompanionWidget } from '@/Components/Mascot/LuaCompanionWidget';
+import { useLuaCompanion, LuaEmotion } from '@/Lua';
 import {
   buildInterpretation,
   GRBAS_DIMENSIONS,
@@ -144,6 +146,24 @@ export default function VoiceAnalysisScreen({ navigation }: Props) {
   const patient = activeEvaluation?.patient;
   const patientName = patient ? `${patient.name} ${patient.lastName}`.trim() : null;
   const r = voice.result;
+
+  const lua = useLuaCompanion({
+    moduleKey: 'voice_analysis',
+    initialEmotion: LuaEmotion.Tranquility,
+    initialLevel: 1,
+    enableBreathing: !voice.isRecording && !r,
+  });
+
+  useEffect(() => {
+    if (voice.isRecording) {
+      lua.setPhase(1);
+      lua.setEmotion(LuaEmotion.Inspire);
+    } else if (r) {
+      lua.setVerdict(2);
+      lua.triggerReward('voice_analysis', 2);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [voice.isRecording, !!r]);
 
   const interpretation = useMemo(() => (r ? buildInterpretation(r) : ''), [r]);
   const grbasScores: GrbasScores | null = grbasComplete(grbas) ? { ...grbas } : null;
@@ -342,6 +362,22 @@ export default function VoiceAnalysisScreen({ navigation }: Props) {
                 {patientName ?? 'Vocal /a/ sostenida · 5 s · F0 · Jitter · Shimmer · HNR'}
               </Text>
             </VStack>
+
+            {/* Acompañamiento Lúa (Biofeedback de Respiración y Sostén Fonatorio) */}
+            <LuaCompanionWidget
+              emotion={lua.currentEmotion}
+              isBreathing={lua.isBreathing}
+              activeBadge={r ? lua.activeBadge : null}
+              connected={lua.connected}
+              level={r ? 12 : voice.isRecording ? 6 : 2}
+              message={
+                voice.isRecording
+                  ? '¡Sostén la «A» con voz firme y clara!'
+                  : r
+                  ? '¡Excelente vocalización! Tienes la insignia Voz Firme y Sonora.'
+                  : 'Inhala hondo y despacio con Lúa antes de empezar la emisión.'
+              }
+            />
 
             {/* captura */}
             <Card bgColor="$white" borderRadius={22} p="$5">

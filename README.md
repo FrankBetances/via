@@ -149,6 +149,9 @@ via/
 │   │   ├── ClinicalAssessment · AutismScreening · RoomNoiseCheck
 │   │   ├── Audiometry · AudiometryConditioned · VerbalAudiometry
 │   │   ├── VoiceAnalysis · Articulation · DysphagiaTest
+│   │   │   ├── articulationResult      # Rejilla fonema × posición (columna castellana IBÉRICA)
+│   │   │   ├── articulationLexicon     # Los 86 ítems en es · es-DO · gl · eu (firmado)
+│   │   │   └── articulationPictograms  # Pictograma por ítem (dato, no vista: testeable)
 │   │   ├── SahsScreening · ExecutiveFunctions
 │   │   ├── SeleccionEjercicios                       # Hub de la batería + idioma de sesión
 │   │   └── ResultadosPreliminares · ResultadosFinal · HistorialPaciente
@@ -281,10 +284,10 @@ la **voz** que locuta (consignas y modelos hablados).
 
 | Lengua | Banco verbal | Locuciones del estímulo | Consignas locutadas | Estado clínico |
 |---|---|---|---|---|
-| **es** — Español (España) | Base: 38 láminas, bandas A–D | ✅ empaquetadas | ✅ 91 recortes | 🟢 Validado |
-| **gl** — Galego | Banco propio, 38 láminas (Proxecto Nós) | ✅ voz Celtia | ⬜ voz del sistema | 🟢 Banco aprobado por **ACOPROS** (2026-07-28) |
-| **eu** — Euskara | Banco propio, 37 láminas (sibilantes, vibrante múltiple, diptongos decrecientes) | ✅ voz AhoTTS Maider | ⬜ voz del sistema | 🟡 **Provisional** — falta firma de logopeda euskaldun |
-| **es-DO** — Español dominicano · *Quisqueya Habla* | Hereda el banco `es` con auditoría fonética caribeña (hoy **0 sustituciones firmadas**) | ✅ 37/37 aprobadas (2026-07-19) | ✅ 86 recortes | 🟢 Audio aprobado para los archivos actuales |
+| **es** — Español (España) | Base: 38 láminas, bandas A–D | ✅ empaquetadas | ✅ 97 locuciones | 🟢 Validado |
+| **gl** — Galego | Banco propio, 38 láminas (Proxecto Nós) | ✅ voz Celtia | ✅ 97 locuciones | 🟢 Banco aprobado por **ACOPROS** (2026-07-28) |
+| **eu** — Euskara | Banco propio, 37 láminas (sibilantes, vibrante múltiple, diptongos decrecientes) | ✅ voz AhoTTS Maider | ✅ 97 locuciones | 🟡 **Provisional** — falta firma de logopeda euskaldun |
+| **es-DO** — Español dominicano · *Quisqueya Habla* | Hereda el banco `es` con auditoría fonética caribeña (hoy **0 sustituciones firmadas**) | ✅ 37/37 aprobadas (2026-07-19) | ✅ 97 locuciones | 🟢 Audio aprobado para los archivos actuales |
 
 > El aviso de «banco provisional» y el de «estímulo no definitivo» se muestran **en la pantalla
 > donde se elige el idioma**, no enterrados en la documentación. La audiometría verbal además
@@ -329,12 +332,22 @@ voz del sistema con la mejor voz verificada de esa lengua → silencio (el clín
 
 ### Corpus general y pipeline
 
-El corpus enumerable actual tiene **177 entradas** (`es` 91 · `es-DO` 86): las 5 consignas de
-Funciones Ejecutivas (solo `es` mientras el revisor lingüístico no firme el delta) y los 86 modelos
-hablados del T.A.R. en sus dos variantes. El inventario del T.A.R. se **deriva de
-`buildArticulationItems()`** —la misma función que dicta la pantalla—, así que corpus e inventario
-no pueden divergir. `gl` y `eu` no tienen entradas propias todavía: sus consignas caen a la voz del
-sistema y el T.A.R. reutiliza el recorte base `es` (la palabra evaluada sigue siendo la castellana).
+El corpus enumerable actual tiene **388 entradas, 97 por lengua** en las cuatro: los 86 modelos
+hablados del T.A.R., las 9 consignas de Funciones Ejecutivas (5 de dominio + 4 de norma) y las 2 de
+prosodia. El inventario del T.A.R. se **deriva de `buildArticulationItems()`** —la misma función que
+dicta la pantalla—, así que corpus e inventario no pueden divergir.
+
+Las cuatro lenguas tienen ya **contenido propio**, no relleno: `gl` y `eu` dejaron de reutilizar el
+recorte castellano, que era la promesa incumplida —se elegía la lengua y el estímulo seguía saliendo
+en castellano—. El T.A.R. no se traduce, porque es una rejilla FONEMA × POSICIÓN y traducir destruye
+la casilla (*Llave* → *Chave* cambia /ʎ/ por /tʃ/): cada variedad tiene su propio portador del
+fonema en `articulationLexicon`, con las desviaciones documentadas ítem a ítem.
+
+La columna castellana es **ibérica**. El T.A.R. de origen es chileno y su léxico llegaba con
+americanismos que un niño peninsular no reconoce (*poroto*, *pasto*, *auto*) y con referentes
+locales sin equivalente (*diuca*, *carabinero*); «guagua» remataba el cuadro, porque es bebé en
+Chile, autobús en República Dominicana y nada en España. El inventario tampoco nombra ya ninguna
+arma: *ametralladora* y *flecha* salieron del banco y del pictograma.
 
 ```bash
 node scripts/export-voice-corpus.js      # corpus puro → voice-corpus.json (valida colisiones)

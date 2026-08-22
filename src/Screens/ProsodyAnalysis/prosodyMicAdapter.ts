@@ -215,13 +215,12 @@ export function registerProsodyMicAdapter(): boolean {
       }
       capturing = false;
       liveListener = null;
-      decimate = null;
       endRecordingSession();
 
       // Los bloques llegan por el emisor de eventos, o sea en un turno
-      // posterior del hilo JS: leer `chunks` de inmediato perdería la cola de
-      // la emisión, justo el cierre entonativo que el módulo mide.
+      // posterior del hilo JS: se preserva decimate para recoger la cola completa.
       await new Promise<void>(resolve => setTimeout(resolve, TAIL_DRAIN_MS));
+      decimate = null;
 
       const cap = Math.floor(MAX_TAKE_SEC * SAMPLE_RATE);
       const total = Math.min(

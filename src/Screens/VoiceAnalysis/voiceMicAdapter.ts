@@ -288,20 +288,16 @@ export function registerVoiceMicAdapter(): boolean {
       } catch {
         /* noop */
       }
-      // El recorder se CONSERVA (su stream nativo se reutiliza en la toma
-      // siguiente); solo se cierra al desregistrar el adaptador.
       capturing = false;
       clearWatchdog();
       liveListener = null;
-      decimate = null;
       endRecordingSession();
 
       // `stop()` vacía el buffer nativo pendiente, pero los bloques llegan por
       // el emisor de eventos, es decir, en un turno posterior del hilo JS.
-      // Leyendo `chunks` de inmediato se perdía la cola de la emisión (hasta
-      // un par de décimas), justo el tramo final que el clínico acaba de pedir
-      // sostener. Un turno de espera basta para recogerla.
+      // Se preserva el decimador durante el vaciado de cola para capturar el final.
       await new Promise<void>(resolve => setTimeout(resolve, TAIL_DRAIN_MS));
+      decimate = null;
 
       // Concatena el PCM decimado; el análisis se hace después, bajo demanda.
       const total = chunks.reduce((a, c) => a + c.length, 0);

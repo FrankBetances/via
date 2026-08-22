@@ -73,7 +73,17 @@ const CODE_NAME: Record<Exclude<SodaCode, 'C'>, string> = {
   S: 'sust.', O: 'omis.', D: 'distor.', A: 'adic.',
 };
 
-/* ---- Inventario fonético por punto de articulación (consonantes) -------- */
+/* ---- Inventario fonético por punto de articulación (consonantes) --------
+ *
+ * Esta columna es CASTELLANO IBÉRICO. El T.A.R. original es chileno y su
+ * léxico llegaba con americanismos que un niño peninsular no reconoce
+ * («poroto» por judía, «pasto» por césped, «auto» por coche) y con referentes
+ * locales sin equivalente aquí (la diuca es un ave chilena; «carabinero» es
+ * allí la policía). Se han sustituido conservando fonema y posición: lo que
+ * el ítem mide no cambia, cambia la palabra con la que se mide.
+ *
+ * Las demás variedades viven en `articulationLexicon`, no aquí.
+ */
 type PlaceDef = [string, [string, [string, SyllabicPosition][]][]];
 
 const PLACES: PlaceDef[] = [
@@ -90,15 +100,15 @@ const PLACES: PlaceDef[] = [
     ['T', [['Tapa', 'I'], ['Mata', 'M'], ['Torta', 'T'], ['Etna', 'T']]],
   ]],
   ['Alveolares', [
-    ['S', [['Sapo', 'I'], ['Rosa', 'M'], ['Pasto', 'T']]],
+    ['S', [['Sapo', 'I'], ['Rosa', 'M'], ['Bosque', 'T']]],
     ['N', [['Nido', 'I'], ['Panera', 'M'], ['Canto', 'T']]],
     ['L', [['Luna', 'I'], ['Pala', 'M'], ['Dulce', 'T']]],
-    ['R', [['Coro', 'M'], ['Poroto', 'M'], ['Torta', 'T']]],
+    ['R', [['Coro', 'M'], ['Loro', 'M'], ['Torta', 'T']]],
     ['RR', [['Perro', 'M'], ['Carroza', 'M'], ['Rosa', 'I']]],
   ]],
   ['Palatales', [
     ['LL', [['Llave', 'I'], ['Payaso', 'M'], ['Malla', 'M']]],
-    ['Ñ', [['Ñandú', 'I'], ['Puñete', 'M'], ['Caña', 'M']]],
+    ['Ñ', [['Ñu', 'I'], ['Muñeca', 'M'], ['Caña', 'M']]],
     ['CH', [['Chándal', 'I'], ['Lechuga', 'M'], ['Noche', 'M']]],
   ]],
   ['Velares', [
@@ -108,14 +118,14 @@ const PLACES: PlaceDef[] = [
   ]],
 ];
 
-const DIFVOC = ['Piano', 'Vaina', 'Violín', 'Auto', 'Diuca', 'Fui'];
-const DIFCONS = ['Tabla', 'Regla', 'Premio', 'Clavo', 'Brazo', 'Atlas', 'Flecha', 'Fruta', 'Tigre', 'Dragón', 'Crema', 'Plato'];
-const POLI = ['Carabinero', 'Panadería', 'Caperucita', 'Ametralladora', 'Helicóptero', 'Bicicleta'];
+const DIFVOC = ['Piano', 'Vaina', 'Violín', 'Autobús', 'Ciudad', 'Fui'];
+const DIFCONS = ['Tabla', 'Regla', 'Premio', 'Clavo', 'Brazo', 'Atlas', 'Flauta', 'Fruta', 'Tigre', 'Dragón', 'Crema', 'Plato'];
+const POLI = ['Locomotora', 'Panadería', 'Caperucita', 'Mariposa', 'Helicóptero', 'Bicicleta'];
 const FRASES = [
   'El perro salta.',
   'La niña rubia come.',
   'Ana fue al jardín con su gatita.',
-  'La guagua lloraba porque tenía hambre.',
+  'El bebé lloraba porque tenía hambre.',
   'El mono que estaba dentro de la jaula se perdió.',
   'Juanito se metió debajo de la cama para que no lo pillara su mamá.',
 ];

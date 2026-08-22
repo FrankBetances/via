@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import {
+  Image,
   Platform,
   Pressable,
   ScrollView,
@@ -23,9 +24,10 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { ArrowRight, Flame, UserCheck } from 'lucide-react-native';
+import { ArrowRight, UserCheck } from 'lucide-react-native';
 
 import { RootStackParamList } from '@/Navigators';
+import ViaIcon from '@/Components/Common/ViaIcon';
 import {
   AcoprosMark,
   EarlifyMark,
@@ -245,9 +247,7 @@ export default function CreditosScreen({ navigation }: Props) {
       {/* Top Navbar */}
       <View style={styles.topNavbar}>
         <View style={styles.navLogoRow}>
-          <View style={styles.iconSquare}>
-            <Flame size={18} color="#FF7F00" fill="#FF7F00" />
-          </View>
+          <ViaIcon size={28} variant="color" />
           <Text style={styles.navLogoText}>
             VIA<Text style={{ color: '#FF7F00' }}>+</Text>
           </Text>
@@ -296,9 +296,22 @@ export default function CreditosScreen({ navigation }: Props) {
 
           {/* Tarjeta del Autor (Dr. Betances) */}
           <View style={styles.authorCard}>
-            <View style={styles.authorBadgeRow}>
-              <UserCheck size={14} color="#EA580C" />
-              <Text style={styles.authorBadgeText}>AUTORÍA Y DIRECCIÓN CLÍNICA</Text>
+            <View style={styles.authorHeaderRow}>
+              <View style={styles.authorAvatarBox}>
+                <Image
+                  source={require('@/../assets/img/logo_betances.jpg')}
+                  style={styles.authorAvatarImg}
+                  resizeMode="cover"
+                />
+              </View>
+              <View style={{ flex: 1 }}>
+                <View style={styles.authorBadgeRow}>
+                  <UserCheck size={14} color="#EA580C" />
+                  <Text style={styles.authorBadgeText}>AUTORÍA Y DIRECCIÓN CLÍNICA</Text>
+                </View>
+                <Text style={styles.authorName}>Dr. Frank Alberto Betances Reinoso</Text>
+                <Text style={styles.authorRole}>Otorrinolaringólogo y desarrollador principal</Text>
+              </View>
             </View>
 
             <View
@@ -307,11 +320,6 @@ export default function CreditosScreen({ navigation }: Props) {
               {bandWidth > 0
                 ? PARTICLES.map(cfg => <FlowParticle key={cfg.id} cfg={cfg} width={bandWidth} />)
                 : null}
-            </View>
-
-            <View style={styles.authorInfo}>
-              <Text style={styles.authorName}>Dr. Frank Alberto Betances Reinoso</Text>
-              <Text style={styles.authorRole}>Otorrinolaringólogo y desarrollador principal</Text>
             </View>
           </View>
         </View>
@@ -592,14 +600,38 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    marginBottom: 8,
+    marginBottom: 4,
   },
   authorBadgeText: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '700',
     color: '#EA580C',
     textTransform: 'uppercase',
     letterSpacing: 0.5,
+  },
+  authorHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+    marginBottom: 8,
+  },
+  authorAvatarBox: {
+    width: 60,
+    height: 60,
+    borderRadius: 18,
+    borderWidth: 2,
+    borderColor: '#12A79B',
+    overflow: 'hidden',
+    backgroundColor: '#0D9488',
+    shadowColor: '#12A79B',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.2,
+    shadowRadius: 6,
+    elevation: 3,
+  },
+  authorAvatarImg: {
+    width: '100%',
+    height: '100%',
   },
   particleBand: {
     height: 36,
@@ -611,14 +643,11 @@ const styles = StyleSheet.create({
     left: 0,
     top: 0,
   },
-  authorInfo: {
-    marginTop: 4,
-  },
   authorName: {
-    fontSize: 17,
+    fontSize: 16,
     fontWeight: '800',
     color: '#2B2620',
-    lineHeight: 22,
+    lineHeight: 20,
   },
   authorRole: {
     fontSize: 12,

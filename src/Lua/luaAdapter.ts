@@ -123,6 +123,45 @@ export const luaCelebrate = (intensity: number): void =>
   luaCtrl(LUA_OP.CELEBRATE, Math.max(0, Math.min(2, Math.round(intensity))));
 
 /**
+ * Estado afectivo emocional (0-15):
+ * 0: Alegría, 1: Amor, 2: Gratitud, 3: Tranquilidad, 4: Esperanza, 5: Orgullo,
+ * 6: Inspiración, 7: Diversión, 8: Escucha atenta.
+ *
+ * El rango se acota a 0-15 (medio byte) para dejar sitio a nuevas emociones sin
+ * volver a tocar el protocolo. Un firmware que solo conozca las 8 originales
+ * debe replegar los identificadores que no reconozca a `Tranquility` (3), NO
+ * tomar el módulo: `8 % 8` pintaría Alegría en plena escucha.
+ */
+export const luaAffect = (emotion: number): void =>
+  luaCtrl(LUA_OP.AFFECT, Math.max(0, Math.min(15, Math.round(emotion))));
+
+/** Fase del turno clínico (0-3): 0: escucha, 1: repite/fonación, 2: veredicto, 3: misión */
+export const luaPhase = (phase: number): void =>
+  luaCtrl(LUA_OP.PHASE, Math.max(0, Math.min(3, Math.round(phase))));
+
+/** Veredicto de articulación / respuesta (0-2): 0: no coincide, 1: casi, 2: aprobado */
+export const luaVerdict = (level: number): void =>
+  luaCtrl(LUA_OP.VERDICT, Math.max(0, Math.min(2, Math.round(level))));
+
+/** Pictograma de la ficha del ejercicio (0-0xFFFF, 0xFFFF quita) */
+export const luaPicto = (index: number): void =>
+  luaCtrl(LUA_OP.PICTO, Math.max(0, Math.min(0xffff, Math.round(index))));
+
+/** Insignia glífica (glifo 0-8, rango 0-4) */
+export const luaAward = (glyph: number, rank = 0): void => {
+  const g = Math.max(0, Math.min(8, Math.round(glyph)));
+  const r = Math.max(0, Math.min(4, Math.round(rank)));
+  luaCtrl(LUA_OP.AWARD, (r << 8) | g);
+};
+
+/** Nivel de progresión en el anillo radial (1-12) */
+export const luaLevel = (level: number): void =>
+  luaCtrl(LUA_OP.LEVEL, Math.max(1, Math.min(12, Math.round(level))));
+
+/** Animación de llamada del Modo Vínculo */
+export const luaCall = (): void => luaCtrl(LUA_OP.CALL);
+
+/**
  * Silencio clínico: revoca la concesión y **bloquea** nuevas hasta un desbloqueo
  * explícito. Con confirmación. Resuelve `false` si no hay aparato o si la
  * escritura no llegó — que no es una emergencia: el control de la medición es la

@@ -130,15 +130,17 @@ con la línea citada. Dos detalles que se habían inventado mal antes:
 
 ## 3. La postura de VIA+: el control es la ausencia
 
-> **Superado en la conclusión, vigente en el argumento (14/8/2026).** La
-> dirección decidió que Lúa esté presente y espeje durante la batería, así que la
-> tabla de abajo ya no describe lo que VIA+ va a hacer —sí lo que hace hoy—. Lo
-> que **no** cambia es el criterio: si el aparato se apaga y la exploración sigue
-> igual, es un accesorio; si la maniobra depende de que el aviso llegue, no lo
-> es. Cada fila de la matriz nueva se clasifica con ese criterio en
+> **Implementado (22/8/2026).** La dirección decidió el 14/8 que Lúa esté
+> presente y espeje durante la batería, y esa decisión **ya está en el código**:
+> `useLuaCompanion` acompaña las siete pruebas. La tabla de abajo describía el
+> estado anterior y se ha reescrito; lo que **no** cambia es el criterio con el
+> que se juzga cada fila: si el aparato se apaga y la exploración sigue igual, es
+> un accesorio; si la maniobra depende de que el aviso llegue, no lo es. Cada
+> fila se clasifica con ese criterio en
 > [`lua-salida-y-alertas-sonoras.md`](lua-salida-y-alertas-sonoras.md) §4, y tres
 > de las siete caen del lado que hay que hablar con el análisis de riesgo
-> delante.
+> delante. **Ese sigue siendo el punto abierto**, y ahora con código detrás en
+> vez de un plan: ver §3.1.
 
 VIA+ es SaMD **Clase IIa**: todo lo que pueda alterar la validez de una medición
 entra en el expediente técnico y en el análisis ISO 14971.
@@ -157,24 +159,50 @@ detectable. Caro, y no hace falta.
 
 De ahí sale todo lo demás:
 
-| | Qué hace VIA+ |
-|---|---|
-| **Durante la medición** | Nada. Ni refuerzo, ni espejo de turno, ni veredicto |
-| **Al cerrar la sesión** | La recompensa de `ResultadosFinal` (§4) |
-| **Si alguien la trae puesta** | `SAFE`/`CLINICAL_SILENCE` al abrirse cualquier captura — **defensa en profundidad, no declarada como control** (§5) |
+| | Qué hacía VIA+ | Qué hace desde la integración del acompañamiento |
+|---|---|---|
+| **Durante la medición** | Nada. Ni refuerzo, ni espejo de turno, ni veredicto | Espeja el turno: `AFFECT` (estado afectivo), `PHASE` (fase del turno clínico) y, donde hay progresión, `LEVEL`. El refuerzo es **visual y háptico del periférico**, nunca sonoro mientras hay captura abierta (§5) |
+| **Al cerrar la prueba** | — | `AWARD`: insignia clínica del módulo (siete, una por prueba) |
+| **Al cerrar la sesión** | La recompensa de `ResultadosFinal` (§4) | Igual, más la Gran Insignia de cierre |
+| **Si alguien la trae puesta** | `SAFE`/`CLINICAL_SILENCE` al abrirse cualquier captura — **defensa en profundidad, no declarada como control** (§5) | Sin cambios: el silencio clínico es anterior e independiente del acompañamiento, y sus pruebas siguen verdes |
 
-### 3.1. Por qué no se envía `VERDICT` ni `PHASE`
+### 3.1. `VERDICT` y `PHASE` ahora SÍ se envían — y eso abre el expediente
 
-Existen en el protocolo y Valeria+ los usa dentro de la terapia: el adulto
-califica y el aparato espeja el turno. En VIA+ eso sería refuerzo **durante** la
-medición, y el §8.4 del plan lo deja fuera de la v1 con un argumento que no es
-burocrático: hay caso clínico para ello —es literalmente lo que hace un VRA con
-un juguete iluminado—, pero entonces Lúa deja de ser un accesorio decorativo y
-hay que plantearse en serio si es parte del dispositivo. **Esa conversación se
-tiene con el organismo notificado, no en un `.md`.**
+Este apartado decía lo contrario, y conviene leer por qué cambió.
 
-Mientras eso no ocurra, VIA+ envía `GRANT`, `HEARTBEAT`, `CELEBRATE` e `IDLE`, y
-nada más.
+Ambos opcodes existen en el protocolo y Valeria+ los usa dentro de la terapia: el
+adulto califica y el aparato espeja el turno. El §8.4 del plan los dejaba fuera
+de la v1 de VIA+ con un argumento que no era burocrático: hay caso clínico para
+ello —es literalmente lo que hace un VRA con un juguete iluminado—, pero enviarlos
+convierte a Lúa en algo más que un accesorio decorativo.
+
+La dirección decidió el 14/8 que Lúa acompañe la batería, y la integración lo
+implementa. El envío real de la app es hoy:
+
+| Opcode | Cuándo | Quién lo emite |
+|---|---|---|
+| `AFFECT` | Cambio de estado afectivo en cualquiera de las siete pruebas | `useLuaCompanion.setEmotion()` |
+| `PHASE` | Cambio de fase del turno clínico | `useLuaCompanion.setPhase()` |
+| `VERDICT` | Resultado de un ítem, donde la prueba lo tiene | `useLuaCompanion` |
+| `LEVEL` | Progresión (anillo de 12 niveles del T.A.R.) | `useLuaCompanion.setLevel()` |
+| `AWARD` | Insignia al cerrar cada módulo | `useLuaCompanion.awardBadge()` |
+| `GRANT` · `HEARTBEAT` · `CELEBRATE` · `IDLE` | Como antes | `closingReward` · `installLua` |
+
+**Lo que esto NO cambia:** el silencio clínico (§5) es anterior e independiente,
+y sigue siendo la defensa en profundidad de siempre. Lúa no emite sonido con una
+captura abierta, así que el refuerzo durante la medición es visual y háptico del
+propio periférico, no acústico: no entra en el canal por el que se mide.
+
+**Lo que esto SÍ cambia, y hay que decirlo con todas las letras:** con `PHASE` y
+`VERDICT` en vuelo durante la exploración, la pregunta de si Lúa es parte del
+dispositivo deja de ser hipotética. El criterio de §3 sigue siendo el que decide
+—si el aparato se apaga y la exploración sigue igual, es accesorio—, y hoy se
+cumple: ningún camino clínico espera a Lúa, todo envío es dispara-y-olvida y sin
+adaptador la app es idéntica (verificado en los tests, §6). Pero eso es un
+argumento que **hay que sostener ante el organismo notificado con el análisis de
+riesgo delante**, no darlo por bueno en un `.md`. Las tres filas señaladas en
+[`lua-salida-y-alertas-sonoras.md`](lua-salida-y-alertas-sonoras.md) §4 son
+exactamente las que exigen esa conversación.
 
 ---
 
@@ -308,9 +336,25 @@ src/Lua/
 ├── clinicalSilence.ts   # SAFE al abrirse una captura (defensa en profundidad)
 ├── closingReward.ts     # UNLOCK → GRANT → CELEBRATE + latido (ResultadosFinal)
 ├── useLua.ts            # useLuaClosingReward() · useLuaDiagnostics()
+├── useLuaCompanion.ts   # acompañamiento en las 7 pruebas: 9 emociones, fase,
+│                        # nivel, respiración guiada e insignias clínicas
 ├── installLua.ts        # instalación conjunta: silencio + adaptador
 └── __tests__/
+
+src/Components/Mascot/
+├── LuaCompanionWidget.tsx  # tarjeta en pantalla: emoción, mensaje e insignia
+└── LuaPixel.tsx            # pixel art compartido con la cara del aparato
 ```
+
+Las **nueve emociones** (`LuaEmotion`) y las **siete insignias clínicas**
+(`LUA_CLINICAL_BADGES`, una por prueba, más la Gran Insignia de cierre) viven en
+`useLuaCompanion.ts`. La novena, `Attentive`, se añadió para las pruebas en que
+Lúa acompaña sin intervenir —audiometría verbal y T.A.R.—: el rango de `AFFECT`
+subió a 0-15 para dejar sitio a futuras emociones sin revisar el protocolo, y el
+firmware debe replegar a `kExprTranquility` todo id que no reconozca. Ojo con el
+detalle: el firmware de referencia resolvía `AFFECT` con `p1 % 8`, que habría
+pintado **Alegría** en plena escucha atenta. La tabla y el repliegue están en
+[`README-LUA-FIRMWARE-INTEGRATION.md`](README-LUA-FIRMWARE-INTEGRATION.md) §4.
 
 Enganches, todos existentes:
 
@@ -320,6 +364,8 @@ Enganches, todos existentes:
 | Dependencia BLE | `react-native-ble-plx@^3.2.1` ya está | ✅ nada que hacer |
 | Aviso de captura | `onRecordingSessionChange()` en `src/Audio/sharedAudioContext.ts` | ✅ hecho |
 | Recompensa | `useLuaClosingReward()` en `ResultadosFinal` | ✅ hecho |
+| Acompañamiento | `useLuaCompanion()` en las 7 pruebas de la batería | ✅ hecho |
+| Widget en pantalla | `LuaCompanionWidget` | ✅ hecho |
 | `BleManager` compartido | arranque de la app, para Lúa **y** el pulsioxímetro | ⏳ pendiente (§9) |
 
 **Reglas de la casa, verificadas en los tests:** ningún camino clínico espera
@@ -335,7 +381,7 @@ adaptador que lanza no se propaga a ninguna pantalla.
 |---|---|---|---|---|
 | L-1 | El periférico interfiere en una medición | Medida inválida → decisión clínica sobre dato falso | **Ausencia física durante la medición** (procedimiento de exploración). *Defensa en profundidad, no declarada:* `SAFE` al abrirse cualquier captura; y en v1 el aparato no tiene altavoz | Auditoría del procedimiento. Además, test de integración: la reserva real de micrófono emite el `SAFE` |
 | L-2 | Encaminamiento del audio clínico al periférico | Audiometría de campo libre por transductor no calibrado, **sin señal de error** | BLE-only, sin perfiles de audio clásicos (§5.3) | Inspección de la pila BT del firmware + prueba en iOS con Lúa conectada durante audiometría |
-| L-3 | Distracción visual | Peor rendimiento atribuido al niño, no al estímulo | VIA+ no expresa nada durante la batería: la única expresión es al cerrar la sesión (§4) | Tests de la recompensa: no celebra con captura viva ni fuera de su pantalla |
+| L-3 | Distracción visual | Peor rendimiento atribuido al niño, no al estímulo | ⚠️ **CONTROL SUPERADO POR LA IMPLEMENTACIÓN.** Decía «VIA+ no expresa nada durante la batería»; desde el acompañamiento (§3.1) sí expresa: `AFFECT`, `PHASE`, `LEVEL`. Lo que queda en pie es que la expresión no es acústica con captura abierta y que ningún camino clínico depende de ella. **Necesita control nuevo y redactado como tal** | Tests de la recompensa: no celebra con captura viva ni fuera de su pantalla. **Insuficiente para el control nuevo** |
 | L-4 | El periférico bloquea el flujo clínico | Sesión interrumpida | Adaptador *no-op* sin hardware; ningún `await` de Lúa en un flujo de prueba; escaneo fuera del camino crítico | Tests con adaptador ausente, caído, que lanza y con escrituras que fallan |
 | L-5 | Fuga de datos | Incumplimiento de protección de datos | **Zero-PHI estructural**: no existe ninguna característica de texto en el protocolo. No hay sitio donde meter un nombre | Gate del protocolo en cada ejecución de la suite |
 
@@ -439,8 +485,16 @@ gata que guía la terapia», ni que acompaña, mejora o sostiene el tratamiento.
    el firmware **leyéndolo**, que es mejor que inventarlo pero no es lo mismo que
    conectar. Pendiente: emparejamiento, `BENCH` para el presupuesto de latencia
    (300 ms) y comprobar que `UNLOCK` → `GRANT` → `CELEBRATE` dibuja de verdad.
-3. **Avisar a Valeria+** de la discrepancia de `STATE` en `protocol.json` (§2.2).
-4. **Cerrar en Valeria+ las cuatro divergencias del sonido** entre la D-F del
+3. **Rehacer la tabla ISO 14971 del §7 con el acompañamiento delante.** Ya no
+   es un «cuando llegue el hardware»: el código está. El control de **L-3** decía
+   que VIA+ no expresa nada durante la batería y eso ha dejado de ser cierto, así
+   que la fila está marcada como superada y necesita un control redactado de
+   nuevo, con su verificación. **L-1** conserva su control —el silencio clínico es
+   independiente y sus pruebas siguen verdes—, pero su argumento ya no puede
+   apoyarse en «el aparato no está». Esto lo firma el responsable clínico, no un
+   `.md`.
+4. **Avisar a Valeria+** de la discrepancia de `STATE` en `protocol.json` (§2.2).
+5. **Cerrar en Valeria+ las cuatro divergencias del sonido** entre la D-F del
    plan y la decisión de dirección del 14/8/2026, que es lo que hoy impide
    escribir una sola línea de audio en cualquiera de los tres repositorios:
    [`lua-salida-y-alertas-sonoras.md`](lua-salida-y-alertas-sonoras.md) §6.

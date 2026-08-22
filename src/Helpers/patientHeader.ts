@@ -15,6 +15,8 @@ export interface PatientHeaderSource {
   name?: string | null;
   lastName?: string | null;
   nhc?: string | null;
+  nameEnc?: string | null;
+  idHash?: string | null;
 }
 
 export interface PatientHeader {
@@ -32,10 +34,35 @@ const EMPTY: PatientHeader = {
   hasPatient: false,
 };
 
+/**
+ * ¿Este valor parece un criptograma o un hash en vez de un nombre? Se comprueba
+ * por FORMA, no por longitud: un nombre real lleva espacios o caracteres fuera
+ * del alfabeto base64/hex, mientras que un blob es una tirada larga y continua
+ * de base64 (con su relleno `=`) o de hexadecimal.
+ */
+function looksOpaque(value: string): boolean {
+  if (!value || /\s/.test(value)) return false;
+  if (value.length < 24) return false;
+  return /^[A-Za-z0-9+/]+={0,2}$/.test(value) || /^[0-9a-f]+$/i.test(value);
+}
+
 export function describePatient(patient: PatientHeaderSource | null | undefined): PatientHeader {
   if (!patient) return EMPTY;
 
-  const fullName = `${patient.name ?? ''} ${patient.lastName ?? ''}`.trim();
+  const directName = patient.name?.trim() || '';
+  const directLastName = patient.lastName?.trim() || '';
+  const directCombined = `${directName} ${directLastName}`.trim();
+
+  // `nameEnc` es el campo AES-256-GCM del modelo. En Fase 1 todavía guarda el
+  // nombre en claro y por eso sirve de respaldo para los objetos planos que no
+  // pasan por la clase `Patient`. En cuanto la capa de seguridad cifre de
+  // verdad, ese respaldo pintaría el blob en la cabecera de todas las
+  // pantallas: `looksOpaque` lo descarta antes de que eso ocurra, de modo que
+  // la cabecera se quede vacía —recuperable— en vez de mostrar criptograma.
+  const encRaw = patient.nameEnc?.trim() || '';
+  const encName = looksOpaque(encRaw) ? '' : encRaw;
+
+  const fullName = directCombined || encName;
   if (!fullName) return EMPTY;
 
   const initials =
@@ -46,7 +73,7 @@ export function describePatient(patient: PatientHeaderSource | null | undefined)
       .substring(0, 2)
       .toUpperCase() || '—';
 
-  const nhc = patient.nhc?.trim();
+  const nhc = (patient.nhc?.trim() || patient.idHash?.trim() || '');
 
   return {
     patientLabel: nhc ? `${fullName} · NHC-${nhc}` : fullName,

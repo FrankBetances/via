@@ -213,6 +213,8 @@ export default function PacientesScreen({ navigation }: Props) {
               name: patient.nameEnc.split(' ')[0] ?? patient.nameEnc,
               lastName: patient.nameEnc.split(' ').slice(1).join(' '),
               nhc: patient.idHash,
+              nameEnc: patient.nameEnc,
+              idHash: patient.idHash,
             },
             professional: currentProfessional
               ? { id: currentProfessional.id, name: currentProfessional.fullName, licenseNumber: currentProfessional.licenseNumber }

@@ -40,6 +40,8 @@ import {
   type ProsodyAgeBand,
 } from './prosodyStimuli';
 import ProsodyStimulusScene from './ProsodyStimulusScene';
+import { LuaCompanionWidget } from '@/Components/Mascot/LuaCompanionWidget';
+import { useLuaCompanion, LuaEmotion } from '@/Lua';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'ProsodyAnalysis'>;
 
@@ -109,6 +111,28 @@ export default function ProsodyAnalysisScreen({ navigation }: Props) {
   const [evaluatorLicense, setEvaluatorLicense] = useState(
     activeEvaluation?.professional?.licenseNumber ?? '',
   );
+  const patient = activeEvaluation?.patient;
+  const patientName = patient ? `${patient.name} ${patient.lastName}`.trim() : null;
+
+  const lua = useLuaCompanion({
+    moduleKey: 'prosody_analysis',
+    initialEmotion: LuaEmotion.Tranquility,
+    initialLevel: 1,
+  });
+
+  useEffect(() => {
+    if (prosody.phase === 'recording') {
+      lua.setPhase(1);
+      lua.setEmotion(LuaEmotion.Love);
+    } else if (prosody.phase === 'done') {
+      lua.setVerdict(2);
+      lua.triggerReward('prosody_analysis', 2);
+    } else {
+      lua.setPhase(0);
+      lua.setEmotion(LuaEmotion.Tranquility);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [prosody.phase]);
 
   const stimulus = prosodyStimulusFor(ageBand);
   const [voiceAvailable, setVoiceAvailable] = useState(canSpeak);
@@ -221,9 +245,24 @@ export default function ProsodyAnalysisScreen({ navigation }: Props) {
                 </Box>
               </HStack>
               <Text size="sm" color="$textLight600">
-                Ritmo, pausas y entonación sobre una muestra de habla narrada.
+                {patientName ?? 'Ritmo, pausas y entonación sobre una muestra de habla narrada.'}
               </Text>
             </VStack>
+
+            {/* Acompañamiento Lúa (Escucha Activa y Recompensa Prosódica) */}
+            <LuaCompanionWidget
+              emotion={lua.currentEmotion}
+              activeBadge={prosody.phase === 'done' ? lua.activeBadge : null}
+              connected={lua.connected}
+              level={prosody.phase === 'done' ? 12 : prosody.phase === 'recording' ? 6 : 2}
+              message={
+                prosody.phase === 'recording'
+                  ? '¡Te escucho con mucha atención! Cuéntame la historia.'
+                  : prosody.phase === 'done'
+                  ? '¡Fantástica narración! Has ganado la insignia Ritmo y Melodía.'
+                  : 'Mira la lámina y cuéntame todo lo que ves con tu ritmo natural.'
+              }
+            />
 
             {/* Sin motor de captura: el módulo lo dice y no finge. */}
             {!prosody.available ? (

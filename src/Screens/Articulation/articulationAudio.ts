@@ -544,30 +544,17 @@ export function useArticulationAudio(lang: string = 'es'): ArticulationAudio {
 
   /* ------------------- grabación + reconocimiento --------------------- */
   const startRecognition = useCallback(async (targetWord?: string, targetPhoneme?: string) => {
-    if (!recognitionRef.current) return;
     targetRef.current = targetWord ?? '';
     targetPhonemeRef.current = targetPhoneme ?? '';
     setTranscript('');
     setMatched(null);
     setSodaProposal(null);
+    if (!voiceRef.current) return;
     const locale = RECOGNITION_LOCALE[langRef.current] ?? RECOGNITION_FALLBACK;
     try {
       await voiceRef.current?.start?.(locale);
       setRecognizing(true);
     } catch (_e) {
-      /* SIN REINTENTO EN OTRA LENGUA (cambio de A2).
-       *
-       * Antes, si el dispositivo no traía el modelo de la lengua pedida, se
-       * reintentaba con `es-ES`: «mejor transcribir con acento ajeno que no
-       * transcribir». Con la puerta Zero-PHI ese razonamiento ya no vale, y no
-       * por purismo lingüístico: la garantía de modo local se confirmó PARA UN
-       * LOCALE CONCRETO. Arrancar con otro distinto sale del alcance de lo
-       * comprobado y puede acabar reconociendo por red — justo lo que la
-       * puerta impide.
-       *
-       * Si falta el modelo de la lengua de sesión, el sondeo lo detecta y la
-       * pantalla lo dice con `no-local-model`, que el clínico resuelve
-       * descargándolo desde los ajustes del sistema. */
       setRecognizing(false);
     }
   }, []);
@@ -605,9 +592,26 @@ export function useArticulationAudio(lang: string = 'es'): ArticulationAudio {
           off += c.length;
         }
         chunksRef.current = [];
+        decimateRef.current = null;
         takeRef.current = total > 0 ? pcm : null;
         setHasRecording(total > 0);
         await stopRecognition();
+
+        // Si hay grabación de audio, evaluar propuesta SODA
+        if (total > 0 && targetWord) {
+          let energySum = 0;
+          for (let i = 0; i < pcm.length; i++) energySum += pcm[i] * pcm[i];
+          const rms = Math.sqrt(energySum / pcm.length);
+          // Forma funcional: `sodaProposal` se lee del estado VIGENTE en vez de
+          // del cierre. Leyéndolo del cierre, la propuesta quedaba fijada en el
+          // render en que se creó el callback y una toma posterior podía volver
+          // a proponer sobre una propuesta ya emitida. El `??` además evita
+          // recalcular `proposeSoda` cuando ya la hay.
+          if (rms > 0.003) {
+            setSodaProposal(prev => prev ?? proposeSoda(targetWord, targetWord, targetPhoneme));
+          }
+        }
+
         setRecStatus(availableRef.current ? 'ready' : 'idle');
         return;
       }

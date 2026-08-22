@@ -39,6 +39,8 @@ import {
 } from './verbalAudiometryBanks';
 import { verbalGlyphForLang, verbalImageSourceForLang } from './verbalAssetsByLang';
 import WordCard, { WordCardState } from './components/WordCard';
+import { LuaCompanionWidget } from '@/Components/Mascot/LuaCompanionWidget';
+import { useLuaCompanion, LuaEmotion } from '@/Lua';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'VerbalAudiometry'>;
 
@@ -96,23 +98,38 @@ export default function VerbalAudiometryScreen({ navigation }: Props) {
   const patient = activeEvaluation?.patient;
   const patientName = patient ? `${patient.name} ${patient.lastName}`.trim() : null;
 
+  const lua = useLuaCompanion({
+    moduleKey: 'verbal_audiometry',
+    initialEmotion: LuaEmotion.Tranquility,
+    initialLevel: 1,
+  });
+
   const answered = v.chosen !== null;
   const scoredTotal = v.bandDef.items.filter(i => !i.practice).length;
 
   /* ----------------------- autonomía de la fase de juego -------------------- */
 
   // La auto-presentación del estímulo la gobierna el HOOK (regla clínica, no de
-  // presentación). Aquí solo se le dice si la fase de juego está activa: cuando
-  // el temporizador vivía en esta pantalla, cualquier re-render remontaba el
-  // efecto y cancelaba la emisión pendiente, dejando la lámina muda.
+  // presentación).
   useEffect(() => {
     v.setRunning(phase === 'play');
+    if (phase === 'play') {
+      lua.setPhase(0);
+      lua.setEmotion(LuaEmotion.Attentive);
+    } else if (phase === 'results') {
+      lua.triggerReward('verbal_audiometry', 2);
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [phase]);
 
   // Tras responder, la pantalla avanza sola después del feedback.
   useEffect(() => {
     if (phase !== 'play' || !answered) return;
+    if (v.wasCorrect) {
+      lua.setVerdict(2);
+    } else {
+      lua.setVerdict(0);
+    }
     const t = setTimeout(() => v.next(), v.wasCorrect ? ADVANCE_OK_MS : ADVANCE_FAIL_MS);
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -232,6 +249,14 @@ export default function VerbalAudiometryScreen({ navigation }: Props) {
           {patientName ?? 'Reconocimiento de palabras por selección de tarjetas'}
         </Text>
       </VStack>
+
+      <LuaCompanionWidget
+        emotion={lua.currentEmotion}
+        activeBadge={lua.activeBadge}
+        connected={lua.connected}
+        level={3}
+        message="Escucha la palabra que suena por el altavoz y toca la tarjeta correcta."
+      />
 
       <Card bgColor="$white" borderRadius={20} p="$4">
         <Text size="sm" color="$textLight700" style={{ lineHeight: 20 }}>

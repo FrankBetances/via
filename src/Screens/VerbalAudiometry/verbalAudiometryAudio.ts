@@ -212,7 +212,10 @@ export function installVerbalAudioAdapter(opts: VerbalAudioAdapterOptions = {}):
   // AudioContext y, con él, un segundo stream nativo que en Android (Oboe
   // exclusivo) dejaba mudo al de los tonos —o se quedaba mudo él— según cuál
   // arrancase primero.
-  const ctx = acquireAudioContext();
+  // `let` y no `const`: si el sistema tira el contexto (Android puede cerrarlo
+  // al perder el foco de audio), los puntos de reproducción lo vuelven a
+  // adquirir en vez de quedarse mudos para el resto de la sesión.
+  let ctx = acquireAudioContext();
   const bufferCache = new Map<string, AudioBuffer>();
 
   // Nodos del estímulo en curso (para poder detenerlos).
@@ -489,29 +492,39 @@ export function installVerbalAudioAdapter(opts: VerbalAudioAdapterOptions = {}):
         },
       });
     });
+    // NO se captura aquí: el rechazo DEBE propagarse a `playWord`, que es quien
+    // contabiliza el fallo (para degradar la sesión entera tras varios seguidos)
+    // y degrada la palabra a su recorte empaquetado. Un `catch` local que
+    // reintentaba por `speakText` dejaba la palabra MUDA cuando el motor de
+    // síntesis era el que fallaba, que es justo el caso que el respaldo cubre.
   };
 
   const playBuffer = (buffer: AudioBuffer, levelDb: number) => {
+    if (!ctx) ctx = acquireAudioContext();
     if (!ctx) return;
     // Reactivar el contexto si el sistema lo suspendió (ver audiometryToneAdapter).
     resumeAudioContext();
     const now = ctx.currentTime;
-    source = ctx.createBufferSource();
-    source.buffer = buffer;
-    gain = ctx.createGain();
-    panner = ctx.createStereoPanner();
-    panner.pan.value = 0; // campo libre binaural: centrado en ambos altavoces
-    const level = levelToGain(levelDb);
-    // Rampas anti-click de 15 ms al inicio y al final del recorte.
-    gain.gain.setValueAtTime(0, now);
-    gain.gain.linearRampToValueAtTime(level, now + 0.015);
-    const end = now + buffer.duration;
-    gain.gain.setValueAtTime(level, Math.max(now + 0.015, end - 0.015));
-    gain.gain.linearRampToValueAtTime(0, end);
-    source.connect(gain);
-    gain.connect(panner);
-    panner.connect(ctx.destination);
-    source.start(now);
+    try {
+      source = ctx.createBufferSource();
+      source.buffer = buffer;
+      gain = ctx.createGain();
+      panner = ctx.createStereoPanner();
+      panner.pan.value = 0; // campo libre binaural: centrado en ambos altavoces
+      const level = levelToGain(levelDb);
+      // Rampas anti-click de 15 ms al inicio y al final del recorte.
+      gain.gain.setValueAtTime(0, now);
+      gain.gain.linearRampToValueAtTime(level, now + 0.015);
+      const end = now + (buffer.duration || 1);
+      gain.gain.setValueAtTime(level, Math.max(now + 0.015, end - 0.015));
+      gain.gain.linearRampToValueAtTime(0, end);
+      source.connect(gain);
+      gain.connect(panner);
+      panner.connect(ctx.destination);
+      source.start(now);
+    } catch (_e) {
+      /* si el buffer nativo falla, no tumbar el flujo */
+    }
   };
 
   /**
@@ -524,23 +537,34 @@ export function installVerbalAudioAdapter(opts: VerbalAudioAdapterOptions = {}):
    *      fiable con binarios, por eso ya no es la vía principal).
    */
   const decodeClip = async (audioKey: string, lang?: string): Promise<AudioBuffer> => {
+    if (!ctx) ctx = acquireAudioContext();
     if (!ctx) throw new Error('sin AudioContext');
+    resumeAudioContext();
     const b64 = assetBase64?.(audioKey, lang) ?? null;
     if (b64) {
-      const bytes = Buffer.from(b64, 'base64');
-      const ab = bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength);
-      return await ctx.decodeAudioData(ab as ArrayBuffer);
+      try {
+        const bytes = Buffer.from(b64, 'base64');
+        const ab = bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength);
+        return await ctx.decodeAudioData(ab as ArrayBuffer);
+      } catch (_e) {
+        /* continua a fallback */
+      }
     }
     const path = assetSource?.(audioKey, lang) ?? null;
-    if (!path) throw new Error('sin recorte para la palabra');
-    try {
-      return await ctx.decodeAudioDataSource(path);
-    } catch (e) {
-      const res = await fetch(path);
-      const data = await res.arrayBuffer();
-      if (!ctx) throw e;
-      return await ctx.decodeAudioData(data);
+    if (path) {
+      try {
+        return await ctx.decodeAudioDataSource(path);
+      } catch (e) {
+        try {
+          const res = await fetch(path);
+          const data = await res.arrayBuffer();
+          if (ctx) return await ctx.decodeAudioData(data);
+        } catch (_err) {
+          /* continua a error */
+        }
+      }
     }
+    throw new Error(`sin recorte para la palabra '${audioKey}'`);
   };
 
   /**
@@ -573,10 +597,12 @@ export function installVerbalAudioAdapter(opts: VerbalAudioAdapterOptions = {}):
    * a TTS; en el respaldo por fallo de TTS no queda más vía y se omite).
    */
   const playClip = (audioKey: string, levelDb: number, lang?: string, onFail?: () => void) => {
+    if (!ctx) ctx = acquireAudioContext();
     if (!ctx) {
       onFail?.();
       return;
     }
+    resumeAudioContext();
     const cacheKey = `${lang ?? 'es'}:${audioKey}`;
     const cached = bufferCache.get(cacheKey);
     if (cached) {
@@ -596,6 +622,7 @@ export function installVerbalAudioAdapter(opts: VerbalAudioAdapterOptions = {}):
    * (gl/eu) o no decodifica, no pasa nada — `playWord` degradará igual.
    */
   const prime = (audioKey: string, lang?: string) => {
+    if (!ctx) ctx = acquireAudioContext();
     if (!ctx) return;
     const cacheKey = `${lang ?? 'es'}:${audioKey}`;
     if (bufferCache.has(cacheKey)) return;
@@ -634,7 +661,8 @@ export function installVerbalAudioAdapter(opts: VerbalAudioAdapterOptions = {}):
       speakWord(word, levelDb, sessionLang).catch(() => {
         ttsConsecutiveFailures += 1;
         currentTts = null;
-        if (hasClip) playClip(audioKey, levelDb, lang);
+        if (hasClip) playClip(audioKey, levelDb, lang, () => speakText(word, sessionLang));
+        else speakText(word, sessionLang);
       });
       return;
     }
@@ -642,12 +670,12 @@ export function installVerbalAudioAdapter(opts: VerbalAudioAdapterOptions = {}):
     // Sin TTS utilizable (o variante del castellano): recortes empaquetados.
     if (!hasClip || !ctx) {
       // Último recurso (silencioso si tampoco hay voz del sistema).
-      speakWord(word, levelDb, sessionLang).catch(() => { /* sin vía de emisión */ });
+      speakWord(word, levelDb, sessionLang).catch(() => { speakText(word, sessionLang); });
       return;
     }
     // Recorte ilegible → degradar a TTS por palabra (comportamiento histórico).
     playClip(audioKey, levelDb, lang, () => {
-      speakWord(word, levelDb, sessionLang).catch(() => { /* sin vía de emisión */ });
+      speakWord(word, levelDb, sessionLang).catch(() => { speakText(word, sessionLang); });
     });
   };
 

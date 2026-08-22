@@ -35,7 +35,8 @@ import { finishModule, RootStackParamList } from '@/Navigators';
 import { AppDispatch, RootState } from '@/Store';
 import { SESSION_LANG_LABEL, setSessionLanguage } from '@/Store/slices/localeSlice';
 import type { SessionLang } from '@/Store/slices/sessionLangs';
-import { TAR_MODEL_LANGS } from '@/Voice';
+import { TAR_MODEL_LANGS, resolveSpokenText, tarModelByLang } from '@/Voice';
+import type { VoiceLang } from '@/Voice';
 import { Evaluation } from '@/Models/Evaluation/Evaluation';
 import { ArticulationTest } from '@/Models/ArticulationTest/ArticulationTest';
 import { useClassSelector } from '@/Helpers/ClassTransformer';
@@ -43,6 +44,7 @@ import { useCreateArticulationMutation } from '@/Services/local/modules/articula
 import { useTelemetryTracker } from '@/Telemetry';
 import { showErrorToast, showSuccessToast } from '@/Helpers/showToast';
 import { useArticulationAudio } from './articulationAudio';
+import { WORD_EMOJI } from './articulationPictograms';
 import {
   ArticulationItem,
   ArticulationSection,
@@ -57,6 +59,8 @@ import {
   firstIndexOfPhoneme,
   firstIndexOfSection,
 } from './articulationResult';
+import { LuaCompanionWidget } from '@/Components/Mascot/LuaCompanionWidget';
+import { useLuaCompanion, LuaEmotion } from '@/Lua';
 
 /* -------------------------------------------------------------------------- */
 /*  Test de Articulación a la Repetición (T.A.R.)                              */
@@ -87,39 +91,6 @@ const SETUP_ITEMS = [
 
 /* Ilustración (emoji) por palabra del inventario T.A.R. Las frases y las
  * palabras sin pictograma razonable caen al fallback (inicial de la palabra). */
-const WORD_EMOJI: Record<string, string> = {
-  // Bilabiales
-  Bote: '🚤', Cabeza: '👦', Nube: '☁️', Objeto: '📦',
-  Pato: '🦆', Zapato: '👟', Copa: '🏆', Apto: '✅',
-  Mano: '✋', Camisa: '👕', Suma: '➕', Campo: '🌾',
-  // Labiodental
-  Foca: '🦭', Búfalo: '🐃', Café: '☕', Aftosa: '🤒',
-  // Dentales
-  Dama: '👸', Cadena: '⛓️', Codo: '💪', Pared: '🧱',
-  Tapa: '🫙', Mata: '🌿', Torta: '🎂', Etna: '🌋',
-  // Alveolares
-  Sapo: '🐸', Rosa: '🌹', Pasto: '🌱',
-  Nido: '🪺', Panera: '🧺', Canto: '🎵',
-  Luna: '🌙', Pala: '⛏️', Dulce: '🍬',
-  Coro: '🎶', Poroto: '🫘',
-  Perro: '🐶', Carroza: '🎠',
-  // Palatales
-  Llave: '🔑', Payaso: '🤡', Malla: '🩱',
-  Ñandú: '🐦', Puñete: '👊', Caña: '🎣',
-  Chándal: '🏃', Lechuga: '🥬', Noche: '🌃',
-  // Velares
-  Casa: '🏠', Paquete: '📦', Taco: '🌮', Acto: '🎭',
-  Gato: '🐱', Laguna: '🏞️', Signo: '❓',
-  José: '👨', Tejido: '🧶', Reloj: '⏰',
-  // Dífonos vocálicos
-  Piano: '🎹', Vaina: '🫛', Violín: '🎻', Auto: '🚗', Diuca: '🐦', Fui: '🏃‍♂️',
-  // Dífonos consonánticos
-  Tabla: '🪵', Regla: '📏', Premio: '🏅', Clavo: '🔩', Brazo: '💪', Atlas: '🗺️',
-  Flecha: '🏹', Fruta: '🍎', Tigre: '🐯', Dragón: '🐉', Crema: '🍦', Plato: '🍽️',
-  // Polisílabas
-  Carabinero: '👮', Panadería: '🥖', Caperucita: '👧', Ametralladora: '🔫',
-  Helicóptero: '🚁', Bicicleta: '🚲',
-};
 
 /* Color base por categoría SODA (alineado con el mockup). */
 const SODA_COLOR: Record<SodaCode, string> = {
@@ -172,14 +143,42 @@ export default function ArticulationTestScreen({ navigation }: Props) {
   const patient = activeEvaluation?.patient;
   const patientName = patient ? `${patient.name} ${patient.lastName}`.trim() : null;
 
+  const lua = useLuaCompanion({
+    moduleKey: 'articulation_tar',
+    initialEmotion: LuaEmotion.Tranquility,
+    initialLevel: 1,
+  });
+
   const cur = items[idx];
   const curCode = results[cur.id] ?? null;
-  /* ¿Va a sonar el modelo de ESTA palabra? Se pregunta por palabra y no una
-   * vez por sesión porque las vías son distintas: unas tienen recorte propio y
-   * otras dependen del sintetizador del sistema. */
+  /* ¿Va a sonar el modelo de ESTA palabra? */
   const modelWillSound = audio.canSpeakModel(cur.word);
 
+  /* El niño tiene que LEER y OÍR la misma palabra: la de su variedad. El audio
+     ya resolvía por lengua (`canSpeakModel`/`speakModel`), pero el rótulo
+     seguía escribiendo siempre el castellano, de modo que en una sesión galega
+     se veía «Llave» y sonaba «Lle». `cur.word` se conserva como CLAVE del ítem
+     —es la que indexa el pictograma y la que viaja al registro SODA—; lo que
+     cambia es únicamente lo que se muestra. */
+  const shownWord =
+    resolveSpokenText(tarModelByLang(cur.word), sessionLanguage as VoiceLang)?.text ?? cur.word;
+
   const score = useMemo(() => computeArticulationScore(items, results), [items, results]);
+
+  useEffect(() => {
+    if (view === 'setup') {
+      lua.setPhase(0);
+      lua.setEmotion(LuaEmotion.Tranquility);
+    } else if (view === 'test') {
+      lua.setPhase(1);
+      lua.setEmotion(LuaEmotion.Attentive);
+      lua.setProgressLevel(Math.min(12, Math.floor((idx / items.length) * 12) + 1));
+    } else if (view === 'report') {
+      lua.setVerdict(2);
+      lua.triggerReward('articulation_tar', 2);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [view, idx]);
 
   // Telemetría: cada reactivo que se activa durante la prueba abre su ventana
   // de tiempo. `tracker` es estable (useRef) → no reintroduce el efecto.
@@ -207,16 +206,16 @@ export default function ArticulationTestScreen({ navigation }: Props) {
   };
 
   const recordCode = (code: SodaCode) => {
-    // Telemetría: 1ª clasificación fija el tiempo de respuesta; reclasificar
-    // el mismo reactivo cuenta como rectificación (duda del clínico).
     tracker.classifyReactivo(`art-${cur.id}`);
     setResults(prev => ({ ...prev, [cur.id]: code }));
     audio.reset();
-    // avance automático al clasificar como correcto (igual que el mockup)
     if (code === 'C') {
+      lua.setVerdict(2);
       setTimeout(() => {
         setIdx(p => Math.min(items.length - 1, p + 1));
-      }, 320);
+      }, 350);
+    } else {
+      lua.setVerdict(1);
     }
   };
 
@@ -317,6 +316,22 @@ export default function ArticulationTestScreen({ navigation }: Props) {
                 : 'Test de articulación a la repetición · registro SODA por fonema'}
             </Text>
           </VStack>
+
+          {/* Acompañamiento Lúa (Espejo de Repetición y Recompensa SODA) */}
+          <LuaCompanionWidget
+            emotion={lua.currentEmotion}
+            activeBadge={view === 'report' ? lua.activeBadge : null}
+            connected={lua.connected}
+            level={lua.currentLevel}
+            size={view === 'test' ? 'compact' : 'normal'}
+            message={
+              view === 'setup'
+                ? '¡Hola! Escucha cada palabra con atención y repítela conmigo.'
+                : view === 'test'
+                ? `Palabra ${idx + 1}/${items.length}: «${shownWord}». ¡Tú puedes!`
+                : '¡Registro completado! Has ganado la insignia Maestro Articulatorio.'
+            }
+          />
 
           {/* =====================  SETUP  ===================== */}
           {view === 'setup' && (
@@ -532,7 +547,7 @@ export default function ArticulationTestScreen({ navigation }: Props) {
                   ) : (
                     <Center w={84} h={84} borderRadius={42} bg="$primary100">
                       <Text size="4xl" weight="bold" color="$primary700">
-                        {cur.word[0]}
+                        {shownWord[0]}
                       </Text>
                     </Center>
                   )}
@@ -542,7 +557,7 @@ export default function ArticulationTestScreen({ navigation }: Props) {
                   weight="bold"
                   color="$textLight900"
                   style={{ fontSize: cur.section === 'frases' ? 22 : 40, lineHeight: cur.section === 'frases' ? 28 : 44 }}>
-                  {cur.word}
+                  {shownWord}
                 </Text>
 
                 {/* controles de audio */}
@@ -592,7 +607,7 @@ export default function ArticulationTestScreen({ navigation }: Props) {
                   <HStack space="xs" alignItems="flex-start" mt="$3" p="$2.5" borderRadius={12} bg="$warning50">
                     <Icon as={AlertTriangle} size="xs" color="$warning700" style={{ marginTop: 2 }} />
                     <Text size="2xs" color="$warning800" style={{ flex: 1, lineHeight: 15 }}>
-                      Este dispositivo no tiene voz para locutar el modelo. Pronuncie «{cur.word}»
+                      Este dispositivo no tiene voz para locutar el modelo. Pronuncie «{shownWord}»
                       usted mismo/a: el registro SODA funciona igual.
                     </Text>
                   </HStack>

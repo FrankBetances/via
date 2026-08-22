@@ -81,6 +81,8 @@ export const PROSODY_STIMULI: Record<ProsodyAgeBand, ProsodyStimulus> = {
     consigna: {
       es: 'Mira bien este dibujo. Cuéntame todo lo que ves y todo lo que está pasando.',
       'es-DO': 'Mira bien este dibujo. Cuéntame todo lo que ves y todo lo que está pasando.',
+      gl: 'Mira ben este debuxo. Cóntame todo o que ves e todo o que está a pasar.',
+      eu: 'Begiratu ondo marrazki honi. Kontatu ikusten duzun guztia eta gertatzen ari dena.',
     },
     panels: 1,
     elements: [
@@ -110,6 +112,8 @@ export const PROSODY_STIMULI: Record<ProsodyAgeBand, ProsodyStimulus> = {
     consigna: {
       es: 'Mira las tres viñetas por orden. Cuéntame la historia completa, desde el principio hasta el final.',
       'es-DO': 'Mira las tres viñetas por orden. Cuéntame la historia completa, desde el principio hasta el final.',
+      gl: 'Mira as tres viñetas por orde. Cóntame a historia completa, desde o principio ata o final.',
+      eu: 'Begiratu hiru binetei hurrenez hurren. Kontatu istorio osoa, hasieratik amaieraraino.',
     },
     panels: 3,
     elements: [

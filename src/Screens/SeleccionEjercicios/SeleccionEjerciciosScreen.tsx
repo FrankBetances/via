@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   Pressable,
   ScrollView,
@@ -19,7 +19,6 @@ import {
   Droplets,
   Ear,
   FileClock,
-  Flame,
   LogOut,
   Mic,
   MoonStar,
@@ -30,12 +29,16 @@ import {
 } from 'lucide-react-native';
 
 import { Content, Text } from '@/Components/Common';
+import ViaIcon from '@/Components/Common/ViaIcon';
 import RadialBackground from '@/Components/Themed/RadialBackground';
 import { RootStackParamList } from '@/Navigators';
 import { AppDispatch, RootState } from '@/Store';
+import { setActiveEvaluation } from '@/Store/slices/activeEvaluationSlice';
 import { logout } from '@/Store/slices/authSlice';
 import { signOutQuietly } from '@/Services/firebase';
 import { Evaluation } from '@/Models/Evaluation/Evaluation';
+import { EvaluationRepository } from '@/Repositories/EvaluationRepository';
+import { PatientRepository } from '@/Repositories/PatientRepository';
 import { useClassSelector } from '@/Helpers/ClassTransformer';
 import { describePatient } from '@/Helpers/patientHeader';
 import { useTelemetryTracker } from '@/Telemetry';
@@ -228,6 +231,50 @@ export default function SeleccionEjerciciosScreen({ navigation, route }: Props) 
   const { patientLabel, initials } = describePatient(patient);
   const patientName = patient ? `${patient.name} ${patient.lastName}`.trim() : '';
 
+  useEffect(() => {
+    if (!patient) {
+      let mounted = true;
+      (async () => {
+        try {
+          const patients = await PatientRepository.getAllPatients();
+          if (patients.length > 0 && mounted) {
+            const latestPatient = patients[patients.length - 1];
+            const evals = await EvaluationRepository.getEvaluationsByPatient(latestPatient.id);
+            const latestEval = evals[0];
+            if (latestEval && mounted) {
+              dispatch(
+                setActiveEvaluation({
+                  id: latestEval.id,
+                  status: latestEval.status,
+                  patient: {
+                    id: latestPatient.id,
+                    name: latestPatient.nameEnc.split(' ')[0] ?? latestPatient.nameEnc,
+                    lastName: latestPatient.nameEnc.split(' ').slice(1).join(' '),
+                    nhc: latestPatient.idHash,
+                    nameEnc: latestPatient.nameEnc,
+                    idHash: latestPatient.idHash,
+                  },
+                  professional: latestEval.professional
+                    ? {
+                        id: latestEval.professional.id,
+                        name: latestEval.professional.fullName,
+                        licenseNumber: latestEval.professional.licenseNumber,
+                      }
+                    : null,
+                }),
+              );
+            }
+          }
+        } catch {
+          // ignore error in background recovery
+        }
+      })();
+      return () => {
+        mounted = false;
+      };
+    }
+  }, [dispatch, patient]);
+
   const noiseCheckSkipped = route.params?.noiseCheckSkipped === true;
   const voiceEngine = useVoiceEngineStatus();
   const tracker = useTelemetryTracker();
@@ -301,9 +348,7 @@ export default function SeleccionEjerciciosScreen({ navigation, route }: Props) 
           <HStack alignItems="center" space="md">
             {/* Logo VIA+ */}
             <HStack alignItems="center" space="xs">
-              <Center w={28} h={28} borderRadius={8} bg="#FFF7ED">
-                <Flame size={18} color="#FF7F00" fill="#FF7F00" />
-              </Center>
+              <ViaIcon size={28} variant="color" />
               <Text size="lg" weight="bold" style={{ color: '#2B2620', letterSpacing: -0.5 }}>
                 VIA<Text size="lg" weight="bold" style={{ color: '#FF7F00' }}>+</Text>
               </Text>
