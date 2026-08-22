@@ -1,3 +1,4 @@
+import { TAR_LEXICON } from '@/Screens/Articulation/articulationLexicon';
 import { buildArticulationItems } from '../Screens/Articulation/articulationResult';
 import {
   PROSODY_AGE_BANDS,
@@ -157,7 +158,7 @@ export const TAR_MODELS: ConsignaSpec[] = [
   key: `tar.${word}`,
   source: 'articulation',
   style: 'tutor' as VoiceStyle,
-  text: { es: word, 'es-DO': word, gl: word, eu: word },
+  text: tarModelByLang(word),
 }));
 
 /**
@@ -206,13 +207,32 @@ export const efRuleConsignaByLang = (rule: EfRule, changed: boolean): ConsignaTe
 };
 
 /** Modelo hablado del T.A.R. para una palabra, por lengua (DERIVA CERO). */
-export const tarModelByLang = (word: string): ConsignaText => ({ es: word, 'es-DO': word, gl: word, eu: word });
+/**
+ * Modelo hablado del T.A.R. en cada variedad.
+ *
+ * NO es una traducción: cada columna conserva el fonema diana en su posición
+ * silábica (ver `articulationLexicon`). Devolver la palabra castellana
+ * etiquetada como `gl` haría que una voz galega pronunciase texto castellano,
+ * y el niño imitaría un modelo fonético que no es el de su lengua.
+ */
+/* Declaración de función, no `const`: `TAR_MODELS` la invoca en la evaluación
+   del módulo, que ocurre ANTES de esta línea. Con una arrow function quedaba
+   en la zona muerta temporal y el corpus entero fallaba al cargarse. */
+export function tarModelByLang(word: string): ConsignaText {
+  const entry = TAR_LEXICON[word];
+  // Sin entrada no se inventa una variedad: se declara solo el castellano y
+  // `bankLangs` retirará del selector la lengua que quede incompleta.
+  if (!entry) return { es: word, 'es-DO': word };
+  return { es: word, 'es-DO': entry['es-DO'], gl: entry.gl, eu: entry.eu };
+}
 
 /**
  * Lenguas que cada banco puede ofrecer en su selector.
  */
-export const EF_CONSIGNA_LANGS: VoiceLang[] = ['es', 'es-DO', 'gl', 'eu'];
-export const TAR_MODEL_LANGS: VoiceLang[] = ['es', 'es-DO', 'gl', 'eu'];
+export const EF_CONSIGNA_LANGS: VoiceLang[] = bankLangs(
+  [...CONSIGNAS, ...EF_RULE_CONSIGNAS].map(c => c.text),
+);
+export const TAR_MODEL_LANGS: VoiceLang[] = bankLangs(TAR_MODELS.map(c => c.text));
 
 /** Consigna hablada del módulo de prosodia, por lengua (DERIVA CERO). */
 export const prosodyConsignaTextByLang = (band: 'prelector' | 'lector'): ConsignaText => {

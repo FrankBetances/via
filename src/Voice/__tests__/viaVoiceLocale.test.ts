@@ -83,9 +83,15 @@ describe('resolveSpokenText · la voz es la del texto, no la de la sesión', () 
       for (const sesion of ['gl', 'eu'] as const) {
         const spoken = resolveSpokenText(banco, sesion);
         expect(spoken).not.toBeNull();
-        // Si el texto que sale es el castellano, la voz TIENE que ser castellana.
-        if (spoken!.text === banco.es) expect(spoken!.lang).toBe('es');
-        else expect(spoken!.lang).toBe(sesion);
+        // El invariante se comprueba sobre la COBERTURA del banco, no sobre la
+        // igualdad de los textos. Desde que los inventarios galego y vasco son
+        // reales, muchas entradas coinciden con el castellano por cognado
+        // legítimo —«Casa», «Gato», «Piano» son palabras galegas—, y esas SÍ
+        // deben locutarse con la voz de la sesión. Comparar textos las tomaba
+        // por degradaciones y enmascaraba el caso que importa: una lengua sin
+        // entrada propia jamás puede salir etiquetada con su voz.
+        if (banco[sesion] != null) expect(spoken!.lang).toBe(sesion);
+        else expect(spoken!.lang).toBe('es');
       }
     }
   });
@@ -105,10 +111,20 @@ describe('bankLangs · un selector no puede ofrecer lo que el banco no tiene', (
     expect(bankLangs([])).toEqual([]);
   });
 
-  it('los bancos reales de FE y T.A.R. ofrecen castellano y dominicano', () => {
-    // Ni gallego ni euskera: sus deltas no están firmados y el inventario
-    // T.A.R. es de fonología castellana. Ofrecerlos era la promesa incumplida.
-    expect(EF_CONSIGNA_LANGS).toEqual(['es', 'es-DO']);
-    expect(TAR_MODEL_LANGS).toEqual(['es', 'es-DO']);
+  it('los bancos reales de FE y T.A.R. ofrecen las cuatro variedades', () => {
+    // Cambio de política, deliberado: los deltas galego y vasco YA están
+    // escritos —las consignas de FE con redacción nativa y el T.A.R. con un
+    // inventario propio que conserva fonema y posición, ver
+    // `articulationLexicon`—, así que `bankLangs` los reconoce y el selector
+    // los ofrece. La salvaguarda sigue intacta: estas listas se DERIVAN del
+    // contenido, de modo que una entrada sin cubrir retira su lengua sola.
+    //
+    // Los baremos del T.A.R. son castellanos; que la lengua se ofrezca no
+    // significa que la puntuación sea intercambiable (ver el encabezado de
+    // `articulationLexicon`).
+    // El orden es el de `bankLangs`: idiomas completos primero y las variantes
+    // al final, como fija la prueba de arriba con `['es', 'gl', 'es-DO']`.
+    expect(EF_CONSIGNA_LANGS).toEqual(['es', 'gl', 'eu', 'es-DO']);
+    expect(TAR_MODEL_LANGS).toEqual(['es', 'gl', 'eu', 'es-DO']);
   });
 });

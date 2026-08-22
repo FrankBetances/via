@@ -602,8 +602,13 @@ export function useArticulationAudio(lang: string = 'es'): ArticulationAudio {
           let energySum = 0;
           for (let i = 0; i < pcm.length; i++) energySum += pcm[i] * pcm[i];
           const rms = Math.sqrt(energySum / pcm.length);
-          if (rms > 0.003 && !sodaProposal) {
-            setSodaProposal(proposeSoda(targetWord, targetWord, targetPhoneme));
+          // Forma funcional: `sodaProposal` se lee del estado VIGENTE en vez de
+          // del cierre. Leyéndolo del cierre, la propuesta quedaba fijada en el
+          // render en que se creó el callback y una toma posterior podía volver
+          // a proponer sobre una propuesta ya emitida. El `??` además evita
+          // recalcular `proposeSoda` cuando ya la hay.
+          if (rms > 0.003) {
+            setSodaProposal(prev => prev ?? proposeSoda(targetWord, targetWord, targetPhoneme));
           }
         }
 
