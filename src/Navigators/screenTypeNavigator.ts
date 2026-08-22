@@ -40,6 +40,12 @@ export type RootStackParamList = {
   ResultadosFinal: undefined;
   /** Historial de pruebas de un paciente (sesiones anteriores). */
   HistorialPaciente: { patientId: number; patientName: string; nhc?: string };
+  /**
+   * Comprobación de audio del dispositivo. No es un módulo clínico: es la
+   * pantalla que nombra qué eslabón de la cadena de audio está roto cuando
+   * las pruebas de voz no suenan o no graban.
+   */
+  DiagnosticoAudio: undefined;
 };
 
 declare global {
