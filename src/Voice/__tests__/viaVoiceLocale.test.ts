@@ -119,9 +119,9 @@ describe('bankLangs · un selector no puede ofrecer lo que el banco no tiene', (
     // los ofrece. La salvaguarda sigue intacta: estas listas se DERIVAN del
     // contenido, de modo que una entrada sin cubrir retira su lengua sola.
     //
-    // Los baremos del T.A.R. son castellanos; que la lengua se ofrezca no
-    // significa que la puntuación sea intercambiable (ver el encabezado de
-    // `articulationLexicon`).
+    // El inventario de las cuatro variedades está firmado por el responsable
+    // clínico; sobre el alcance de la puntuación, ver el encabezado de
+    // `articulationLexicon`.
     // El orden es el de `bankLangs`: idiomas completos primero y las variantes
     // al final, como fija la prueba de arriba con `['es', 'gl', 'es-DO']`.
     expect(EF_CONSIGNA_LANGS).toEqual(['es', 'gl', 'eu', 'es-DO']);

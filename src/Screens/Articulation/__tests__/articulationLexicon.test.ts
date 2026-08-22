@@ -50,8 +50,8 @@ describe('léxico del T.A.R. · las cuatro variedades, sin huecos', () => {
     );
   });
 
-  /* Una desviación de la regla «mismo fonema, misma posición» es aceptable,
-     pero NUNCA silenciosa: el clínico tiene que poder leerla. */
+  /* Una desviación de la regla «mismo fonema, misma posición» está validada,
+     pero NUNCA es silenciosa: el clínico tiene que poder leerla en el ítem. */
   it('toda entrada que se aparta de la rejilla lleva su nota', () => {
     const documented = Object.entries(TAR_LEXICON).filter(([, e]) => e.note);
     expect(documented.length).toBeGreaterThan(0);

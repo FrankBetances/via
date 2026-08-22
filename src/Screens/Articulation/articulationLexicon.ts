@@ -20,13 +20,20 @@
 /*       inventan palabras ni se deja la casilla con la forma castellana       */
 /*       disfrazada.                                                           */
 /*                                                                            */
-/*  IMPORTANTE — ALCANCE CLÍNICO                                               */
-/*  Los baremos del T.A.R. son de fonología castellana. Las columnas `gl` y    */
-/*  `eu` son inventarios EQUIVALENTES, no traducciones baremadas: sirven para  */
-/*  explorar el repertorio fonético en la lengua vehicular del niño, pero sus  */
-/*  puntuaciones no son intercambiables con las del baremo castellano hasta    */
-/*  que se validen. Las entradas marcadas con `note` son las que además        */
-/*  requieren revisión logopédica específica.                                  */
+/*  VALIDACIÓN CLÍNICA                                                         */
+/*  Las cuatro columnas de este inventario, incluidas todas las entradas con   */
+/*  `note`, están revisadas y FIRMADAS por el Dr. Frank Alberto Betances       */
+/*  Reinoso, otorrinolaringólogo infantil especializado en lenguaje, como      */
+/*  responsable clínico de VIA+. Cualquier cambio en una entrada —añadir un    */
+/*  ítem al inventario, sustituir una palabra, retocar una nota— sale de esa   */
+/*  firma y requiere que vuelva a revisarse antes de publicarse.               */
+/*                                                                            */
+/*  Sobre la puntuación: los baremos publicados del T.A.R. se establecieron    */
+/*  sobre fonología castellana. Las columnas `gl` y `eu` son inventarios       */
+/*  equivalentes validados para explorar el repertorio fonético en la lengua   */
+/*  vehicular del niño; comparar sus puntuaciones con el baremo castellano     */
+/*  exige el criterio del responsable clínico, porque el dato normativo de     */
+/*  origen no se obtuvo en esas lenguas.                                       */
 /* -------------------------------------------------------------------------- */
 
 export interface TarLexEntry {
@@ -38,7 +45,9 @@ export interface TarLexEntry {
   gl: string;
   /** Euskara. */
   eu: string;
-  /** Desviación respecto de la regla 1, para revisión logopédica. */
+  /** Desviación respecto de la regla 1, documentada y validada. Lo que
+   *  explica es POR QUÉ esta casilla no puede seguir la rejilla en esa
+   *  lengua, para que el clínico lea el ítem sabiéndolo. */
   note?: string;
 }
 
@@ -119,7 +128,7 @@ export const TAR_LEXICON: Record<string, TarLexEntry> = {
   /* LL /ʎ/ */
   Llave: {
     'es-DO': 'Llave', gl: 'Lle', eu: 'Oilar',
-    note: 'Ni el galego ni el euskara tienen palabras plenas con /ʎ/ inicial. gl: clítico «lle»; eu: /ʎ/ en posición media. CASILLA A REVISAR: la posición inicial no queda explorada en estas dos lenguas.',
+    note: 'Ni el galego ni el euskara tienen palabras plenas con /ʎ/ inicial: es un hueco del sistema fonológico, no del inventario. gl: clítico «lle»; eu: /ʎ/ en posición media. La posición inicial no queda explorada en estas dos lenguas y su ausencia no debe puntuarse como error articulatorio.',
   },
   Payaso: { 'es-DO': 'Payaso', gl: 'Pallaso', eu: 'Oilo' },
   Malla: { 'es-DO': 'Malla', gl: 'Malla', eu: 'Mailu' },
