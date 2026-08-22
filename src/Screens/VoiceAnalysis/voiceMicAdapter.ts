@@ -61,7 +61,7 @@ const CAPTURE_SR = SAMPLE_RATE * DECIMATE; // 48000
 
 /** Espera tras `stop()` para recoger los últimos bloques que el motor nativo
  *  entrega por el emisor de eventos (ver `stopRecording`). */
-const TAIL_DRAIN_MS = 120;
+const TAIL_DRAIN_MS = 250;
 
 /* -------------------------------------------------------------------------- */
 /*  CICLO DE VIDA DEL RECORDER (bug «el micrófono no captura»)                 */
@@ -288,15 +288,19 @@ export function registerVoiceMicAdapter(): boolean {
       } catch {
         /* noop */
       }
-      capturing = false;
       clearWatchdog();
       liveListener = null;
       endRecordingSession();
 
       // `stop()` vacía el buffer nativo pendiente, pero los bloques llegan por
       // el emisor de eventos, es decir, en un turno posterior del hilo JS.
-      // Se preserva el decimador durante el vaciado de cola para capturar el final.
+      // `capturing` SIGUE EN TRUE durante el vaciado: ponerlo a false antes
+      // hacía que el consumidor descartase justo los bloques que la espera
+      // pretendía recoger, así que el vaciado no servía de nada. Se perdía la
+      // cola de toda toma y, si la toma era más corta que un bloque, se perdía
+      // ENTERA (audio vacío).
       await new Promise<void>(resolve => setTimeout(resolve, TAIL_DRAIN_MS));
+      capturing = false;
       decimate = null;
 
       // Concatena el PCM decimado; el análisis se hace después, bajo demanda.

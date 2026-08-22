@@ -78,6 +78,29 @@ const BLOCK_SECONDS = 0.1;
  */
 const SILENT_CAPTURE_MIN_MS = 700;
 
+/**
+ * Ventana de VACIADO tras la última parada.
+ *
+ * El motor nativo solo entrega un bloque cuando el buffer circular junta
+ * `bufferLengthInSamples` (~100 ms). Lo que queda por debajo de ese umbral se
+ * suelta dentro de `stop()`, con `sendRemainingData()` — y por el MISMO
+ * callback, que el registro de eventos despacha con `invokeAsync`, o sea en un
+ * turno POSTERIOR del hilo de JS.
+ *
+ * La versión anterior descontaba `activeCaptures` antes de parar el motor, así
+ * que ese vaciado llegaba con el contador ya en cero y el despachador lo
+ * rechazaba por `!activeCaptures`. Consecuencias medidas:
+ *   · toda toma perdía su cola (hasta 100 ms del final de la emisión);
+ *   · y una toma MÁS CORTA que un bloque se perdía ENTERA: el motor no había
+ *     llegado a emitir nada y su único envío era justo el que se descartaba.
+ *     Eso es el «graba y devuelve un audio vacío» reportado en campo.
+ *
+ * Con la ventana, los bloques se siguen aceptando un rato después de parar, que
+ * es exactamente lo que el contrato del motor exige. Es más larga que el
+ * `TAIL_DRAIN_MS` de los adaptadores para que nunca se cierre antes que ellos.
+ */
+const DRAIN_WINDOW_MS = 400;
+
 /** Consumidor de bloques PCM crudos del micrófono (mono, `RECORDER_SAMPLE_RATE`). */
 export type RecorderListener = (pcm: Float32Array) => void;
 
@@ -117,6 +140,8 @@ let suspect = false;
 let blocksSinceStart = 0;
 /** Momento del último arranque del motor (ms), para el juicio de «muda». */
 let startedAt = 0;
+/** Hasta cuándo se siguen aceptando bloques tras la última parada (ms epoch). */
+let drainUntil = 0;
 let health: RecorderHealth = 'unknown';
 const listeners = new Set<RecorderListener>();
 
@@ -191,7 +216,10 @@ function ensureRecorder(): any | null {
     });
 
     created.onAudioReady(({ buffer }: { buffer: { getChannelData: (n: number) => Float32Array } }) => {
-      if (!activeCaptures || !listeners.size) return;
+      // Fuera de toma se siguen aceptando bloques mientras dure la ventana de
+      // vaciado: el último envío del motor llega DESPUÉS de `stop()`.
+      const inTake = activeCaptures > 0 || Date.now() < drainUntil;
+      if (!inTake || !listeners.size) return;
       let pcm: Float32Array;
       try {
         pcm = buffer.getChannelData(0);
@@ -268,6 +296,7 @@ export function acquireRecorder(): SharedRecorder | null {
       if (activeCaptures === 1) {
         blocksSinceStart = 0;
         startedAt = Date.now();
+        drainUntil = 0; // una toma nueva cancela el vaciado de la anterior
         try {
           native.start();
         } catch {
@@ -281,17 +310,25 @@ export function acquireRecorder(): SharedRecorder | null {
       capturing = false;
       activeCaptures = Math.max(0, activeCaptures - 1);
       if (activeCaptures === 0) {
+        // La ventana se abre ANTES de parar: `stop()` dispara el vaciado del
+        // motor y ese bloque tiene que encontrar la puerta abierta al llegar.
+        drainUntil = Date.now() + DRAIN_WINDOW_MS;
+        const takeStartedAt = startedAt;
         try {
           recorder?.stop();
         } catch {
           /* noop */
         }
-        // Una toma de duración razonable que no recibió NI UN bloque es un
-        // stream muerto: se marca para que la siguiente reconstruya.
-        if (blocksSinceStart === 0 && Date.now() - startedAt >= SILENT_CAPTURE_MIN_MS) {
-          suspect = true;
-          health = 'silent';
-        }
+        // El veredicto de «muda» se emite al CERRAR la ventana, no aquí: el
+        // vaciado todavía puede traer el único audio de la toma, y declararla
+        // muerta antes reconstruiría un recorder que funciona.
+        setTimeout(() => {
+          if (activeCaptures > 0) return; // ya hay otra toma en marcha
+          if (blocksSinceStart === 0 && Date.now() - takeStartedAt >= SILENT_CAPTURE_MIN_MS) {
+            suspect = true;
+            health = 'silent';
+          }
+        }, DRAIN_WINDOW_MS);
       }
     },
 
@@ -331,6 +368,7 @@ export function __resetSharedAudioRecorderForTests(): void {
   suspect = false;
   blocksSinceStart = 0;
   startedAt = 0;
+  drainUntil = 0;
   health = 'unknown';
   listeners.clear();
 }

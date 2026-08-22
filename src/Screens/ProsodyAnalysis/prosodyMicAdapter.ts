@@ -48,7 +48,7 @@ const DECIMATE = DECIMATION;
 const CAPTURE_SR = SAMPLE_RATE * DECIMATE; // 48000
 
 /** Espera tras `stop()` para recoger los últimos bloques del emisor nativo. */
-const TAIL_DRAIN_MS = 120;
+const TAIL_DRAIN_MS = 250;
 
 /** Techo a partir del cual se considera que la señal satura. */
 const CLIP_LEVEL = 0.99;
@@ -213,13 +213,16 @@ export function registerProsodyMicAdapter(): boolean {
       } catch {
         /* noop */
       }
-      capturing = false;
       liveListener = null;
       endRecordingSession();
 
       // Los bloques llegan por el emisor de eventos, o sea en un turno
-      // posterior del hilo JS: se preserva decimate para recoger la cola completa.
+      // posterior del hilo JS. `capturing` SIGUE EN TRUE durante el vaciado:
+      // ponerlo a false antes hacía que el consumidor descartase justo los
+      // bloques que esta espera pretendía recoger (misma corrección que en el
+      // análisis acústico; ver `voiceMicAdapter`).
       await new Promise<void>(resolve => setTimeout(resolve, TAIL_DRAIN_MS));
+      capturing = false;
       decimate = null;
 
       const cap = Math.floor(MAX_TAKE_SEC * SAMPLE_RATE);
