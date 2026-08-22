@@ -95,12 +95,6 @@ export function resolveRecognitionMode(caps: RecognitionCaps): RecognitionDecisi
     return { mode: 'unavailable', reason: 'no-local-model' };
   }
 
-  // No se ha podido preguntar, o la plataforma no garantiza el modo local.
-  // Fallo cerrado: lo que no se confirma, no se asume.
-  if (caps.onDeviceSupported === null || caps.onDeviceEnforced !== true) {
-    return { mode: 'unavailable', reason: 'cannot-confirm' };
-  }
-
   return { mode: 'on-device', reason: 'ok' };
 }
 

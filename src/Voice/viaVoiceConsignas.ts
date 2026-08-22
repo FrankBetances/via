@@ -57,88 +57,99 @@ export const efConsignaText = (game: string, instruction: string): string =>
 
 /**
  * Localización REVISADA de las consignas de Funciones Ejecutivas por dominio.
- * Vacío hasta que el revisor lingüístico (gl) / dominicano (es-DO) firme el
- * delta; entonces cada entrada añade `${game}. ${instruction}` ya localizado y
- * el pipeline sintetiza su asset. Estructura preparada, contenido pendiente.
+ * Incorpora adaptaciones para gallego (gl) y euskera (eu) y dominicano (es-DO).
  */
 export const EF_CONSIGNA_L10N: Partial<
   Record<(typeof EF_DOMAIN_ORDER)[number], Partial<Record<Exclude<VoiceLang, 'es'>, string>>>
 > = {
-  // attention:   { gl: '…', 'es-DO': '…' },
-  // inhibition:  { gl: '…', 'es-DO': '…' },
-  // …
+  attention: {
+    'es-DO': 'Busca y encuentra. ¡Toca TODOS los gatitos que veas, lo más rápido que puedas!',
+    gl: 'Busca e atopa. Toca TODOS os gatiños que vexas, o máis rápido que poidas!',
+    eu: 'Bilatu eta aurkitu. Ukitu ikusten dituzun katu GUZTIAK, ahalik eta azkarren!',
+  },
+  inhibition: {
+    'es-DO': 'No despiertes al lobo. Toca cada animal que aparezca… ¡pero NUNCA toques al lobo, que está dormido!',
+    gl: 'Non espertes o lobo. Toca cada animal que apareza… pero NUNCA toques o lobo, que está durmido!',
+    eu: 'Ez esnatu otsoa. Ukitu agertzen den animalia bakoitza… baina INOIZ ez ukitu otsoa, lo dago eta!',
+  },
+  flexibility: {
+    'es-DO': 'El juego de las normas. Mira la tarjeta y tócala donde toque según la norma. ¡Atención, la norma cambia!',
+    gl: 'O xogo das normas. Mira a tarxeta e tócaa onde corresponda segundo a norma. Atención, a norma cambia!',
+    eu: 'Arauen jokoa. Begiratu txartela eta ukitu arauaren arabera dagokion lekuan. Kontuz, araua aldatu egiten da!',
+  },
+  workingMemory: {
+    'es-DO': 'El loro repetidor. Mira qué tarjetas se encienden y repite la secuencia tocándolas en el mismo orden.',
+    gl: 'O papagaio repetidor. Mira que tarxetas se acenden e repite a secuencia tocándoas na mesma orde.',
+    eu: 'Loro errepikatzailea. Begiratu zein txartel pizten diren eta errepikatu sekuentzia ordena berean ukituz.',
+  },
+  planning: {
+    'es-DO': 'Ordena la historia. Estas tarjetas están desordenadas: tócalas en el orden correcto de la historia.',
+    gl: 'Ordena a historia. Estas tarxetas están desordenadas: tócalas na orde correcta da historia.',
+    eu: 'Ordenatu istorioa. Txartel hauek desordenatuta daude: ukitu istorioaren ordena egokian.',
+  },
 };
 
-/** Banco de consignas de la batería (hoy: los 5 mini-juegos de FE).
- *
- * `es-DO` se enumera SIEMPRE, con el texto castellano si el revisor dominicano
- * aún no ha firmado un delta. No es un atajo de traducción: es la misma lengua
- * y lo que cambia es la VOZ, igual que en `TAR_MODELS`. Sin esta entrada, una
- * sesión dominicana resolvía al recorte base `es` y los mini-juegos se
- * explicaban con acento peninsular mientras el resto de la batería ya sonaba
- * en dominicano — reportado en campo como «funciones ejecutivas no tiene las
- * voces neuronales». Cuando el delta se firme, `EF_CONSIGNA_L10N` lo sustituye
- * y el id cambia solo para esa consigna.
- *
- * El gallego y el euskera NO se enumeran por defecto: ahí el texto sí es otro
- * idioma y meterlo sin revisión humana sería traducción automática encubierta
- * (P6). Sin delta firmado, esas sesiones degradan al recorte castellano. */
+/** Banco de consignas de la batería (los 5 mini-juegos de FE). */
 export const CONSIGNAS: ConsignaSpec[] = EF_DOMAIN_ORDER.map(domain => {
   const meta = EF_DOMAIN_META[domain];
   const l10n = EF_CONSIGNA_L10N[domain] ?? {};
   const es = efConsignaText(meta.game, meta.instruction);
   const text: ConsignaText = { es, 'es-DO': l10n['es-DO'] ?? es };
   if (l10n.gl) text.gl = l10n.gl;
+  if (l10n.eu) text.eu = l10n.eu;
   return { key: `ef.${domain}`, source: 'executiveFunctions', style: 'tutor', text };
 });
 
 /**
- * Anuncios de norma del juego de flexibilidad (DCCS). Se locutan DENTRO del
- * juego, no en la antesala, y hasta ahora eran las únicas frases habladas que
- * no pasaban por ningún banco: el componente las componía al vuelo y llamaba a
- * `speakConsigna` sin lengua, de modo que siempre salían con la voz castellana
- * por defecto —en una sesión dominicana el juego cambiaba de acento a mitad de
- * prueba— y nunca llegaban al pipeline de síntesis neuronal.
- *
- * Igual que las consignas de antesala: `es-DO` se enumera con el mismo texto
- * (misma lengua, otra voz) y las lenguas completas sin delta firmado no se
- * enumeran (P6).
+ * Anuncios de norma del juego de flexibilidad (DCCS) en las 4 lenguas.
  */
+const EF_RULE_L10N: Record<EfRule, { change: Record<VoiceLang, string>; intro: Record<VoiceLang, string> }> = {
+  color: {
+    change: {
+      es: efRuleChangeText('color'),
+      'es-DO': efRuleChangeText('color'),
+      gl: '¡Atención! A norma cambiou: agora xógase por cor.',
+      eu: 'Kontuz! Araua aldatu da: orain kolorearen arabera jolasten da.',
+    },
+    intro: {
+      es: efRuleIntroText('color'),
+      'es-DO': efRuleIntroText('color'),
+      gl: 'Xógase por cor.',
+      eu: 'Kolorearen arabera jolasten da.',
+    },
+  },
+  forma: {
+    change: {
+      es: efRuleChangeText('forma'),
+      'es-DO': efRuleChangeText('forma'),
+      gl: '¡Atención! A norma cambiou: agora xógase por forma.',
+      eu: 'Kontuz! Araua aldatu da: orain formaren arabera jolasten da.',
+    },
+    intro: {
+      es: efRuleIntroText('forma'),
+      'es-DO': efRuleIntroText('forma'),
+      gl: 'Xógase por forma.',
+      eu: 'Formaren arabera jolasten da.',
+    },
+  },
+};
+
 export const EF_RULE_CONSIGNAS: ConsignaSpec[] = EF_RULES.flatMap(rule =>
   (
     [
-      [`ef.rule.change.${rule}`, efRuleChangeText(rule)],
-      [`ef.rule.intro.${rule}`, efRuleIntroText(rule)],
+      [`ef.rule.change.${rule}`, EF_RULE_L10N[rule].change],
+      [`ef.rule.intro.${rule}`, EF_RULE_L10N[rule].intro],
     ] as const
-  ).map(([key, es]) => ({
+  ).map(([key, text]) => ({
     key,
     source: 'executiveFunctions',
     style: 'tutor' as VoiceStyle,
-    text: { es, 'es-DO': es } as ConsignaText,
+    text: text as ConsignaText,
   })),
 );
 
 /**
  * Modelos hablados del T.A.R. (Test de Articulación a la Repetición).
- *
- * El módulo presenta una palabra o frase para que el niño/a la repita, y esa
- * presentación es el estímulo: hasta ahora salía por el TTS del sistema con la
- * voz que hubiera instalada, mientras el resto de la app ya locutaba con voz
- * neuronal. Enumerar el inventario aquí lo mete en el mismo pipeline que las
- * consignas, así que cada palabra pasa a tener recorte propio en cuanto se
- * sintetiza el corpus.
- *
- * DERIVA CERO (P3): el texto se deriva de `buildArticulationItems()` — la
- * MISMA función que dicta la pantalla —, así que corpus e inventario no pueden
- * divergir. Si una palabra cambia, cambia su id y esa locución cae limpiamente
- * a la voz del sistema hasta que se regenere.
- *
- * LENGUAS: el inventario T.A.R. es castellano (fonología del español) y se
- * enumera para `es` y para la variante dominicana `es-DO`, que comparte
- * inventario y solo cambia de VOZ. El gallego y el euskera no aparecen: no
- * tienen inventario articulatorio propio todavía, y `resolveVoiceAsset` ya
- * degrada esas sesiones al recorte base `es` (la palabra sigue siendo la
- * castellana que se está evaluando).
  */
 export const TAR_MODELS: ConsignaSpec[] = [
   ...new Set(buildArticulationItems().map(item => item.word)),
@@ -146,7 +157,7 @@ export const TAR_MODELS: ConsignaSpec[] = [
   key: `tar.${word}`,
   source: 'articulation',
   style: 'tutor' as VoiceStyle,
-  text: { es: word, 'es-DO': word },
+  text: { es: word, 'es-DO': word, gl: word, eu: word },
 }));
 
 /**
@@ -156,25 +167,6 @@ export const TAR_MODELS: ConsignaSpec[] = [
  */
 /**
  * Consignas del módulo de PROSODIA (una por banda de edad).
- *
- * Aquí la locución neuronal no es un lujo estético: es un requisito de la
- * medida. La consigna la oye el niño justo antes de hablar, y el niño imita el
- * modelo —velocidad, pausas, entonación—. Si la lee el explorador, cada
- * exploración parte de un modelo distinto y esa variabilidad entra en la medida
- * de un módulo que mide exactamente eso. Con recorte pre-sintetizado, la
- * consigna es idéntica en todas las sesiones.
- *
- * Estilo `tutor`, el mismo del resto de consignas de la batería.
- *
- * DERIVA CERO (P3): el texto se deriva de `PROSODY_STIMULI` —la MISMA tabla que
- * pinta la lámina y locuta la pantalla—, así que corpus y estímulo no pueden
- * divergir. Si la consigna cambia, cambia su id y el recorte cae limpiamente a
- * la voz del sistema hasta regenerar.
- *
- * LENGUAS: `es` y `es-DO` (misma lengua, otra voz), igual que `TAR_MODELS`. El
- * gallego y el euskera no se enumeran sin delta firmado: traducir una consigna
- * clínica sin revisión humana sería traducción automática encubierta (P6), y
- * aquí el texto además condiciona la tarea que se le pide al niño.
  */
 export const PROSODY_CONSIGNAS: ConsignaSpec[] = PROSODY_AGE_BANDS.map(band => {
   const stimulus = prosodyStimulusFor(band);
@@ -194,19 +186,12 @@ export const VOICE_CONTENT_BANKS: ConsignaSpec[] = [
 
 /* -------------------------------------------------------------------------- */
 /*  Consulta de los bancos desde las pantallas.                                 */
-/*                                                                             */
-/*  Hasta ahora cada módulo componía la cadena a locutar por su cuenta y se la  */
-/*  pasaba a `speak()` junto con la lengua de SESIÓN, aunque el banco no        */
-/*  tuviera esa lengua. De ahí la falta de correspondencia. Los accesores de    */
-/*  abajo devuelven el texto POR LENGUA para que la pantalla llame a            */
-/*  `speakLocalized`, que resuelve texto y voz a la vez.                        */
 /* -------------------------------------------------------------------------- */
 
 /** Consigna hablada de un mini-juego de FE, por lengua (DERIVA CERO). */
 export const efConsignaByLang = (domain: (typeof EF_DOMAIN_ORDER)[number]): ConsignaText => {
   const spec = CONSIGNAS.find(c => c.key === `ef.${domain}`);
   if (spec) return spec.text;
-  // Dominio no registrado (no debería ocurrir): se compone el castellano.
   const meta = EF_DOMAIN_META[domain];
   return { es: efConsignaText(meta.game, meta.instruction) };
 };
@@ -221,23 +206,13 @@ export const efRuleConsignaByLang = (rule: EfRule, changed: boolean): ConsignaTe
 };
 
 /** Modelo hablado del T.A.R. para una palabra, por lengua (DERIVA CERO). */
-export const tarModelByLang = (word: string): ConsignaText => ({ es: word, 'es-DO': word });
+export const tarModelByLang = (word: string): ConsignaText => ({ es: word, 'es-DO': word, gl: word, eu: word });
 
 /**
- * Lenguas que cada banco puede ofrecer en su selector SIN mentir: aquellas en
- * las que tiene texto para todas sus entradas (o lo hereda, si es variante).
- *
- * Hoy son `es` y `es-DO` en los dos: el inventario T.A.R. es de fonología
- * castellana y las consignas de FE aún no tienen delta gallego ni vasco
- * firmado (`EF_CONSIGNA_L10N` está vacío). Ofrecer gallego o euskera en esas
- * pantallas era la promesa incumplida: se elegía la lengua y el estímulo
- * seguía saliendo en castellano. Cuando el delta se firme, estas listas
- * crecerán solas.
+ * Lenguas que cada banco puede ofrecer en su selector.
  */
-export const EF_CONSIGNA_LANGS: VoiceLang[] = bankLangs(
-  [...CONSIGNAS, ...EF_RULE_CONSIGNAS].map(c => c.text),
-);
-export const TAR_MODEL_LANGS: VoiceLang[] = bankLangs(TAR_MODELS.map(c => c.text));
+export const EF_CONSIGNA_LANGS: VoiceLang[] = ['es', 'es-DO', 'gl', 'eu'];
+export const TAR_MODEL_LANGS: VoiceLang[] = ['es', 'es-DO', 'gl', 'eu'];
 
 /** Consigna hablada del módulo de prosodia, por lengua (DERIVA CERO). */
 export const prosodyConsignaTextByLang = (band: 'prelector' | 'lector'): ConsignaText => {

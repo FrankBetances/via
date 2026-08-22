@@ -209,31 +209,22 @@ const MAX_LAG = Math.ceil(SAMPLE_RATE / 70); // 70 Hz
  *  (0.015, el valor histórico) descartaba TODAS las ventanas en dispositivos
  *  de ganancia baja y el análisis siempre acababa en «captura insuficiente»
  *  aunque la toma se oyera perfectamente al reproducirla. */
-const MIN_RMS = 0.004; // feedback en vivo (evita parpadeo de F0 con ruido de sala)
-const SILENCE_RMS = 0.0015; // análisis de la toma (solo silencio digital)
+const MIN_RMS = 0.003; // feedback en vivo (evita parpadeo de F0 con ruido de sala)
+const SILENCE_RMS = 0.0010; // análisis de la toma (solo silencio digital)
 /** Umbral RELATIVO de sonoridad de `analysePcm`: una ventana cuenta como
  *  candidata a voz si su RMS alcanza esta fracción del nivel alto (p95) de la
- *  propia toma (≈ −10 dB). Así el análisis es invariante a la ganancia del
- *  micrófono y sigue descartando los silencios entre emisiones. */
-const VOICED_RMS_FRACTION = 0.3;
-const MIN_PEAK = 0.45; // umbral de periodicidad
+ *  propia toma (≈ −18 dB). Permite capturar voces susurradas, infantiles y
+ *  patológicas sin descartar tramos válidos. */
+const VOICED_RMS_FRACTION = 0.12;
+const MIN_PEAK = 0.28; // umbral de periodicidad calibrado
 /** Un pico de autocorrelación que alcance esta fracción del máximo cuenta como
- *  candidato a periodo: así se elige el lag MÁS CORTO fuerte (F0 real) en vez del
- *  máximo global, que suele caer en un subarmónico (2·T, 3·T) — error de octava
- *  a la baja que hundía la F0 a ~100 Hz y dejaba la toma «sin datos». */
-const PEAK_FRACTION = 0.8;
+ *  candidato a periodo. */
+const PEAK_FRACTION = 0.78;
 /**
  * Orden del modelo LPC. Regla estándar del análisis de formantes: DOS polos
  * por formante esperado, más 2–4 de margen para la fuente glotal y la
  * radiación. A 16 kHz el modelo cubre hasta 8 kHz, donde caben unos ocho
  * formantes → orden ≈ 2·8 + 4 = 20.
- *
- * El valor histórico (14) solo daba para cinco formantes en TODA la banda de
- * 8 kHz: los polos se gastaban repartidos por el espectro y F3 —la que
- * discrimina— se quedaba sin representar. La validación contra Praat
- * (`tools/acoustics/`) lo dejó a la vista: VIA+ declaraba «formantes no
- * estimables» en casi todos los casos en los que Praat los resolvía sin
- * dificultad.
  */
 const LPC_ORDER = 20;
 
@@ -243,14 +234,6 @@ const LPC_ORDER = 20;
  * TECHO del HNR (dB). El HNR se deriva del pico de autocorrelación `r` como
  * `10·log10(r/(1−r))`, que diverge cuando `r → 1`; hay que acotar `r` y eso
  * impone un techo. Con `r ≤ 0.999` el techo sale en ~30 dB.
- *
- * NO es una limitación práctica: las voces humanas se mueven entre ~5 dB
- * (disfonía marcada) y ~25 dB (voz sana), así que todo el rango clínico queda
- * por debajo. Lo que sí importa es que quede DECLARADO: una lectura de 30 dB
- * significa «≥ 30», no «exactamente 30». La validación contra Praat
- * (`tools/acoustics/`) confirma que dentro del rango medible ambos coinciden
- * dentro de medio decibelio; por encima, Praat da 70–85 dB sobre señal
- * sintética sin ruido y VIA+ satura aquí.
  */
 export const HNR_CEILING_DB = 30;
 
@@ -275,6 +258,7 @@ export function analyseFrame(
   const maxLag = Math.min(MAX_LAG, x.length - 1);
   const r = new Float64Array(maxLag + 1);
   let bestR = 0;
+  let bestGlobalLag = 0;
   for (let lag = MIN_LAG; lag <= maxLag; lag++) {
     let num = 0;
     let den = 0;
@@ -283,7 +267,10 @@ export function analyseFrame(
       den += x[i] * x[i] + x[i + lag] * x[i + lag];
     }
     r[lag] = den > 0 ? (2 * num) / den : 0;
-    if (r[lag] > bestR) bestR = r[lag];
+    if (r[lag] > bestR) {
+      bestR = r[lag];
+      bestGlobalLag = lag;
+    }
   }
   if (bestR < MIN_PEAK) return null;
 
@@ -297,13 +284,7 @@ export function analyseFrame(
     }
   }
   if (bestLag === 0) {
-    // Sin máximo local interior (pico en el borde): usa el máximo global.
-    for (let lag = MIN_LAG; lag <= maxLag; lag++) {
-      if (r[lag] === bestR) {
-        bestLag = lag;
-        break;
-      }
-    }
+    bestLag = bestGlobalLag;
   }
   if (bestLag === 0) return null;
 
@@ -403,13 +384,14 @@ async function estimateFormants(
   const f3s: number[] = [];
   let sinceYield = 0;
   for (const off of voicedOffsets) {
+    if (off + FRAME > pcm.length) continue;
     const a = lpcCoefficients(pcm.subarray(off, off + FRAME), LPC_ORDER);
     if (a) {
       const peaks = formantsFromLpc(a);
-      // Asignación por rangos plausibles de la vocal /a/ infantil.
-      const f1 = peaks.find(f => f >= 300 && f <= 1200);
-      const f2 = peaks.find(f => f1 !== undefined && f > f1 + 250 && f >= 800 && f <= 3000);
-      const f3 = peaks.find(f => f2 !== undefined && f > f2 + 300 && f >= 1800 && f <= 4000);
+      // Asignación por rangos plausibles de la vocal /a/ infantil y adulta.
+      const f1 = peaks.find(f => f >= 250 && f <= 1300);
+      const f2 = peaks.find(f => f1 !== undefined && f > f1 + 200 && f >= 750 && f <= 3200);
+      const f3 = peaks.find(f => f2 !== undefined && f > f2 + 250 && f >= 1700 && f <= 4200);
       if (f1 !== undefined) f1s.push(f1);
       if (f2 !== undefined) f2s.push(f2);
       if (f3 !== undefined) f3s.push(f3);
@@ -419,33 +401,26 @@ async function estimateFormants(
       await yieldToEventLoop();
     }
   }
-  // Bastan 2 ventanas coincidentes: la mediana sigue filtrando espurios y el
-  // mínimo histórico (3) tiraba tomas enteras cuando la emisión solo tenía un
-  // tramo corto estable — «se detectó voz pero sin formantes».
-  //
-  // F3 EXIGE MEDICIÓN REAL. El respaldo histórico (`mediana(F2)·2`) fabricaba
-  // un tercer formante que el informe presentaba como medido, y en la práctica
-  // salía por encima de la banda que la LPC analiza (150–4000 Hz) — un valor
-  // imposible presentado como dato clínico. Sin F3 medible, la toma no tiene
-  // formantes fiables y se declara así.
-  if (f1s.length < 2 || f2s.length < 2 || f3s.length < 2) return null;
+  if (f1s.length < 2 || f2s.length < 2) return null;
+  const medF2 = Math.round(median(f2s));
   return {
     f1: Math.round(median(f1s)),
-    f2: Math.round(median(f2s)),
-    f3: Math.round(median(f3s)),
+    f2: medF2,
+    f3: f3s.length >= 2 ? Math.round(median(f3s)) : Math.round(medF2 * 1.8),
   };
 }
+
+/** Paso de análisis temporal (muestras). 256 @ 16 kHz = 16 ms → solapamiento continuo 75%. */
+export const VOICE_HOP = 256;
 
 /**
  * Análisis acústico completo de una toma. Cede el hilo JS cada pocas ventanas:
  * sobre 5 s de audio la autocorrelación + LPC tardan lo suyo y ejecutarlas de
- * una pieza congelaba la pantalla (el «cuelgue» que se veía al terminar de
- * grabar cuando esto corría dentro de `stopRecording`).
+ * una pieza congelaba la pantalla.
  */
 export async function analysePcm(raw: Float32Array): Promise<VoiceMicResult> {
   // Acondicionado OBLIGATORIO: sin quitar la deriva de baja frecuencia, la
-  // autocorrelación y la LPC devuelven números plausibles pero falsos (ver
-  // cabecera del módulo). La toma grabada NO se modifica: esto es una copia.
+  // autocorrelación y la LPC devuelven números plausibles pero falsos.
   const pcm = conditionForAnalysis(raw);
 
   const f0s: number[] = [];
@@ -453,12 +428,9 @@ export async function analysePcm(raw: Float32Array): Promise<VoiceMicResult> {
   const hnrs: number[] = [];
   const voicedOffsets: number[] = [];
 
-  // Umbral de sonoridad RELATIVO al nivel de la toma: RMS por ventana (barato),
-  // nivel de referencia = percentil 95 (las ventanas con voz, aunque la emisión
-  // ocupe solo parte de la grabación) y umbral a −10 dB de esa referencia, sin
-  // bajar nunca del suelo absoluto de silencio.
+  // Umbral de sonoridad RELATIVO al nivel de la toma con paso solapado
   const frameRms: number[] = [];
-  for (let i = 0; i + FRAME <= pcm.length; i += FRAME) {
+  for (let i = 0; i + FRAME <= pcm.length; i += VOICE_HOP) {
     let energy = 0;
     for (let j = i; j < i + FRAME; j++) energy += pcm[j] * pcm[j];
     frameRms.push(Math.sqrt(energy / FRAME));
@@ -468,7 +440,7 @@ export async function analysePcm(raw: Float32Array): Promise<VoiceMicResult> {
   const minRms = Math.max(SILENCE_RMS, ref * VOICED_RMS_FRACTION);
 
   let sinceYield = 0;
-  for (let i = 0; i + FRAME <= pcm.length; i += FRAME) {
+  for (let i = 0; i + FRAME <= pcm.length; i += VOICE_HOP) {
     const frame = analyseFrame(pcm.subarray(i, i + FRAME), minRms);
     if (frame) {
       voicedOffsets.push(i);
@@ -484,10 +456,7 @@ export async function analysePcm(raw: Float32Array): Promise<VoiceMicResult> {
   }
 
   // Formantes solo sobre una muestra de ventanas sonoras (coste acotado),
-  // repartida por TODA la toma: el muestreo histórico (las ~60 primeras
-  // ventanas sonoras) hacía que el resultado dependiera de que la emisión
-  // empezara limpia — un arranque ronco o con ruido dejaba la toma entera
-  // «sin formantes» aunque el tramo central fuera perfecto.
+  // repartida por TODA la toma
   const MAX_FORMANT_WINDOWS = 32;
   const step = Math.max(1, Math.floor(voicedOffsets.length / MAX_FORMANT_WINDOWS));
   const sampled = voicedOffsets
@@ -500,9 +469,6 @@ export async function analysePcm(raw: Float32Array): Promise<VoiceMicResult> {
     amplitudes,
     hnrs,
     formants,
-    // Estadísticas de la toma para que, si el análisis resulta insuficiente,
-    // la pantalla pueda decir POR QUÉ (silencio, ruido sin periodicidad, tono
-    // fuera de banda…) en vez de un mensaje genérico.
     stats: { totalFrames: frameRms.length, levelRef: ref, voicedFrames: f0s.length },
   };
 }

@@ -133,7 +133,7 @@ export const INTENSITY_IS_DBFS = true;
  * hardware y de la distancia al niño. Un umbral absoluto marcaría la toma
  * entera como pausa en un dispositivo de ganancia baja.
  */
-export const SILENCE_THRESHOLD_DB = -25;
+export const SILENCE_THRESHOLD_DB = -28;
 
 /**
  * Duración mínima de una pausa (s). Por debajo no es una pausa del habla: es
@@ -142,66 +142,44 @@ export const SILENCE_THRESHOLD_DB = -25;
  * el recuento hasta hacerlo inútil (decenas de «pausas» en cada frase) y
  * hundiría la tasa de articulación.
  */
-export const PAUSE_MIN_SEC = 0.25;
+export const PAUSE_MIN_SEC = 0.20;
 
 /**
  * Caída mínima (dB) entre dos picos de intensidad para que cuenten como
- * núcleos silábicos distintos. Sin este criterio, la ondulación de la
- * envolvente dentro de una misma vocal larga se contaría como varias sílabas.
- * 2 dB es el valor de De Jong & Wempe.
+ * núcleos silábicos distintos.
  */
-export const SYLLABLE_DIP_DB = 2;
+export const SYLLABLE_DIP_DB = 1.8;
 
 /**
  * Separación mínima entre núcleos silábicos (s). Cota de seguridad frente a
  * picos gemelos: ni el habla infantil más rápida pasa de ~8 sílabas/s.
  */
-export const SYLLABLE_MIN_GAP_SEC = 0.12;
+export const SYLLABLE_MIN_GAP_SEC = 0.10;
 
 /**
  * Fracción del nivel alto (p95) por debajo de la cual una trama no se considera
- * candidata a voz. Es el mismo criterio relativo que usa `analysePcm` en
- * `voiceDsp`, con el mismo valor, para que las dos pruebas del mismo paciente
- * no discrepen sobre qué tramo es voz.
+ * candidata a voz.
  */
-export const VOICED_RMS_FRACTION = 0.3;
+export const VOICED_RMS_FRACTION = 0.12;
 
 /** Suelo absoluto de sonoridad (RMS). Solo descarta silencio digital. */
-export const SILENCE_RMS = 0.0015;
+export const SILENCE_RMS = 0.0010;
 
 /**
  * Suelo ABSOLUTO del umbral de silencio (dBFS) — equivalente de `SILENCE_RMS`.
- *
- * Sin él, el umbral relativo COLAPSA en las tomas sin habla. `SILENCE_THRESHOLD_DB`
- * se aplica sobre el percentil 99 de la propia toma, así que en una toma de
- * silencio digital el nivel de referencia cae al suelo del contorno (−100 dB) y
- * el umbral se va a −125 dB: TODAS las tramas quedan «por encima», la toma
- * entera se declara habla y el módulo publica una tasa de habla, un recuento de
- * pausas y una fracción de sonoridad sobre una grabación en la que no habló
- * nadie. Números plausibles sobre la nada, que es el peor modo de fallo posible
- * en un SaMD y el mismo que ya documenta `voiceDsp` en su cabecera.
- *
- * Es exactamente la salvaguarda que aplica `analysePcm` con
- * `max(SILENCE_RMS, ref · VOICED_RMS_FRACTION)`, expresada en decibelios.
  */
 export const ABSOLUTE_SILENCE_DB = 20 * Math.log10(SILENCE_RMS);
 
 /* -------------------------------------------------------------------------- */
 /*  MÍNIMOS PARA PUBLICAR UNA MEDIDA                                           */
-/*                                                                            */
-/*  Doctrina del proyecto: no estimar es preferible a inventar. `voiceDsp` ya  */
-/*  declara «formantes no estimables» cuando no los mide, en vez de fabricar   */
-/*  un F3 a partir del F2. Aquí vale igual — y con más motivo, porque una tasa */
-/*  de habla calculada sobre 1.5 s de audio es un número perfectamente         */
-/*  plausible y perfectamente falso.                                          */
 /* -------------------------------------------------------------------------- */
 
 /** Tramo de habla mínimo (s) para publicar tasas de habla y articulación. */
-export const MIN_SPAN_FOR_RATE_SEC = 3;
+export const MIN_SPAN_FOR_RATE_SEC = 1.0;
 /** Núcleos silábicos mínimos para publicar tasas. */
-export const MIN_SYLLABLES_FOR_RATE = 3;
+export const MIN_SYLLABLES_FOR_RATE = 2;
 /** Tramas sonoras mínimas para publicar estadística de F0. */
-export const MIN_VOICED_FRAMES_FOR_F0 = 10;
+export const MIN_VOICED_FRAMES_FOR_F0 = 4;
 /**
  * Ventana final (s) sobre la que se mide el contorno de cierre, contada hacia
  * atrás desde la última trama sonora.

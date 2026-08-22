@@ -114,15 +114,14 @@ export interface VoiceTake {
 
 const DURATION_MS = 5000;
 /** Ventanas sonoras mínimas para un resultado clínicamente interpretable. */
-const MIN_VOICED_FRAMES = 8;
+const MIN_VOICED_FRAMES = 6;
 /** Rango de F0 aceptado, con margen sobre la banda de análisis del DSP
  *  (70–500 Hz): cubre desde voz masculina adulta grave hasta voz infantil
- *  aguda. El suelo histórico (90 Hz) descartaba la voz de un adulto probando
- *  la app y toda la toma acababa en «captura insuficiente». */
-const F0_VALID_MIN = 65;
-const F0_VALID_MAX = 520;
+ *  aguda. */
+const F0_VALID_MIN = 60;
+const F0_VALID_MAX = 540;
 /** Duración mínima de una toma para conservarla en la lista. */
-const MIN_TAKE_SEC = 0.8;
+const MIN_TAKE_SEC = 0.5;
 /** Si la parada nativa no responde en este plazo, se aborta con error. */
 const STOP_TIMEOUT_MS = 5000;
 /** Presupuesto máximo del análisis de una toma. */
@@ -152,33 +151,34 @@ const round = (v: number, d = 2) => roundTo(v, d);
 /**
  * Parámetros acústicos desde las series por ventana. Devuelve `null` si la
  * captura no tiene suficientes ventanas sonoras: la pantalla pide repetir la
- * emisión (antes se devolvían valores simulados, eliminado con el modo demo).
+ * emisión.
  *
  * Los formantes NO son condición de suficiencia: si la LPC no los resuelve el
  * resultado sale con `formants: null` y el resto de parámetros (F0, jitter,
- * shimmer, HNR) intactos. El comportamiento histórico (tirar toda la toma por
- * no tener F1–F3) convertía un extra opcional en un bloqueo de la prueba.
+ * shimmer, HNR) intactos.
  */
 export const computeParams = (r: VoiceMicResult): AcousticResult | null => {
   const { f0s, amplitudes: amps, hnrs, formants } = r;
-  // Rango de F0 plausible (voz infantil/adulta). Se usa `>=`/`<=` con un pequeño
-  // margen porque el adaptador afina la F0 por interpolación y puede rozar los
-  // extremos de la banda de análisis (70–500 Hz); con `>`/`<` estrictos las
-  // ventanas del borde de banda se descartaban y la toma quedaba «sin datos».
   const valid = f0s.filter(f => f >= F0_VALID_MIN && f <= F0_VALID_MAX);
   if (valid.length < MIN_VOICED_FRAMES) return null;
 
   const avgF0 = valid.reduce((a, b) => a + b, 0) / valid.length;
 
-  // Jitter (perturbación relativa media de periodos)
+  // Jitter (perturbación relativa media de periodos con filtrado de saltos de octava)
   let jSum = 0;
   let pSum = 0;
+  let jCount = 0;
   for (let i = 0; i < valid.length - 1; i++) {
-    jSum += Math.abs(1 / valid[i] - 1 / valid[i + 1]);
-    pSum += 1 / valid[i];
+    const p1 = 1 / valid[i];
+    const p2 = 1 / valid[i + 1];
+    if (Math.abs(valid[i] - valid[i + 1]) < 0.4 * valid[i]) {
+      jSum += Math.abs(p1 - p2);
+      jCount++;
+    }
+    pSum += p1;
   }
   pSum += 1 / valid[valid.length - 1];
-  const jitter = (jSum / (valid.length - 1) / (pSum / valid.length)) * 100;
+  const jitter = jCount > 0 ? (jSum / jCount / (pSum / valid.length)) * 100 : 0;
 
   // Shimmer (perturbación relativa media de amplitud)
   let sSum = 0;

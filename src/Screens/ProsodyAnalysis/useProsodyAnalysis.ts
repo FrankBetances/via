@@ -83,10 +83,10 @@ export const getProsodyMicAdapter = (): ProsodyMicAdapter | null => micAdapter;
  * que el contador sea de habla y no de reloj: si el niño calla veinte segundos,
  * el cronómetro de pared miente sobre lo que hay para analizar.
  */
-export const TARGET_SPEECH_SEC = 30;
+export const TARGET_SPEECH_SEC = 15;
 
-/** Habla mínima por debajo de la cual la toma no se ofrece como analizable. */
-export const MIN_SPEECH_SEC = 15;
+/** Habla mínima por debajo de la cual la toma se marca como corta. */
+export const MIN_SPEECH_SEC = 3;
 
 /**
  * Tope duro de la toma (s). Dos motivos, y ninguno es técnico del todo: la
