@@ -368,7 +368,7 @@ def cmd_list(registry: dict) -> None:
 
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--lang", help="idioma/variante registrado en voices.json (es | es-DO | gl)")
+    ap.add_argument("--lang", help="idioma/variante registrado en voices.json (es | es-DO | gl | eu)")
     ap.add_argument("--text", help="texto a sintetizar (modo unitario)")
     ap.add_argument("--out", help="WAV de salida (modo unitario)")
     ap.add_argument("--batch", help="JSON {clave: texto} (modo lote)")

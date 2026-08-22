@@ -1,4 +1,7 @@
-import { TAR_LEXICON } from '@/Screens/Articulation/articulationLexicon';
+/* Ruta RELATIVA, no alias `@/`: `scripts/export-voice-corpus.js` compila este
+   módulo de forma aislada con `tsc`, sin los `paths` del tsconfig, y un alias
+   aquí rompe la exportación del corpus y con ella toda la cadena de síntesis. */
+import { TAR_LEXICON } from '../Screens/Articulation/articulationLexicon';
 import { buildArticulationItems } from '../Screens/Articulation/articulationResult';
 import {
   PROSODY_AGE_BANDS,

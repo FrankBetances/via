@@ -751,7 +751,7 @@ table.info td b{color:var(--ink-2);}
                 <div style="flex:1; text-align:center; padding:8px 3px; border-radius:11px; border:1px solid var(--line); color:var(--muted); font-size:7px; font-weight:800;">Euskara</div>
                 <div style="flex:1; text-align:center; padding:8px 3px; border-radius:11px; border:1px solid var(--line); color:var(--muted); font-size:7px; font-weight:800;">Español (RD)</div>
               </div>
-              <div style="font-size:7.5px; color:var(--muted-2); margin-top:8px; line-height:1.45;">Galego e euskara dictan las <b>consignas</b> con la voz del sistema hasta que existan sus locuciones propias. El <b>estímulo verbal</b> sí está locutado en los cuatro idiomas.</div>
+              <div style="font-size:7.5px; color:var(--muted-2); margin-top:8px; line-height:1.45;">Las <b>cuatro lenguas</b> tienen ya sus locuciones propias: 97 por idioma, que cubren las consignas, los modelos del T.A.R. y la prosodia. El niño <b>lee y oye la misma palabra</b>, la de su variedad.</div>
             </div>
             <div style="margin-top:8px; display:flex; gap:6px; align-items:flex-start; padding:8px 10px; border-radius:11px; background:var(--warn-bg); border:1px solid #F0D9A6;">
               <span style="font-size:10px;">⚠️</span>
@@ -782,11 +782,11 @@ table.info td b{color:var(--ink-2);}
       <div>
         <h2 class="h" style="font-size:12px; margin-bottom:6px;">Qué hay disponible en cada lengua</h2>
         <table class="info">
-          <tr><th style="width:27%;">Lengua</th><th>Banco de estímulos</th><th style="width:24%;">Estado clínico</th></tr>
-          <tr><td><b>Español (España)</b></td><td>Banco base: 38 láminas, bandas A–D</td><td><span class="tag ok">Validado</span></td></tr>
-          <tr><td><b>Galego</b></td><td>Banco propio: 38 láminas · voz Celtia</td><td><span class="tag ok">Banco aprobado por ACOPROS</span></td></tr>
-          <tr><td><b>Euskara</b></td><td>Banco propio: 37 láminas · voz Maider</td><td><span class="tag warn">Provisional</span></td></tr>
-          <tr><td><b>Español (RD)</b><div class="small">Quisqueya Habla</div></td><td>Banco base auditado para el Caribe · 37 locuciones propias</td><td><span class="tag ok">Audio aprobado</span></td></tr>
+          <tr><th style="width:24%;">Lengua</th><th>Banco de estímulos</th><th style="width:15%;">Consignas</th><th style="width:22%;">Estado clínico</th></tr>
+          <tr><td><b>Español (España)</b><div class="small">castellano ibérico</div></td><td>Banco base: 38 láminas, bandas A–D</td><td>97 locuciones</td><td><span class="tag ok">Validado</span></td></tr>
+          <tr><td><b>Galego</b></td><td>Banco propio: 38 láminas · voz Celtia</td><td>97 locuciones</td><td><span class="tag ok">Banco aprobado por ACOPROS</span></td></tr>
+          <tr><td><b>Euskara</b></td><td>Banco propio: 37 láminas · voz Maider</td><td>97 locuciones</td><td><span class="tag warn">Provisional</span></td></tr>
+          <tr><td><b>Español (RD)</b><div class="small">Quisqueya Habla</div></td><td>Banco base auditado para el Caribe · 37 locuciones propias</td><td>97 locuciones</td><td><span class="tag ok">Audio aprobado</span></td></tr>
         </table>
         <h2 class="h" style="font-size:12px; margin:13px 0 6px;">Si una locución no está, la prueba sigue</h2>
         <div class="seqrow" style="margin-top:0;">
@@ -977,7 +977,7 @@ table.info td b{color:var(--ink-2);}
         </div></div>
         <div class="shot-caption">
           <div class="sc-title"><span class="sc-num">B</span>Articulación · T.A.R.</div>
-          <div class="sc-text">El niño repite el <b>modelo hablado</b>, servido por la misma voz que el resto de la aplicación (locución neuronal si está disponible). La pantalla de preparación incluye <b>selector de idioma</b>: cambia la voz y la etiqueta del reconocedor, <b>no las palabras</b> (el inventario fonético es del español). Si hay reconocimiento local, VIA+ alinea fonema a fonema lo esperado con lo dicho y <b>propone</b> la clasificación <b>SODA</b>; el clínico la acepta o la corrige. La propuesta es siempre revisable.</div>
+          <div class="sc-text">El niño repite el <b>modelo hablado</b>, servido por la misma voz que el resto de la aplicación (locución neuronal si está disponible). La pantalla de preparación incluye <b>selector de idioma</b>, que cambia la voz, la etiqueta del reconocedor <b>y también las palabras</b>: cada lengua tiene su propio inventario. No son traducciones —traducir destruiría la casilla, porque <i>Llave</i> → <i>Chave</i> cambia /ʎ/ por /tʃ/—, sino portadores equivalentes del mismo fonema en la misma posición silábica. Si hay reconocimiento local, VIA+ alinea fonema a fonema lo esperado con lo dicho y <b>propone</b> la clasificación <b>SODA</b>; el clínico la acepta o la corrige. La propuesta es siempre revisable.</div>
         </div>
       </div>
     </div>
@@ -1004,6 +1004,7 @@ table.info td b{color:var(--ink-2);}
       <div class="uc-h">⬦ Caso de uso — Degradación sin hardware</div>
       <div class="uc-b">Si el micrófono o el reconocimiento de voz no están disponibles, el T.A.R. <b>degrada a SODA manual</b>: el profesional marca cada fonema a mano, sin perder la prueba. En articulación, la clasificación SODA registra por fonema: <b>S</b>ustitución · <b>O</b>misión · <b>D</b>istorsión · <b>A</b>dición.</div>
     </div>
+    <div class="note" style="margin-top:10px;"><b>Los baremos del T.A.R. son de fonología castellana.</b> Los inventarios galego y euskara exploran el repertorio fonético en la lengua vehicular del niño, pero el dato normativo de origen no se obtuvo en esas lenguas: comparar sus puntuaciones con el baremo castellano es criterio del responsable clínico. Algunos ítems llevan además una nota de por qué esa casilla no puede seguir la rejilla en esa lengua —el galego y el euskara, por ejemplo, no tienen palabras plenas con /ʎ/ inicial—, y esa ausencia no debe puntuarse como error articulatorio.</div>
     <div class="note crit" style="margin-top:10px;"><b>La distorsión la marca siempre el clínico.</b> VIA+ nunca propone <b>D</b> por su cuenta: una /s/ interdental o una /r/ mal vibrada producen la misma cadena de fonemas que la producción correcta, así que ningún análisis del texto reconocido puede verlas. La propuesta automática se limita a <b>S</b>, <b>O</b> y <b>A</b>; la distorsión es juicio perceptivo del profesional.</div>
   </div>
   <div class="page-foot"><span>VIA+ · Manual de Usuario</span><span>Página 11</span></div>
