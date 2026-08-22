@@ -210,7 +210,7 @@ export const TAR_LEXICON: Record<string, TarLexEntry> = {
     note: 'gl: la forma galega es /kɾ/, no /kl/.' },
   Brazo: { 'es-DO': 'Brazo', gl: 'Brazo', eu: 'Brontze' },
   Atlas: { 'es-DO': 'Atlas', gl: 'Atlas', eu: 'Atlas' },
-  Flecha: { 'es-DO': 'Flecha', gl: 'Frecha', eu: 'Flauta',
+  Flauta: { 'es-DO': 'Flauta', gl: 'Frauta', eu: 'Flauta',
     note: 'gl: la forma galega es /fɾ/, no /fl/.' },
   Fruta: { 'es-DO': 'Fruta', gl: 'Froita', eu: 'Fruitu' },
   Tigre: { 'es-DO': 'Tigre', gl: 'Tigre', eu: 'Tigre' },
@@ -226,10 +226,7 @@ export const TAR_LEXICON: Record<string, TarLexEntry> = {
   },
   'Panadería': { 'es-DO': 'Panadería', gl: 'Panadaría', eu: 'Okindegia' },
   Caperucita: { 'es-DO': 'Caperucita', gl: 'Carrapuchiña', eu: 'Txanogorritxu' },
-  Ametralladora: {
-    'es-DO': 'Ametralladora', gl: 'Metralladora', eu: 'Metrailadorea',
-    note: 'gl: la forma galega es «metralladora», sin a- inicial. PENDIENTE DE CRITERIO CLÍNICO: el referente es un arma y esto no es una cuestión regional sino de adecuación infantil; «mantequilla» conservaría /ʎ/ y el carácter polisilábico.',
-  },
+  Mariposa: { 'es-DO': 'Mariposa', gl: 'Bolboreta', eu: 'Tximeleta' },
   'Helicóptero': { 'es-DO': 'Helicóptero', gl: 'Helicóptero', eu: 'Helikopteroa' },
   Bicicleta: { 'es-DO': 'Bicicleta', gl: 'Bicicleta', eu: 'Bizikleta' },
 

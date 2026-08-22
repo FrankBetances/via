@@ -83,6 +83,44 @@ describe('léxico del T.A.R. · las cuatro variedades, sin huecos', () => {
     expect(Object.keys(WORD_EMOJI).filter(k => !known.has(k))).toEqual([]);
   });
 
+  /* Ninguna prueba infantil debe pedirle a un niño que nombre un arma. El
+     inventario original traía «ametralladora» y «flecha» (con arco). Se
+     sustituyeron por «mariposa» y «flauta», que no es solo un cambio de
+     palabra: el pictograma que el niño ve también deja de serlo. */
+  const ARMAS = [
+    /metrall/i, /flecha/i, /frecha/i, /pistol/i, /fusil/i, /espada/i,
+    /cuchill/i, /puñal/i, /\bbala\b/i, /\barma/i, /cañón/i, /granada/i,
+  ];
+  const EMOJIS_ARMA = ['🔫', '🏹', '🗡️', '⚔️', '💣', '🪓', '🔪', '🛡️', '💥', '👊'];
+
+  it('ninguna columna nombra un arma', () => {
+    const hits: string[] = [];
+    for (const [key, e] of Object.entries(TAR_LEXICON)) {
+      for (const text of [key, e['es-DO'], e.gl, e.eu]) {
+        if (ARMAS.some(rx => rx.test(text))) hits.push(`${key} -> ${text}`);
+      }
+    }
+    expect(hits).toEqual([]);
+  });
+
+  it('ningún pictograma dibuja un arma', () => {
+    const hits = Object.entries(WORD_EMOJI)
+      .filter(([, g]) => EMOJIS_ARMA.some(a => g.includes(a)))
+      .map(([w, g]) => `${w} ${g}`);
+    expect(hits).toEqual([]);
+  });
+
+  /* Los doce dífonos consonánticos cubren doce grupos distintos: quitar una
+     palabra sin mirar deja un grupo sin explorar. «Flauta» entra justamente
+     porque conserva el /fl/ que «flecha» era la única en portar. */
+  it('la sustitución de «flecha» no deja el grupo /fl/ sin cubrir', () => {
+    const difcons = buildArticulationItems()
+      .filter(i => i.section === 'difcons')
+      .map(i => i.word);
+    expect(difcons).toHaveLength(12);
+    expect(difcons.some(w => /^fl/i.test(w))).toBe(true);
+  });
+
   it('toda entrada que se aparta de la rejilla lleva su nota', () => {
     const documented = Object.entries(TAR_LEXICON).filter(([, e]) => e.note);
     expect(documented.length).toBeGreaterThan(0);

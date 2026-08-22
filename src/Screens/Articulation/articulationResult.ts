@@ -119,8 +119,8 @@ const PLACES: PlaceDef[] = [
 ];
 
 const DIFVOC = ['Piano', 'Vaina', 'Violín', 'Autobús', 'Ciudad', 'Fui'];
-const DIFCONS = ['Tabla', 'Regla', 'Premio', 'Clavo', 'Brazo', 'Atlas', 'Flecha', 'Fruta', 'Tigre', 'Dragón', 'Crema', 'Plato'];
-const POLI = ['Locomotora', 'Panadería', 'Caperucita', 'Ametralladora', 'Helicóptero', 'Bicicleta'];
+const DIFCONS = ['Tabla', 'Regla', 'Premio', 'Clavo', 'Brazo', 'Atlas', 'Flauta', 'Fruta', 'Tigre', 'Dragón', 'Crema', 'Plato'];
+const POLI = ['Locomotora', 'Panadería', 'Caperucita', 'Mariposa', 'Helicóptero', 'Bicicleta'];
 const FRASES = [
   'El perro salta.',
   'La niña rubia come.',

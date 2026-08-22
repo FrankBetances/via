@@ -38,8 +38,8 @@ export const WORD_EMOJI: Record<string, string> = {
   Piano: '🎹', Vaina: '🫛', Violín: '🎻', 'Autobús': '🚌', Ciudad: '🏙️', Fui: '🏃‍♂️',
   // Dífonos consonánticos
   Tabla: '🪵', Regla: '📏', Premio: '🏅', Clavo: '🔩', Brazo: '💪', Atlas: '🗺️',
-  Flecha: '🏹', Fruta: '🍎', Tigre: '🐯', Dragón: '🐉', Crema: '🍦', Plato: '🍽️',
+  Flauta: '🪈', Fruta: '🍎', Tigre: '🐯', Dragón: '🐉', Crema: '🍦', Plato: '🍽️',
   // Polisílabas
-  Locomotora: '🚂', Panadería: '🥖', Caperucita: '👧', Ametralladora: '🔫',
+  Locomotora: '🚂', Panadería: '🥖', Caperucita: '👧', Mariposa: '🦋',
   Helicóptero: '🚁', Bicicleta: '🚲',
 };
