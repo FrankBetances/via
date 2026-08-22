@@ -336,7 +336,12 @@ export default function AudiometryConditionedScreen({ navigation }: Props) {
   ];
   const stationLabels = ['1. 🐰 1 kHz', '2. 🐻 2 kHz', '3. 🦊 4 kHz', '4. 🐱 500 Hz'];
 
-  const needsReferral = soundfieldNeedsReferral(a.thresholds, a.ptaCL);
+  // `soundfieldNeedsReferral` espera el mapa de umbrales de vía aérea (`CL`),
+  // no el contenedor: pasarle `a.thresholds` hacía que `pta()` promediara
+  // `undefined` (NaN) y la derivación NUNCA se recomendara. Además solo tiene
+  // sentido preguntarlo con la prueba terminada.
+  const needsReferral =
+    phase === 'done' && a.thresholds.CL ? soundfieldNeedsReferral(a.thresholds.CL) : false;
   const sevCL = a.ptaCL !== null ? severityOf(a.ptaCL) : null;
 
   return (

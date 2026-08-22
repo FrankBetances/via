@@ -212,7 +212,10 @@ export function installVerbalAudioAdapter(opts: VerbalAudioAdapterOptions = {}):
   // AudioContext y, con él, un segundo stream nativo que en Android (Oboe
   // exclusivo) dejaba mudo al de los tonos —o se quedaba mudo él— según cuál
   // arrancase primero.
-  const ctx = acquireAudioContext();
+  // `let` y no `const`: si el sistema tira el contexto (Android puede cerrarlo
+  // al perder el foco de audio), los puntos de reproducción lo vuelven a
+  // adquirir en vez de quedarse mudos para el resto de la sesión.
+  let ctx = acquireAudioContext();
   const bufferCache = new Map<string, AudioBuffer>();
 
   // Nodos del estímulo en curso (para poder detenerlos).
@@ -488,10 +491,12 @@ export function installVerbalAudioAdapter(opts: VerbalAudioAdapterOptions = {}):
           KEY_PARAM_STREAM: 'STREAM_MUSIC',
         },
       });
-    }).catch(err => {
-      // Fallback final a speakText si speakWord falla con el dialecto específico
-      speakText(word, lang);
     });
+    // NO se captura aquí: el rechazo DEBE propagarse a `playWord`, que es quien
+    // contabiliza el fallo (para degradar la sesión entera tras varios seguidos)
+    // y degrada la palabra a su recorte empaquetado. Un `catch` local que
+    // reintentaba por `speakText` dejaba la palabra MUDA cuando el motor de
+    // síntesis era el que fallaba, que es justo el caso que el respaldo cubre.
   };
 
   const playBuffer = (buffer: AudioBuffer, levelDb: number) => {
