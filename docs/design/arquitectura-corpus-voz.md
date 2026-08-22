@@ -30,6 +30,35 @@ el logopeda); esta capa es para consignas/instrucciones y futuros módulos.
 
 ## 2. Mapa de componentes (blueprint → VIA+)
 
+> **Las dos filas de runtime estuvieron divergiendo, y eso costó caro.** Hasta
+> la migración de agosto de 2026 esta tabla decía que VIA+ usaba
+> `react-native-audio-api` donde Valeria+ usa `expo-audio`, y `react-native-tts`
+> donde usa `expo-speech` — **sin dar ningún motivo**, y con el mismo formato
+> que las filas que sí son portes literales. Presentadas así, las
+> sustituciones parecían equivalentes y nadie las cuestionó nunca.
+>
+> No lo eran. `react-native-tts` devuelve la lista de voces truncada o vacía en
+> silencio (comparación de referencias `country != ""` más `map.get()` sin
+> comprobar null, con el `catch` fuera del bucle), y sobre esa lista colgaba una
+> selección de voz que además funcionaba como PUERTA: sin voz verificada, la app
+> dejaba de dictar en todos los módulos. El resultado en campo fue que Valeria+
+> locutaba con voz neural en un emulador donde VIA+ estaba mudo.
+>
+> **Regla que deja esta historia:** una divergencia respecto al blueprint se
+> anota CON SU MOTIVO en esta tabla, o no se hace. Una decisión sin
+> justificación escrita no se revisa: se hereda.
+>
+> Divergencia que SÍ queda, y su motivo: `react-native-audio-api` se conserva
+> para los tonos de las audiometrías (osciladores) y para la captura de PCM
+> crudo del análisis acústico y la prosodia. `expo-audio` graba a fichero y no
+> entrega bloques de muestras, así que no puede sustituirlo ahí. Valeria+ no
+> tiene esa necesidad porque no hace análisis acústico.
+>
+> ⚠️ **Pendiente:** Expo SDK 54 fija `react-native: 0.81.5` en su
+> `bundledNativeModules.json` (la versión de Valeria+) y VIA+ está en 0.80.1.
+> `install-expo-modules` rechazó esa combinación y se forzó con
+> `--sdk-version`. Igualar de verdad exige subir React Native a 0.81.5.
+
 | Rol (blueprint Valeria) | Archivo en Valeria+ | Equivalente en VIA+ |
 |---|---|---|
 | Contrato de id | `src/valeriaVoiceCorpus.ts` (`voiceCorpusId`) | **`src/Voice/voiceCorpusId.ts`** |
@@ -37,8 +66,9 @@ el logopeda); esta capa es para consignas/instrucciones y futuros módulos.
 | Exportador del corpus | `scripts/export-voice-corpus.js` | **`scripts/export-voice-corpus.js`** → `voice-corpus.json` |
 | Generador de assets (síntesis) | `scripts/generate-voice-assets.py` | `tools/nos/tts.py` (Piper/Celtia) + ffmpeg — ver §5 |
 | Mapa id→asset | `scripts/build-voice-asset-map.js` | **`scripts/build-voice-asset-map.js`** → `src/Voice/viaVoiceAssets.ts` |
-| Reproductor runtime | `src/valeriaVoicePlayback.ts` (expo-audio) | **`src/Voice/viaVoicePlayback.ts`** (`react-native-audio-api`) |
-| Integración runtime | `src/valeriaVoice.ts` (expo-speech) | **`src/Voice/viaVoice.ts`** (voz de sistema vía adaptador verbal / `react-native-tts`) |
+| Reproductor runtime | `src/valeriaVoicePlayback.ts` (expo-audio) | **`src/Voice/viaVoicePlayback.ts`** (expo-audio) |
+| Integración runtime | `src/valeriaVoice.ts` (expo-speech) | **`src/Voice/viaVoice.ts`** (expo-speech vía adaptador verbal) |
+| Reconocimiento (T.A.R.) | `src/valeriaVoice.ts` (expo-speech-recognition) | **`src/Screens/Articulation/speechRecognitionBridge.ts`** (expo-speech-recognition) |
 | Mapa generado | `src/valeriaVoiceAssets.ts` | **`src/Voice/viaVoiceAssets.ts`** (GENERADO) |
 | Corpus serializado | `voice-corpus.json` | **`voice-corpus.json`** |
 
