@@ -377,29 +377,67 @@ adaptador que lanza no se propaga a ninguna pantalla.
 
 ## 7. Riesgos (ISO 14971) — la parte de VIA+
 
+> **Tabla rehecha el 22/8/2026, con el acompañamiento implementado.** La versión
+> anterior se apoyaba en «el aparato no está» y «el aparato no tiene altavoz», y
+> aplazaba la reescritura hasta que cerrase el §6 de
+> [`lua-salida-y-alertas-sonoras.md`](lua-salida-y-alertas-sonoras.md). Ese §6
+> **cerró el 14/8** (D-K: la voz la pone la tableta; en v1 el aparato no emite
+> sonido, porque I²S no cabe en la ESP32-2424S012), así que la condición que
+> bloqueaba esta tabla ya no se cumple y aquí está.
+>
+> Esto es además el punto 1 de «lo que decide VIA+ solo, hoy, sin hablar con
+> nadie» del §7 de aquel documento: *mover la postura de la ausencia, fila a
+> fila*. No baja requisitos a Valeria+ (§4.1).
+
+### 7.1. Qué cambió en la exposición
+
+Dos hechos del código mandan sobre todo lo demás, y conviene tenerlos delante
+antes de leer la tabla:
+
+**Uno.** `clinicalSilence` emite `SAFE`/`CLINICAL_SILENCE` —no `MUTE`— en cuanto
+se abre cualquier captura de micrófono, y eso **apaga el aparato entero**, no
+solo su sonido. De modo que en las pruebas que graban, Lúa está a oscuras
+durante la medida:
+
+| Prueba | ¿Abre captura? | Lúa durante la medida |
+|---|---|---|
+| Análisis de Voz · Prosodia · T.A.R. · Sonómetro | Sí | **Apagada** por `CLINICAL_SILENCE` |
+| Audiometría Condicionada · Audiometría Verbal · Funciones Ejecutivas | No (solo reproducen) | **Viva** |
+
+**Dos.** En v1 el aparato **no tiene salida de audio** (D-F/D-K). No hay
+interferencia acústica posible: no hay nada que suene.
+
+El riesgo residual se concentra, por tanto, en la fila de abajo a la derecha:
+las pruebas que no graban y en las que Lúa sigue expresándose. De ellas, la
+crítica es la **audiometría condicionada**, que la matriz del §4 clasifica como
+*parte del acto* — es un VRA, y el refuerzo condicionado **es** el método.
+
+### 7.2. La tabla
+
 | # | Peligro | Daño | Control | Verificación |
 |---|---|---|---|---|
-| L-1 | El periférico interfiere en una medición | Medida inválida → decisión clínica sobre dato falso | **Ausencia física durante la medición** (procedimiento de exploración). *Defensa en profundidad, no declarada:* `SAFE` al abrirse cualquier captura; y en v1 el aparato no tiene altavoz | Auditoría del procedimiento. Además, test de integración: la reserva real de micrófono emite el `SAFE` |
+| L-1 | El periférico interfiere en una medición **acústica** | Medida inválida → decisión clínica sobre dato falso | **Mudez física**: la v1 no tiene salida de audio (D-F/D-K, §6 de `lua-salida-y-alertas-sonoras.md`). *Defensa en profundidad:* `CLINICAL_SILENCE` al abrirse cualquier captura, que además apaga la pantalla | Inspección del hardware v1 (sin códec ni altavoz). Test de integración: la reserva real de micrófono emite el `SAFE` (`micChokePoint`) |
 | L-2 | Encaminamiento del audio clínico al periférico | Audiometría de campo libre por transductor no calibrado, **sin señal de error** | BLE-only, sin perfiles de audio clásicos (§5.3) | Inspección de la pila BT del firmware + prueba en iOS con Lúa conectada durante audiometría |
-| L-3 | Distracción visual | Peor rendimiento atribuido al niño, no al estímulo | ⚠️ **CONTROL SUPERADO POR LA IMPLEMENTACIÓN.** Decía «VIA+ no expresa nada durante la batería»; desde el acompañamiento (§3.1) sí expresa: `AFFECT`, `PHASE`, `LEVEL`. Lo que queda en pie es que la expresión no es acústica con captura abierta y que ningún camino clínico depende de ella. **Necesita control nuevo y redactado como tal** | Tests de la recompensa: no celebra con captura viva ni fuera de su pantalla. **Insuficiente para el control nuevo** |
+| **L-3** | **Lúa señala la respuesta en una audiometría condicionada**: el niño responde a la gata y no al tono | **Umbral falsamente bajo → hipoacusia infravalorada.** Es el daño más grave de toda la tabla: un cribado que dice «normal» sobre un niño que no oye | **Lúa no se expresa en la ventana que va del estímulo a la respuesta.** `setEmotion` cambia solo en fronteras de fase; `setVerdict` se emite únicamente desde el manejador de la respuesta y solo si el tono estaba sonando, de modo que el refuerzo llega SIEMPRE después del acto del niño y nunca antes. Es la misma regla por la que `WhistleButton` mantiene aspecto constante en la prueba real | Puerta estructural sobre el código: `luaStimulusWindow.test.ts` (5 aserciones; verificada inyectando una violación, que la hace fallar). **Pendiente: verificación de comportamiento contra el aparato real** (§9) |
+| L-3b | Distracción visual fuera de la ventana crítica | Peor rendimiento atribuido al niño, no al estímulo | Expresión acotada a fronteras de fase y a cierres de ítem; en las pruebas con micrófono no hay expresión ninguna (`CLINICAL_SILENCE`) | Tests de la recompensa: no celebra con captura viva ni fuera de su pantalla. Tabla de exposición del §7.1 |
 | L-4 | El periférico bloquea el flujo clínico | Sesión interrumpida | Adaptador *no-op* sin hardware; ningún `await` de Lúa en un flujo de prueba; escaneo fuera del camino crítico | Tests con adaptador ausente, caído, que lanza y con escrituras que fallan |
 | L-5 | Fuga de datos | Incumplimiento de protección de datos | **Zero-PHI estructural**: no existe ninguna característica de texto en el protocolo. No hay sitio donde meter un nombre | Gate del protocolo en cada ejecución de la suite |
+| **L-6** | **Lúa pasa a ser parte del dispositivo sin que nadie lo haya decidido** | Dispositivo Clase IIa con un componente no verificado dentro del acto clínico | Criterio del §3, que se sigue cumpliendo: ningún camino clínico espera a Lúa, todo envío es dispara-y-olvida y sin adaptador la app es idéntica. **Pero el criterio deja de bastar en las filas que el §4 clasifica como *parte del acto***, y la audiometría condicionada ya está implementada | Tests de degradación (L-4). **INSUFICIENTE por diseño: esta fila no se cierra con una prueba, se cierra con el organismo notificado** (§9) |
 
-La interferencia acústica **medida** (ensayo diferencial con el sonómetro de
-`RoomNoiseCheck`) deja de ser una puerta de VIA+: con la v1 sin altavoz y ausente
-durante la medición, no hay nada que medir. Si algún día hay hardware con
-altavoz, vuelve, y con sonómetro clase 2 contra la ISO 8253-2.
+### 7.3. Lo que esta tabla NO cierra
 
-> **14/8/2026: ese día llegó como decisión, no como hardware.** El altavoz está
-> autorizado y Lúa pasa a estar presente durante la batería, así que la puerta
-> del ensayo diferencial **vuelve**, y los controles de L-1 y L-3 dejan de poder
-> apoyarse en «el aparato no está» y «no tiene altavoz». Esta tabla se reescribe
-> cuando se cierre lo del §6 de
-> [`lua-salida-y-alertas-sonoras.md`](lua-salida-y-alertas-sonoras.md) — no
-> antes, y no aquí: mientras el protocolo del sonido no exista, un control
-> redactado contra él sería un control redactado contra una suposición.
+Dos cosas, y ninguna es una prueba que falte escribir:
 
----
+1. **L-6 no es un riesgo técnico.** Es la pregunta de con qué figura entra Lúa en
+   el expediente. El §4 clasifica `AudiometryConditioned` y `DysphagiaTest` como
+   *parte del acto*, y `ExecutiveFunctions` también por su consigna pregrabada.
+   De esas tres, **la audiometría condicionada ya tiene código**. Que el criterio
+   del §3 se cumpla hoy es un argumento a favor, no una absolución.
+2. **La interferencia acústica medida** (ensayo diferencial con el sonómetro de
+   `RoomNoiseCheck`, sonómetro clase 2 contra la ISO 8253-2) sigue sin ser una
+   puerta de VIA+ **mientras el hardware no tenga altavoz**. La D-F manda voz y
+   sonido muestreado a v2 y placa distinta. El día que exista esa placa, L-1
+   vuelve a necesitar medida, no inspección.
 
 ## 8. Identidad visual
 
@@ -485,16 +523,19 @@ gata que guía la terapia», ni que acompaña, mejora o sostiene el tratamiento.
    el firmware **leyéndolo**, que es mejor que inventarlo pero no es lo mismo que
    conectar. Pendiente: emparejamiento, `BENCH` para el presupuesto de latencia
    (300 ms) y comprobar que `UNLOCK` → `GRANT` → `CELEBRATE` dibuja de verdad.
-3. **Rehacer la tabla ISO 14971 del §7 con el acompañamiento delante.** Ya no
-   es un «cuando llegue el hardware»: el código está. El control de **L-3** decía
-   que VIA+ no expresa nada durante la batería y eso ha dejado de ser cierto, así
-   que la fila está marcada como superada y necesita un control redactado de
-   nuevo, con su verificación. **L-1** conserva su control —el silencio clínico es
-   independiente y sus pruebas siguen verdes—, pero su argumento ya no puede
-   apoyarse en «el aparato no está». Esto lo firma el responsable clínico, no un
-   `.md`.
-4. **Avisar a Valeria+** de la discrepancia de `STATE` en `protocol.json` (§2.2).
-5. **Cerrar en Valeria+ las cuatro divergencias del sonido** entre la D-F del
+3. **Llevar L-6 al organismo notificado.** La tabla del §7 está rehecha
+   (22/8/2026) y todas sus filas tienen control y verificación salvo esa, que no
+   se cierra con una prueba: la audiometría condicionada es *parte del acto*
+   según el §4 y ya tiene código. Lo que hay que llevar es el argumento del §3
+   —ningún camino clínico espera a Lúa— con la tabla delante, y que decida quien
+   corresponde. **Lo firma el responsable clínico, no un `.md`.**
+4. **Verificar L-3 contra el aparato real.** El control está redactado y tiene
+   puerta estructural (`luaStimulusWindow.test.ts`), pero una puerta sobre el
+   código fuente no es una prueba de comportamiento: falta comprobar con la placa
+   que Lúa efectivamente no se mueve entre el tono y la respuesta. Entra en el
+   mismo viaje que el punto 2.
+5. **Avisar a Valeria+** de la discrepancia de `STATE` en `protocol.json` (§2.2).
+6. **Cerrar en Valeria+ las cuatro divergencias del sonido** entre la D-F del
    plan y la decisión de dirección del 14/8/2026, que es lo que hoy impide
    escribir una sola línea de audio en cualquiera de los tres repositorios:
    [`lua-salida-y-alertas-sonoras.md`](lua-salida-y-alertas-sonoras.md) §6.
