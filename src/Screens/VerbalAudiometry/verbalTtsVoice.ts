@@ -2,7 +2,7 @@
 /*  Selección de la MEJOR voz del sintetizador nativo (TTS) para una lengua.   */
 /*                                                                            */
 /*  Lógica pura (sin dependencias nativas) para poder probarla: puntúa las     */
-/*  voces que devuelve `react-native-tts` y elige la que suene más humana y    */
+/*  voces que devuelve `expo-speech` y elige la que suene más humana y         */
 /*  fiable, priorizando (en este orden de peso):                               */
 /*    · la lengua pedida, y preferentemente su dialecto principal (es-ES para  */
 /*      el castellano, gl-ES para el gallego);                                 */

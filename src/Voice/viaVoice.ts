@@ -15,7 +15,7 @@ import { VoiceStyle } from './voiceCorpusId';
 /*  degradación elegante (P2 del blueprint):                                    */
 /*    1. asset neuronal pre-sintetizado de la lengua;                          */
 /*    2. asset neuronal base `es` (banco compartido) — audio antes que sistema; */
-/*    3. voz del sistema (`react-native-tts`) vía el adaptador de la            */
+/*    3. voz del sistema (`expo-speech`) vía el adaptador de la                 */
 /*       audiometría verbal (registrado una vez en App.tsx) — NO se duplica     */
 /*       el motor TTS ni su selección de voz española;                          */
 /*    4. sin voz utilizable: silencio (el clínico lee la consigna).             */

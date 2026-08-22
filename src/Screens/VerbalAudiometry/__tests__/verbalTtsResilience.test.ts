@@ -1,13 +1,17 @@
 /* -------------------------------------------------------------------------- */
 /*  Resiliencia del arranque del motor de voz del sistema.                     */
 /*                                                                             */
-/*  Regresión del bug de campo «ningún motor de voz funciona». La versión      */
-/*  anterior arrancaba el TTS dentro de un ÚNICO `try`: si `getInitStatus()`   */
-/*  rechazaba —cosa normal en el arranque en frío de Android, donde el         */
-/*  TextToSpeech tarda en estar listo— o si `voices()` fallaba, se abortaba    */
-/*  entero, `ttsSpanishReady` quedaba en `false` PARA SIEMPRE y no había ni    */
-/*  reintento ni aviso. Un fallo transitorio en el primer segundo de vida de   */
-/*  la app dejaba la batería entera muda.                                      */
+/*  Regresión del bug de campo «ningún motor de voz funciona».                 */
+/*                                                                             */
+/*  Con `react-native-tts` el arranque tenía fases que podían fallar           */
+/*  (`getInitStatus`, `voices`, `setDefaultVoice`, `setDefaultLanguage`) y     */
+/*  cualquiera de ellas dejaba la app MUDA para toda la sesión. Migrado a      */
+/*  `expo-speech` —el motor de Valeria+— esas fases desaparecen: la voz se     */
+/*  elige por locución y la elección es una PREFERENCIA, no una puerta.        */
+/*                                                                             */
+/*  Lo que se vigila aquí es precisamente eso: que NINGUNA forma de fallo al   */
+/*  enumerar voces pueda volver a enmudecer la app. Mientras el módulo de      */
+/*  síntesis exista, se dicta.                                                 */
 /* -------------------------------------------------------------------------- */
 
 jest.mock('react-native-audio-api', () => {
@@ -44,70 +48,58 @@ jest.mock('react-native-audio-api', () => {
 });
 
 const SPANISH_VOICE = {
-  id: 'es-es-x-eed-local',
+  identifier: 'es-es-x-eed-local',
+  name: 'Español (España)',
   language: 'es-ES',
-  quality: 400,
-  networkConnectionRequired: false,
-  notInstalled: false,
+  quality: 'Enhanced',
 };
 const BASQUE_VOICE = {
-  id: 'eu-es-x-eud-local',
+  identifier: 'eu-es-x-eud-local',
+  name: 'Euskara',
   language: 'eu-ES',
-  quality: 400,
-  networkConnectionRequired: false,
-  notInstalled: false,
+  quality: 'Enhanced',
 };
 
-jest.mock('react-native-tts', () => {
-  const tts = {
-    getInitStatus: jest.fn(async () => 'success'),
-    setDefaultRate: jest.fn(async () => 'success'),
-    setDefaultPitch: jest.fn(async () => 'success'),
-    setDefaultLanguage: jest.fn(async () => 'success'),
-    setDefaultVoice: jest.fn(async () => 'success'),
-    voices: jest.fn(async () => [SPANISH_VOICE]),
-    speak: jest.fn(async () => 'utterance-id'),
-    stop: jest.fn(),
-    addEventListener: jest.fn(),
-    removeEventListener: jest.fn(),
-  };
-  return { __esModule: true, default: tts };
-});
+jest.mock('expo-speech', () => ({
+  speak: jest.fn((_text: string, opts: any) => {
+    setTimeout(() => opts?.onDone?.(), 0);
+  }),
+  stop: jest.fn(),
+  getAvailableVoicesAsync: jest.fn(async () => [
+    {
+      identifier: 'es-es-x-eed-local',
+      name: 'Español (España)',
+      language: 'es-ES',
+      quality: 'Enhanced',
+    },
+  ]),
+}));
 
 import { getVerbalAudioAdapter, installVerbalAudioAdapter } from '../verbalAudiometryAudio';
 
-const Tts = (jest.requireMock('react-native-tts') as { default: any }).default;
+const Tts = jest.requireMock('expo-speech') as any;
 
-const flush = () => new Promise<void>(res => setTimeout(res, 0));
-/** El arranque reintenta con 700 ms de espera; 3 intentos = ~1.4 s. */
-const settle = () => new Promise<void>(res => setTimeout(res, 2600));
-
-jest.setTimeout(20000);
+const flush = async () => {
+  for (let i = 0; i < 4; i++) await new Promise<void>(res => setTimeout(res, 0));
+};
 
 describe('arranque del motor de voz', () => {
   let cleanup: (() => void) | null = null;
 
-  const install = async (wait = flush) => {
+  const install = async () => {
     cleanup = installVerbalAudioAdapter({ preferTts: true, assetBase64: () => null });
-    await wait();
+    await flush();
     return getVerbalAudioAdapter()!;
   };
 
   beforeEach(() => {
-    for (const fn of [
-      Tts.getInitStatus,
-      Tts.setDefaultLanguage,
-      Tts.setDefaultVoice,
-      Tts.voices,
-      Tts.speak,
-    ]) {
-      fn.mockClear();
-    }
-    Tts.getInitStatus.mockImplementation(async () => 'success');
-    Tts.setDefaultLanguage.mockImplementation(async () => 'success');
-    Tts.setDefaultVoice.mockImplementation(async () => 'success');
-    Tts.voices.mockImplementation(async () => [SPANISH_VOICE]);
-    Tts.speak.mockImplementation(async () => 'utterance-id');
+    Tts.speak.mockReset();
+    Tts.speak.mockImplementation((_text: string, opts: any) => {
+      setTimeout(() => opts?.onDone?.(), 0);
+    });
+    Tts.stop.mockReset();
+    Tts.getAvailableVoicesAsync.mockReset();
+    Tts.getAvailableVoicesAsync.mockImplementation(async () => [SPANISH_VOICE]);
   });
 
   afterEach(() => {
@@ -121,66 +113,70 @@ describe('arranque del motor de voz', () => {
     expect(adapter.ttsStatus?.().phase).toBe('ready');
   });
 
-  it('un fallo TRANSITORIO de getInitStatus se reintenta en vez de darse por vencido', async () => {
-    // Arranque en frío de Android: el motor todavía no está inicializado.
-    Tts.getInitStatus.mockRejectedValueOnce(new Error('not ready'));
-    const adapter = await install(settle);
-    expect(Tts.getInitStatus.mock.calls.length).toBeGreaterThanOrEqual(2);
+  it('si enumerar las voces LANZA, el motor sigue operativo', async () => {
+    // Éste es el caso que enmudecía la app: con `react-native-tts`, un
+    // `voices()` que fallaba abortaba el arranque entero. Y no era hipotético:
+    // su implementación de `voices()` en Android lanza NullPointerException con
+    // voces sin país (comparación de referencias `country != ""` y `map.get()`
+    // sin comprobar null), devolviendo la lista truncada o vacía.
+    Tts.getAvailableVoicesAsync.mockRejectedValue(new Error('not supported'));
+    const adapter = await install();
     expect(adapter.ttsStatus?.().phase).toBe('ready');
     expect(adapter.ttsReady?.()).toBe(true);
   });
 
-  it('que el motor no enumere voces NO es un fallo: se dicta por etiqueta de idioma', async () => {
-    // Antes, un `voices()` que lanzaba abortaba todo el arranque y la app se
-    // quedaba muda pese a tener un TTS perfectamente utilizable.
-    Tts.voices.mockRejectedValue(new Error('not supported'));
+  it('una lista de voces VACÍA tampoco es un fallo: se dicta por etiqueta de idioma', async () => {
+    Tts.getAvailableVoicesAsync.mockImplementation(async () => []);
     const adapter = await install();
     expect(adapter.ttsStatus?.().phase).toBe('ready');
-    expect(Tts.setDefaultLanguage).toHaveBeenCalledWith('es-ES');
+
+    adapter.speakText?.('hola', 'es');
+    await flush();
+    expect(Tts.speak).toHaveBeenCalledWith('hola', expect.objectContaining({ language: 'es-ES' }));
   });
 
   it('sin voz castellana pero con voz vasca, el motor queda operativo', async () => {
-    // El arranque probaba SOLO el castellano: un dispositivo con voz vasca (o
-    // gallega) y sin datos de español se declaraba «sin voz».
-    Tts.voices.mockImplementation(async () => [BASQUE_VOICE]);
-    Tts.setDefaultLanguage.mockImplementation(async (tag: string) => {
-      if (tag === 'es-ES') throw new Error('idioma no disponible');
-      return 'success';
-    });
+    // El arranque antiguo probaba SOLO el castellano: un dispositivo con voz
+    // vasca (o gallega) y sin datos de español se declaraba «sin voz».
+    Tts.getAvailableVoicesAsync.mockImplementation(async () => [BASQUE_VOICE]);
     const adapter = await install();
     expect(adapter.ttsStatus?.().phase).toBe('ready');
     expect(adapter.ttsReady?.()).toBe(true);
+
+    adapter.speakText?.('kaixo', 'eu');
+    await flush();
+    expect(Tts.speak).toHaveBeenCalledWith(
+      'kaixo',
+      expect.objectContaining({ voice: BASQUE_VOICE.identifier }),
+    );
   });
 
-  it('sin motor instalado lo dice con una acción concreta, y permite reintentar', async () => {
-    Tts.getInitStatus.mockRejectedValue(Object.assign(new Error('no engine'), { code: 'no_engine' }));
-    const adapter = await install(settle);
-    expect(adapter.ttsStatus?.().phase).toBe('unavailable');
-    // El aviso debe decir QUÉ hacer, no solo que no hay voz.
-    expect(adapter.ttsStatus?.().detail).toMatch(/instale/i);
-
-    // El profesional instala el motor y pulsa «reintentar».
-    Tts.getInitStatus.mockImplementation(async () => 'success');
-    await expect(adapter.retryTts?.()).resolves.toBe(true);
-    expect(adapter.ttsStatus?.().phase).toBe('ready');
-  });
-
-  it('un código de idioma negativo de Android no se toma por éxito', async () => {
-    // `setDefaultLanguage` resuelve con un número negativo cuando al idioma le
-    // faltan datos; el `await` no rechaza, así que hay que mirar el valor.
-    Tts.voices.mockImplementation(async () => []);
-    Tts.setDefaultLanguage.mockImplementation(async () => -2);
+  it('la voz elegida es la del idioma pedido, no la que quedó cargada antes', async () => {
+    // Con el modelo anterior la voz se FIJABA en el motor y persistía: una
+    // sesión gallega dictaba con la voz castellana ya cargada. Ahora la voz
+    // viaja en cada locución, así que no hay estado que se quede pegado.
+    Tts.getAvailableVoicesAsync.mockImplementation(async () => [SPANISH_VOICE, BASQUE_VOICE]);
     const adapter = await install();
-    expect(adapter.ttsStatus?.().phase).toBe('unavailable');
-    expect(adapter.ttsReady?.()).toBe(false);
+
+    adapter.speakText?.('hola', 'es');
+    await flush();
+    expect(Tts.speak).toHaveBeenLastCalledWith(
+      'hola',
+      expect.objectContaining({ voice: SPANISH_VOICE.identifier }),
+    );
+
+    adapter.speakText?.('kaixo', 'eu');
+    await flush();
+    expect(Tts.speak).toHaveBeenLastCalledWith(
+      'kaixo',
+      expect.objectContaining({ voice: BASQUE_VOICE.identifier }),
+    );
   });
 
   it('notifica a la UI cuando cambia el estado', async () => {
-    Tts.getInitStatus.mockRejectedValue(new Error('no engine'));
-    const adapter = await install(settle);
+    const adapter = await install();
     const listener = jest.fn();
     const unsubscribe = adapter.onTtsStatusChange?.(listener);
-    Tts.getInitStatus.mockImplementation(async () => 'success');
     await adapter.retryTts?.();
     expect(listener).toHaveBeenCalled();
     unsubscribe?.();
@@ -189,16 +185,21 @@ describe('arranque del motor de voz', () => {
   it('una consigna pedida ANTES de que el motor esté listo no se pierde', async () => {
     // `speakText` se descartaba en silencio si llegaba durante el arranque:
     // justo lo que pasa con la primera consigna de un mini-juego.
-    let releaseInit: (() => void) | null = null;
-    Tts.getInitStatus.mockImplementation(
-      () => new Promise(resolve => { releaseInit = () => resolve('success'); }),
+    let releaseVoices: (() => void) | null = null;
+    Tts.getAvailableVoicesAsync.mockImplementation(
+      () =>
+        new Promise(resolve => {
+          releaseVoices = () => resolve([SPANISH_VOICE]);
+        }),
     );
-    const adapter = await install();
-    adapter.speakText?.('Escucha con atención', 'es');
-    expect(Tts.speak).not.toHaveBeenCalled(); // todavía arrancando
+    cleanup = installVerbalAudioAdapter({ preferTts: true, assetBase64: () => null });
+    const adapter = getVerbalAudioAdapter()!;
 
-    releaseInit!();
+    adapter.speakText?.('Escucha con atención', 'es');
     await flush();
+    expect(Tts.speak).not.toHaveBeenCalled(); // todavía enumerando
+
+    releaseVoices!();
     await flush();
     expect(Tts.speak).toHaveBeenCalledWith('Escucha con atención', expect.anything());
   });

@@ -98,35 +98,50 @@ describe('T.A.R. · puerta de reconocimiento en el dispositivo', () => {
     expect(start).not.toContain('start?.(RECOGNITION_FALLBACK)');
   });
 
-  /* El parche nativo es lo único que permite ABRIR la puerta. Su ausencia
-   * degrada con seguridad (la puerta se queda cerrada), pero si desaparece sin
-   * que nadie lo note el T.A.R. pierde el reconocimiento en silencio. */
-  it('el parche que expone el modo local está presente y enganchado', () => {
-    const patch = read('patches/@react-native-voice+voice+3.2.4.patch');
-    expect(patch).toContain('requiresOnDeviceRecognition');
-    expect(patch).toContain('createOnDeviceSpeechRecognizer');
-    expect(patch).toContain('isOnDeviceRecognitionAvailable');
-    const pkg = JSON.parse(read('package.json'));
-    expect(pkg.scripts.postinstall).toContain('patch-package');
-    expect(pkg.devDependencies['patch-package']).toBeTruthy();
+  /* La puerta Zero-PHI vive ahora en `speechRecognitionBridge`, no en un parche
+   * sobre el Java y el Objective-C de una librería deprecada.
+   * `expo-speech-recognition` trae de serie lo que aquel parche añadía a mano.
+   * Lo que se vigila es la GARANTÍA, no el mecanismo: si alguien la quita, el
+   * T.A.R. empezaría a mandar la voz de un menor a la nube sin que se note. */
+  it('el arranque EXIGE reconocimiento en el dispositivo', () => {
+    const bridge = read('src/Screens/Articulation/speechRecognitionBridge.ts');
+    // Declarado al motor…
+    expect(bridge).toContain('requiresOnDeviceRecognition: true');
+    // …y comprobado ANTES de arrancar, no solo pedido como preferencia.
+    expect(bridge).toContain('if (!supportsOnDeviceRecognition())');
   });
 
-  /* REGRESIÓN — el sondeo moría en Android 12.
+  /* REGRESIÓN — «el micrófono se activa y no pasa nada» en el T.A.R.
    *
-   * Los dos métodos del sistema que usa el parche NO son de la misma API:
-   *   · `createOnDeviceSpeechRecognizer(Context)` → API 31 (Android 12)
-   *   · `isOnDeviceRecognitionAvailable(Context)` → API 33 (Android 13)
+   * El parche anterior, cuando no podía garantizar el modo local, hacía
+   * `return` a secas dentro de `startListening`: ni `onSpeechError` ni rechazo
+   * de promesa. El JS se quedaba esperando un resultado que no llegaba nunca y
+   * la pantalla parecía estar escuchando. En cualquier emulador de Android ese
+   * era el caso NORMAL, porque `isOnDeviceRecognitionAvailable()` exige API 33
+   * y el modelo de la lengua descargado.
    *
-   * El parche consultaba el de API 33 bajo una guarda de API 31. En un
-   * Android 12 el enlazador lanza `NoSuchMethodError`, que NO es una
-   * `Exception`: el `catch (Exception)` no lo atrapaba, el callback del sondeo
-   * no llegaba nunca y la puerta se cerraba por «no se ha podido confirmar» en
-   * dispositivos que sí podían haber informado. */
-  it('la consulta de API 33 va bajo la guarda de API 33, no la de API 31', () => {
-    const patch = read('patches/@react-native-voice+voice+3.2.4.patch');
-    expect(patch).toContain('VERSION_CODES.TIRAMISU');
-    // Y se atrapa `Throwable`: un error del enlazador no es una `Exception`.
-    expect(patch).toContain('catch (Throwable');
+   * La puerta sigue cerrada; lo que no puede volver a pasar es que se cierre
+   * en silencio. */
+  it('cuando la puerta se cierra, LANZA en vez de volver en silencio', () => {
+    const bridge = read('src/Screens/Articulation/speechRecognitionBridge.ts');
+    const gate = bridge.slice(bridge.indexOf('if (!supportsOnDeviceRecognition())'));
+    const body = gate.slice(0, gate.indexOf('}'));
+    expect(body).toContain('throw new Error');
+    expect(body).not.toMatch(/^\s*return;\s*$/m);
+  });
+
+  /* La librería deprecada y su parche no pueden volver a colarse: npm marca
+   * `@react-native-voice/voice` como obsoleta recomendando exactamente el
+   * paquete que ahora se usa, y `react-native-tts` traía el bug de `voices()`
+   * que dejaba la lista de voces vacía en silencio. */
+  it('no se ha reintroducido ninguna de las dos librerías retiradas', () => {
+    const pkg = JSON.parse(read('package.json'));
+    const deps = { ...pkg.dependencies, ...pkg.devDependencies };
+    expect(deps['@react-native-voice/voice']).toBeUndefined();
+    expect(deps['react-native-tts']).toBeUndefined();
+    expect(deps['expo-speech']).toBeTruthy();
+    expect(deps['expo-speech-recognition']).toBeTruthy();
+    expect(deps['expo-audio']).toBeTruthy();
   });
 
   it('el módulo de decisión no admite un modo de servidor', () => {

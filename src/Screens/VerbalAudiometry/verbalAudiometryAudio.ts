@@ -7,7 +7,6 @@ import type {
 } from 'react-native-audio-api';
 
 import { acquireAudioContext, releaseAudioContext, resumeAudioContext } from '@/Audio';
-import { SESSION_LANGS } from '@/Store/slices/sessionLangs';
 import { pickVoiceForLang, ttsLanguageTagFor, type TtsVoice } from './verbalTtsVoice';
 
 /**
@@ -16,7 +15,6 @@ import { pickVoiceForLang, ttsLanguageTagFor, type TtsVoice } from './verbalTtsV
  * locución. Antes solo se probaba el castellano, así que un dispositivo con
  * voz gallega o vasca pero sin datos de español se declaraba «sin voz».
  */
-const TTS_PROBE_LANGS: readonly string[] = SESSION_LANGS;
 
 /* -------------------------------------------------------------------------- */
 /*  Adaptador de audio de la Audiometría Verbal (campo libre, sin audífonos).  */
@@ -32,7 +30,7 @@ const TTS_PROBE_LANGS: readonly string[] = SESSION_LANGS;
 /*      las voces TTS del dispositivo); es también la vía de las locuciones    */
 /*      de locutor profesional (validación clínica). Si un recorte falta o no  */
 /*      decodifica, degrada a TTS por palabra.                                 */
-/*   2. 'tts' — SINTETIZADOR NATIVO del sistema vía `react-native-tts`        */
+/*   2. 'tts' — SINTETIZADOR NATIVO del sistema vía `expo-speech`             */
 /*      (Android: android.speech.tts.TextToSpeech). Solo dicta si hay una voz  */
 /*      ESPAÑOLA verificada (setDefaultLanguage('es-ES') o una voz `es-*`      */
 /*      instalada): dictar castellano con la voz en-US por defecto del         */
@@ -141,10 +139,26 @@ export const SPEECH_ANCHOR_DB = 65;
 export const speechLevelToGain = (levelDb: number): number =>
   Math.min(1, Math.pow(10, (levelDb - SPEECH_ANCHOR_DB) / 20));
 
-/* Metro exige literales en `require(...)` (ver articulationAudio.ts). */
+/* Metro exige literales en `require(...)` (ver articulationAudio.ts).
+ *
+ * MOTOR: `expo-speech`, migrado desde `react-native-tts`. El motivo no es
+ * estético. `react-native-tts` devuelve la lista de voces con este código:
+ *
+ *     String country = voice.getLocale().getISO3Country();
+ *     if (country != "") { ... iso3CountryCodeToIso2CountryCode(country) ... }
+ *
+ * `country != ""` compara REFERENCIAS en Java, no contenido: con país vacío
+ * entra igual, y la conversión hace `map.get("").getCountry()` sin comprobar
+ * null → NullPointerException. El `catch` está FUERA del bucle, así que la
+ * lista de voces vuelve truncada o vacía, en silencio. Toda la selección de voz
+ * de VIA+ colgaba de esa lista.
+ *
+ * `expo-speech` es el motor que usa Valeria+ (`src/valeriaVoice.ts`), que
+ * locuta con voz neural en el mismo emulador donde VIA+ se quedaba mudo. */
 const optionalTts = (): any => {
   try {
-    return require('react-native-tts');
+    const mod = require('expo-speech');
+    return typeof mod?.speak === 'function' ? mod : null;
   } catch (_e) {
     return null;
   }
@@ -223,8 +237,7 @@ export function installVerbalAudioAdapter(opts: VerbalAudioAdapterOptions = {}):
   let gain: GainNode | null = null;
   let panner: StereoPannerNode | null = null;
 
-  const tts = optionalTts();
-  const ttsEngine = tts?.default ?? tts;
+  const ttsEngine = optionalTts();
 
   // Palabra dictándose por TTS y su recorte de respaldo: si la síntesis falla
   // (voz de red sin conectividad, motor saturado…), `tts-error`/el rechazo de
@@ -232,7 +245,6 @@ export function installVerbalAudioAdapter(opts: VerbalAudioAdapterOptions = {}):
   // silencio. Tras TTS_FAILURE_LIMIT fallos consecutivos se dejan de intentar
   // dictados y el resto de la sesión usa recortes: mejor un estímulo constante
   // (misma locución toda la lista) que una voz que va y viene con el wifi.
-  let currentTts: { audioKey: string; levelDb: number; lang?: string } | null = null;
   let ttsConsecutiveFailures = 0;
   const TTS_FAILURE_LIMIT = 2;
   // Selección de la MEJOR voz del dispositivo PARA LA LENGUA DE LA SESIÓN (la
@@ -255,8 +267,6 @@ export function installVerbalAudioAdapter(opts: VerbalAudioAdapterOptions = {}):
   let ttsCurrentLang: string | null = null;
   /** ¿La voz fijada es una degradación (otro idioma que el pedido)? */
   let ttsDegraded = false;
-  /** Lenguas ya descartadas por no tener voz utilizable (no reintentar). */
-  const ttsUnavailableLangs = new Set<string>();
 
   /* ------------------------- estado observable ---------------------------- */
 
@@ -282,60 +292,60 @@ export function installVerbalAudioAdapter(opts: VerbalAudioAdapterOptions = {}):
     degraded: ttsDegraded,
   });
 
-  const applyVoiceForLang = async (lang: string): Promise<boolean> => {
-    if (!ttsEngine) return false;
-    if (ttsCurrentLang === lang) return true;
-    if (ttsUnavailableLangs.has(lang)) return false;
-
+  /**
+   * Voz preferida para una lengua. PURA: no toca el motor.
+   *
+   * Éste es el cambio de fondo respecto a la versión con `react-native-tts`.
+   * Aquella FIJABA la voz en el motor (`setDefaultVoice` / `setDefaultLanguage`)
+   * y, si no lo conseguía, marcaba la lengua como imposible y DEJABA DE DICTAR.
+   * Es decir: la selección de voz era una PUERTA. Bastaba que el motor no
+   * enumerase voces —o que las enumerase mal, que es justo lo que hace el bug
+   * de `voices()` documentado arriba— para que la app se quedara muda en todos
+   * los módulos, sin decir por qué.
+   *
+   * `expo-speech` recibe la voz y la lengua como opciones DE CADA LOCUCIÓN, así
+   * que la elección vuelve a ser lo que debe ser: una PREFERENCIA. Si hay voz
+   * del idioma, se usa; si no, se dicta igualmente pasando `language` y que el
+   * motor resuelva. Es la disciplina de Valeria+ (`scoreVoice` elige la mejor,
+   * `Speech.speak` se llama siempre), y es la razón de que allí sí se oiga.
+   */
+  const voiceForLang = (lang: string): { voiceId?: string; degraded: boolean } => {
     const pick = pickVoiceForLang(ttsVoices, lang);
-    if (pick?.voice.id) {
-      try {
-        await ttsEngine.setDefaultVoice?.(pick.voice.id);
-        ttsCurrentLang = lang;
-        ttsDegraded = pick.degraded;
-        if (pick.degraded) {
-          console.warn(
-            `VIA+: sin voz del sistema para '${lang}'; se dicta con una voz '${pick.langPrefix}'.`,
-          );
-        }
-        notifyStatus();
-        return true;
-      } catch {
-        /* la voz elegida no se pudo fijar: probamos por etiqueta de idioma */
-      }
-    }
-    // Vía por ETIQUETA de idioma. Es la que funciona en los motores que no
-    // enumeran voces (y en los que `setDefaultVoice` rechaza ids válidos), así
-    // que nunca debe saltarse: era la razón por la que un dispositivo con TTS
-    // perfectamente utilizable se quedaba mudo.
-    try {
-      const result = await ttsEngine.setDefaultLanguage?.(ttsLanguageTagFor(lang));
-      // Android devuelve un código negativo si al idioma le faltan datos; el
-      // `await` no rechaza, así que hay que mirarlo.
-      if (typeof result === 'number' && result < 0) throw new Error(`idioma no disponible (${result})`);
+    if (!pick) return { degraded: false };
+    return { voiceId: pick.voice.id, degraded: pick.degraded };
+  };
+
+  /**
+   * Opciones de locución para una lengua. `language` va SIEMPRE, aunque haya
+   * voz elegida: es la red de seguridad si el id de voz no le vale al motor.
+   */
+  const speechOptionsFor = (lang: string) => {
+    const { voiceId, degraded } = voiceForLang(lang);
+    if (ttsCurrentLang !== lang || ttsDegraded !== degraded) {
       ttsCurrentLang = lang;
-      ttsDegraded = false;
+      ttsDegraded = degraded;
+      if (degraded) {
+        console.warn(`VIA+: sin voz del sistema para '${lang}'; se dicta con otra voz.`);
+      }
       notifyStatus();
-      return true;
-    } catch {
-      // Ni voz ni datos del idioma: se descarta esa lengua para no reintentar
-      // en cada palabra (y se degrada a recortes / silencio).
-      ttsUnavailableLangs.add(lang);
-      return false;
     }
+    return {
+      language: ttsLanguageTagFor(lang),
+      ...(voiceId ? { voice: voiceId } : {}),
+      rate: 0.48,
+      pitch: 1.0,
+    };
   };
 
   /* ------------------------ inicialización del motor ----------------------- */
 
-  /** Intentos de arranque del motor antes de darlo por no disponible. */
-  const TTS_INIT_ATTEMPTS = 3;
-  /** Espera entre intentos (ms). El TextToSpeech de Android tarda en estar
-   *  listo tras el arranque en frío y `getInitStatus()` rechaza mientras tanto. */
-  const TTS_INIT_RETRY_MS = 700;
-  /** Tope de espera de una locución por la inicialización en curso. */
+  /** Tope de espera de una locución por la enumeración de voces en curso. */
   const TTS_READY_TIMEOUT_MS = 2500;
 
-  const delay = (ms: number) => new Promise<void>(resolve => setTimeout(resolve, ms));
+  /* `expo-speech` no tiene fase de arranque: no existe `getInitStatus()` ni,
+   * por tanto, el arranque en frío que había que reintentar tres veces con
+   * `react-native-tts`. Lo único que se espera aquí es la enumeración de voces,
+   * y ni siquiera es bloqueante: sin lista se dicta por etiqueta de idioma. */
 
   /**
    * Arranque del motor por PASOS INDEPENDIENTES. La versión anterior envolvía
@@ -351,63 +361,40 @@ export function installVerbalAudioAdapter(opts: VerbalAudioAdapterOptions = {}):
       return false;
     }
 
-    // Paso 1 — esperar a que el motor esté inicializado, con reintentos.
-    let initError: unknown = null;
-    for (let attempt = 1; attempt <= TTS_INIT_ATTEMPTS; attempt++) {
-      try {
-        await ttsEngine.getInitStatus?.();
-        initError = null;
-        break;
-      } catch (e) {
-        initError = e;
-        if (attempt < TTS_INIT_ATTEMPTS) await delay(TTS_INIT_RETRY_MS);
-      }
-    }
-    if (initError) {
-      const code = (initError as { code?: string })?.code;
-      setPhase(
-        'unavailable',
-        code === 'no_engine'
-          ? 'No hay ningún motor de síntesis de voz instalado. Instale «Voz de Google» (o el motor del fabricante) desde la tienda de aplicaciones.'
-          : 'El motor de voz del dispositivo no llegó a inicializarse. Reintente desde este mismo aviso.',
-      );
-      return false;
-    }
-
-    // Paso 2 — prosodia. Opcional: que falle no impide dictar.
-    try { await ttsEngine.setDefaultRate?.(0.48); } catch { /* ritmo por defecto */ }
-    try { await ttsEngine.setDefaultPitch?.(1.0); } catch { /* tono por defecto */ }
-
-    // Paso 3 — lista de voces. Que un motor no la exponga es NORMAL, no un
-    // fallo: se dicta fijando la etiqueta de idioma.
+    // Lista de voces. Que el motor no la exponga —o la exponga vacía— es
+    // NORMAL, no un fallo: se dicta pasando la etiqueta de idioma y que el
+    // sistema resuelva. La versión anterior trataba una lista vacía como «no
+    // hay voz» y enmudecía la app entera; con el bug de `voices()` de
+    // react-native-tts, esa lista venía vacía en dispositivos perfectamente
+    // capaces. Nunca más se falla cerrado por no poder enumerar.
     try {
-      ttsVoices = (await ttsEngine.voices?.()) ?? [];
+      ttsVoices = ((await ttsEngine.getAvailableVoicesAsync?.()) ?? []).map((v: any) => ({
+        id: v.identifier,
+        name: v.name,
+        language: v.language,
+        // expo-speech expone la calidad como 'Enhanced' | 'Default'; se traduce
+        // a la escala numérica de Android (500 mejorada / 300 normal) que ya
+        // usa `scoreVoiceOf`, para no duplicar la lógica de puntuación.
+        quality: v.quality === 'Enhanced' ? 500 : 300,
+      }));
     } catch {
       ttsVoices = [];
     }
 
-    // Paso 4 — fijar una voz utilizable. Se reintentan todas las lenguas de
-    // sesión: un dispositivo puede no tener castellano pero sí euskera o
-    // gallego, y antes se declaraba «sin voz» solo por mirar el castellano.
-    ttsUnavailableLangs.clear();
-    ttsCurrentLang = null;
-    for (const lang of TTS_PROBE_LANGS) {
-      if (await applyVoiceForLang(lang)) {
-        ttsSpanishReady = true;
-        setPhase('ready', `Voz del sistema lista (${ttsVoices.length || 'sin lista de'} voces).`);
-        return true;
-      }
-    }
-
-    ttsSpanishReady = false;
+    // Hay motor: hay voz. La calidad la decide `voiceForLang` locución a
+    // locución, y si no encuentra una del idioma se dicta igual con la
+    // etiqueta de lengua.
+    ttsSpanishReady = true;
+    const withVoice = ttsVoices.length;
     setPhase(
-      'unavailable',
-      ttsVoices.length
-        ? 'El motor de voz no tiene ninguna voz de los idiomas de la batería. Instale los datos de voz en español desde los ajustes del sistema.'
-        : 'El motor de voz no expone ninguna voz utilizable. Revise los ajustes de síntesis de voz del sistema.',
+      'ready',
+      withVoice
+        ? `Voz del sistema lista (${withVoice} voces).`
+        : 'Voz del sistema lista (el motor no enumera voces; se dicta por etiqueta de idioma).',
     );
-    return false;
+    return true;
   };
+
 
   /** Configuración en curso (evita arrancar varias a la vez). */
   let configuring: Promise<boolean> | null = null;
@@ -442,7 +429,6 @@ export function installVerbalAudioAdapter(opts: VerbalAudioAdapterOptions = {}):
   const retryTts = (): Promise<boolean> => {
     ttsSpanishReady = false;
     ttsCurrentLang = null;
-    ttsUnavailableLangs.clear();
     setPhase('initializing', 'Preparando la voz del dispositivo…');
     return ensureTtsReady();
   };
@@ -450,10 +436,9 @@ export function installVerbalAudioAdapter(opts: VerbalAudioAdapterOptions = {}):
   void ensureTtsReady();
 
   const stop = () => {
-    // Detención deliberada: anula el respaldo pendiente para que el
-    // `tts-cancel`/`tts-error` que pueda emitir el motor al abortar el dictado
-    // no dispare el recorte de una palabra que ya no debe sonar.
-    currentTts = null;
+    // Detención deliberada. Con `expo-speech` no hace falta anular ningún
+    // respaldo pendiente: la parada llega por el `onStopped` de esa misma
+    // locución, que `speakWord` trata como fin normal y no como fallo.
     try { source?.stop(); } catch {}
     try { source?.disconnect(); } catch {}
     try { gain?.disconnect(); } catch {}
@@ -468,36 +453,49 @@ export function installVerbalAudioAdapter(opts: VerbalAudioAdapterOptions = {}):
    * síntesis falla (p. ej. voz de red sin conectividad): rechaza si no hay voz
    * utilizable o si el motor rechaza el dictado. Nunca dicta con voz inglesa.
    */
-  const speakWord = (word: string, levelDb: number, lang = 'es'): Promise<unknown> => {
-    // Sin motor o sin voz verificada: modo demostración (el clínico presenta
-    // el modelo con su voz). Si el motor SIGUE arrancando se espera a que
-    // termine en vez de descartar la palabra.
-    return ensureTtsReady().then(ready => {
-      if (!ttsEngine || !ready) throw new Error('sin voz del sistema');
-      // Se fija la voz de la lengua ANTES de dictar (no-op si ya está fijada):
-      // sin esto, una sesión gallega dictaba con la voz castellana ya cargada.
-      return applyVoiceForLang(lang);
-    }).then(ok => {
-      if (!ok) throw new Error(`sin voz del sistema para '${lang}'`);
-      ttsEngine.stop?.();
-      // Sintetizador nativo (Android: TextToSpeech). El nivel relativo se
-      // aplica con KEY_PARAM_VOLUME (misma ganancia que los recortes) y la
-      // presentación binaural centrada con KEY_PARAM_PAN = 0, por el stream
-      // de música (mismo canal de salida que el resto de estímulos).
-      return ttsEngine.speak?.(word, {
-        androidParams: {
-          KEY_PARAM_VOLUME: levelToGain(levelDb),
-          KEY_PARAM_PAN: 0,
-          KEY_PARAM_STREAM: 'STREAM_MUSIC',
-        },
-      });
-    });
-    // NO se captura aquí: el rechazo DEBE propagarse a `playWord`, que es quien
-    // contabiliza el fallo (para degradar la sesión entera tras varios seguidos)
-    // y degrada la palabra a su recorte empaquetado. Un `catch` local que
-    // reintentaba por `speakText` dejaba la palabra MUDA cuando el motor de
-    // síntesis era el que fallaba, que es justo el caso que el respaldo cubre.
-  };
+  /**
+   * Dicta la palabra con la mejor voz disponible para la lengua. La promesa se
+   * resuelve cuando el motor termina de hablar y se RECHAZA si la síntesis
+   * falla, para que `playWord` degrade esa palabra a su recorte empaquetado.
+   *
+   * NIVEL DE PRESENTACIÓN — LIMITACIÓN DECLARADA. La versión con
+   * `react-native-tts` aplicaba el nivel con `KEY_PARAM_VOLUME`. `expo-speech`
+   * expone `volume` SOLO en web, así que por esta vía NO hay control de nivel.
+   *
+   * No es una regresión clínica, y conviene dejarlo escrito: anunciar «65 dB»
+   * sobre la voz del sistema siempre fue una ficción —el nivel absoluto depende
+   * del motor, del volumen del dispositivo y del altavoz, nada de lo cual está
+   * calibrado—. El estímulo con nivel de verdad son los RECORTES empaquetados,
+   * que se reproducen por `playBuffer` con un nodo de ganancia y siguen siendo
+   * la vía primaria (`preferTts: false` en App.tsx). El TTS queda donde le
+   * corresponde: respaldo audible para las lenguas sin banco de recortes, sin
+   * pretensión de calibración.
+   */
+  const speakWord = (word: string, _levelDb: number, lang = 'es'): Promise<unknown> =>
+    ensureTtsReady().then(
+      ready =>
+        new Promise((resolve, reject) => {
+          if (!ttsEngine || !ready) throw new Error('sin voz del sistema');
+          try {
+            ttsEngine.stop?.();
+          } catch {
+            /* nada que detener */
+          }
+          ttsEngine.speak(word, {
+            ...speechOptionsFor(lang),
+            onDone: () => resolve(undefined),
+            // Una parada deliberada (otra locución toma el relevo) NO es un
+            // fallo: contarla degradaría la sesión a recortes por hacer bien
+            // la preempción.
+            onStopped: () => resolve(undefined),
+            onError: (e: unknown) => reject(e instanceof Error ? e : new Error('síntesis fallida')),
+          });
+        }),
+    );
+  // NO se captura aquí: el rechazo DEBE propagarse a `playWord`, que es quien
+  // contabiliza el fallo (para degradar la sesión entera tras varios seguidos)
+  // y degrada la palabra a su recorte empaquetado.
+
 
   const playBuffer = (buffer: AudioBuffer, levelDb: number) => {
     if (!ctx) ctx = acquireAudioContext();
@@ -572,23 +570,26 @@ export function installVerbalAudioAdapter(opts: VerbalAudioAdapterOptions = {}):
    * de sesión. Es la vía que usan los mini-juegos de funciones ejecutivas y el
    * resto de módulos a través de `@/Voice`.
    */
+  /**
+   * Dicta un texto libre (consignas de los módulos, modelo hablado del T.A.R.,
+   * ayudas de accesibilidad). Fire-and-forget: es una ayuda, no un estímulo
+   * calibrado, así que no tiene respaldo ni informa de fallo.
+   */
   const speakText = (text: string, lang = 'es') => {
     if (!ttsEngine) return;
-    currentTts = null; // la consigna sustituye cualquier palabra pendiente
     ensureTtsReady()
-      .then(ready => (ready ? applyVoiceForLang(lang) : false))
-      .then(ok => {
-        if (!ok) return;
-        ttsEngine.stop?.();
-        return ttsEngine.speak?.(text, {
-          androidParams: {
-            KEY_PARAM_VOLUME: 1,
-            KEY_PARAM_PAN: 0,
-            KEY_PARAM_STREAM: 'STREAM_MUSIC',
-          },
-        });
+      .then(ready => {
+        if (!ready) return;
+        try {
+          ttsEngine.stop?.();
+        } catch {
+          /* nada que detener */
+        }
+        ttsEngine.speak(text, speechOptionsFor(lang));
       })
-      .catch(() => { /* ayuda de accesibilidad: sin respaldo */ });
+      .catch(() => {
+        /* ayuda de accesibilidad: sin respaldo */
+      });
   };
 
   /**
@@ -657,13 +658,22 @@ export function installVerbalAudioAdapter(opts: VerbalAudioAdapterOptions = {}):
     // esté arrancando: `speakWord` espera a que termine y, si no llega a
     // estarlo, degrada igual.
     if (!isSpanishVariant && preferTts && ttsPhase !== 'unavailable' && ttsConsecutiveFailures < TTS_FAILURE_LIMIT) {
-      currentTts = { audioKey, levelDb, lang };
-      speakWord(word, levelDb, sessionLang).catch(() => {
-        ttsConsecutiveFailures += 1;
-        currentTts = null;
-        if (hasClip) playClip(audioKey, levelDb, lang, () => speakText(word, sessionLang));
-        else speakText(word, sessionLang);
-      });
+      speakWord(word, levelDb, sessionLang).then(
+        () => {
+          // Una locución COMPLETADA confirma que el motor está sano y devuelve
+          // el contador a cero: un fallo aislado (un corte de red puntual) no
+          // debe degradar el resto de la sesión a recortes. Con
+          // `react-native-tts` esto lo hacía el evento global `tts-finish`;
+          // con `expo-speech` el resultado viaja con la propia promesa, que es
+          // justo lo que evita tener que emparejar eventos con palabras.
+          ttsConsecutiveFailures = 0;
+        },
+        () => {
+          ttsConsecutiveFailures += 1;
+          if (hasClip) playClip(audioKey, levelDb, lang, () => speakText(word, sessionLang));
+          else speakText(word, sessionLang);
+        },
+      );
       return;
     }
 
@@ -679,27 +689,12 @@ export function installVerbalAudioAdapter(opts: VerbalAudioAdapterOptions = {}):
     });
   };
 
-  // Fallos ASÍNCRONOS de síntesis: en Android `speak()` resuelve al encolar y
-  // el error real (p. ej. la voz de red sin conectividad) llega después por el
-  // evento `tts-error`. Se degrada la palabra en curso a su recorte y se
-  // contabiliza el fallo; `tts-finish` confirma que el motor está sano y
-  // resetea el contador. `tts-cancel` (detención deliberada) no se escucha.
-  const onTtsFinish = () => {
-    ttsConsecutiveFailures = 0;
-    currentTts = null;
-  };
-  const onTtsError = () => {
-    ttsConsecutiveFailures += 1;
-    const failed = currentTts;
-    currentTts = null;
-    if (failed) playClip(failed.audioKey, failed.levelDb, failed.lang);
-  };
-  try {
-    ttsEngine?.addEventListener?.('tts-finish', onTtsFinish);
-    ttsEngine?.addEventListener?.('tts-error', onTtsError);
-  } catch {
-    /* motor sin eventos: la degradación por promesa rechazada sigue operativa */
-  }
+  // Con `react-native-tts` hacía falta escuchar los eventos GLOBALES
+  // `tts-finish`/`tts-error`, porque su `speak()` resolvía al ENCOLAR y el
+  // fallo real llegaba después por el emisor. `expo-speech` entrega
+  // `onDone`/`onError` por LOCUCIÓN, así que el resultado ya viaja con la
+  // promesa de `speakWord` y no hace falta estado global que sincronizar: la
+  // degradación al recorte y el contador de fallos viven en `playWord`.
 
   setVerbalAudioAdapter({
     playWord,
@@ -723,10 +718,6 @@ export function installVerbalAudioAdapter(opts: VerbalAudioAdapterOptions = {}):
   return () => {
     stop();
     setVerbalAudioAdapter(null);
-    try {
-      ttsEngine?.removeEventListener?.('tts-finish', onTtsFinish);
-      ttsEngine?.removeEventListener?.('tts-error', onTtsError);
-    } catch {}
     bufferCache.clear();
     // El contexto es compartido: solo se suelta la referencia.
     releaseAudioContext();

@@ -55,23 +55,16 @@ jest.mock('react-native-audio-api', () => {
   };
 });
 
-jest.mock('react-native-tts', () => {
-  const tts = {
-    getInitStatus: jest.fn(async () => 'success'),
-    setDefaultRate: jest.fn(async () => 'success'),
-    setDefaultPitch: jest.fn(async () => 'success'),
-    setDefaultLanguage: jest.fn(async () => 'success'),
-    setDefaultVoice: jest.fn(async () => 'success'),
-    voices: jest.fn(async () => [
-      { id: 'es-es-x-eed-local', language: 'es-ES', quality: 400, networkConnectionRequired: false, notInstalled: false },
-    ]),
-    speak: jest.fn(async () => 'utterance-id'),
-    stop: jest.fn(),
-    addEventListener: jest.fn(),
-    removeEventListener: jest.fn(),
-  };
-  return { __esModule: true, default: tts };
-});
+jest.mock('expo-speech', () => ({
+  // `expo-speech` entrega el resultado por los callbacks de CADA locución.
+  speak: jest.fn((_text: string, opts: any) => {
+    setTimeout(() => opts?.onDone?.(), 0);
+  }),
+  stop: jest.fn(),
+  getAvailableVoicesAsync: jest.fn(async () => [
+    { identifier: 'es-es-x-eed-local', name: 'Español', language: 'es-ES', quality: 'Enhanced' },
+  ]),
+}));
 
 import { getVerbalAudioAdapter, installVerbalAudioAdapter } from '../verbalAudiometryAudio';
 
@@ -79,9 +72,11 @@ const audioApi = jest.requireMock('react-native-audio-api') as {
   __starts: unknown[];
   __decodeAudioData: jest.Mock;
 };
-const Tts = (jest.requireMock('react-native-tts') as { default: any }).default;
+const Tts = jest.requireMock('expo-speech') as any;
 
-const flush = () => new Promise<void>(res => setTimeout(res, 0));
+const flush = async () => {
+  for (let i = 0; i < 4; i++) await new Promise<void>(res => setTimeout(res, 0));
+};
 
 /** Recorte disponible solo para las lenguas con banco de locuciones. */
 const CLIP_LANGS = ['es', 'es-DO', undefined];
@@ -101,8 +96,10 @@ describe('audiometría verbal · el recorte es la vía primaria', () => {
   beforeEach(() => {
     audioApi.__starts.length = 0;
     audioApi.__decodeAudioData.mockClear();
-    Tts.speak.mockClear();
-    Tts.speak.mockImplementation(async () => 'utterance-id');
+    Tts.speak.mockReset();
+    Tts.speak.mockImplementation((_text: string, opts: any) => {
+      setTimeout(() => opts?.onDone?.(), 0);
+    });
   });
 
   afterEach(() => {

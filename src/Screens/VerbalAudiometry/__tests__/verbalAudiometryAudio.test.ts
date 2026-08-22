@@ -58,38 +58,58 @@ jest.mock('react-native-audio-api', () => {
   };
 });
 
-jest.mock('react-native-tts', () => {
-  const listeners: Record<string, Array<(ev?: unknown) => void>> = {};
-  const tts = {
-    getInitStatus: jest.fn(async () => 'success'),
-    setDefaultRate: jest.fn(async () => 'success'),
-    setDefaultPitch: jest.fn(async () => 'success'),
-    setDefaultLanguage: jest.fn(async () => 'success'),
-    setDefaultVoice: jest.fn(async () => 'success'),
-    voices: jest.fn(async () => [
-      { id: 'es-es-x-eed-local', language: 'es-ES', quality: 400, networkConnectionRequired: false, notInstalled: false },
+jest.mock('expo-speech', () => {
+  /* Réplica del contrato de `expo-speech`: las opciones de CADA locución
+   * llevan sus propios `onDone` / `onError` / `onStopped`, y `stop()` cancela
+   * la locución en curso disparando su `onStopped`. Ese es el cambio de modelo
+   * respecto a `react-native-tts`, que emitía eventos GLOBALES y obligaba a
+   * llevar estado compartido para saber a qué palabra correspondía cada uno. */
+  let pending: any = null;
+  const speak = jest.fn((_text: string, opts: any) => {
+    pending = opts;
+    setTimeout(() => {
+      if (pending !== opts) return; // otra locución tomó el relevo
+      pending = null;
+      opts?.onDone?.();
+    }, 0);
+  });
+  return {
+    speak,
+    stop: jest.fn(() => {
+      const p = pending;
+      pending = null;
+      p?.onStopped?.();
+    }),
+    getAvailableVoicesAsync: jest.fn(async () => [
+      { identifier: 'es-es-x-eed-local', name: 'Español', language: 'es-ES', quality: 'Enhanced' },
     ]),
-    speak: jest.fn(async () => 'utterance-id'),
-    stop: jest.fn(),
-    addEventListener: jest.fn((type: string, fn: (ev?: unknown) => void) => {
-      (listeners[type] ??= []).push(fn);
-    }),
-    removeEventListener: jest.fn((type: string, fn: (ev?: unknown) => void) => {
-      listeners[type] = (listeners[type] ?? []).filter(f => f !== fn);
-    }),
-    /** Emite un evento del motor nativo hacia los listeners registrados. */
-    __emit: (type: string, ev?: unknown) => (listeners[type] ?? []).slice().forEach(f => f(ev)),
+    /** Hace fallar la SIGUIENTE locución, como una voz de red sin conexión. */
+    __failNext: () => {
+      speak.mockImplementationOnce((_t: string, o: any) => {
+        setTimeout(() => o?.onError?.(new Error('network_error')), 0);
+      });
+    },
+    /** Hace fallar TODAS las locuciones siguientes. */
+    __failAlways: () => {
+      speak.mockImplementation((_t: string, o: any) => {
+        setTimeout(() => o?.onError?.(new Error('network_error')), 0);
+      });
+    },
   };
-  return { __esModule: true, default: tts };
 });
 
 import { installVerbalAudioAdapter, getVerbalAudioAdapter } from '../verbalAudiometryAudio';
 
 const audioApi = jest.requireMock('react-native-audio-api') as { __starts: unknown[] };
-const Tts = (jest.requireMock('react-native-tts') as { default: any }).default;
+const Tts = jest.requireMock('expo-speech') as any;
 
 /** Deja drenar las cadenas de promesas pendientes (configureTts, decodeClip…). */
-const flush = () => new Promise<void>(res => setTimeout(() => res(), 0));
+const flush = async () => {
+  // Cuatro vueltas: la degradación al recorte encadena onError → catch →
+  // decodeClip (async) → playBuffer. Con una sola vuelta el aserto miraba el
+  // buffer antes de que el recorte hubiera arrancado.
+  for (let i = 0; i < 4; i++) await new Promise<void>(res => setTimeout(res, 0));
+};
 
 describe('verbalAudiometryAudio — degradación TTS → recortes', () => {
   let cleanup: (() => void) | null = null;
@@ -105,8 +125,10 @@ describe('verbalAudiometryAudio — degradación TTS → recortes', () => {
 
   beforeEach(() => {
     audioApi.__starts.length = 0;
-    Tts.speak.mockClear();
-    Tts.speak.mockImplementation(async () => 'utterance-id');
+    Tts.speak.mockReset();
+    Tts.speak.mockImplementation((_text: string, opts: any) => {
+      setTimeout(() => opts?.onDone?.(), 0);
+    });
   });
 
   afterEach(() => {
@@ -122,27 +144,19 @@ describe('verbalAudiometryAudio — degradación TTS → recortes', () => {
     expect(audioApi.__starts).toHaveLength(0);
   });
 
-  it('si speak() rechaza (p. ej. voz de red sin conexión), la palabra suena por el recorte', async () => {
+  it('un fallo ASÍNCRONO de la síntesis degrada esa palabra al recorte', async () => {
+    // Con `expo-speech` el fallo llega por el `onError` de ESA locución, no por
+    // un evento global: ya no hay que adivinar a qué palabra correspondía.
     const adapter = await install();
-    Tts.speak.mockRejectedValueOnce(new Error('network_error'));
-    adapter.playWord('pato', 'pato', 65);
+    Tts.__failNext();
+    adapter.playWord('gato', 'gato', 65);
     await flush();
     expect(audioApi.__starts).toHaveLength(1);
   });
 
-  it('un fallo asíncrono (evento tts-error) también degrada la palabra al recorte', async () => {
-    const adapter = await install();
-    adapter.playWord('gato', 'gato', 65);
-    await flush();
-    expect(audioApi.__starts).toHaveLength(0); // el dictado se encoló bien
-    Tts.__emit('tts-error', { utteranceId: 'utterance-id' });
-    await flush();
-    expect(audioApi.__starts).toHaveLength(1); // …pero al fallar suena el recorte
-  });
-
   it('tras dos fallos seguidos deja de intentar el TTS y usa recortes directamente', async () => {
     const adapter = await install();
-    Tts.speak.mockRejectedValue(new Error('network_error'));
+    Tts.__failAlways();
     adapter.playWord('pato', 'pato', 65);
     await flush();
     adapter.playWord('gato', 'gato', 65);
@@ -156,17 +170,16 @@ describe('verbalAudiometryAudio — degradación TTS → recortes', () => {
     expect(audioApi.__starts).toHaveLength(3);
   });
 
-  it('tts-finish resetea el contador de fallos (un fallo aislado no degrada la sesión)', async () => {
+  it('una locución completada resetea el contador (un fallo aislado no degrada la sesión)', async () => {
     const adapter = await install();
-    Tts.speak.mockRejectedValueOnce(new Error('network_error'));
+    Tts.__failNext();
     adapter.playWord('pato', 'pato', 65);
     await flush(); // 1 fallo (suena recorte)
 
     adapter.playWord('gato', 'gato', 65);
-    await flush();
-    Tts.__emit('tts-finish', { utteranceId: 'utterance-id' }); // dictado completado
+    await flush(); // dictado completado: el contador vuelve a cero
 
-    Tts.speak.mockRejectedValueOnce(new Error('network_error'));
+    Tts.__failNext();
     adapter.playWord('casa', 'casa', 65);
     await flush(); // otro fallo aislado: sigue sin llegar al límite
 
@@ -177,11 +190,12 @@ describe('verbalAudiometryAudio — degradación TTS → recortes', () => {
   });
 
   it('una detención deliberada (stop) no dispara el recorte de respaldo', async () => {
+    // `expo-speech` avisa de la parada por `onStopped`, que el adaptador trata
+    // como fin normal: cortar el estímulo porque el niño ya respondió no puede
+    // contar como fallo de síntesis ni disparar el recorte.
     const adapter = await install();
     adapter.playWord('pato', 'pato', 65);
-    await flush();
-    adapter.stop(); // el niño respondió: se corta el estímulo a propósito
-    Tts.__emit('tts-error', { utteranceId: 'utterance-id' });
+    adapter.stop();
     await flush();
     expect(audioApi.__starts).toHaveLength(0);
   });

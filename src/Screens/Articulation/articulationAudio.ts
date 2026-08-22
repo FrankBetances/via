@@ -14,6 +14,12 @@ import { createDecimator3, DECIMATION, SAMPLE_RATE } from '@/Screens/VoiceAnalys
 
 import { proposeSoda, type SodaProposal } from './articulationPhonetics';
 import {
+  createSpeechRecognizer,
+  isRecognitionAvailable,
+  supportsOnDeviceRecognition,
+  type SpeechRecognizer,
+} from './speechRecognitionBridge';
+import {
   probeRecognitionCaps,
   type NativeRecognitionProbe,
   recognitionBlockLabel,
@@ -39,7 +45,7 @@ import {
 /*   1. Modelo hablado               → capa de voz `@/Voice` (ver abajo)        */
 /*   2. Grabación de la repetición   → micrófono COMPARTIDO de `@/Audio`        */
 /*      (PCM en memoria, sin fichero: ver A3.2 · Zero-PHI)                      */
-/*   3. Reconocimiento de voz        → `@react-native-voice/voice`              */
+/*   3. Reconocimiento de voz        → `expo-speech-recognition` (puente)       */
 /*      (Android: SpeechRecognizer · iOS: SFSpeechRecognizer)                   */
 /*   ·  Permisos de micrófono        → `react-native-permissions`               */
 /*                                                                              */
@@ -58,15 +64,11 @@ import {
 /* Metro exige literales en `require(...)` para poder empaquetar el módulo: un
  * nombre de variable (`require(name)`) rompe el build de producción aunque la
  * librería esté instalada. Por eso cada caso usa su propio `require` literal. */
-type OptionalLibName =
-  | '@react-native-voice/voice'
-  | 'react-native-permissions';
+type OptionalLibName = 'react-native-permissions';
 
 const optionalRequire = (name: OptionalLibName): any => {
   try {
     switch (name) {
-      case '@react-native-voice/voice':
-        return require('@react-native-voice/voice');
       case 'react-native-permissions':
         return require('react-native-permissions');
     }
@@ -110,11 +112,8 @@ const TAIL_DRAIN_MS = 120;
  * require dinámico podría no incluirlos en el bundle aunque estén instalados).
  * El TTS ya no aparece aquí: el modelo hablado lo sirve `@/Voice`.
  * ─────────────────────────────────────────────────────────────────────────── */
-// import VoiceLib from '@react-native-voice/voice';
 // import * as PermissionsLib from 'react-native-permissions';
-let RN_VOICE: any = null;
 let RN_PERMISSIONS: any = null;
-// RN_VOICE = VoiceLib;
 // RN_PERMISSIONS = PermissionsLib;
 
 /** Resuelve una lib: usa el import literal (si está activado) o cae al require dinámico. */
@@ -186,17 +185,16 @@ export const matchesTarget = (target: string, heard: string): boolean => {
 /* -------------------------------------------------------------------------- */
 /*  Acceso a las capacidades NATIVAS de reconocimiento local (A2).             */
 /*                                                                            */
-/*  Los dos métodos que se usan aquí NO los expone `@react-native-voice/voice`:*/
-/*  los añade el parche `patches/@react-native-voice+voice+3.2.4.patch`, así   */
-/*  que se accede al módulo nativo directamente en vez de por la API de la     */
-/*  librería. Si el parche no estuviera aplicado, los métodos no existen, el   */
-/*  sondeo devuelve `null` y la puerta se queda cerrada: la ausencia del       */
-/*  parche degrada con seguridad, no abre nada.                                */
+/*  `expo-speech-recognition` expone estas capacidades de serie                */
+/*  (`supportsOnDeviceRecognition()`, y `requiresOnDeviceRecognition` como     */
+/*  opción del arranque). Antes hacían falta dos métodos añadidos a mano por   */
+/*  un parche sobre el Java y el Objective-C de la librería anterior.          */
 /* -------------------------------------------------------------------------- */
 
-/** Plazo del sondeo nativo. Un callback que no llega no puede dejar la puerta
- *  colgada: se trata como «no se ha podido confirmar». */
-const PROBE_TIMEOUT_MS = 1500;
+/* Ya no hace falta plazo de sondeo: `supportsOnDeviceRecognition()` de
+ * `expo-speech-recognition` es SÍNCRONO. El plazo existía porque el método del
+ * parche respondía por callback y un callback que no llegaba dejaba la puerta
+ * colgada. */
 
 /**
  * Sondeo de la capa nativa de reconocimiento. Exportado porque la pantalla de
@@ -205,48 +203,26 @@ const PROBE_TIMEOUT_MS = 1500;
  * «reconocimiento disponible» mientras el módulo clínico se queda mudo, que es
  * el falso positivo que esa pantalla existe para eliminar.
  */
+/**
+ * Sondeo de la capa nativa de reconocimiento. Exportado porque la pantalla de
+ * comprobación de audio tiene que interrogar EXACTAMENTE la misma superficie
+ * que usa el T.A.R.: un diagnóstico que preguntase por otra vía podría decir
+ * «reconocimiento disponible» mientras el módulo clínico se queda mudo.
+ *
+ * Ya no hace falta ningún método parcheado: `expo-speech-recognition` expone
+ * `supportsOnDeviceRecognition()` de serie, y `requiresOnDeviceRecognition` es
+ * una opción declarada del arranque. Con la librería anterior estos dos
+ * métodos los añadía un parche nuestro sobre el Java y el Objective-C.
+ */
 export const nativeRecognitionProbe = (): NativeRecognitionProbe | null => {
-  let native: any = null;
-  try {
-    native = require('react-native').NativeModules?.Voice ?? null;
-  } catch (_e) {
-    return null;
-  }
-  if (!native) return null;
-
-  const probe: NativeRecognitionProbe = {};
-
-  if (typeof native.isOnDeviceRecognitionAvailable === 'function') {
-    probe.isOnDeviceRecognitionAvailable = (locale: string) =>
-      new Promise<boolean>((resolve, reject) => {
-        const timer = setTimeout(
-          () => reject(new Error('sondeo de reconocimiento local sin respuesta')),
-          PROBE_TIMEOUT_MS,
-        );
-        try {
-          native.isOnDeviceRecognitionAvailable(locale, (available: boolean) => {
-            clearTimeout(timer);
-            resolve(available === true);
-          });
-        } catch (e) {
-          clearTimeout(timer);
-          reject(e);
-        }
-      });
-  }
-
-  // Solo se declara garantizado el modo local si el nativo ACEPTA la orden de
-  // exigirlo; se arma aquí, antes de cualquier arranque.
-  if (typeof native.setRequireOnDeviceRecognition === 'function') {
-    try {
-      native.setRequireOnDeviceRecognition(true);
-      probe.startRequiresOnDevice = true;
-    } catch (_e) {
-      /* sin armar: la puerta se queda cerrada */
-    }
-  }
-
-  return probe;
+  if (!isRecognitionAvailable()) return null;
+  return {
+    isOnDeviceRecognitionAvailable: async () => supportsOnDeviceRecognition(),
+    // El arranque EXIGE modo local (`requiresOnDeviceRecognition: true` en
+    // `speechRecognitionBridge`), y además lanza si no puede garantizarlo en
+    // vez de volver en silencio.
+    startRequiresOnDevice: true,
+  };
 };
 
 /** Pide RECORD_AUDIO. Fuera del hook: no depende de nada del render. */
@@ -406,9 +382,8 @@ export function useArticulationAudio(lang: string = 'es'): ArticulationAudio {
       setAvailable(true);
     }
 
-    // 2) Reconocimiento de voz
-    const voiceMod = resolveLib(RN_VOICE, '@react-native-voice/voice');
-    const Voice = voiceMod?.default ?? voiceMod;
+    // 2) Reconocimiento de voz (expo-speech-recognition, vía el puente)
+    const Voice: SpeechRecognizer | null = createSpeechRecognizer();
     if (Voice) {
       voiceRef.current = Voice;
       /* NO se activa aquí. Antes bastaba con que la librería existiera, y ese

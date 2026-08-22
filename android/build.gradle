@@ -37,3 +37,4 @@ subprojects { subproject ->
         }
     }
 }
+apply plugin: "expo-root-project"

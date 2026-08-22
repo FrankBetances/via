@@ -1,144 +1,115 @@
-import {
-  acquireAudioContext,
-  peekAudioContext,
-  releaseAudioContext,
-  resumeAudioContext,
-  type SharedAudioContext,
-} from '@/Audio';
-
 /* -------------------------------------------------------------------------- */
-/*  Reproductor de assets de voz (runtime · react-native-audio-api).            */
+/*  Reproductor de assets de voz (runtime · expo-audio).                        */
 /*                                                                             */
-/*  `playVoiceAsset(module)` reproduce el `.m4a` pre-sintetizado. Usa el        */
-/*  contexto de audio COMPARTIDO de la app (`@/Audio`): antes creaba uno        */
-/*  propio y en Android (Oboe en modo exclusivo) ese contexto extra se quedaba  */
-/*  mudo —o dejaba mudos a los de las audiometrías—, que es por lo que las      */
-/*  consignas habladas de los ejercicios no sonaban.                            */
+/*  MIGRADO desde `react-native-audio-api`, adoptando la arquitectura de        */
+/*  Valeria+ (`src/valeriaVoicePlayback.ts`), que es la que funciona.           */
 /*                                                                             */
-/*  Si no hay motor nativo (o el asset no decodifica) devuelve `false` y el     */
-/*  llamante (`viaVoice`) cae a la voz del sistema. Un ÚNICO slot de            */
-/*  reproducción: empezar una locución detiene la anterior (misma disciplina    */
-/*  que el adaptador verbal).                                                    */
+/*  POR QUÉ SE CAMBIÓ EL MOTOR                                                  */
+/*  La versión anterior decodificaba el `.m4a` y lo reproducía sobre el         */
+/*  AudioContext compartido de `react-native-audio-api`, es decir sobre un      */
+/*  stream de Oboe abierto en modo EXCLUSIVO y compartido con los tonos de las  */
+/*  audiometrías. Eso metía las locuciones —que son una ayuda pedagógica, no un */
+/*  estímulo calibrado— en la misma cadena crítica y frágil que el estímulo     */
+/*  clínico: cualquier problema de apertura del stream dejaba muda la voz de    */
+/*  toda la app sin decir por qué, y una locución podía interferir con el       */
+/*  estímulo.                                                                   */
+/*                                                                             */
+/*  `expo-audio` reproduce por las API estándar del sistema (MediaPlayer /      */
+/*  AVPlayer), fuera de Oboe. Es exactamente lo que hace Valeria+, que locuta   */
+/*  sin problemas en el mismo emulador donde VIA+ se quedaba en silencio.       */
+/*                                                                             */
+/*  Modo de mezcla `mixWithOthers`: la locución debe CONVIVIR con lo que esté   */
+/*  sonando (el babble de ruido competitivo, un tono en curso), nunca pausarlo. */
+/*  `playsInSilentMode` porque en consulta la tableta suele estar en silencio.  */
+/*                                                                             */
+/*  Un ÚNICO slot: empezar una locución detiene la anterior.                    */
 /*                                                                             */
 /*  Los modelos de IA NUNCA corren aquí: en runtime solo se REPRODUCE audio ya  */
 /*  empaquetado (offline-first inviolable, P1).                                 */
 /* -------------------------------------------------------------------------- */
 
-/* Metro exige literales en `require(...)` (ver verbalAudiometryAudio.ts). */
-const optionalRN = (): any => {
+/* Carga perezosa del módulo nativo (mismo patrón que Valeria+): si expo-audio
+ * no está en este binario, `playVoiceAsset` devuelve `false` y el llamante cae
+ * a la voz del sistema en vez de romperse. */
+const optionalExpoAudio = (): any => {
   try {
-    return require('react-native');
+    const mod = require('expo-audio');
+    return typeof mod?.createAudioPlayer === 'function' ? mod : null;
   } catch (_e) {
     return null;
   }
 };
 
-let source: any = null;
-const cache = new Map<number, any>(); // módulo de asset → AudioBuffer decodificado
-/** ¿Se tomó ya la referencia del contexto compartido? (una sola por proceso) */
-let holdsContext = false;
+let current: { player: any; sub: any } | null = null;
+/** El modo de sesión se fija una sola vez por proceso. */
+let modeSet = false;
 
-const getContext = (): SharedAudioContext | null => {
-  if (holdsContext) return peekAudioContext();
-  const ctx = acquireAudioContext();
-  // Se marca la reserva aunque el contexto sea null: `acquireAudioContext`
-  // incrementa el contador igualmente y hay que soltarlo en `dispose`.
-  holdsContext = true;
-  return ctx;
-};
-
-/** Detiene la locución en curso (si la hay). */
-export const stopVoiceAsset = (): void => {
+const cleanup = (): void => {
+  if (!current) return;
+  const { player, sub } = current;
+  current = null;
   try {
-    source?.stop();
-  } catch {
-    /* ya detenida */
-  }
-  try {
-    source?.disconnect();
+    sub?.remove?.();
   } catch {
     /* noop */
   }
-  source = null;
-};
-
-const uriForModule = (assetModule: number): string | null => {
-  const RN = optionalRN();
   try {
-    return RN?.Image?.resolveAssetSource?.(assetModule)?.uri ?? null;
+    player.pause();
   } catch {
-    return null;
+    /* ya parado */
   }
-};
-
-const play = (buffer: any): boolean => {
-  const c = getContext();
-  if (!c) return false;
-  resumeAudioContext();
   try {
-    stopVoiceAsset();
-    const src = c.createBufferSource();
-    src.buffer = buffer;
-    src.connect(c.destination);
-    src.start(c.currentTime);
-    source = src;
-    return true;
+    player.remove();
   } catch {
-    return false;
+    /* noop */
   }
 };
 
-/**
- * Decodifica el asset. En RELEASE el asset es un fichero del bundle y
- * `decodeAudioDataSource` (que solo abre RUTAS locales) lo resuelve; en
- * DESARROLLO `resolveAssetSource` devuelve una URL http del servidor de Metro
- * que la vía nativa por ruta NO sabe abrir —por eso las consignas no sonaban
- * en los builds de depuración—, así que se descarga y se decodifica en memoria.
- * Mismo orden de degradación que el adaptador de la audiometría verbal.
- */
-const decodeAsset = async (c: SharedAudioContext, uri: string): Promise<any> => {
-  const isRemote = /^https?:/i.test(uri);
-  if (!isRemote) {
-    try {
-      return await c.decodeAudioDataSource(uri);
-    } catch {
-      /* cae a la descarga */
-    }
-  }
-  const res = await fetch(uri);
-  const data = await res.arrayBuffer();
-  return await c.decodeAudioData(data);
-};
+/** Detiene la locución en curso (si la hay). */
+export const stopVoiceAsset = (): void => cleanup();
 
 /**
  * Reproduce el asset de voz pre-sintetizado. Devuelve una promesa a `true` si
- * sonó, `false` si no hay motor nativo o el asset no decodifica (el llamante
- * degrada a la voz del sistema). Nunca lanza.
+ * la reproducción ARRANCÓ, `false` si no hay motor nativo o el asset no se
+ * pudo abrir (el llamante degrada a la voz del sistema). Nunca lanza.
+ *
+ * Se resuelve al ARRANCAR, no al terminar: quien locuta una consigna necesita
+ * saber si va a sonar para decidir si degrada, no esperar a que acabe.
  */
 export const playVoiceAsset = async (assetModule: number | undefined): Promise<boolean> => {
   if (assetModule == null) return false;
-  const cached = cache.get(assetModule);
-  if (cached) return play(cached);
+  const ExpoAudio = optionalExpoAudio();
+  if (!ExpoAudio) return false;
 
-  const c = getContext();
-  if (!c) return false;
-  const uri = uriForModule(assetModule);
-  if (!uri) return false;
   try {
-    const buffer = await decodeAsset(c, uri);
-    cache.set(assetModule, buffer);
-    return play(buffer);
+    if (!modeSet) {
+      modeSet = true;
+      // Mezcla: la locución convive con lo que esté sonando, nunca lo pausa.
+      void ExpoAudio.setAudioModeAsync({
+        playsInSilentMode: true,
+        shouldPlayInBackground: false,
+        interruptionMode: 'mixWithOthers',
+      });
+    }
+
+    cleanup();
+    const player = ExpoAudio.createAudioPlayer(assetModule);
+    // La suscripción existe para SOLTAR el reproductor al terminar: sin ella
+    // cada locución dejaría un objeto nativo vivo hasta el recolector.
+    const sub = player.addListener?.('playbackStatusUpdate', (status: any) => {
+      if (!status?.didJustFinish) return;
+      if (current?.player === player) cleanup();
+    });
+    current = { player, sub };
+    player.play();
+    return true;
   } catch {
+    cleanup();
     return false;
   }
 };
 
-/** Libera la referencia al contexto compartido y la caché (limpieza en desmontaje). */
+/** Libera el reproductor (limpieza en desmontaje). */
 export const disposeVoicePlayback = (): void => {
   stopVoiceAsset();
-  if (holdsContext) {
-    holdsContext = false;
-    releaseAudioContext();
-  }
-  cache.clear();
 };
