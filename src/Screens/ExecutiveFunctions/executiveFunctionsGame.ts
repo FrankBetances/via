@@ -517,6 +517,28 @@ export const EF_WARN_CUT = 60;
 export const efStatus = (score: number): EfStatus =>
   score >= EF_OK_CUT ? 'ok' : score >= EF_WARN_CUT ? 'warn' : 'alt';
 
+/** Nº de dominios efectivamente completados (de `EF_DOMAIN_ORDER.length`). */
+export const efCompletedCount = (scores: EfDomainScores): number =>
+  EF_DOMAIN_ORDER.filter(d => scores[d] !== null && scores[d] !== undefined).length;
+
+/**
+ * Etiqueta del índice global CON SU DENOMINADOR.
+ *
+ * El índice es la media de los dominios completados, así que un niño que solo
+ * terminó uno de los cinco produce un número que, suelto, se lee igual que una
+ * batería completa. La tabla por dominios sí decía «no completado», pero la
+ * cifra de titular viajaba sin su base al informe, al resultado final y al
+ * aviso de guardado. Un número clínico tiene que llevar encima de cuántas
+ * medidas sale.
+ */
+export const efOverallLabel = (scores: EfDomainScores): string => {
+  const overall = efOverallScore(scores);
+  const done = efCompletedCount(scores);
+  const total = EF_DOMAIN_ORDER.length;
+  if (overall === null) return `— (0 de ${total} dominios)`;
+  return `${overall}/100 (${done} de ${total} dominios)`;
+};
+
 /** Media de los dominios completados (null si no hay ninguno). */
 export const efOverallScore = (scores: EfDomainScores): number | null => {
   const done = EF_DOMAIN_ORDER.map(d => scores[d]).filter((v): v is number => v !== null);
@@ -564,4 +586,31 @@ export const interpretExecutiveFunctions = (band: EfAgeBand, scores: EfDomainSco
   text +=
     ' Cribado orientativo mediante juego de tarjetas con dificultad graduada por edad: no constituye diagnóstico.';
   return text;
+};
+
+/**
+ * Misma etiqueta, partiendo de los campos del MODELO persistido (el informe y
+ * la pantalla de resultados no tienen un `EfDomainScores`, tienen la entidad).
+ * Se deriva el denominador de los cinco campos: no hace falta migrar nada.
+ */
+export const efLabelFromTest = (test: {
+  attentionScore: number | null;
+  inhibitionScore: number | null;
+  flexibilityScore: number | null;
+  workingMemoryScore: number | null;
+  planningScore: number | null;
+  overallScore: number | null;
+}): string => {
+  const done = [
+    test.attentionScore,
+    test.inhibitionScore,
+    test.flexibilityScore,
+    test.workingMemoryScore,
+    test.planningScore,
+  ].filter(v => v !== null && v !== undefined).length;
+  const total = EF_DOMAIN_ORDER.length;
+  if (test.overallScore === null || test.overallScore === undefined) {
+    return `— (0 de ${total} dominios)`;
+  }
+  return `${test.overallScore}/100 (${done} de ${total} dominios)`;
 };

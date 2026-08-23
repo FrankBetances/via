@@ -139,6 +139,46 @@ const endTake = async (adapter: ReturnType<typeof getVoiceMicAdapter>) => {
   return stopping;
 };
 
+/* El vaciado de `stop()` es un contrato del motor, no un detalle de un
+ * adaptador: cualquier módulo que capture PCM tiene que respetarlo. Se vigila
+ * en el eslabón COMPARTIDO para que el próximo módulo que grabe no repita el
+ * fallo tres veces como pasó con voz, prosodia y T.A.R. */
+describe('el micrófono compartido entrega el vaciado a TODOS los consumidores', () => {
+  it('un consumidor que sigue escuchando durante el vaciado recibe la cola', async () => {
+    const { acquireRecorder, setRecorderPermissionGranted } = require('@/Audio');
+    setRecorderPermissionGranted(true);
+    const shared = acquireRecorder()!;
+    const recibidos: number[] = [];
+    const off = shared.subscribe((pcm: Float32Array) => recibidos.push(pcm.length));
+    shared.start();
+    const native = mockRecorders[0];
+    // 60 ms: por debajo del bloque, así que el motor no emite hasta parar.
+    native.feed(CAPTURE_SR * 0.06);
+    expect(recibidos).toHaveLength(0);
+    shared.stop();
+    // El vaciado llega DESPUÉS de `stop()`; la ventana debe seguir abierta.
+    expect(recibidos.reduce((a, b) => a + b, 0)).toBeGreaterThan(0);
+    off();
+    shared.release();
+  });
+
+  it('pasada la ventana de vaciado, el micrófono deja de repartir', async () => {
+    const { acquireRecorder, setRecorderPermissionGranted } = require('@/Audio');
+    setRecorderPermissionGranted(true);
+    const shared = acquireRecorder()!;
+    const recibidos: number[] = [];
+    const off = shared.subscribe((pcm: Float32Array) => recibidos.push(pcm.length));
+    shared.start();
+    shared.stop();
+    recibidos.length = 0;
+    jest.advanceTimersByTime(1000); // muy por encima de la ventana
+    mockRecorders[0].feed(CAPTURE_SR * 0.5);
+    expect(recibidos).toHaveLength(0);
+    off();
+    shared.release();
+  });
+});
+
 describe('ruta real del micrófono, del motor nativo al PCM devuelto', () => {
   it('una toma larga devuelve audio', async () => {
     const { adapter, native } = await beginTake();

@@ -32,6 +32,7 @@ import {
   EfDomain,
   EfDomainScores,
   EfRawResults,
+  efOverallLabel,
   efOverallScore,
   efStatus,
   EMPTY_EF_SCORES,
@@ -220,7 +221,7 @@ export default function ExecutiveFunctionsScreen({ navigation }: Props) {
       item.evaluation = { id: activeEvaluation.id } as Evaluation;
 
       await createExecutiveFunctions(item);
-      showSuccessToast('Exploración guardada', `Índice global ${overall}/100 (banda ${band}).`);
+      showSuccessToast('Exploración guardada', `Índice global ${efOverallLabel(scores)} · banda ${band}.`);
       // Aterriza en los resultados, no de vuelta al hub (ver finishModule).
       finishModule(navigation);
     } catch {

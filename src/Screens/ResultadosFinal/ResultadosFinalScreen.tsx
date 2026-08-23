@@ -71,7 +71,7 @@ import {
 } from '@/Screens/VoiceAnalysis/voiceAnalysisResult';
 import { prosodyInterpretation, prosodyReportRows } from '@/Screens/ProsodyAnalysis/prosodyResult';
 import { imcLabel, suspicionLabel } from '@/Screens/SahsScreening/sahsScreeningResult';
-import { EF_DOMAIN_META, EF_DOMAIN_ORDER, efStatus } from '@/Screens/ExecutiveFunctions/executiveFunctionsGame';
+import { EF_DOMAIN_META, EF_DOMAIN_ORDER, efLabelFromTest, efStatus } from '@/Screens/ExecutiveFunctions/executiveFunctionsGame';
 import { generateReport } from '@/PDF/templates/Report';
 import { showErrorToast, showSuccessToast } from '@/Helpers/showToast';
 
@@ -641,7 +641,7 @@ export default function ResultadosFinalScreen({ navigation }: Props) {
               kind: 'params',
               status: ef.overallScore === null ? 'warn' : efStatus(ef.overallScore),
               title: 'Funciones Ejecutivas',
-              subtitle: `Mini-juegos de tarjetas · banda ${ef.ageBand} · índice global ${ef.overallScore ?? '—'}/100`,
+              subtitle: `Mini-juegos de tarjetas · banda ${ef.ageBand} · índice global ${efLabelFromTest(ef)}`,
               icon: BrainCircuit,
               color: '#059669',
               params,

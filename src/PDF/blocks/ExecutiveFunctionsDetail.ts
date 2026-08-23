@@ -7,6 +7,7 @@ import {
 import { BlockOptions } from './types';
 import { PDF_FONT_SIZES, PDF_MARGINS, PDF_COLORS } from '@/PDF/utils';
 import { Logo } from './Logo';
+import { efLabelFromTest } from '@/Screens/ExecutiveFunctions/executiveFunctionsGame';
 
 interface ExecutiveFunctionsDetailProps {
   test: ExecutiveFunctionsTest;
@@ -72,7 +73,9 @@ export async function ExecutiveFunctionsDetail(
 
   y -= 4;
   page.drawText(
-    `Índice global: ${test.overallScore !== null && test.overallScore !== undefined ? `${test.overallScore}/100` : '—'} (orientativo)`,
+    // El índice viaja SIEMPRE con su denominador: la media de un solo dominio
+    // completado no puede leerse como el resultado de la batería entera.
+    `Índice global: ${efLabelFromTest(test)} (orientativo)`,
     { x: PDF_MARGINS.left, y, size: PDF_FONT_SIZES.md, font: fonts.semiBold, color: PDF_COLORS.trueGray500 },
   );
   y -= 30;

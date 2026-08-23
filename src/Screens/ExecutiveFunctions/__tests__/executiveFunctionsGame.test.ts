@@ -171,3 +171,66 @@ describe('agregación e interpretación', () => {
     expect(EF_DOMAIN_ORDER).toEqual(['attention', 'inhibition', 'flexibility', 'workingMemory', 'planning']);
   });
 });
+
+/* -------------------------------------------------------------------------- */
+/*  El índice global viaja SIEMPRE con su denominador.                         */
+/*                                                                             */
+/*  Es la media de los dominios COMPLETADOS. Un niño que solo terminó uno de   */
+/*  los cinco producía un «82/100» que, suelto en el informe y en la pantalla  */
+/*  de resultados, se lee igual que una batería completa. La tabla por         */
+/*  dominios sí decía «no completado», pero la cifra de titular iba sin base.  */
+/* -------------------------------------------------------------------------- */
+describe('índice global de funciones ejecutivas', () => {
+  const {
+    EMPTY_EF_SCORES,
+    efCompletedCount,
+    efLabelFromTest,
+    efOverallLabel,
+  } = require('../executiveFunctionsGame');
+
+  it('sin ningún dominio completado no hay índice, y se dice', () => {
+    expect(efOverallLabel(EMPTY_EF_SCORES)).toMatch(/^—/);
+    expect(efOverallLabel(EMPTY_EF_SCORES)).toMatch(/0 de 5/);
+    expect(efCompletedCount(EMPTY_EF_SCORES)).toBe(0);
+  });
+
+  it('un solo dominio completado NO se presenta como batería entera', () => {
+    const scores = { ...EMPTY_EF_SCORES, attention: 82 };
+    const label = efOverallLabel(scores);
+    expect(label).toContain('82/100');
+    // Lo que no puede faltar: de cuántas medidas sale ese 82.
+    expect(label).toContain('1 de 5');
+  });
+
+  it('la batería completa también declara sus cinco dominios', () => {
+    const scores = { attention: 80, inhibition: 70, flexibility: 90, workingMemory: 60, planning: 100 };
+    expect(efCompletedCount(scores)).toBe(5);
+    expect(efOverallLabel(scores)).toContain('5 de 5');
+  });
+
+  it('la etiqueta del INFORME cuenta los dominios del modelo persistido', () => {
+    // El PDF y la pantalla de resultados parten de la entidad, no de
+    // EfDomainScores: el denominador tiene que salir igual por las dos vías.
+    const test = {
+      attentionScore: 82,
+      inhibitionScore: 74,
+      flexibilityScore: null,
+      workingMemoryScore: null,
+      planningScore: null,
+      overallScore: 78,
+    };
+    expect(efLabelFromTest(test)).toBe('78/100 (2 de 5 dominios)');
+  });
+
+  it('un informe sin índice no inventa un número', () => {
+    const test = {
+      attentionScore: null,
+      inhibitionScore: null,
+      flexibilityScore: null,
+      workingMemoryScore: null,
+      planningScore: null,
+      overallScore: null,
+    };
+    expect(efLabelFromTest(test)).toBe('— (0 de 5 dominios)');
+  });
+});

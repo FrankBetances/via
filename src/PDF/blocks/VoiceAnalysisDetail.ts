@@ -74,6 +74,37 @@ export async function VoiceAnalysisDetail(
 
   y -= 14;
 
+  /* Advertencia obligatoria, mismo criterio que el informe de prosodia
+   * (`ProsodyDetail.ts`), que ya la llevaba. Va SIEMPRE, haya o no métricas.
+   *
+   * El DSP coincide con Praat al decimal, pero eso está comprobado sobre
+   * SEÑALES SINTÉTICAS en `tools/acoustics/`, y su propio README advierte de
+   * que coincidir ahí «dice que el cálculo es correcto, no que la medida sea
+   * clínicamente válida sobre voz real de niño». Además el micrófono del
+   * dispositivo no está calibrado. Imprimir jitter, shimmer, HNR y formantes
+   * en un informe clínico sin decir de qué son capaces es afirmar más de lo
+   * comprobado — la misma clase de fallo que el resto de este módulo. */
+  page.drawText(
+    t(
+      'PDF.VOICE.DISCLAIMER',
+      'Medidas obtenidas con el micrófono del dispositivo, SIN calibración acústica ' +
+        'certificada, y sin baremo poblacional infantil: son descriptivas y no ' +
+        'constituyen por sí solas un juicio de normalidad. La comparación válida es ' +
+        'con tomas anteriores del mismo paciente en las mismas condiciones. No ' +
+        'sustituyen la valoración perceptiva del logopeda.',
+    ),
+    {
+      x: PDF_MARGINS.left,
+      y,
+      size: PDF_FONT_SIZES.sm,
+      font: fonts.regular,
+      color: PDF_COLORS.trueGray500,
+      maxWidth,
+      lineHeight: PDF_FONT_SIZES.sm * 1.4,
+    },
+  );
+  y -= 56;
+
   // Interpretación
   page.drawText(t('PDF.VOICE.INTERPRETATION', 'Interpretación clínica'), {
     x: PDF_MARGINS.left,

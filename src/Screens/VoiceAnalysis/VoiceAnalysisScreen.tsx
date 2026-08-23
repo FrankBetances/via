@@ -648,6 +648,21 @@ export default function VoiceAnalysisScreen({ navigation }: Props) {
                   <ParamCard label="SHIMMER" value={`${r.shimmer} %`} norm="< 3.0 %" status={statusShimmer(r.shimmer)} />
                 </HStack>
 
+                {/* Los límites de la medida constan en PANTALLA, no solo en el
+                    PDF: es donde el clínico decide. El DSP coincide con Praat,
+                    pero eso está comprobado sobre señales SINTÉTICAS y con un
+                    micrófono sin calibrar (ver tools/acoustics/README.md). La
+                    prosodia ya llevaba este aviso; el análisis acústico no. */}
+                <Box bg="$backgroundLight50" p="$3" borderRadius={12}>
+                  <Text size="xs" color="$textLight600">
+                    Medidas tomadas con el micrófono del dispositivo, sin calibración acústica
+                    certificada y sin baremo poblacional infantil: son descriptivas y no
+                    constituyen por sí solas un juicio de normalidad. La comparación válida es con
+                    tomas anteriores del mismo niño en las mismas condiciones. No sustituyen la
+                    valoración perceptiva del logopeda.
+                  </Text>
+                </Box>
+
                 <Card bgColor="$white" borderRadius={20} p="$5">
                   <HStack justifyContent="space-between" alignItems="center" mb="$2">
                     <Text size="sm" weight="bold" color="$textLight700" style={{ letterSpacing: 0.3 }}>

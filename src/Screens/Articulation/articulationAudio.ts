@@ -98,7 +98,7 @@ const RECOGNITION_FALLBACK = 'es-ES';
 /** Espera tras detener la captura para recoger los últimos bloques que el motor
  *  nativo entrega por el emisor de eventos (mismo valor que en los adaptadores
  *  de voz y prosodia). Sin ella se pierde la cola de la palabra repetida. */
-const TAIL_DRAIN_MS = 120;
+const TAIL_DRAIN_MS = 250;
 
 /* ───────────────────────────────────────────────────────────────────────────
  * ACTIVAR AUDIO REAL (recomendado para producción)
@@ -559,13 +559,23 @@ export function useArticulationAudio(lang: string = 'es'): ArticulationAudio {
         } catch (_e) {
           /* noop */
         }
-        capturingRef.current = false;
         releaseSessionRef.current?.();
         releaseSessionRef.current = null;
         // Los bloques llegan por el emisor de eventos, o sea en un turno
         // posterior del hilo JS: sin esta espera se perdería la cola de la
         // emisión, que es justo el final de la palabra repetida.
+        //
+        // `capturingRef` SIGUE EN TRUE durante el vaciado. Ponerlo a false
+        // antes —como estaba— hacía que el consumidor de bloques descartase
+        // exactamente los que esta espera pretendía recoger: el comentario de
+        // arriba describía la intención y la línea siguiente la anulaba. En el
+        // T.A.R. eso se lleva el FINAL de la palabra repetida, que es donde la
+        // clasificación SODA busca omisiones y distorsiones de la consonante
+        // final, y deja sin audio cualquier repetición más corta que un bloque
+        // (~100 ms). Mismo fallo y mismo arreglo que en el análisis acústico y
+        // la prosodia (ver `voiceMicAdapter`).
         await new Promise<void>(resolve => setTimeout(resolve, TAIL_DRAIN_MS));
+        capturingRef.current = false;
         const total = chunksRef.current.reduce((a, c) => a + c.length, 0);
         const pcm = new Float32Array(total);
         let off = 0;
