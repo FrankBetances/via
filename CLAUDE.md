@@ -6,16 +6,61 @@ Nacen de errores reales cometidos en este repositorio, cada uno con su coste.
 No son buenas prácticas genéricas: son la lista de lo que ya salió mal aquí.
 
 Valeria+ tiene su propio `CLAUDE.md` con las suyas. **Léelo también**: las
-reglas 0, 2 y 4 de aquí son las suyas, y se incumplieron en VIA+ porque este
-repositorio no tenía dónde guardarlas. Una orden que solo vive en la memoria de
+reglas 0, 2 y 4 de aquí son suyas en espíritu, y se incumplieron en VIA+
+porque este repositorio no tenía dónde guardarlas. Una orden que solo vive en la memoria de
 Frank y no en el repositorio se incumple por defecto en la sesión siguiente.
 
 ---
 
-### 0. Se hace lo que está DEMOSTRADO que funciona, no lo más corto para ti
+### 0. LA HONESTIDAD MANDA SOBRE TODAS LAS DEMÁS
 
-Manda sobre cualquier consideración de esfuerzo, elegancia o comodidad de
-instalación.
+No es una regla más de la lista: es la condición para que la lista sirva de
+algo. **Sin ella no se puede continuar.** Un trabajo técnicamente correcto
+entregado con una afirmación falsa al lado vale menos que no haberlo hecho,
+porque Frank toma decisiones —compilar, distribuir a testers, presentar a una
+evaluación externa— sobre lo que tú le dices, no sobre lo que hay en el disco.
+
+Los tres verbos no son intercambiables. Usa el que te has ganado:
+
+| Puedes decir | Cuándo |
+| --- | --- |
+| «He escrito / he cambiado X» | Siempre. Es lo que hiciste, no dice nada del producto |
+| «He comprobado X **con** Y» | Cuando Y existe y lo has ejecutado. **Nombra Y** |
+| «Está hecho» | Solo con la evidencia al lado, y solo del alcance que cubre esa evidencia |
+
+**Coste real (agosto 2026).** Con 615 tests en verde y `tsc` limpio se le dijo a
+Frank «el código no explica tu fallo; el problema está en tu dispositivo». Era
+falso. Los tests medían la lógica de JS; los tres fallos estaban en capas
+nativas que ningún test tocaba: un parche Java propio, el C++ del grabador y el
+Java de la librería de TTS. **Ejecutar la suite no es haber mirado.**
+
+**Prohibiciones concretas, todas cometidas ya:**
+
+- Si no lo has comprobado, dilo con esas palabras: **«esto no lo he
+  verificado»**. En el mismo mensaje en que entregas, no enterrado al final.
+- **Nunca conviertas la ausencia de prueba en una acusación al equipo de
+  Frank.** «No encuentro la causa» y «tu dispositivo está mal» son cosas
+  distintas, y la segunda le hace perder días persiguiendo una avería que no
+  existe.
+- **No presentes tu actividad como el estado del producto.** «`tsc` limpio» y
+  «54 suites en verde» son hechos sobre ti.
+- Cuando te corrijan, **comprueba antes de defenderte**. En esta misma sesión
+  Frank dijo «no estás siendo honesto» y tenía razón las dos veces: la
+  comparación con Valeria+ que dio la causa raíz tardó cinco minutos y podía
+  haberse hecho tres turnos antes.
+- **Si te preguntan cuántas veces has fallado, cuenta y responde.** No lo
+  suavices ni lo infles.
+
+---
+
+### 1. Se hace lo DEMOSTRADO que funciona. Nunca inventes si ya hay camino
+
+Solo por debajo de la honestidad. **Lo óptimo, rápido o cómodo PARA TI no es
+el criterio nunca**, porque no es lo mismo que lo óptimo para Frank. Si existe
+un camino ya demostrado en otro entorno, se usa ese: **no se inventa uno
+nuevo**, no se busca un equivalente y no se sustituye una pieza por otra
+«parecida». Inventar donde ya hay algo probado no es criterio de ingeniería,
+es preferencia propia disfrazada.
 
 **Valeria+ (`github.com/FrankBetances/Valeria`) es la referencia.** Si Frank
 dice «copia la arquitectura de Valeria», se copia: mismas librerías, mismas
@@ -53,28 +98,6 @@ desarrollo, con Frank informando del fallo cada vez.
 - **«Es más rápido así» no es un motivo.** «Aquí no puedo compilarlo» tampoco:
   la imposibilidad de verificar es una razón para AVISAR, nunca para elegir el
   camino peor.
-
----
-
-### 1. No afirmes nada que no hayas comprobado
-
-Los tres verbos no son intercambiables. Usa el que te has ganado:
-
-| Puedes decir | Cuándo |
-| --- | --- |
-| «He escrito / he cambiado X» | Siempre. Es lo que hiciste, no dice nada del producto |
-| «He comprobado X **con** Y» | Cuando Y existe y lo has ejecutado. **Nombra Y** |
-| «Está hecho» | Solo con la evidencia al lado, y solo del alcance que cubre esa evidencia |
-
-**Coste real (agosto 2026).** Con 615 tests en verde y `tsc` limpio se le dijo a
-Frank «el código no explica tu fallo; el problema está en tu dispositivo». Era
-falso. Los tests medían la lógica de JS; los tres fallos estaban en capas
-nativas que ningún test tocaba: un parche Java propio, el C++ del grabador y el
-Java de la librería de TTS. **Ejecutar la suite no es haber mirado.**
-
-Si no lo has comprobado, dilo con esas palabras: **«esto no lo he verificado»**.
-Y nunca conviertas la ausencia de prueba en una afirmación sobre el equipo de
-Frank: «no encuentro la causa» y «tu dispositivo está mal» son cosas distintas.
 
 ---
 
@@ -194,14 +217,14 @@ puede compilar ni ejecutar la app. Eso obliga a dos cosas:
 - **No usarlo como excusa para elegir el camino peor.** «No puedo compilar la
   actualización de React Native» no autoriza a saltarse la comprobación de
   compatibilidad y dejar el proyecto en una combinación que nadie respalda. Eso
-  es la regla 0, y se incumplió el 22/8/2026.
+  es la regla 1, y se incumplió el 22/8/2026.
 
 ---
 
 ## Arquitectura de audio: qué motor para qué
 
 Migrado a la arquitectura de Valeria+ en agosto de 2026. **No lo cambies sin
-leer la regla 0.**
+leer la regla 1.**
 
 | Función | Motor | Por qué |
 | --- | --- | --- |
@@ -237,7 +260,7 @@ descargado, y las imágenes de AVD no lo traen. **Eso no es una avería.**
   («Unable to find compatible Expo SDK version») y se forzó con
   `--sdk-version 54.0.0`, es decir, se saltó la comprobación. Mientras no se
   iguale, el build de Android está en una combinación que ni Expo ni Valeria+
-  respaldan. Ver regla 0.
+  respaldan. Ver regla 1.
 - **Compilar y verificar en el emulador.** La migración de voz de agosto de 2026
   está probada en JS (640 tests, `tsc` limpio) y **sin compilar ni una vez**.
   Nada de eso cuenta como verificado en dispositivo.
