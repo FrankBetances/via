@@ -84,6 +84,39 @@ dictar en todos los módulos**. Resultado en campo: Valeria+ locutaba con voz
 neural en el mismo emulador donde VIA+ estaba mudo, durante varios ciclos de
 desarrollo, con Frank informando del fallo cada vez.
 
+#### Un repositorio de referencia es de USO OBLIGATORIO, no orientativo
+
+Cuando Frank da un repositorio de GitHub que **ya funciona** —«usa este para el
+análisis de prosodia», «copia la arquitectura de Valeria»— eso no es una
+sugerencia ni un punto de partida del que separarse. **Es lo que se usa.** No se
+evalúan alternativas, no se busca «algo equivalente y más ligero», no se
+reimplementa la idea por tu cuenta. Si crees que hay un problema con esa
+elección, **lo dices y esperas**; no lo resuelves tú cambiándola.
+
+Un repositorio que Frank ha visto funcionar tiene una propiedad que ninguna
+alternativa tuya tiene por bien razonada que esté: **está demostrado en su
+entorno, con sus datos y en su emulador**. Eso vale más que cualquier
+comparativa técnica que puedas hacer desde aquí, donde ni siquiera puedes
+compilar.
+
+**Registro de referencias obligatorias.** Antes de tocar cualquiera de estas
+áreas, abre el repositorio y míralo:
+
+| Área | Referencia obligatoria | Verificado en |
+| --- | --- | --- |
+| Arquitectura de voz, audio y ASR | `github.com/FrankBetances/Valeria` | Esta tabla y `docs/design/arquitectura-corpus-voz.md` §2 |
+| Validación del análisis acústico y prosódico | **Praat** vía `praat-parselmouth` | `tools/acoustics/requirements.txt`, `tools/acoustics/README.md` |
+| Síntesis de voz gallega (Celtia) y corpus | `github.com/proxectonos` | `docs/design/integracion-proxecto-nos.md` |
+| Frontend fonético del euskera | `github.com/hitz-zentroa/aHoTTS` | `docs/design/arquitectura-corpus-voz.md` §7 |
+
+> ⚠️ **Hueco conocido.** Frank dio un repositorio de GitHub como referencia para
+> el **análisis de prosodia** y su URL **no está registrada aquí**: en el
+> repositorio solo aparecen Praat/parselmouth y menciones a DisVoice, ninguna
+> con URL, y no se puede confirmar cuál es sin preguntárselo. **Antes de tocar
+> `src/Screens/ProsodyAnalysis/`, pregúntale cuál es y anótalo en esta tabla.**
+> No lo deduzcas ni elijas uno «parecido»: eso es exactamente lo que esta regla
+> prohíbe.
+
 **Corolarios, todos incumplidos ya:**
 
 - **Nunca saltes una comprobación de compatibilidad.** `install-expo-modules`
@@ -264,5 +297,8 @@ descargado, y las imágenes de AVD no lo traen. **Eso no es una avería.**
 - **Compilar y verificar en el emulador.** La migración de voz de agosto de 2026
   está probada en JS (640 tests, `tsc` limpio) y **sin compilar ni una vez**.
   Nada de eso cuenta como verificado en dispositivo.
+- **Registrar el repositorio de referencia del análisis de prosodia.** Frank
+  dio uno y su URL no consta en el repositorio. Hasta que esté en la tabla de
+  la regla 1, no se toca `src/Screens/ProsodyAnalysis/`.
 - **Revisar la lista de errores que Gemini encontró** en la última revisión.
   Frank la tiene; no se ha incorporado.
