@@ -135,6 +135,10 @@ compilar.
   comprobación dejó el proyecto en una combinación que ni Expo ni Valeria+
   respaldan. Si una herramienta dice que no, la respuesta es arreglar la
   incompatibilidad, no rodearla.
+  **CORREGIDO el 22/8/2026**: VIA+ está en React Native **0.81.5**, la de
+  Valeria+, y el instalador ahora elige el SDK solo («Defaulting to SDK 54.0.0
+  for react-native version 0.81.5») sin que nadie lo fuerce. Así se sabe que la
+  combinación es la respaldada: la herramienta la acepta.
 - **Una divergencia respecto al blueprint se anota CON SU MOTIVO** en la tabla
   de `docs/design/arquitectura-corpus-voz.md`, o no se hace. Una decisión sin
   justificación escrita no se revisa: se hereda.
@@ -305,13 +309,6 @@ descargado, y las imágenes de AVD no lo traen. **Eso no es una avería.**
 
 ## Pendiente (abierto: no lo des por cerrado)
 
-- **Igualar React Native a Valeria+ (0.81.5).** VIA+ está en **0.80.1** y Expo
-  SDK 54 fija `react-native: 0.81.5` en su `bundledNativeModules.json` — la
-  versión exacta de Valeria+. `install-expo-modules` rechazó la combinación
-  («Unable to find compatible Expo SDK version») y se forzó con
-  `--sdk-version 54.0.0`, es decir, se saltó la comprobación. Mientras no se
-  iguale, el build de Android está en una combinación que ni Expo ni Valeria+
-  respaldan. Ver regla 1.
 - **Compilar y verificar en el emulador.** La migración de voz de agosto de 2026
   está probada en JS (640 tests, `tsc` limpio) y **sin compilar ni una vez**.
   Nada de eso cuenta como verificado en dispositivo.
