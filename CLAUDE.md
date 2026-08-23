@@ -145,6 +145,15 @@ compilar.
 - **«Es más rápido así» no es un motivo.** «Aquí no puedo compilarlo» tampoco:
   la imposibilidad de verificar es una razón para AVISAR, nunca para elegir el
   camino peor.
+- **Un plugin de Gradle que añades trae REQUISITOS. Míralos.**
+  `install-expo-modules` añadió `apply plugin: "expo-root-project"` al
+  `android/build.gradle`, ese plugin aplica KSP, y KSP exige una versión de
+  Kotlin de su lista. El proyecto estaba en 1.9.25 y **todos los builds del 22 y
+  23 de agosto de 2026 murieron** con «Can't find KSP version for Kotlin version
+  '1.9.25'», al EVALUAR el proyecto raíz, antes de compilar una sola línea.
+  Cinco commits seguidos en rojo por el mismo motivo. Cuando metas un plugin
+  nuevo en el build nativo, lee qué versiones exige y compáralas con las del
+  bloque `ext` — no lo descubras en el CI de Frank.
 
 ---
 
