@@ -5,7 +5,18 @@ buildscript {
         compileSdkVersion = 36
         targetSdkVersion = 35
         ndkVersion = "27.1.12297006"
-        kotlinVersion = "1.9.25"
+        /* Kotlin 2.1.20 es la versión con la que compila React Native 0.81.5
+         * (node_modules/@react-native/gradle-plugin/gradle/libs.versions.toml:
+         * kotlin = "2.1.20"), y está en la lista que admite el plugin
+         * `expo-root-project`.
+         *
+         * Estaba en 1.9.25 y el build MURIÓ en cuanto se añadió Expo:
+         *   > Failed to apply plugin 'expo-root-project'.
+         *      > Can't find KSP version for Kotlin version '1.9.25'.
+         *        Supported versions are: 2.2.20 … 2.1.20 … 2.0.0
+         * No se elige un número «que suene bien»: se toma el que trae la propia
+         * versión de React Native que el proyecto usa. */
+        kotlinVersion = "2.1.20"
     }
     repositories {
         google()
@@ -22,7 +33,7 @@ buildscript {
 
 apply plugin: "com.facebook.react.rootproject"
 
-// Fuerza jvmTarget=17 en todos los módulos Kotlin (RN 0.80 compila Java 17).
+// Fuerza jvmTarget=17 en todos los módulos Kotlin (RN 0.81 compila Java 17).
 // Se usa `plugins.withId` en lugar de `afterEvaluate`: el patrón
 // `subprojects { afterEvaluate {} }` fallaba con "Cannot run afterEvaluate when
 // the project is already evaluated" porque el plugin de RN evalúa `:app` de
@@ -37,4 +48,8 @@ subprojects { subproject ->
         }
     }
 }
+/* Añadido por `install-expo-modules`. Aplica, entre otras cosas, KSP, que
+ * exige una versión de Kotlin soportada: si `kotlinVersion` (arriba) no está en
+ * su lista, el build falla al EVALUAR el proyecto raíz, antes de compilar nada.
+ * Es lo que rompió todos los builds del 22 y 23 de agosto de 2026. */
 apply plugin: "expo-root-project"
