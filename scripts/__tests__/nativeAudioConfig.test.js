@@ -130,7 +130,7 @@ describe('T.A.R. · puerta de reconocimiento en el dispositivo', () => {
     expect(body).not.toMatch(/^\s*return;\s*$/m);
   });
 
-  /* La librería deprecada y su parche no pueden volver a colarse: npm marca
+  /* Las librerías deprecadas no pueden volver a colarse: npm marca
    * `@react-native-voice/voice` como obsoleta recomendando exactamente el
    * paquete que ahora se usa, y `react-native-tts` traía el bug de `voices()`
    * que dejaba la lista de voces vacía en silencio. */
@@ -142,6 +142,28 @@ describe('T.A.R. · puerta de reconocimiento en el dispositivo', () => {
     expect(deps['expo-speech']).toBeTruthy();
     expect(deps['expo-speech-recognition']).toBeTruthy();
     expect(deps['expo-audio']).toBeTruthy();
+  });
+
+  /* REGRESIÓN — una dependencia que NADIE importa igual rompe el build.
+   *
+   * `react-native-audio-recorder-player` se dejó de usar cuando la toma del
+   * T.A.R. pasó a PCM en memoria, pero se quedó declarada en `package.json`.
+   * El autolinking de React Native no mira quién la importa: mira quién la
+   * declara. Así que Gradle la seguía compilando, y su Kotlin ya no compila
+   * contra React Native 0.81 —`currentActivity` y `applicationContext` dejaron
+   * de resolverse en su clase base—:
+   *
+   *   e: RNAudioRecorderPlayerModule.kt:47:56 Unresolved reference
+   *      'currentActivity'
+   *   > Task :react-native-audio-recorder-player:compileReleaseKotlin FAILED
+   *
+   * Resultado: el APK entero caído por una librería muerta. npm además la marca
+   * como deprecada. Este test la vigila desde donde el fallo era visible —el
+   * manifiesto de dependencias—, no desde el código que ya no la importa. */
+  it('no arrastra el grabador a fichero como dependencia muerta', () => {
+    const pkg = JSON.parse(read('package.json'));
+    const deps = { ...pkg.dependencies, ...pkg.devDependencies };
+    expect(deps['react-native-audio-recorder-player']).toBeUndefined();
   });
 
   it('el módulo de decisión no admite un modo de servidor', () => {

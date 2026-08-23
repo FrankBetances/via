@@ -298,10 +298,32 @@ leer la regla 1.**
 | Tonos de audiometría (osciladores) | `react-native-audio-api` | **Divergencia justificada**: expo no sintetiza osciladores |
 | Captura de PCM crudo (análisis acústico, prosodia) | `react-native-audio-api` | **Divergencia justificada**: `expo-audio` graba a fichero, no entrega bloques de muestras. Valeria+ no lo necesita porque no hace análisis acústico |
 
-**Prohibido reintroducir** `react-native-tts` y `@react-native-voice/voice`
+**Prohibido reintroducir** `react-native-tts`, `@react-native-voice/voice`
 (npm marca la segunda como deprecada recomendando literalmente
-`expo-speech-recognition`). Hay un test que lo impide:
-`scripts/__tests__/nativeAudioConfig.test.js`.
+`expo-speech-recognition`) y `react-native-audio-recorder-player`. Hay un test
+que lo impide: `scripts/__tests__/nativeAudioConfig.test.js`.
+
+### Una dependencia nativa que nadie importa NO es inofensiva
+
+El autolinking de React Native no mira quién IMPORTA una librería: mira quién la
+DECLARA en `package.json`. Una dependencia nativa muerta se sigue compilando en
+cada build, así que su código —que nadie mantiene, porque nadie lo usa— puede
+tumbar el APK entero al subir de versión de React Native.
+
+**Coste real (23/8/2026).** `react-native-audio-recorder-player@3.6.7` dejó de
+usarse cuando la toma del T.A.R. pasó a PCM en memoria, pero se quedó declarada.
+Con React Native 0.81 su Kotlin dejó de compilar (`Unresolved reference
+'currentActivity'`, `'applicationContext'`: los getters desaparecieron de su
+clase base) y el build de release cayó a los 15 min 51 s en
+`:react-native-audio-recorder-player:compileReleaseKotlin`. Una librería que la
+app no usa y que npm marca como deprecada dejó a Frank sin APK.
+
+Agrava el coste que la dependencia se vio y se dejó pasar: durante la migración
+de agosto de 2026 apareció en el `package.json`, se pensó «no la usa nadie, no
+la toco para no ampliar el alcance» y se siguió. **Ampliar el alcance no es lo
+caro; dejar una bomba con la mecha encendida sí.** Cuando cambies la versión de
+React Native, la lista de dependencias nativas se AUDITA entera: lo que no se
+importa desde `src/` y no es peer de algo que sí, se quita.
 
 ### Zero-PHI en el reconocimiento
 
