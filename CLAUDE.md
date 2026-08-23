@@ -50,6 +50,16 @@ Java de la librería de TTS. **Ejecutar la suite no es haber mirado.**
   haberse hecho tres turnos antes.
 - **Si te preguntan cuántas veces has fallado, cuenta y responde.** No lo
   suavices ni lo infles.
+- **Una comprobación de build-time sobre señales SINTÉTICAS no es validez
+  clínica.** `tools/acoustics/` compara el DSP con Praat sobre senoides
+  generadas, y su propio README lo dice: «que VIA+ coincida con Praat sobre
+  ellas dice que el cálculo es correcto, **no que la medida sea clínicamente
+  válida sobre voz real de niño**». El 22/8/2026 se ejecutó ese banco y se le
+  dijo a Frank «el análisis acústico no está roto» y «está sano y validado».
+  Era falso en la dirección que importaba: en ese momento el micrófono devolvía
+  un buffer vacío en las tomas cortas. Coincidir con Praat sobre una senoide no
+  dice nada de lo que pasa con la voz de un niño a través de un micrófono sin
+  calibrar.
 
 ---
 
@@ -194,6 +204,14 @@ causas con arreglos completamente distintos.
 - La pantalla **Comprobar audio** (`src/Screens/DiagnosticoAudio/`) recorre la
   cadena entera y nombra el eslabón roto. Si añades un eslabón nuevo al audio,
   añade su comprobación ahí.
+- **Un estado que no se ha comprobado NO se presume favorable.** El hub deducía
+  el estado acústico de la sala de la AUSENCIA de una bandera de navegación:
+  no abrir el sonómetro, o medir «DEMASIADO RUIDO» y volver atrás, dejaban esa
+  bandera sin poner y el hub pintaba **«Sala verificada · sonómetro OK» con
+  tic verde**. Un certificado que nadie emitió, sobre una sala que invalidaba
+  las pruebas auditivas. La regla: si un dato clínico no existe, la UI dice que
+  no existe — nunca cae en la rama del aprobado. Vigilado por
+  `src/Store/slices/__tests__/roomNoise.test.ts`.
 
 ---
 
@@ -300,5 +318,10 @@ descargado, y las imágenes de AVD no lo traen. **Eso no es una avería.**
 - **Registrar el repositorio de referencia del análisis de prosodia.** Frank
   dio uno y su URL no consta en el repositorio. Hasta que esté en la tabla de
   la regla 1, no se toca `src/Screens/ProsodyAnalysis/`.
+- **El veredicto de ruido de sala no llega al informe.** No se persiste en
+  ningún modelo ni aparece en el PDF (comprobado con `grep` sobre `src/PDF/`,
+  `src/Models/` y `src/Repositories/`): un informe de audiometría no deja
+  constancia de las condiciones acústicas en que se hizo, ni de si la sala se
+  saltó. Decidir con Frank si debe constar.
 - **Revisar la lista de errores que Gemini encontró** en la última revisión.
   Frank la tiene; no se ha incorporado.

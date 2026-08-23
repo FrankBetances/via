@@ -7,7 +7,7 @@ import {
   View,
 } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { useDispatch } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import { Box, Center, HStack, VStack } from '@gluestack-ui/themed';
 import {
   AlertTriangle,
@@ -33,6 +33,7 @@ import ViaIcon from '@/Components/Common/ViaIcon';
 import RadialBackground from '@/Components/Themed/RadialBackground';
 import { RootStackParamList } from '@/Navigators';
 import { AppDispatch, RootState } from '@/Store';
+import { isRoomVerified, roomNoiseLabel } from '@/Store/slices/roomNoiseSlice';
 import { setActiveEvaluation } from '@/Store/slices/activeEvaluationSlice';
 import { logout } from '@/Store/slices/authSlice';
 import { signOutQuietly } from '@/Services/firebase';
@@ -222,7 +223,7 @@ const CATEGORIES: FilterCategoryDef[] = [
   { id: 'dysphagia', label: 'Disfagia', count: countOf('dysphagia'), color: '#DC2626', soft: '#FEE2E2' },
 ];
 
-export default function SeleccionEjerciciosScreen({ navigation, route }: Props) {
+export default function SeleccionEjerciciosScreen({ navigation }: Props) {
   const dispatch = useDispatch<AppDispatch>();
   const { width } = useWindowDimensions();
 
@@ -275,7 +276,17 @@ export default function SeleccionEjerciciosScreen({ navigation, route }: Props) 
     }
   }, [dispatch, patient]);
 
-  const noiseCheckSkipped = route.params?.noiseCheckSkipped === true;
+  /* Estado REAL de la sala (ver `roomNoiseState.ts`). Ya no se lee ningún
+   * parámetro de navegación: el antiguo `noiseCheckSkipped` solo lo ponía el
+   * botón de saltar, y su ausencia se interpretaba como aprobado. Lo que manda
+   * es el veredicto que publica el sonómetro al terminar de medir. */
+  const roomNoise = useSelector((state: RootState) => state.roomNoise);
+  const roomVerified = isRoomVerified(roomNoise);
+  const roomChip = roomVerified
+    ? { bg: '#ECFDF5', border: '#A7F3D0', fg: '#065F46', label: roomNoiseLabel(roomNoise) }
+    : roomNoise.status === 'block'
+      ? { bg: '#FEE2E2', border: '#FECACA', fg: '#B91C1C', label: roomNoiseLabel(roomNoise) }
+      : { bg: '#FEF3C7', border: '#FDE68A', fg: '#92400E', label: roomNoiseLabel(roomNoise) };
   const voiceEngine = useVoiceEngineStatus();
   const tracker = useTelemetryTracker();
 
@@ -373,21 +384,29 @@ export default function SeleccionEjerciciosScreen({ navigation, route }: Props) 
           {/* Estado de Sala y Accesos Directos */}
           <HStack alignItems="center" space="md">
             {/* Certificado de Sala Activo */}
-            {noiseCheckSkipped ? (
-              <HStack alignItems="center" space="xs" px="$3" py="$1.5" borderRadius={20} bg="#FEF3C7" borderWidth={1} borderColor="#FDE68A">
-                <AlertTriangle size={14} color="#D97706" />
-                <Text size="xs" weight="bold" style={{ color: '#92400E' }}>
-                  Sala sin verificar · sonómetro omitido
-                </Text>
-              </HStack>
-            ) : (
-              <HStack alignItems="center" space="xs" px="$3" py="$1.5" borderRadius={20} bg="#ECFDF5" borderWidth={1} borderColor="#A7F3D0">
+            {/* El estado de la sala se LEE del veredicto real del sonómetro.
+                Antes se deducía de la ausencia de una bandera de navegación, y
+                `undefined` caía en la rama del tic verde: una sala que nadie
+                había medido —o que había salido «DEMASIADO RUIDO»— se
+                anunciaba como «verificada». «Verificada» hay que ganárselo. */}
+            <HStack
+              alignItems="center"
+              space="xs"
+              px="$3"
+              py="$1.5"
+              borderRadius={20}
+              bg={roomChip.bg}
+              borderWidth={1}
+              borderColor={roomChip.border}>
+              {roomVerified ? (
                 <CheckCircle2 size={14} color="#059669" fill="#D1FAE5" />
-                <Text size="xs" weight="bold" style={{ color: '#065F46' }}>
-                  Sala verificada · sonómetro OK
-                </Text>
-              </HStack>
-            )}
+              ) : (
+                <AlertTriangle size={14} color={roomChip.fg} />
+              )}
+              <Text size="xs" weight="bold" style={{ color: roomChip.fg }}>
+                {roomChip.label}
+              </Text>
+            </HStack>
 
             {/* Acceso directo a CAP */}
             <Pressable onPress={() => navigation.navigate('ClinicalAssessment')}>

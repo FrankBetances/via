@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { useDispatch } from 'react-redux';
 import { Pressable, ScrollView } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import Svg, { Circle } from 'react-native-svg';
@@ -8,7 +9,8 @@ import { AlertTriangle, ArrowRight, Check, Mic, SkipForward, Square } from 'luci
 import { Button, Content, Header, Text } from '@/Components/Common';
 import RadialBackground from '@/Components/Themed/RadialBackground';
 import { RootStackParamList } from '@/Navigators';
-import { RootState } from '@/Store';
+import { AppDispatch, RootState } from '@/Store';
+import { setRoomNoiseVerdict, skipRoomNoiseCheck } from '@/Store/slices/roomNoiseSlice';
 import { Evaluation } from '@/Models/Evaluation/Evaluation';
 import { useClassSelector } from '@/Helpers/ClassTransformer';
 import { NoiseVerdict, NoiseZone, useNoiseMeter, zoneOf } from './useNoiseMeter';
@@ -158,6 +160,21 @@ export default function RoomNoiseCheckScreen({ navigation, route }: Props) {
 
   const fmt = (n: number | null) => (n == null ? '—' : `${Math.round(n)}`);
 
+  const dispatch = useDispatch<AppDispatch>();
+
+  /* El veredicto se publica EN CUANTO la medición termina, no al pulsar
+   * «continuar». Antes el hub deducía el estado de la sala de la ausencia de
+   * una bandera de navegación, así que salir con el botón de atrás tras un
+   * «DEMASIADO RUIDO» dejaba al hub anunciando «Sala verificada ✓». Un
+   * veredicto que existe tiene que viajar, se pulse el botón que se pulse. */
+  useEffect(() => {
+    if (meter.testing) return;
+    if (meter.verdict === 'pending') return;
+    dispatch(
+      setRoomNoiseVerdict({ status: meter.verdict, avgDb: meter.avg, peakDb: meter.peak }),
+    );
+  }, [dispatch, meter.testing, meter.verdict, meter.avg, meter.peak]);
+
   const handleContinue = () => {
     if (!canContinue) return;
     meter.stop();
@@ -182,7 +199,8 @@ export default function RoomNoiseCheckScreen({ navigation, route }: Props) {
    */
   const handleSkip = () => {
     meter.stop();
-    navigation.navigate('SeleccionEjercicios', { noiseCheckSkipped: true });
+    dispatch(skipRoomNoiseCheck());
+    navigation.navigate('SeleccionEjercicios');
   };
 
   return (
