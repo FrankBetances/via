@@ -145,6 +145,22 @@ compilar.
 - **«Es más rápido así» no es un motivo.** «Aquí no puedo compilarlo» tampoco:
   la imposibilidad de verificar es una razón para AVISAR, nunca para elegir el
   camino peor.
+- **Cuando una herramienta cambia el build, mira TODO lo que deja tocado.**
+  `install-expo-modules` no solo añadió el plugin: dejó
+  `cliFile = @expo/cli` y `bundleCommand = "export:embed"` en
+  `android/app/build.gradle`, y **no** cambió `metro.config.js`, que se quedó
+  en `@react-native/metro-config`. `export:embed` espera la salida
+  estructurada del serializador de Expo; el de React Native no define
+  `customSerializer` y devuelve el bundle en crudo, así que el CLI intentaba
+  parsear `var __BUNDLE_START_TIME__…` como JSON y el build moría en
+  `:app:createBundleReleaseJsAndAssets` **a los 21 min 46 s, con todo el
+  nativo ya compilado**. Ni `tsc` ni los 661 tests ven esto: el bundle solo se
+  construye al compilar. Vigilado ahora por
+  `scripts/__tests__/metroBundleConfig.test.js`, y **comprobable en local sin
+  SDK de Android** con el mismo comando que ejecuta Gradle:
+  `npx expo export:embed --platform android --dev false --entry-file index.js
+  --bundle-output /tmp/b.js --assets-dest /tmp/a`. Son dos minutos; el CI son
+  veintidós.
 - **Un plugin de Gradle que añades trae REQUISITOS. Míralos.**
   `install-expo-modules` añadió `apply plugin: "expo-root-project"` al
   `android/build.gradle`, ese plugin aplica KSP, y KSP exige una versión de
