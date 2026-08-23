@@ -29,6 +29,17 @@ on:
       - "package.json"
       - "package-lock.json"
       - ".github/workflows/android-release.yml"
+      # La configuración del EMPAQUETADO decide si el bundle de JS se puede
+      # construir siquiera, así que un cambio aquí tiene que compilarse. Se
+      # añadieron el 23/8/2026 después de arreglar `metro.config.js` y
+      # descubrir que el arreglo NO disparó ningún build: el commit no tocaba
+      # ninguna de las rutas de arriba, y un fallo de bundle quedó sin
+      # comprobar hasta el siguiente cambio en `src/`.
+      - "metro.config.js"
+      - "babel.config.js"
+      - "react-native.config.js"
+      - "index.js"
+      - "app.json"
 
 jobs:
   build:
