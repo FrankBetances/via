@@ -34,6 +34,9 @@ export const LUA_OP = {
   AWARD: 0x08,
   LEVEL: 0x09,
   PICTO_PAIR: 0x0A,
+  MOOD: 0x0B,
+  ACCESSORY: 0x0C,
+  RELAX: 0x0D,
   GRANT: 0x10,
   HEARTBEAT: 0x11,
   BENCH: 0xF0,
@@ -47,6 +50,7 @@ export const LUA_OP = {
 export const LUA_CAP = {
   VISUAL: 0x01,
   SOUND: 0x02,
+  NO_TOUCH: 0x04,
 } as const;
 
 /** Operaciones de SAFE (con confirmación: aquí sí importa saber que llegó). */

@@ -41,13 +41,25 @@ describe('la tabla generada es la del aparato', () => {
     });
   });
 
-  it('los opcodes son los trece de protocol.json, con sus códigos', () => {
+  it('los opcodes son los dieciséis de protocol.json, con sus códigos', () => {
     // Los cinco del tramo 0x06…0x0A entraron al refrescar la copia vendorizada
     // (14/8/2026): el firmware ya los contestaba y esta copia se había quedado en
     // los ocho de la primera tanda. Son los del ESPEJO —emoción, ficha del
     // ejercicio, insignia, nivel— y ninguno lo envía VIA+ todavía: tenerlos en la
     // tabla no es usarlos, y quién los manda se decide en
     // docs/design/lua-salida-y-alertas-sonoras.md.
+    //
+    // Y volvió a pasar lo mismo (refresco del 24/8/2026): el aparato contestaba a
+    // dieciséis y esta copia seguía en trece. Faltaban `MOOD`, `ACCESSORY` y
+    // `RELAX` —el armario y la vida de la mascota fuera del ejercicio, más el
+    // descanso visual de la regla 20-20-20— y el bit `NO_TOUCH` de la máscara del
+    // `GRANT`, que es el que un ejercicio usa para inhibir el dedo.
+    //
+    // Este test NO fue el que lo cazó, y conviene saber por qué: compara la tabla
+    // contra una lista escrita a mano AQUÍ, así que protege contra que alguien
+    // edite lo generado, no contra que la copia se quede atrás respecto al
+    // firmware. Eso lo caza ahora `tools/check-via-parity.js` en `lua-firmware`,
+    // que es el repositorio que sí ve los dos (`make check VIA=../via`).
     expect(LUA_OP).toEqual({
       PHASE: 0x01,
       VERDICT: 0x02,
@@ -59,12 +71,19 @@ describe('la tabla generada es la del aparato', () => {
       AWARD: 0x08,
       LEVEL: 0x09,
       PICTO_PAIR: 0x0a,
+      MOOD: 0x0b,
+      ACCESSORY: 0x0c,
+      RELAX: 0x0d,
       GRANT: 0x10,
       HEARTBEAT: 0x11,
       BENCH: 0xf0,
     });
     expect(LUA_SAFE).toEqual({ CLINICAL_SILENCE: 0x01, UNLOCK: 0x02, MUTE: 0x03 });
-    expect(LUA_CAP).toEqual({ VISUAL: 0x01, SOUND: 0x02 });
+    // `NO_TOUCH` es el único bit que RESTA en vez de conceder: inhibe el panel
+    // táctil durante la concesión. Que esté en la tabla no lo pide nadie todavía
+    // —lo pide el ejercicio cuya dinámica no admite el dedo— pero sin él la app
+    // no podía ni expresarlo.
+    expect(LUA_CAP).toEqual({ VISUAL: 0x01, SOUND: 0x02, NO_TOUCH: 0x04 });
     expect(LUA_MODE).toEqual({ REST: 0x00, ACTIVE: 0x01, LOCKED: 0x02 });
   });
 
