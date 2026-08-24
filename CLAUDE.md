@@ -233,6 +233,18 @@ causas con arreglos completamente distintos.
 - La pantalla **Comprobar audio** (`src/Screens/DiagnosticoAudio/`) recorre la
   cadena entera y nombra el eslabón roto. Si añades un eslabón nuevo al audio,
   añade su comprobación ahí.
+- **Un arranque que falla tiene que DECIRLO en la pantalla.** El APK del
+  24/8/2026 «no abría y se quedaba colgado», y no había forma de saber en qué
+  eslabón: la app **no tenía ninguna barrera de error** (`grep` sobre `src/`: ni
+  una `componentDidCatch`), así que cualquier excepción de render dejaba la
+  pantalla EN BLANCO sin texto; y las dos esperas del arranque —la
+  rehidratación de `redux-persist` y `initDatabase()`— pintaban el MISMO splash
+  mudo, con el error de la base de datos yendo solo a `console.error`. Un
+  síntoma idéntico para media docena de causas con arreglos distintos. Ahora
+  `@/Startup` pinta el fallo en el dispositivo (mensaje, código, error del
+  driver que TypeORM envuelve, pila) y, si no hay error pero la espera se
+  alarga, NOMBRA el eslabón en el que se quedó. Vigilado por
+  `src/Startup/__tests__/startupDiagnostics.test.tsx`.
 - **Un estado que no se ha comprobado NO se presume favorable.** El hub deducía
   el estado acústico de la sala de la AUSENCIA de una bandera de navegación:
   no abrir el sonómetro, o medir «DEMASIADO RUIDO» y volver atrás, dejaban esa
@@ -341,6 +353,19 @@ caro; dejar una bomba con la mecha encendida sí.** Cuando cambies la versión d
 React Native, la lista de dependencias nativas se AUDITA entera: lo que no se
 importa desde `src/` y no es peer de algo que sí, se quita.
 
+**Y esa auditoría se quedó a medias (24/8/2026).** Se quitó
+`react-native-audio-recorder-player` y no se miró el resto:
+`@sentry/react-native@8.16.0` —telemetría nativa de mediados de 2024— seguía
+declarada sin que **ni un solo fichero de `src/` la importara**, autolinkeándose
+y compilándose dentro de un APK de React Native 0.81 con la arquitectura nueva,
+sin que nada la llamara jamás. Misma figura, mismo riesgo. Ya no depende de que
+alguien se acuerde: `scripts/__tests__/nativeDependencyAudit.test.js` recorre
+las dependencias con código nativo de Android y falla si alguna no se importa
+desde `src/` y no tiene su motivo escrito en la lista del propio test. Los
+comentarios no cuentan como uso — es justo así como
+`react-native-ble-plx` parecía viva (aparece seis veces en `src/`, las seis
+dentro de bloques de comentario).
+
 ### Zero-PHI en el reconocimiento
 
 Si no se puede GARANTIZAR que el reconocimiento ocurre en el dispositivo, **no
@@ -367,5 +392,23 @@ descargado, y las imágenes de AVD no lo traen. **Eso no es una avería.**
   `src/Models/` y `src/Repositories/`): un informe de audiometría no deja
   constancia de las condiciones acústicas en que se hizo, ni de si la sala se
   saltó. Decidir con Frank si debe constar.
+- **La migración a Expo dejó `babel.config.js` sin migrar.**
+  `install-expo-modules` gestiona TRES ficheros —`android/app/build.gradle`,
+  `metro.config.js` y `babel.config.js`— y de los tres solo se arreglaron los
+  dos primeros (el de Metro, el 23/8/2026, después de perder un build de 21
+  min 46 s). `babel.config.js` sigue en `module:@react-native/babel-preset` en
+  vez de `babel-preset-expo`, que es lo que usa Valeria+ por ser proyecto Expo
+  gestionado. **No hay ninguna prueba de que esto sea la causa del APK que no
+  abre** —el bundle se construye bien con la combinación actual, comprobado con
+  `npx expo export:embed`—, y no se cambió a la vez que el arreglo de
+  diagnóstico a propósito: cambiar el preset de Babel recompila TODO el código
+  de la app, y mezclarlo con el cambio que sirve para diagnosticar dejaría el
+  siguiente APK sin poder interpretar. Decidir con Frank cuándo entra, solo.
+- **Decidir si `react-native-ble-plx` entra en esta versión.** Hoy es
+  exactamente la figura de `react-native-audio-recorder-player`: autolinkeada y
+  compilada en cada build, arrastrando `rxandroidble` y toda la cirugía de
+  permisos del manifiesto, con los dos adaptadores que la usarían (`src/Lua/`,
+  el pulsioxímetro de disfagia) esperando un `BleManager` que **nadie
+  instancia**. Es decisión de producto, no de limpieza.
 - **Revisar la lista de errores que Gemini encontró** en la última revisión.
   Frank la tiene; no se ha incorporado.

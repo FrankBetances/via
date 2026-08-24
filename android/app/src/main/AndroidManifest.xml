@@ -35,8 +35,9 @@
          sesión castellana, así que su única vía era justo la que el filtrado
          bloqueaba.
 
-         `react-native-tts` no lo declara en su propio manifiesto (el suyo está
-         vacío), así que tiene que declararlo la app. -->
+         Lo declara la app y no la librería de síntesis: ni el `react-native-tts`
+         de entonces ni el `expo-speech` de ahora traen este `<queries>` en su
+         propio manifiesto. -->
     <queries>
         <intent>
             <action android:name="android.speech.RecognitionService" />

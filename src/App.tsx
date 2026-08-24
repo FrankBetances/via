@@ -11,16 +11,18 @@ import { store, persistor } from '@/Store';
 import { config } from '@/Theme/gluestack-ui.config';
 import { initDatabase } from '@/Database/config';
 import DefaultNavigator from '@/Navigators/Default';
-import SplashScreen from '@/Screens/Splash/SplashScreen';
+import { StartupErrorBoundary, StartupReport } from '@/Startup';
 import { installAudiometryToneAdapter } from '@/Screens/Audiometry';
 import { installVerbalAudioAdapter, verbalAudioBase64ForLang, verbalAudioSourceForLang } from '@/Screens/VerbalAudiometry';
 import '@/Navigators/screenTypeNavigator';
 
 /* -------------------------------------------------------------------------- */
 /*  Punto de entrada de la app — VIA+.                                      */
-/*  Orden de providers: Redux -> PersistGate -> GluestackUI -> Navigation.   */
+/*  Orden de providers: barrera de error -> Redux -> PersistGate ->          */
+/*  GluestackUI -> Navigation.                                                */
 /*  El DataSource de TypeORM se inicializa una vez al montar; mientras tanto  */
-/*  se muestra un splash.                                                     */
+/*  la pantalla de arranque DICE qué se está esperando y, si falla, por qué   */
+/*  (ver `@/Startup`). Antes mostraba un splash mudo en los dos casos.        */
 /* -------------------------------------------------------------------------- */
 
 function AppShell() {
@@ -79,12 +81,13 @@ function AppShell() {
   }, []);
 
   if (!dbReady) {
-    // En caso de error de inicialización, se sigue mostrando el splash;
-    // el manejo de error/reintento clínico se añade en una fase posterior.
-    if (dbError) {
-      console.error('VIA+: error inicializando la base de datos local', dbError);
-    }
-    return <SplashScreen />;
+    /* NI SPLASH MUDO NI `console.error` (regla 4). Antes, un fallo de
+     * `initDatabase()` solo se escribía en la consola —invisible en un APK de
+     * release— y la pantalla se quedaba en el splash para siempre: desde fuera,
+     * «no abre, se queda colgado». Ahora el error se pinta, y si no hay error
+     * pero la espera se alarga, la pantalla dice que el eslabón atascado es la
+     * base de datos y no la rehidratación. */
+    return <StartupReport stage="la base de datos local" error={dbError} />;
   }
 
   return (
@@ -96,22 +99,30 @@ function AppShell() {
 
 export default function App() {
   return (
-    <GestureHandlerRootView style={{ flex: 1 }}>
-      <ReduxProvider store={store}>
-        <PersistGate loading={<SplashScreen />} persistor={persistor}>
-          <SafeAreaProvider>
-            <GluestackUIProvider config={config}>
-              {/* NOTA: no montar aquí ningún provider que cree un segundo
-                  AudioContext ni que reconfigure la sesión de audio a modo
-                  grabación al arrancar: pisa la sesión de reproducción del
-                  adaptador de tonos y silencia las audiometrías. El motor de
-                  tonos se instala en AppShell; el micrófono lo abre cada
-                  módulo solo mientras lo usa. */}
-              <AppShell />
-            </GluestackUIProvider>
-          </SafeAreaProvider>
-        </PersistGate>
-      </ReduxProvider>
-    </GestureHandlerRootView>
+    /* La barrera va POR FUERA de todos los proveedores: si el que revienta es
+     * Redux, Gluestack o la navegación, el árbol se desmonta entero y sin ella
+     * el APK se queda en blanco sin decir nada. */
+    <StartupErrorBoundary stage="la interfaz">
+      <GestureHandlerRootView style={{ flex: 1 }}>
+        <ReduxProvider store={store}>
+          <PersistGate
+            loading={<StartupReport stage="las preferencias guardadas" />}
+            persistor={persistor}
+          >
+            <SafeAreaProvider>
+              <GluestackUIProvider config={config}>
+                {/* NOTA: no montar aquí ningún provider que cree un segundo
+                    AudioContext ni que reconfigure la sesión de audio a modo
+                    grabación al arrancar: pisa la sesión de reproducción del
+                    adaptador de tonos y silencia las audiometrías. El motor de
+                    tonos se instala en AppShell; el micrófono lo abre cada
+                    módulo solo mientras lo usa. */}
+                <AppShell />
+              </GluestackUIProvider>
+            </SafeAreaProvider>
+          </PersistGate>
+        </ReduxProvider>
+      </GestureHandlerRootView>
+    </StartupErrorBoundary>
   );
 }
