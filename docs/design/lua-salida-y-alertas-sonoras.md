@@ -436,6 +436,15 @@ Separado por quién manda en cada cosa, que es lo que la lectura del plan aclar�
 **Lo que decide VIA+ solo, hoy, sin hablar con nadie** (el §8 del plan se declara
 no vinculante para Valeria+, §4.1):
 
+<!-- markdownlint-disable MD029 -->
+<!-- La numeración 1–8 de este apartado es UNA SOLA secuencia partida por los
+     dos rótulos en negrita que la agrupan, y el propio texto la cita por su
+     número («los ocho puntos», «cuando el punto 4 baje», «con el punto 1»).
+     markdownlint la ve como tres listas independientes y pide reiniciar en 1
+     cada una: hacerlo rompería las referencias cruzadas del documento. Se
+     desactiva la regla AQUÍ y no en `.markdownlint.yaml` para que siga
+     vigilando el resto de la documentación. -->
+
 1. **Mover la postura de la ausencia** en el análisis de riesgo de este
    repositorio, fila a fila del §4. Es la puerta de todo lo visual.
 2. **El `BleManager` compartido**, pendiente de antes y sin el cual todo
@@ -477,6 +486,8 @@ abra una sesión con Valeria+:**
 8. **El arte que no existe** (§3.1): el modelo de deglución y el tren. Es la
    primera partida de dibujo que sería solo del aparato, y no está estimada.
    **Es, con el punto 1, lo que de verdad queda abierto de todo este documento.**
+
+<!-- markdownlint-enable MD029 -->
 
 ## 8. Lo único que cambia hoy en el código
 

@@ -10,6 +10,50 @@ if (file('google-services.json').exists()) {
     logger.warn("VIA+: falta android/app/google-services.json — Firebase quedará sin inicializar en este build.")
 }
 
+/* -------------------------------------------------------------------------- *
+ *  Órdenes de `node` que necesita el bloque `react { }` de aquí abajo.
+ *
+ *  `install-expo-modules` las dejó escritas con el patrón de Groovy
+ *  `[...].execute(...).text`, y ese patrón tiene dos fallos conocidos que se
+ *  pagan EN EL BUILD, no aquí:
+ *
+ *   1. `.text` lee SOLO la salida estándar. El error estándar del proceso hijo
+ *      no lo consume nadie, así que en cuanto `node` escribe más de lo que cabe
+ *      en el buffer de la tubería (64 KB en Linux: un aviso de obsolescencia,
+ *      un shim de nvm o corepack, una traza) el hijo se BLOQUEA escribiendo y
+ *      Gradle se bloquea leyendo. El build se queda parado para siempre en la
+ *      fase de configuración, sin mensaje, sin tarea a la que señalar y sin
+ *      nada que mirar en el registro.
+ *   2. No se comprueba el código de salida. Si `node` no está en el PATH —el
+ *      caso corriente cuando Android Studio se abre desde el escritorio y no
+ *      hereda el PATH del intérprete de órdenes— la salida vuelve vacía y el
+ *      build continúa con `entryFile` apuntando a la nada.
+ *
+ *  Este ayudante drena las DOS salidas, pone un plazo y, si algo falla, lo
+ *  dice: qué orden era, con qué código salió y qué escribió por el error
+ *  estándar. Regla 4 del CLAUDE.md aplicada al build: no basta con no
+ *  romperse; hay que poder saber qué pasó.
+ * -------------------------------------------------------------------------- */
+def nodeOutput = { List<String> command, String what ->
+    def out = new StringBuffer()
+    def err = new StringBuffer()
+    def proc = command.execute(null, rootDir)
+    proc.consumeProcessOutput(out, err)
+    proc.waitForOrKill(120000)
+    def value = out.toString().trim()
+    if (proc.exitValue() != 0 || value.isEmpty()) {
+        throw new GradleException(
+            "VIA+: no se pudo resolver " + what + ".\n" +
+            "  orden  : " + command.join(" ") + "\n" +
+            "  codigo : " + proc.exitValue() + "\n" +
+            "  stderr : " + err.toString().trim() + "\n" +
+            "Si el que falta es `node`, abre Android Studio desde una terminal " +
+            "con el PATH cargado (o declara node en el entorno del demonio de Gradle)."
+        )
+    }
+    return value
+}
+
 /**
  * This is the configuration block to customize your React Native Android app.
  * By default you don't need to apply any configuration, just uncomment the lines you need.
@@ -62,8 +106,8 @@ react {
     autolinkLibrariesWithApp()
     //
     // Added by install-expo-modules
-    entryFile = file(["node", "-e", "require('expo/scripts/resolveAppEntry')", rootDir.getAbsoluteFile().getParentFile().getAbsolutePath(), "android", "absolute"].execute(null, rootDir).text.trim())
-    cliFile = new File(["node", "--print", "require.resolve('@expo/cli')"].execute(null, rootDir).text.trim())
+    entryFile = file(nodeOutput(["node", "-e", "require('expo/scripts/resolveAppEntry')", rootDir.getAbsoluteFile().getParentFile().getAbsolutePath(), "android", "absolute"], "el punto de entrada de la app (expo/scripts/resolveAppEntry)"))
+    cliFile = new File(nodeOutput(["node", "--print", "require.resolve('@expo/cli')"], "el CLI de Expo (@expo/cli)"))
     bundleCommand = "export:embed"
 }
 

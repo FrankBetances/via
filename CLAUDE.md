@@ -139,6 +139,16 @@ compilar.
   Valeria+, y el instalador ahora elige el SDK solo («Defaulting to SDK 54.0.0
   for react-native version 0.81.5») sin que nadie lo fuerce. Así se sabe que la
   combinación es la respaldada: la herramienta la acepta.
+- **Una herramienta que toca VARIOS ficheros se sigue hasta el último.**
+  `install-expo-modules` gestiona TRES: `android/app/build.gradle`,
+  `metro.config.js` y `babel.config.js`. Se arreglaron de uno en uno y a días de
+  distancia, y cada hueco costó lo suyo: Gradle empaquetando con el CLI de Expo
+  mientras Metro seguía con el preset de React Native tiró un build de 21 min
+  46 s (23/8/2026), y cuando eso se arregló `babel.config.js` se quedó otro día
+  en `@react-native/babel-preset`. Ya está en `babel-preset-expo` (24/8/2026);
+  el bundle de release baja de 11,4 MB a 10,3 MB, que es la medida de lo que la
+  configuración a medias NO estaba haciendo. Vigilado por
+  `scripts/__tests__/metroBundleConfig.test.js`, que ahora comprueba los tres.
 - **Una divergencia respecto al blueprint se anota CON SU MOTIVO** en la tabla
   de `docs/design/arquitectura-corpus-voz.md`, o no se hace. Una decisión sin
   justificación escrita no se revisa: se hereda.
@@ -160,7 +170,27 @@ compilar.
   SDK de Android** con el mismo comando que ejecuta Gradle:
   `npx expo export:embed --platform android --dev false --entry-file index.js
   --bundle-output /tmp/b.js --assets-dest /tmp/a`. Son dos minutos; el CI son
-  veintidós.
+  veintidós. **Y si comparas dos bundles, borra antes `/tmp/metro-*`**: Metro
+  cachea la transformación y el 24/8/2026 el bundle salió byte a byte idéntico
+  después de cambiar el preset de Babel entero. Con la caché limpia bajaba
+  1,1 MB. Una comparación sobre caché sucia dice justo lo contrario de la
+  verdad.
+- **Una orden externa dentro del build que no drena `stderr` CUELGA el build.**
+  `install-expo-modules` dejó las dos llamadas a `node` de
+  `android/app/build.gradle` con el patrón de Groovy `[...].execute(...).text`.
+  `.text` lee SOLO la salida estándar: nadie consume el error estándar, así que
+  en cuanto el hijo escribe más de lo que cabe en el buffer de la tubería
+  (64 KB en Linux —un aviso de obsolescencia, un shim de nvm o corepack, una
+  traza—) el hijo se bloquea escribiendo y Gradle se bloquea leyendo. El build
+  se queda parado **en la fase de configuración**, sin mensaje, sin tarea a la
+  que señalar y sin nada en el registro. Tampoco se miraba el código de salida:
+  con `node` fuera del PATH —lo normal cuando Android Studio se abre desde el
+  escritorio— la salida volvía vacía y el build seguía con `entryFile` apuntando
+  a la nada. **No es teoría:** ejecutado con el compilador de Groovy sobre el
+  ayudante real, con 300 KB por `stderr` el patrón nuevo vuelve en 55 ms y el
+  viejo seguía bloqueado a los 8 s. Vigilado por
+  `scripts/__tests__/metroBundleConfig.test.js`. Cuando metas una orden externa
+  en un build, drena las dos salidas, ponle plazo y comprueba el código.
 - **Un plugin de Gradle que añades trae REQUISITOS. Míralos.**
   `install-expo-modules` añadió `apply plugin: "expo-root-project"` al
   `android/build.gradle`, ese plugin aplica KSP, y KSP exige una versión de
@@ -193,10 +223,15 @@ manifiesto fusionado». Corre en CI, después de `./gradlew bundleRelease`. Si l
 pones entre los gates locales, estarás escribiendo una instrucción que nadie
 puede cumplir — comprobado el 22/8/2026 antes de escribir esta línea.
 
-`npx eslint .` arrastra **16 errores preexistentes** (`'Buffer' is not defined`
-en `docs/play-store/build-feature-graphic.js` y
-`scripts/__tests__/voiceClipTempo.test.js`, dos scripts de Node sin `env: node`).
-No son tuyos: lo que no puede subir es un error NUEVO.
+`npx eslint .` sale con **0 errores** desde el 24/8/2026. Antes arrastraba 16
+(`'Buffer' is not defined` en `docs/play-store/build-feature-graphic.js` y
+`scripts/__tests__/voiceClipTempo.test.js`) y esta misma guía los declaraba
+«preexistentes, no son tuyos» — que es exactamente cómo un error deja de verse:
+con 16 en rojo permanente, nadie distingue el número 17. Arreglado donde tocaba,
+en `.eslintrc.js`: esos ficheros corren en Node y no se empaquetan nunca, así que
+llevan `env: { node: true }` por `overrides`. **Cualquier error es tuyo ahora.**
+Quedan ~650 avisos (`no-bitwise` en el DSP, `no-void`, disables obsoletos): son
+avisos, no errores, y tocarlos es reescribir el DSP.
 
 Todo cambio de **texto locutado** lleva `node scripts/export-voice-corpus.js` y
 `node scripts/build-voice-asset-map.js` en el MISMO commit; sin ellos las
@@ -392,18 +427,6 @@ descargado, y las imágenes de AVD no lo traen. **Eso no es una avería.**
   `src/Models/` y `src/Repositories/`): un informe de audiometría no deja
   constancia de las condiciones acústicas en que se hizo, ni de si la sala se
   saltó. Decidir con Frank si debe constar.
-- **La migración a Expo dejó `babel.config.js` sin migrar.**
-  `install-expo-modules` gestiona TRES ficheros —`android/app/build.gradle`,
-  `metro.config.js` y `babel.config.js`— y de los tres solo se arreglaron los
-  dos primeros (el de Metro, el 23/8/2026, después de perder un build de 21
-  min 46 s). `babel.config.js` sigue en `module:@react-native/babel-preset` en
-  vez de `babel-preset-expo`, que es lo que usa Valeria+ por ser proyecto Expo
-  gestionado. **No hay ninguna prueba de que esto sea la causa del APK que no
-  abre** —el bundle se construye bien con la combinación actual, comprobado con
-  `npx expo export:embed`—, y no se cambió a la vez que el arreglo de
-  diagnóstico a propósito: cambiar el preset de Babel recompila TODO el código
-  de la app, y mezclarlo con el cambio que sirve para diagnosticar dejaría el
-  siguiente APK sin poder interpretar. Decidir con Frank cuándo entra, solo.
 - **Decidir si `react-native-ble-plx` entra en esta versión.** Hoy es
   exactamente la figura de `react-native-audio-recorder-player`: autolinkeada y
   compilada en cada build, arrastrando `rxandroidble` y toda la cirugía de
