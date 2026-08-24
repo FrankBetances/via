@@ -106,6 +106,35 @@ diferencias**, y allí los tres gates `--upstream` pasan en verde. La versión d
 protocolo no cambió (sigue en 1) y ningún `code` ni UUID se movió: lo que entró
 son cinco opcodes nuevos al final, que es como se añaden.
 
+**Segundo refresco, del 24/8/2026, y esta vez con quien lo vigile.** Volvió a
+pasar lo mismo: el aparato contestaba a **dieciséis** opcodes y esta copia seguía
+en trece. Faltaban `MOOD` (0x0B), `ACCESSORY` (0x0C) y `RELAX` (0x0D) —la vida de
+la mascota fuera del ejercicio, su armario y el descanso visual de la regla
+20-20-20— y el bit **`NO_TOUCH` (0x04)** de la máscara del `GRANT`, que es con lo
+que un ejercicio inhibe el dedo en el cristal. Sin ese bit, la app no podía ni
+expresarlo. Refrescado otra vez desde `protocol/protocol.json` de
+`FrankBetances/lua-firmware`; la versión de protocolo no cambió (sigue en 1) y
+ningún `code`, `bit` ni UUID se movió: todo entró **al final**, que es como se
+añade.
+
+Lo importante no es el refresco: es **por qué el paso manual se saltó dos veces**.
+Ni el gate de aquí ni `luaWire.test.ts` podían cazarlo —los dos comparan esta
+copia contra sí misma o contra una lista escrita a mano en este repositorio—, así
+que la única señal era que alguien se acordara. Desde el 24/8/2026 lo vigila el
+repositorio que **sí** ve los dos:
+
+```bash
+# en un clon de FrankBetances/lua-firmware, con este repositorio al lado
+make check VIA=../via          # incluye tools/check-via-parity.js
+```
+
+Ese gate compara opcodes, capacidades, `safeOps`, modos, UUID y límites contra la
+tabla del firmware, y además compara el desglose de `STATE` de `luaWire.ts`
+—que **no** se genera de la tabla— contra `Device::stateBytes`. Distingue dos
+gravedades: que aquí falte algo del final es un **retraso** (función que la app no
+puede pedir); que un `code` o un `bit` digan cosas distintas es un **fallo duro**,
+porque hay un aparato flasheado y sus números ya no se mueven.
+
 Si el `.json` cambia de versión de protocolo, el aparato viejo **no** se actualiza
 solo: `protocol.json` fija que «ni los uuid ni los `code` cambian nunca» porque un
 aparato ya flasheado se queda con los suyos. `isLuaProtocolCompatible()` compara
