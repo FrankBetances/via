@@ -268,6 +268,29 @@ causas con arreglos completamente distintos.
 - La pantalla **Comprobar audio** (`src/Screens/DiagnosticoAudio/`) recorre la
   cadena entera y nombra el eslabón roto. Si añades un eslabón nuevo al audio,
   añade su comprobación ahí.
+- **Un diagnóstico que no recorre una vía no puede dar por buena esa vía.**
+  Coste real (25/8/2026): Frank mandó la captura de «Comprobar audio» con
+  SIETE eslabones en verde junto al mensaje «la audiometría verbal y el test de
+  articulación siguen sin sonido; es información falsa». La pantalla no mentía
+  sobre lo medido: medía el banco de locuciones (`expo-audio`) y **cuántas voces
+  enumera el sistema**. La audiometría verbal no suena por ahí —decodifica un
+  recorte base64 sobre el `AudioContext` y lo reproduce por `BufferSource`— y el
+  modelo hablado del T.A.R. tampoco: dicta con `expo-speech`. **Las dos vías
+  mudas eran justo las dos que no se tocaban.** Tres reglas que quedan:
+  · **«473 voces» no es «suena».** Enumerar el catálogo y emitir son preguntas
+    distintas. Ahora `checkSystemVoiceSpeaks` DICTA una frase y espera
+    `onStart`/`onDone`/`onError` con plazo — porque el motor también puede
+    aceptar la locución y no emitir nada ni avisar.
+  · **`state === 'running'` del AudioContext no prueba nada.** Demostrado en
+    `AudioContext.cpp` del propio motor: el constructor hace
+    `audioPlayer_->start(); state_ = RUNNING;` **ignorando el booleano**, y ese
+    `start()` devuelve `false` si el stream de Oboe no abrió (AudioPlayer.cpp
+    solo lo escribe en el log). Un contexto sin stream se declara «running».
+  · **Si hay tres motores de salida, hay tres pruebas de escucha.** Había una
+    (el tono) y cerraba el veredicto de los tres. Ahora son cuatro emisiones
+    —tono, recorte verbal, locución empaquetada, voz del sistema— y mientras
+    falte alguna, ni el titular ni el resumen copiable dicen «todo funciona»:
+    dicen «SALIDA NO COMPROBADA» y cuántas faltan.
 - **Un arranque que falla tiene que DECIRLO en la pantalla.** El APK del
   24/8/2026 «no abría y se quedaba colgado», y no había forma de saber en qué
   eslabón: la app **no tenía ninguna barrera de error** (`grep` sobre `src/`: ni
@@ -435,3 +458,24 @@ descargado, y las imágenes de AVD no lo traen. **Eso no es una avería.**
   instancia**. Es decisión de producto, no de limpieza.
 - **Revisar la lista de errores que Gemini encontró** en la última revisión.
   Frank la tiene; no se ha incorporado.
+- **Confirmar en el emulador si la app YA suena.** El 25/8/2026 se arregló la
+  elección de voz del sistema (VIA+ prefería sistemáticamente la voz `-network`
+  de Google, que no emite sin cobertura, porque la regla «local gana a red»
+  colgaba de una bandera que `expo-speech` no envía nunca — ver
+  `docs/design/arquitectura-corpus-voz.md` §2 bis). **Es una causa demostrada
+  sobre el código y las fuentes de la librería, no una causa confirmada en
+  dispositivo:** aquí no se puede compilar. Lo que hay que hacer en el emulador
+  es abrir **Comprobar audio** y contestar las CUATRO pruebas de escucha; el
+  resumen copiable ya nombra la vía concreta que no se oye.
+- **El micrófono no cambia de nivel al acercarse (25/8/2026).** Frank lo
+  reporta como duda, no como avería, y no está resuelto. La toma de prueba
+  publica ahora el **recorrido** (bloque más flojo → más fuerte) para que la
+  duda se pueda medir en vez de discutir. Si el recorrido sale plano hablando y
+  callando, la hipótesis a comprobar es el *input preset* de la captura:
+  `AndroidAudioRecorder.cpp` de `react-native-audio-api` **no llama a
+  `setInputPreset`**, así que se queda con el que Oboe traiga por defecto —y
+  para análisis acústico haría falta `Unprocessed`, sin nivelado automático—.
+  **No verificado**: no se ha leído la cabecera de Oboe (viene de Gradle, no
+  está en `node_modules`) ni se ha medido en dispositivo. Cambiarlo exige
+  parchear la librería nativa, que aquí no se puede compilar: decidirlo con
+  Frank antes de tocar nada.

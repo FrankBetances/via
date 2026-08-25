@@ -7,7 +7,7 @@ import type {
 } from 'react-native-audio-api';
 
 import { acquireAudioContext, releaseAudioContext, resumeAudioContext } from '@/Audio';
-import { pickVoiceForLang, ttsLanguageTagFor, type TtsVoice } from './verbalTtsVoice';
+import { isOfflineVoice, pickVoiceForLang, ttsLanguageTagFor, type TtsVoice } from './verbalTtsVoice';
 
 /**
  * Lenguas que se prueban al arrancar el motor, en orden. Basta que UNA quede
@@ -72,6 +72,33 @@ export interface TtsStatus {
   degraded: boolean;
 }
 
+/**
+ * Resultado de una locución de PRUEBA (pantalla «Comprobar audio»).
+ *
+ * Existe porque `ttsStatus()` responde a «¿hay motor y cuántas voces ve?», que
+ * NO es la pregunta que hay que hacerse cuando el T.A.R. se queda mudo. Un
+ * dispositivo puede enumerar 473 voces y no emitir ni una sílaba: basta con que
+ * la voz elegida sea de RED y no haya cobertura, o que el motor rechace la
+ * locución. El diagnóstico daba por buena la primera pregunta y publicaba
+ * «CORRECTO» sobre una app sin voz.
+ */
+export interface SpeechProbe {
+  /** El motor EMPEZÓ a emitir (evento `onStart` de esa locución). */
+  started: boolean;
+  /** El motor terminó la locución (`onDone`). */
+  finished: boolean;
+  /** Id de la voz con la que se dictó (`null` = la que decida el sistema). */
+  voiceId: string | null;
+  /** Etiqueta BCP-47 pedida al motor. */
+  language: string;
+  /** La voz elegida no es del idioma pedido. */
+  degraded: boolean;
+  /** La voz elegida se sintetiza SIN red (condición de fiabilidad clínica). */
+  offline: boolean;
+  /** Motivo del fallo, o `null` si dictó. */
+  error: string | null;
+}
+
 export interface VerbalAudioAdapter {
   /**
    * Reproduce la palabra objetivo al nivel indicado (dB, orientativo).
@@ -115,6 +142,13 @@ export interface VerbalAudioAdapter {
    * quedó operativo.
    */
   retryTts?: () => Promise<boolean>;
+  /**
+   * Dicta una frase de PRUEBA por la MISMA vía que el modelo hablado del
+   * T.A.R. y las consignas, e informa de si el motor llegó a emitir. Es para
+   * el diagnóstico: `speakText` es fuego y olvido a propósito (es una ayuda,
+   * no puede tumbar una pantalla) y por eso no sirve para comprobar nada.
+   */
+  probeSpeech?: (text: string, lang?: string, timeoutMs?: number) => Promise<SpeechProbe>;
   /** Suscripción a los cambios de `ttsStatus` (devuelve la baja). */
   onTtsStatusChange?: (listener: () => void) => () => void;
   stop: () => void;
@@ -593,6 +627,101 @@ export function installVerbalAudioAdapter(opts: VerbalAudioAdapterOptions = {}):
   };
 
   /**
+   * Locución de PRUEBA instrumentada. Recorre exactamente el mismo camino que
+   * `speakText` —mismo motor, mismas `speechOptionsFor`, misma voz elegida—
+   * pero espera el veredicto del motor en vez de olvidarse.
+   *
+   * El plazo importa: `expo-speech` no promete nada si el motor descarta la
+   * locución en silencio (voz de red sin cobertura, motor ocupado), así que sin
+   * un tope la sonda se quedaría colgada y la pantalla, en «comprobando…» para
+   * siempre. Un `onStart` que no llega en 4 s ES el resultado.
+   */
+  const PROBE_TIMEOUT_MS = 4000;
+
+  const probeSpeech = async (
+    text: string,
+    lang = 'es',
+    timeoutMs = PROBE_TIMEOUT_MS,
+  ): Promise<SpeechProbe> => {
+    if (!ttsEngine) {
+      return {
+        started: false,
+        finished: false,
+        voiceId: null,
+        language: ttsLanguageTagFor(lang),
+        degraded: false,
+        offline: false,
+        error: 'Este binario no incorpora el módulo de síntesis de voz.',
+      };
+    }
+
+    // La espera va ANTES de resolver la voz: `ttsVoices` se puebla en el
+    // arranque asíncrono del motor, y preguntar por la voz antes devolvía
+    // «sin voz fijada» en cada diagnóstico lanzado nada más abrir la app —
+    // justo el dato que hace falta para saber si se eligió una voz de red.
+    const ready = await ensureTtsReady();
+    const opts = speechOptionsFor(lang);
+    const pick = pickVoiceForLang(ttsVoices, lang);
+    const base: SpeechProbe = {
+      started: false,
+      finished: false,
+      voiceId: pick?.voice.id ?? null,
+      language: opts.language,
+      degraded: pick?.degraded ?? false,
+      offline: pick ? isOfflineVoice(pick.voice) : false,
+      error: null,
+    };
+
+    if (!ready) {
+      return { ...base, error: 'El motor de voz del sistema no llegó a estar listo.' };
+    }
+
+    return new Promise<SpeechProbe>(resolve => {
+      let settled = false;
+      const state = { ...base };
+      const finish = (error: string | null) => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timer);
+        resolve({ ...state, error });
+      };
+      const timer = setTimeout(
+        () =>
+          finish(
+            state.started
+              ? 'El motor empezó a hablar pero no terminó la locución.'
+              : 'El motor aceptó la locución y NO llegó a emitir nada.',
+          ),
+        timeoutMs,
+      );
+      try {
+        ttsEngine.stop?.();
+      } catch {
+        /* nada que detener */
+      }
+      try {
+        ttsEngine.speak(text, {
+          ...opts,
+          onStart: () => {
+            state.started = true;
+          },
+          onDone: () => {
+            state.finished = true;
+            finish(null);
+          },
+          onStopped: () => finish(state.started ? null : 'La locución se detuvo antes de emitir.'),
+          onError: (e: unknown) =>
+            finish(
+              `El motor rechazó la locución: ${e instanceof Error ? e.message : 'error del sintetizador'}.`,
+            ),
+        });
+      } catch (e) {
+        finish(`No se pudo encolar la locución: ${e instanceof Error ? e.message : 'error'}.`);
+      }
+    });
+  };
+
+  /**
    * Reproduce el recorte empaquetado de la palabra. `onFail` se invoca si el
    * recorte falta o no decodifica (en la vía recortes-primario permite degradar
    * a TTS; en el respaldo por fallo de TTS no queda más vía y se omite).
@@ -703,6 +832,7 @@ export function installVerbalAudioAdapter(opts: VerbalAudioAdapterOptions = {}):
     ttsReady: () => ttsSpanishReady,
     ttsStatus,
     retryTts,
+    probeSpeech,
     onTtsStatusChange: listener => {
       statusListeners.add(listener);
       return () => statusListeners.delete(listener);

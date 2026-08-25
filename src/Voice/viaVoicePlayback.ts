@@ -44,6 +44,20 @@ let current: { player: any; sub: any } | null = null;
 /** El modo de sesión se fija una sola vez por proceso. */
 let modeSet = false;
 
+/** Modo de mezcla de la sesión (una sola vez por proceso, como Valeria+). */
+const ensureAudioMode = (ExpoAudio: any): void => {
+  if (modeSet) return;
+  modeSet = true;
+  // Mezcla: la locución convive con lo que esté sonando, nunca lo pausa.
+  void ExpoAudio.setAudioModeAsync({
+    playsInSilentMode: true,
+    shouldPlayInBackground: false,
+    interruptionMode: 'mixWithOthers',
+  });
+};
+
+const sleep = (ms: number): Promise<void> => new Promise(resolve => setTimeout(resolve, ms));
+
 const cleanup = (): void => {
   if (!current) return;
   const { player, sub } = current;
@@ -82,15 +96,7 @@ export const playVoiceAsset = async (assetModule: number | undefined): Promise<b
   if (!ExpoAudio) return false;
 
   try {
-    if (!modeSet) {
-      modeSet = true;
-      // Mezcla: la locución convive con lo que esté sonando, nunca lo pausa.
-      void ExpoAudio.setAudioModeAsync({
-        playsInSilentMode: true,
-        shouldPlayInBackground: false,
-        interruptionMode: 'mixWithOthers',
-      });
-    }
+    ensureAudioMode(ExpoAudio);
 
     cleanup();
     const player = ExpoAudio.createAudioPlayer(assetModule);
@@ -106,6 +112,116 @@ export const playVoiceAsset = async (assetModule: number | undefined): Promise<b
   } catch {
     cleanup();
     return false;
+  }
+};
+
+/* -------------------------------------------------------------------------- */
+/*  SONDA del banco de locuciones (solo para «Comprobar audio»).               */
+/*                                                                             */
+/*  `playVoiceAsset` devuelve `true` en cuanto `play()` no lanza, y eso es     */
+/*  todo lo que necesita quien locuta: si no arranca, degrada a la voz del     */
+/*  sistema y sigue. Pero el diagnóstico estaba usando ese mismo `true` para   */
+/*  escribir «la primera decodificó y se reprodujo», que es una afirmación     */
+/*  MUCHO más fuerte de lo que ese booleano sostiene: `createAudioPlayer`      */
+/*  carga de forma asíncrona y `play()` sobre un reproductor que nunca llegó   */
+/*  a cargar el fichero tampoco lanza. Un banco de locuciones ilegible se      */
+/*  publicaba como CORRECTO.                                                   */
+/*                                                                             */
+/*  Esta sonda espera a `isLoaded`, lee la duración declarada y comprueba que  */
+/*  la posición AVANZA tras `play()`. Sigue sin poder decir que se OIGA —eso   */
+/*  solo lo cierra el oído del profesional, y por eso la pantalla lo           */
+/*  pregunta—, pero ya no confunde «no ha lanzado» con «ha sonado».            */
+/* -------------------------------------------------------------------------- */
+
+export interface VoiceAssetProbe {
+  /** ¿El reproductor declaró el fichero cargado? */
+  loaded: boolean;
+  /** ¿Avanzó la reproducción tras `play()` (posición > 0 o estado «playing»)? */
+  advanced: boolean;
+  /** Duración declarada por el motor, en segundos (0 = no la sabe). */
+  durationSec: number;
+  /** Qué ocurrió, en una línea, para el informe de campo. */
+  detail: string;
+}
+
+/**
+ * Carga y reproduce una locución MIDIENDO el resultado. La locución se deja
+ * sonando (la pantalla pregunta a continuación si se ha oído).
+ *
+ * `loadMs` acota la espera de carga y `playMs` la de arranque: un fichero que
+ * no carga en un segundo largo no va a cargar, y bloquear el diagnóstico más
+ * tiempo solo lo hace inservible en consulta.
+ */
+export const probeVoiceAsset = async (
+  assetModule: number | undefined,
+  loadMs = 1500,
+  playMs = 600,
+): Promise<VoiceAssetProbe> => {
+  const nothing = (detail: string): VoiceAssetProbe => ({
+    loaded: false,
+    advanced: false,
+    durationSec: 0,
+    detail,
+  });
+  if (assetModule == null) return nothing('No hay ninguna locución empaquetada que probar.');
+  const ExpoAudio = optionalExpoAudio();
+  if (!ExpoAudio) {
+    return nothing('El módulo `expo-audio` no está en este binario: el banco no puede sonar.');
+  }
+
+  let player: any = null;
+  try {
+    ensureAudioMode(ExpoAudio);
+    cleanup();
+    player = ExpoAudio.createAudioPlayer(assetModule);
+    const sub = player.addListener?.('playbackStatusUpdate', (status: any) => {
+      if (!status?.didJustFinish) return;
+      if (current?.player === player) cleanup();
+    });
+    current = { player, sub };
+
+    const loadDeadline = Date.now() + loadMs;
+    let loaded = false;
+    while (Date.now() < loadDeadline) {
+      if (player.isLoaded) {
+        loaded = true;
+        break;
+      }
+      await sleep(50);
+    }
+    if (!loaded) {
+      cleanup();
+      return nothing(
+        `El reproductor no llegó a cargar el fichero en ${(loadMs / 1000).toFixed(1)} s.`,
+      );
+    }
+
+    const durationSec = Number(player.duration) || 0;
+    player.play();
+
+    const playDeadline = Date.now() + playMs;
+    let advanced = false;
+    while (Date.now() < playDeadline) {
+      await sleep(60);
+      if (player.playing || (Number(player.currentTime) || 0) > 0) {
+        advanced = true;
+        break;
+      }
+    }
+
+    return {
+      loaded: true,
+      advanced,
+      durationSec,
+      detail: advanced
+        ? `cargó (${durationSec.toFixed(2)} s) y la reproducción avanzó`
+        : `cargó (${durationSec.toFixed(2)} s) pero la reproducción NO avanzó tras «play»`,
+    };
+  } catch (e) {
+    cleanup();
+    return nothing(
+      `El reproductor rechazó la locución: ${e instanceof Error ? e.message : 'error desconocido'}.`,
+    );
   }
 };
 

@@ -1,4 +1,5 @@
 import {
+  isOfflineVoice,
   isUsableSpanishVoice,
   pickBestSpanishVoice,
   pickVoiceForLang,
@@ -138,5 +139,76 @@ describe('pickVoiceForLang · una voz por lengua de sesión', () => {
     expect(ttsLanguageTagFor('gl')).toBe('gl-ES');
     expect(ttsLanguageTagFor('es')).toBe('es-ES');
     expect(ttsLanguageTagFor('es-DO')).toBe('es-DO');
+  });
+});
+
+/* -------------------------------------------------------------------------- */
+/*  EL CONTRATO REAL DE `expo-speech` (regla 3).                               */
+/*                                                                             */
+/*  Todo lo de arriba fija `networkConnectionRequired` a mano. El motor que la */
+/*  app usa NO lo envía: `VoiceRecord.kt` de expo-speech declara CUATRO campos */
+/*  —identifier, name, quality, language— y el tipo `Voice` de su JS dice lo   */
+/*  mismo. Con la bandera puesta a mano, los tests validaban la suposición del */
+/*  autor y no el comportamiento del dispositivo: la regla «una voz instalada  */
+/*  gana siempre a una de red» pasaba en verde mientras en el emulador la app  */
+/*  elegía sistemáticamente la voz de red y se quedaba muda.                   */
+/*                                                                             */
+/*  Estas voces son las que Google TTS expone de verdad en Android, con los    */
+/*  campos que llegan de verdad y ninguno más.                                 */
+/* -------------------------------------------------------------------------- */
+describe('con el catálogo REAL de expo-speech (sin banderas de red)', () => {
+  /** Voz tal y como llega de `getAvailableVoicesAsync()`: cuatro campos. */
+  const real = (id: string, language: string, quality: number): TtsVoice => ({
+    id,
+    name: id,
+    language,
+    quality,
+  });
+
+  // Catálogo de un dispositivo Android con Google TTS y español instalado.
+  const CATALOGO = [
+    real('es-es-x-eed-network', 'es-ES', 500),
+    real('es-es-x-eed-local', 'es-ES', 300),
+    real('es-es-x-eef-network', 'es-ES', 500),
+    real('es-es-x-eef-local', 'es-ES', 300),
+    real('en-us-x-tpc-local', 'en-US', 300),
+  ];
+
+  it('elige una voz LOCAL aunque la de red declare más calidad', () => {
+    const pick = pickVoiceForLang(CATALOGO, 'es');
+    expect(pick?.voice.id).toMatch(/-local$/);
+    expect(pick?.degraded).toBe(false);
+  });
+
+  it('pickBestSpanishVoice tampoco se va a la voz de red', () => {
+    expect(pickBestSpanishVoice(CATALOGO)?.id).toMatch(/-local$/);
+  });
+
+  it('reconoce la disponibilidad sin red por el id, que es lo único que llega', () => {
+    expect(isOfflineVoice(real('es-es-x-eed-local', 'es-ES', 300))).toBe(true);
+    expect(isOfflineVoice(real('es-es-x-eed-network', 'es-ES', 500))).toBe(false);
+  });
+
+  it('sin marca alguna en el id no se PRESUME que funcione sin red', () => {
+    // Regla 4: un dato que no consta no cae en la rama del aprobado.
+    expect(isOfflineVoice(real('es-ES-language', 'es-ES', 300))).toBe(false);
+  });
+
+  it('un motor heredado pierde contra cualquier alternativa, pero sigue valiendo si es la única', () => {
+    const conEspeak = [...CATALOGO, real('es-ES-espeak', 'es-ES', 500)];
+    expect(pickVoiceForLang(conEspeak, 'es')?.voice.id).toMatch(/-local$/);
+    const soloEspeak = [real('es-ES-espeak', 'es-ES', 500)];
+    expect(pickVoiceForLang(soloEspeak, 'es')?.voice.id).toBe('es-ES-espeak');
+  });
+
+  it('la bandera del motor, cuando existe, sigue mandando sobre el id', () => {
+    // iOS/web podrían declararla: si dice que necesita red, es que la necesita.
+    const contradictoria: TtsVoice = {
+      id: 'es-es-x-eed-local',
+      language: 'es-ES',
+      quality: 300,
+      networkConnectionRequired: true,
+    };
+    expect(isOfflineVoice(contradictoria)).toBe(false);
   });
 });

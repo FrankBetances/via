@@ -1,5 +1,6 @@
 import {
   getVerbalAudioAdapter,
+  type SpeechProbe,
   type TtsStatus,
 } from '@/Screens/VerbalAudiometry/verbalAudiometryAudio';
 
@@ -158,6 +159,22 @@ export const canSpeakText = (
  * limitarse a no sonar. `null` si el adaptador no lo declara.
  */
 export const voiceStatus = (): TtsStatus | null => getVerbalAudioAdapter()?.ttsStatus?.() ?? null;
+
+/**
+ * Dicta una frase de PRUEBA por la misma vía que las consignas y el modelo
+ * hablado del T.A.R., y devuelve lo que hizo el motor. `null` si el adaptador
+ * no está instalado o no expone la sonda.
+ *
+ * Es lo único que responde a la pregunta que importa cuando la app está muda:
+ * no «¿hay motor?» sino «¿ha salido sonido por esta vía?».
+ */
+export const probeSystemVoice = (
+  text: string,
+  lang: string = 'es',
+  timeoutMs?: number,
+): Promise<SpeechProbe | null> =>
+  getVerbalAudioAdapter()?.probeSpeech?.(text, toVoiceLang(lang), timeoutMs) ??
+  Promise.resolve(null);
 
 /** Reintenta arrancar el motor de voz del sistema (botón «reintentar»). */
 export const retryVoiceEngine = (): Promise<boolean> =>
