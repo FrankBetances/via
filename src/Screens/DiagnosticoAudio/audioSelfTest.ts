@@ -1,3 +1,5 @@
+import { Buffer } from 'buffer';
+
 import {
   acquireAudioContext,
   acquireRecorder,
@@ -16,7 +18,20 @@ import {
   resolveRecognitionMode,
 } from '@/Screens/Articulation/articulationRecognition';
 import type { TtsPhase } from '@/Screens/VerbalAudiometry/verbalAudiometryAudio';
-import { VOICE_ASSETS, VOICE_ASSETS_VERSION, playVoiceAsset, voiceStatus } from '@/Voice';
+/* Import de los MÓDULOS HOJA, no del barril `@/Screens/VerbalAudiometry`: el
+ * barril reexporta la pantalla, y con ella react-redux y gluestack. Cargarlo
+ * aquí metía toda la interfaz de la audiometría verbal dentro del diagnóstico
+ * (y rompía sus tests). */
+import { registeredVerbalAssets } from '@/Screens/VerbalAudiometry/verbalAssets';
+import { verbalAudioBase64ForLang } from '@/Screens/VerbalAudiometry/verbalAssetsByLang';
+import {
+  VOICE_ASSETS,
+  VOICE_ASSETS_VERSION,
+  probeSystemVoice,
+  probeVoiceAsset,
+  stopVoiceAsset,
+  voiceStatus,
+} from '@/Voice';
 
 /* -------------------------------------------------------------------------- */
 /*  Comprobación de audio EN EL DISPOSITIVO.                                   */
@@ -40,6 +55,9 @@ import { VOICE_ASSETS, VOICE_ASSETS_VERSION, playVoiceAsset, voiceStatus } from 
 /* -------------------------------------------------------------------------- */
 
 export type CheckStatus = 'ok' | 'warn' | 'fail' | 'skip';
+
+/** Frase de prueba del sintetizador (corta: el profesional la oye entera). */
+export const TEST_PHRASE = 'Uno, dos, tres. Comprobación de voz de VIA más.';
 
 export interface CheckResult {
   /** Identificador estable (no se traduce; va en el resumen copiable). */
@@ -96,6 +114,34 @@ export const rmsDbfs = (pcm: Float32Array): number => {
 const fmtDb = (db: number): string => (Number.isFinite(db) ? `${db.toFixed(1)} dBFS` : 'silencio absoluto');
 
 /**
+ * Nivel del bloque más flojo y del más fuerte de la toma. Es la medida que
+ * responde a «¿RESPONDE el micrófono?», que no es lo mismo que «¿entrega
+ * bloques?»: una entrada nivelada por el sistema (AGC) o encaminada a un
+ * dispositivo que no capta la sala entrega bloques perfectamente y devuelve
+ * SIEMPRE el mismo nivel, acerque uno el micrófono o lo cambie por otro. Con
+ * un solo número medio esa avería es indistinguible de un micrófono sano.
+ */
+export interface CaptureSpan {
+  /** RMS del bloque más flojo, en dBFS. */
+  minRmsDb: number;
+  /** RMS del bloque más fuerte, en dBFS. */
+  maxRmsDb: number;
+}
+
+/** Recorrido dinámico de la toma en dB (`null` si no se midió). */
+const spanDb = (span?: CaptureSpan): number | null => {
+  if (!span || !Number.isFinite(span.maxRmsDb) || !Number.isFinite(span.minRmsDb)) return null;
+  return span.maxRmsDb - span.minRmsDb;
+};
+
+/**
+ * Por debajo de este recorrido la toma es sospechosa de estar nivelada por el
+ * sistema. Hablar y callar delante de un micrófono sano mueve el nivel eficaz
+ * bastante más de 6 dB; un AGC lo aplana a unos pocos.
+ */
+export const MIN_RESPONSIVE_SPAN_DB = 6;
+
+/**
  * Veredicto de una toma de prueba del micrófono. Separa los TRES casos que la
  * app confundía bajo un único «captura insuficiente», y que son problemas
  * completamente distintos:
@@ -115,6 +161,7 @@ export const describeCapture = (
   peak: number,
   rms: number,
   health: RecorderHealth,
+  span?: CaptureSpan,
 ): CheckResult => {
   const base = { id: 'mic-capture', label: 'Captura real del micrófono' } as const;
 
@@ -144,13 +191,38 @@ export const describeCapture = (
   // −60 dBFS es el suelo de una sala silenciosa con un micrófono sano; por
   // debajo, la señal no da para medir aunque el stream esté vivo.
   const usable = peak > -60;
+  const rangeDb = spanDb(span);
+  const detail =
+    `${blocks} bloques · ${samples} muestras · pico ${fmtDb(peak)} · nivel ${fmtDb(rms)}` +
+    (rangeDb !== null ? ` · recorrido ${rangeDb.toFixed(1)} dB` : '') +
+    '.';
+
+  if (!usable) {
+    return {
+      ...base,
+      status: 'warn',
+      detail,
+      hint: 'El micrófono entrega audio, pero tan bajo que ninguna prueba podrá medirlo. Acerque el micrófono, suba la ganancia de entrada del sistema o pruebe sin accesorios.',
+    };
+  }
+
+  /* El recorrido se PUBLICA siempre y no cambia el veredicto.
+   *
+   * Un recorrido corto es sospechoso —una entrada nivelada por el sistema
+   * (control automático de ganancia) devuelve el mismo nivel se acerque uno o
+   * cambie de micrófono, que es justo la duda que llegó de campo— pero no es
+   * una prueba: una toma en silencio también es plana. Convertirlo en FALLO
+   * sería inventarse un veredicto; callarlo era dejar la duda sin forma de
+   * medirse. Se dice el número y qué hacer con él. */
+  const flat = rangeDb !== null && rangeDb < MIN_RESPONSIVE_SPAN_DB;
   return {
     ...base,
-    status: usable ? 'ok' : 'warn',
-    detail: `${blocks} bloques · ${samples} muestras · pico ${fmtDb(peak)} · nivel ${fmtDb(rms)}.`,
-    hint: usable
-      ? undefined
-      : 'El micrófono entrega audio, pero tan bajo que ninguna prueba podrá medirlo. Acerque el micrófono, suba la ganancia de entrada del sistema o pruebe sin accesorios.',
+    status: 'ok',
+    detail,
+    hint: flat
+      ? `El nivel apenas varía entre bloques (${rangeDb!.toFixed(1)} dB en ${CAPTURE_PROBE_MS / 1000} s). ` +
+        'Repita la toma HABLANDO y CALLANDO, y otra vez acercándose al micrófono: en una entrada sana el recorrido cambia mucho. Si sigue plano, el sistema está nivelando la ganancia por su cuenta y las medidas de INTENSIDAD del análisis acústico no son interpretables (la F0, el jitter y los formantes sí).'
+      : undefined,
   };
 };
 
@@ -163,13 +235,36 @@ export const worstStatus = (checks: CheckResult[]): CheckStatus => {
 };
 
 /**
+ * Comprobaciones que SOLO cierra el oído del profesional, una por motor de
+ * salida. Mientras falte alguna, la salida de audio no está comprobada y el
+ * resumen tiene que decirlo: el informe de campo que llegó decía «todo
+ * funciona» sobre una app sin sonido justo porque estas preguntas ni se
+ * hacían ni se echaban en falta.
+ */
+export const LISTEN_CHECK_IDS = ['tone', 'verbal-clip-heard', 'voice-bank-heard', 'tts-heard'] as const;
+
+/**
  * Resumen en texto plano para que el profesional lo copie en un correo o una
  * incidencia. Sin esto, el informe de campo vuelve a ser «no funciona nada».
  */
 export const summaryText = (checks: CheckResult[]): string => {
   const mark: Record<CheckStatus, string> = { ok: 'OK  ', warn: 'AVISO', fail: 'FALLO', skip: '—   ' };
   const lines = checks.map(c => `[${mark[c.status]}] ${c.label}: ${c.detail}${c.hint ? ` → ${c.hint}` : ''}`);
-  return [`VIA+ · comprobación de audio`, `Banco de voz: ${VOICE_ASSETS_VERSION}`, '', ...lines].join('\n');
+  const pending = LISTEN_CHECK_IDS.filter(id => !checks.some(c => c.id === id));
+  const tail = pending.length
+    ? [
+        '',
+        `SALIDA NO COMPROBADA: faltan ${pending.length} de ${LISTEN_CHECK_IDS.length} pruebas de escucha`,
+        `(${pending.join(', ')}). Nada de lo anterior demuestra que el altavoz emita.`,
+      ]
+    : [];
+  return [
+    `VIA+ · comprobación de audio`,
+    `Banco de voz: ${VOICE_ASSETS_VERSION}`,
+    '',
+    ...lines,
+    ...tail,
+  ].join('\n');
 };
 
 /* -------------------------------------------------------------------------- */
@@ -223,11 +318,30 @@ export function checkOutputContext(): CheckResult {
   }
   const state = ctx.state ?? 'desconocido';
   releaseAudioContext();
+  /* «running» NO PRUEBA QUE EL ALTAVOZ EMITA, y decirlo aquí es la diferencia
+   * entre un diagnóstico y un adorno. Demostrado en el propio motor:
+   * `AudioContext::AudioContext` (node_modules/react-native-audio-api/common/
+   * cpp/audioapi/core/AudioContext.cpp) hace
+   *
+   *     audioPlayer_->start();
+   *     state_ = ContextState::RUNNING;
+   *
+   * IGNORANDO el booleano que devuelve `start()`; y ese `start()` devuelve
+   * `false` cuando `mStream_` es nulo, que es justo lo que pasa si
+   * `openAudioStream()` no pudo abrir el stream de Oboe (AudioPlayer.cpp solo
+   * lo escribe en el log de Android). O sea: un contexto cuyo stream nativo
+   * nunca se abrió se declara «running» igual. La única comprobación válida de
+   * la salida es la prueba de escucha. */
   return {
     ...base,
     status: state === 'running' || state === 'desconocido' ? 'ok' : 'warn',
-    detail: `Abierto a ${ctx.sampleRate} Hz · estado «${state}».`,
-    hint: state === 'suspended' ? 'El sistema tiene el contexto suspendido: no sonará nada hasta que se reanude.' : undefined,
+    detail:
+      `El contexto responde «${state}» a ${ctx.sampleRate} Hz. ` +
+      'NO prueba que el altavoz emita: el motor marca «running» sin comprobar que el stream nativo llegara a abrirse.',
+    hint:
+      state === 'suspended'
+        ? 'El sistema tiene el contexto suspendido: no sonará nada hasta que se reanude.'
+        : 'Quien cierra este eslabón es la prueba de escucha del final de la pantalla.',
   };
 }
 
@@ -266,7 +380,20 @@ export function playTestTone(): boolean {
   }
 }
 
-/** 4 · ¿Está el banco de locuciones empaquetado y se puede decodificar? */
+/**
+ * 4 · Banco de locuciones (`expo-audio`): la vía de las consignas y del modelo
+ * hablado del T.A.R. cuando la lengua tiene recorte.
+ *
+ * Decía «la primera decodificó y se reprodujo» porque `playVoiceAsset` había
+ * devuelto `true`, y ese `true` solo significa «`play()` no lanzó». Un
+ * reproductor que nunca llegó a cargar el fichero tampoco lanza: un banco
+ * ilegible se publicaba como CORRECTO. Ahora se espera a que el reproductor
+ * declare el fichero cargado y se comprueba que la posición AVANZA.
+ *
+ * Sigue sin poder afirmar que se OIGA —eso lo cierra la prueba de escucha—, y
+ * por eso el veredicto máximo de este eslabón es AVISO hasta que el
+ * profesional conteste.
+ */
 export async function checkVoiceBank(): Promise<CheckResult> {
   const base = { id: 'voice-bank', label: 'Banco de locuciones' } as const;
   const ids = Object.keys(VOICE_ASSETS);
@@ -278,17 +405,117 @@ export async function checkVoiceBank(): Promise<CheckResult> {
       hint: 'El mapa de assets está vacío: la compilación no incluyó `assets/voice/`. Toda la voz dependerá del sintetizador del sistema.',
     };
   }
-  const sounded = await playVoiceAsset(VOICE_ASSETS[ids[0]]);
+  const probe = await probeVoiceAsset(VOICE_ASSETS[ids[0]]);
+  const ok = probe.loaded && probe.advanced;
   return {
     ...base,
-    status: sounded ? 'ok' : 'fail',
-    detail: sounded
-      ? `${ids.length} locuciones empaquetadas (${VOICE_ASSETS_VERSION}); la primera decodificó y se reprodujo.`
-      : `${ids.length} locuciones empaquetadas (${VOICE_ASSETS_VERSION}), pero la primera NO decodificó.`,
-    hint: sounded
-      ? undefined
-      : 'Los ficheros .m4a están en el bundle pero el decodificador nativo los rechaza. Compruebe que la compilación empaquetó los assets y no solo el mapa.',
+    status: ok ? 'ok' : 'fail',
+    detail: `${ids.length} locuciones empaquetadas (${VOICE_ASSETS_VERSION}); la primera ${probe.detail}.`,
+    hint: ok
+      ? 'Que el reproductor avance no prueba que salga por el altavoz: conteste la prueba de escucha.'
+      : 'Los ficheros .m4a están en el bundle pero el reproductor del sistema no los sirve. Compruebe que la compilación empaquetó `assets/voice/` y no solo el mapa.',
   };
+}
+
+/* -------------------------------------------------------------------------- */
+/*  4 bis · LA CADENA DE LA AUDIOMETRÍA VERBAL, que no se comprobaba.          */
+/*                                                                             */
+/*  El banco de locuciones (arriba) suena por `expo-audio`. La audiometría     */
+/*  verbal NO usa esa vía: decodifica el recorte incrustado en base64 con      */
+/*  `decodeAudioData` del AudioContext compartido y lo reproduce por           */
+/*  BufferSource → Gain → StereoPanner → destination. Son dos motores          */
+/*  distintos, y el diagnóstico solo miraba el primero: de ahí que la pantalla */
+/*  publicase CORRECTO mientras la audiometría verbal estaba muda.             */
+/* -------------------------------------------------------------------------- */
+
+/** Clave de recorte con la que se prueba la cadena (la primera registrada). */
+const probeClipKey = (): string | null => registeredVerbalAssets().audio[0] ?? null;
+
+export async function checkVerbalClipChain(): Promise<CheckResult> {
+  const base = { id: 'verbal-clip', label: 'Recortes de la audiometría verbal' } as const;
+  const key = probeClipKey();
+  if (!key) {
+    return {
+      ...base,
+      status: 'fail',
+      detail: 'No hay ningún recorte de palabra registrado en este binario.',
+      hint: 'La audiometría verbal no tiene estímulo que presentar. Falta el registro de assets (`scripts/verbal-assets.js registry`).',
+    };
+  }
+
+  const b64 = verbalAudioBase64ForLang(key, 'es');
+  if (!b64) {
+    return {
+      ...base,
+      status: 'fail',
+      detail: `El recorte «${key}» no tiene audio incrustado.`,
+      hint: 'El registro de recortes se generó sin los bytes en base64: vuelva a ejecutar `node scripts/verbal-assets.js registry`.',
+    };
+  }
+
+  const ctx = acquireAudioContext();
+  if (!ctx) {
+    return {
+      ...base,
+      status: 'fail',
+      detail: 'No hay contexto de salida con el que decodificar el recorte.',
+      hint: 'Sin AudioContext la audiometría verbal no puede presentar ninguna palabra.',
+    };
+  }
+
+  try {
+    // La locución del banco (comprobación anterior) puede seguir sonando: dos
+    // emisiones solapadas no dejan juzgar ninguna de las dos.
+    stopVoiceAsset();
+    resumeAudioContext();
+    const bytes = Buffer.from(b64, 'base64');
+    const ab = bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength);
+    const buffer: any = await ctx.decodeAudioData(ab as ArrayBuffer);
+    const duration = Number(buffer?.duration) || 0;
+    if (duration <= 0) {
+      return {
+        ...base,
+        status: 'fail',
+        detail: `El recorte «${key}» (${bytes.byteLength} bytes) decodificó a un buffer de duración cero.`,
+        hint: 'El decodificador nativo acepta el fichero pero no extrae muestras. La audiometría verbal presentará silencio: es un fallo del motor de audio, no del inventario.',
+      };
+    }
+
+    // Se reproduce con la MISMA cadena de nodos que el estímulo real, para que
+    // la prueba de escucha diga algo sobre la audiometría verbal y no sobre un
+    // camino paralelo. A nivel pleno: aquí no se está midiendo un umbral.
+    const now = ctx.currentTime;
+    const source = ctx.createBufferSource();
+    source.buffer = buffer;
+    const gain = ctx.createGain();
+    const panner = ctx.createStereoPanner();
+    panner.pan.value = 0;
+    gain.gain.setValueAtTime(0, now);
+    gain.gain.linearRampToValueAtTime(1, now + 0.015);
+    const end = now + duration;
+    gain.gain.setValueAtTime(1, Math.max(now + 0.015, end - 0.015));
+    gain.gain.linearRampToValueAtTime(0, end);
+    source.connect(gain);
+    gain.connect(panner);
+    panner.connect(ctx.destination);
+    source.start(now);
+
+    return {
+      ...base,
+      status: 'ok',
+      detail: `El recorte «${key}» decodificó a ${duration.toFixed(2)} s y se programó por la cadena real del estímulo.`,
+      hint: 'Que se programe no prueba que se oiga: conteste la prueba de escucha.',
+    };
+  } catch (e) {
+    return {
+      ...base,
+      status: 'fail',
+      detail: `El recorte «${key}» NO decodificó: ${e instanceof Error ? e.message : 'error del decodificador'}.`,
+      hint: 'La audiometría verbal degradará a la voz del sistema en todas las palabras. Compruebe la versión del módulo nativo de audio.',
+    };
+  } finally {
+    releaseAudioContext();
+  }
 }
 
 /** 5 · Estado real del sintetizador de voz del sistema. */
@@ -319,7 +546,62 @@ export function checkSystemVoice(): CheckResult {
     hint:
       status.phase === 'unavailable'
         ? 'Instale un motor de síntesis (p. ej. «Voz de Google») y los datos de voz en español desde los ajustes del sistema.'
-        : undefined,
+        : // Enumerar voces y EMITIR son cosas distintas: un dispositivo puede
+          // ver cientos de voces y no decir una sílaba. Lo comprueba el
+          // eslabón siguiente, no éste.
+          'Ver voces no es emitir: quien lo comprueba es «Locución real del sintetizador».',
+  };
+}
+
+/**
+ * 5 bis · ¿EMITE el sintetizador? Es el eslabón del que cuelgan el modelo
+ * hablado del T.A.R. y las consignas de todos los módulos sin recorte propio.
+ *
+ * El diagnóstico se quedaba en «473 voces → CORRECTO», que responde a otra
+ * pregunta. Un dispositivo con centenares de voces enumeradas no dice una
+ * sílaba si la voz elegida se sintetiza EN SERVIDOR y no hay cobertura —el
+ * caso normal en el emulador de Android Studio—: Android emite `onError` por
+ * locución y el modelo hablado, que es fuego y olvido, se queda mudo sin
+ * degradar y sin avisar. Esto DICTA de verdad y espera el veredicto del motor.
+ */
+export async function checkSystemVoiceSpeaks(lang = 'es', timeoutMs?: number): Promise<CheckResult> {
+  const base = { id: 'tts-speak', label: 'Locución real del sintetizador' } as const;
+  const probe = await probeSystemVoice(TEST_PHRASE, lang, timeoutMs);
+  if (!probe) {
+    return {
+      ...base,
+      status: 'fail',
+      detail: 'El adaptador de voz no está instalado: no hay a quién pedirle una locución.',
+      hint: 'Sin adaptador no hay voz en NINGÚN módulo. Cierre la app por completo y vuelva a abrirla.',
+    };
+  }
+
+  const voice = probe.voiceId ? `voz «${probe.voiceId}»` : 'sin voz fijada (la elige el sistema)';
+  const net = probe.voiceId
+    ? probe.offline
+      ? 'sin red'
+      : 'REQUIERE RED'
+    : 'disponibilidad desconocida';
+  const where = `${voice} · ${probe.language} · ${net}${probe.degraded ? ' · voz de OTRO idioma' : ''}`;
+
+  if (probe.error) {
+    return {
+      ...base,
+      status: 'fail',
+      detail: `${probe.error} (${where})`,
+      hint: probe.offline
+        ? 'La voz elegida no depende de la red, así que el fallo es del motor: pruebe a cambiar el motor de síntesis en Ajustes ▸ Sistema ▸ Idiomas ▸ Salida de texto a voz.'
+        : 'La voz elegida SE SINTETIZA EN SERVIDOR: sin conexión no emite nada. Descargue la voz de español para uso sin conexión (Ajustes ▸ Sistema ▸ Idiomas ▸ Salida de texto a voz ▸ Instalar datos de voz) y repita.',
+    };
+  }
+
+  return {
+    ...base,
+    status: probe.degraded ? 'warn' : 'ok',
+    detail: `El motor dictó la frase de prueba completa (${where}).`,
+    hint: probe.degraded
+      ? 'Se dictó con una voz de otro idioma: instale la voz de la lengua de sesión para no alterar el estímulo.'
+      : 'Que el motor la dicte no prueba que salga por el altavoz: conteste la prueba de escucha.',
   };
 }
 
@@ -359,15 +641,26 @@ export async function checkMicCapture(): Promise<CheckResult> {
   let samples = 0;
   let peak = 0;
   let sumSquares = 0;
+  // Recorrido dinámico: el bloque más flojo y el más fuerte de la toma. Es lo
+  // que distingue un micrófono que RESPONDE de uno cuyo nivel no se mueve.
+  let minBlockRms = Infinity;
+  let maxBlockRms = 0;
 
   const unsubscribe = shared.subscribe(pcm => {
     blocks += 1;
     samples += pcm.length;
+    let blockSquares = 0;
     for (let i = 0; i < pcm.length; i++) {
       const v = pcm[i];
       const a = v < 0 ? -v : v;
       if (a > peak) peak = a;
-      sumSquares += v * v;
+      blockSquares += v * v;
+    }
+    sumSquares += blockSquares;
+    if (pcm.length) {
+      const blockRms = Math.sqrt(blockSquares / pcm.length);
+      if (blockRms < minBlockRms) minBlockRms = blockRms;
+      if (blockRms > maxBlockRms) maxBlockRms = blockRms;
     }
   });
 
@@ -384,8 +677,47 @@ export async function checkMicCapture(): Promise<CheckResult> {
 
   const peakDb = peak > 0 ? 20 * Math.log10(peak) : -Infinity;
   const rmsDb = samples > 0 && sumSquares > 0 ? 20 * Math.log10(Math.sqrt(sumSquares / samples)) : -Infinity;
-  return describeCapture(blocks, samples, peakDb, rmsDb, recorderHealth());
+  const span: CaptureSpan | undefined =
+    blocks > 1 && maxBlockRms > 0 && Number.isFinite(minBlockRms)
+      ? {
+          minRmsDb: minBlockRms > 0 ? 20 * Math.log10(minBlockRms) : -Infinity,
+          maxRmsDb: 20 * Math.log10(maxBlockRms),
+        }
+      : undefined;
+  return describeCapture(blocks, samples, peakDb, rmsDb, recorderHealth(), span);
 }
+
+/* -------------------------------------------------------------------------- */
+/*  EMISIONES para la prueba de escucha.                                       */
+/*                                                                             */
+/*  Las tres vías por las que la app puede sonar, cada una con su motor:       */
+/*  el oscilador de las audiometrías (react-native-audio-api), el banco de     */
+/*  locuciones (expo-audio) y el sintetizador del sistema (expo-speech). Sonar */
+/*  por una NO implica sonar por las otras —es exactamente lo que pasaba: el   */
+/*  banco respondía y la audiometría verbal y el T.A.R. estaban mudos—, así    */
+/*  que la pantalla las emite por separado y pregunta por cada una.            */
+/*                                                                             */
+/*  Cada función devuelve si la emisión llegó a PROGRAMARSE. Que se oiga solo  */
+/*  lo puede cerrar quien escucha.                                             */
+/* -------------------------------------------------------------------------- */
+
+/** Emite la primera locución empaquetada (vía `expo-audio`). */
+export const emitVoiceBankSample = async (): Promise<boolean> => {
+  const ids = Object.keys(VOICE_ASSETS);
+  if (!ids.length) return false;
+  const probe = await probeVoiceAsset(VOICE_ASSETS[ids[0]]);
+  return probe.loaded && probe.advanced;
+};
+
+/** Emite un recorte por la cadena REAL de la audiometría verbal. */
+export const emitVerbalClipSample = async (): Promise<boolean> =>
+  (await checkVerbalClipChain()).status === 'ok';
+
+/** Dicta la frase de prueba por la vía real del modelo hablado del T.A.R. */
+export const emitSystemVoiceSample = async (lang = 'es', timeoutMs?: number): Promise<boolean> => {
+  const probe = await probeSystemVoice(TEST_PHRASE, lang, timeoutMs);
+  return !!probe && probe.error === null;
+};
 
 /**
  * 8 · Reconocimiento de voz del T.A.R.

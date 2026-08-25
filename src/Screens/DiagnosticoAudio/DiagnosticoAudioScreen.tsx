@@ -22,7 +22,13 @@ import {
   checkOutputContext,
   checkSpeechRecognition,
   checkSystemVoice,
+  checkSystemVoiceSpeaks,
+  checkVerbalClipChain,
   checkVoiceBank,
+  emitSystemVoiceSample,
+  emitVerbalClipSample,
+  emitVoiceBankSample,
+  LISTEN_CHECK_IDS,
   playTestTone,
   summaryText,
   worstStatus,
@@ -40,11 +46,86 @@ import {
 /*  micrófono está ocupado» o «no hay voz instalada en el sistema»: todo se    */
 /*  veía igual, como que no sonaba nada.                                       */
 /*                                                                             */
-/*  Dos comprobaciones no las puede hacer la máquina —si el tono SE OYE y si   */
-/*  la locución SE OYE— así que se preguntan en vez de darlas por buenas: un   */
-/*  «reproducido correctamente» sobre un altavoz mudo sería exactamente el     */
-/*  tipo de falso positivo que esta pantalla viene a eliminar.                 */
+/*  Lo que la máquina NO puede cerrar —si algo se OYE— se pregunta, en vez de  */
+/*  darlo por bueno: un «reproducido correctamente» sobre un altavoz mudo es   */
+/*  exactamente el falso positivo que esta pantalla viene a eliminar.          */
+/*                                                                             */
+/*  Y se pregunta TRES VECES, una por motor, porque son tres cadenas           */
+/*  independientes: el oscilador de las audiometrías (react-native-audio-api), */
+/*  los recortes de la audiometría verbal (decodificados sobre ese mismo       */
+/*  contexto) y el banco de locuciones + el sintetizador del sistema, que van  */
+/*  por `expo-audio` y `expo-speech`. Con una sola pregunta sobre el tono, la  */
+/*  pantalla publicaba «toda la cadena responde» mientras la audiometría       */
+/*  verbal y el T.A.R. estaban mudos: no había mentira, había una pregunta     */
+/*  que no se hacía.                                                           */
 /* -------------------------------------------------------------------------- */
+
+/** Una emisión que solo el oído del profesional puede dar por buena. */
+interface ListenSpec {
+  /* El id sale de `LISTEN_CHECK_IDS`, que es también lo que mira el resumen
+   * copiable para declarar la salida sin comprobar: si las dos listas se
+   * separan, el resumen volvería a callar una emisión no escuchada. Con el
+   * tipo atado, separarlas no compila. */
+  id: (typeof LISTEN_CHECK_IDS)[number];
+  label: string;
+  /** Qué se va a oír y a qué módulo pertenece esa vía. */
+  what: string;
+  /** Emite. Devuelve `false` si no llegó ni a programarse. */
+  emit: () => Promise<boolean>;
+  heard: string;
+  notHeard: string;
+  notHeardHint: string;
+  notEmitted: string;
+}
+
+const LISTEN_SPECS: Array<ListenSpec & { id: (typeof LISTEN_CHECK_IDS)[number] }> = [
+  {
+    id: 'tone',
+    label: 'Tono de prueba por el altavoz',
+    what: `Tono de ${TEST_TONE_HZ} Hz — la vía de las DOS audiometrías (oscilador nativo).`,
+    emit: async () => playTestTone(),
+    heard: `Tono de ${TEST_TONE_HZ} Hz emitido y OÍDO.`,
+    notHeard: `Tono de ${TEST_TONE_HZ} Hz emitido pero NO se oyó.`,
+    notHeardHint:
+      'El motor programó el tono y aun así no suena: las audiometrías tonal y condicionada no pueden presentar estímulo. Revise el volumen de multimedia, el silencio del sistema y si hay un accesorio Bluetooth capturando la salida.',
+    notEmitted: 'El tono no llegó ni a programarse: no hay contexto de salida.',
+  },
+  {
+    id: 'verbal-clip-heard',
+    label: 'Palabra de la audiometría verbal',
+    what: 'Un recorte de palabra por la cadena real del estímulo verbal (base64 → decodificación → altavoz).',
+    emit: emitVerbalClipSample,
+    heard: 'La palabra se oyó: la audiometría verbal tiene estímulo.',
+    notHeard: 'La palabra se decodificó y se programó pero NO se oyó.',
+    notHeardHint:
+      'Es exactamente el fallo de «la audiometría verbal no suena». El recorte es correcto y el motor lo acepta: el eslabón roto está entre el contexto de audio y el altavoz. Compare con el tono: si el tono SÍ se oye y la palabra no, el problema es la decodificación en memoria; si no se oye ninguno, es la salida entera.',
+    notEmitted:
+      'El recorte no llegó a programarse. La tarjeta «Recortes de la audiometría verbal» dice por qué.',
+  },
+  {
+    id: 'voice-bank-heard',
+    label: 'Locución empaquetada',
+    what: 'Una locución del banco (vía `expo-audio`): consignas y modelo hablado de las lenguas con recorte.',
+    emit: emitVoiceBankSample,
+    heard: 'La locución empaquetada se oyó.',
+    notHeard: 'La locución se cargó y avanzó pero NO se oyó.',
+    notHeardHint:
+      'El reproductor del sistema avanza pero no sale audio: revise el volumen de multimedia y si otra aplicación tiene la salida tomada.',
+    notEmitted: 'La locución no llegó a reproducirse. La tarjeta «Banco de locuciones» dice por qué.',
+  },
+  {
+    id: 'tts-heard',
+    label: 'Voz del sistema',
+    what: 'La frase de prueba dictada por el sintetizador: la vía del modelo hablado del T.A.R.',
+    emit: () => emitSystemVoiceSample(),
+    heard: 'La voz del sistema se oyó: el T.A.R. puede presentar el modelo hablado.',
+    notHeard: 'El motor dictó la frase pero NO se oyó.',
+    notHeardHint:
+      'Es el fallo de «el test de articulación no suena». El motor dice haber emitido: revise el volumen de multimedia y el encaminamiento de audio; si el tono tampoco se oye, la salida está rota para toda la app.',
+    notEmitted:
+      'El sintetizador no llegó a emitir. La tarjeta «Locución real del sintetizador» dice por qué.',
+  },
+];
 
 const requestMic = async (): Promise<boolean> => {
   if (Platform.OS !== 'android') return true;
@@ -80,8 +161,10 @@ export default function DiagnosticoAudioScreen() {
   const [checks, setChecks] = useState<CheckResult[]>([]);
   const [running, setRunning] = useState(false);
   const [step, setStep] = useState<string | null>(null);
-  /** Pregunta pendiente al profesional (lo que la máquina no puede medir). */
-  const [askTone, setAskTone] = useState(false);
+  /** Emisión cuya respuesta está pendiente (lo que la máquina no puede medir). */
+  const [asking, setAsking] = useState<string | null>(null);
+  /** Emisión en curso (para desactivar su botón mientras suena). */
+  const [emitting, setEmitting] = useState<string | null>(null);
   const [retrying, setRetrying] = useState(false);
   // Un `run` nuevo invalida al anterior: pulsar «repetir» a mitad de una toma
   // no debe mezclar los resultados de las dos pasadas.
@@ -91,7 +174,7 @@ export default function DiagnosticoAudioScreen() {
     const mine = ++runToken.current;
     setRunning(true);
     setChecks([]);
-    setAskTone(false);
+    setAsking(null);
 
     const collected: CheckResult[] = [];
     const push = (c: CheckResult) => {
@@ -109,8 +192,14 @@ export default function DiagnosticoAudioScreen() {
     setStep('Banco de locuciones…');
     push(await checkVoiceBank());
 
+    setStep('Recortes de la audiometría verbal…');
+    push(await checkVerbalClipChain());
+
     setStep('Sintetizador del sistema…');
     push(checkSystemVoice());
+
+    setStep('Dictando la frase de prueba…');
+    push(await checkSystemVoiceSpeaks());
 
     setStep('Reconocimiento de voz…');
     push(await checkSpeechRecognition());
@@ -126,38 +215,35 @@ export default function DiagnosticoAudioScreen() {
     setRunning(false);
   }, []);
 
-  const onPlayTone = () => {
-    const scheduled = playTestTone();
-    setAskTone(scheduled);
-    if (!scheduled) {
-      setChecks(prev => [
-        ...prev.filter(c => c.id !== 'tone'),
-        {
-          id: 'tone',
-          label: 'Tono de prueba por el altavoz',
-          status: 'fail',
-          detail: 'El tono no llegó ni a programarse: no hay contexto de salida.',
-        },
-      ]);
+  const replaceCheck = (c: CheckResult) =>
+    setChecks(prev => [...prev.filter(x => x.id !== c.id), c]);
+
+  const onEmit = async (spec: ListenSpec) => {
+    setAsking(null);
+    setEmitting(spec.id);
+    let scheduled = false;
+    try {
+      scheduled = await spec.emit();
+    } catch {
+      scheduled = false;
     }
+    setEmitting(null);
+    if (scheduled) {
+      setAsking(spec.id);
+      return;
+    }
+    replaceCheck({ id: spec.id, label: spec.label, status: 'fail', detail: spec.notEmitted });
   };
 
-  const answerTone = (heard: boolean) => {
-    setAskTone(false);
-    setChecks(prev => [
-      ...prev.filter(c => c.id !== 'tone'),
-      {
-        id: 'tone',
-        label: 'Tono de prueba por el altavoz',
-        status: heard ? 'ok' : 'fail',
-        detail: heard
-          ? `Tono de ${TEST_TONE_HZ} Hz emitido y OÍDO por el profesional.`
-          : `Tono de ${TEST_TONE_HZ} Hz emitido pero NO se oyó.`,
-        hint: heard
-          ? undefined
-          : 'El motor programó el tono y aun así no suena: revise el volumen de multimedia, el silencio del sistema y si hay un accesorio Bluetooth capturando la salida.',
-      },
-    ]);
+  const onAnswer = (spec: ListenSpec, heard: boolean) => {
+    setAsking(null);
+    replaceCheck({
+      id: spec.id,
+      label: spec.label,
+      status: heard ? 'ok' : 'fail',
+      detail: heard ? spec.heard : spec.notHeard,
+      hint: heard ? undefined : spec.notHeardHint,
+    });
   };
 
   const onRetryVoice = async () => {
@@ -172,6 +258,8 @@ export default function DiagnosticoAudioScreen() {
 
   const overall = worstStatus(checks);
   const hasTts = checks.some(c => c.id === 'tts');
+  /** Emisiones que el profesional todavía no ha escuchado. */
+  const pendingListen = LISTEN_SPECS.filter(spec => !checks.some(c => c.id === spec.id));
 
   return (
     <View style={styles.root}>
@@ -208,11 +296,15 @@ export default function DiagnosticoAudioScreen() {
         {checks.length > 0 && !running ? (
           <View style={[styles.verdict, { backgroundColor: STATUS_SOFT[overall] }]}>
             <Text style={[styles.verdictText, { color: STATUS_COLOR[overall] }]}>
-              {overall === 'ok'
-                ? 'Toda la cadena de audio responde en este dispositivo.'
-                : overall === 'warn'
-                  ? 'La cadena responde, pero hay avisos que degradan las pruebas.'
-                  : 'Hay al menos un eslabón roto: las pruebas de voz no pueden funcionar así.'}
+              {overall === 'fail'
+                ? 'Hay al menos un eslabón roto: las pruebas de voz no pueden funcionar así.'
+                : pendingListen.length
+                  ? /* NUNCA «todo funciona» con emisiones sin escuchar: ése es
+                       justo el falso positivo del que salió esta pantalla. */
+                    `Los motores responden, pero la SALIDA no está comprobada: falta escuchar ${pendingListen.length} de ${LISTEN_SPECS.length} emisiones.`
+                  : overall === 'warn'
+                    ? 'La cadena responde y se oye, pero hay avisos que degradan las pruebas.'
+                    : 'La cadena de audio responde Y SE OYE en este dispositivo.'}
             </Text>
           </View>
         ) : null}
@@ -240,7 +332,9 @@ export default function DiagnosticoAudioScreen() {
           </View>
         ))}
 
-        {/* Comprobación que solo puede cerrar el oído humano. */}
+        {/* Lo único que cierra la salida: el oído del profesional, UNA VEZ POR
+            MOTOR. Con una sola pregunta sobre el tono, esta pantalla daba por
+            buena toda la cadena mientras dos módulos estaban mudos. */}
         {checks.length > 0 && !running ? (
           <View style={styles.card}>
             <View style={styles.cardHead}>
@@ -248,25 +342,49 @@ export default function DiagnosticoAudioScreen() {
               <Ear size={18} color="#8C8275" />
             </View>
             <Text style={styles.cardDetail}>
-              Que el motor programe un tono no prueba que el altavoz lo emita. Reprodúzcalo y
-              conteste si lo ha oído.
+              Que el motor programe un sonido no prueba que el altavoz lo emita, y la app suena por
+              TRES vías distintas: si una falla, las otras siguen respondiendo. Reproduzca las
+              cuatro emisiones y conteste cuáles ha oído — hasta entonces, la salida NO está
+              comprobada.
             </Text>
-            {askTone ? (
-              <View style={styles.answerRow}>
-                <Text style={styles.answerQ}>¿Ha oído el tono?</Text>
-                <Pressable style={[styles.answerBtn, styles.answerYes]} onPress={() => answerTone(true)}>
-                  <Text style={styles.answerYesText}>Sí</Text>
-                </Pressable>
-                <Pressable style={[styles.answerBtn, styles.answerNo]} onPress={() => answerTone(false)}>
-                  <Text style={styles.answerNoText}>No</Text>
-                </Pressable>
-              </View>
-            ) : (
-              <Pressable style={styles.inlineBtn} onPress={onPlayTone}>
-                <Volume2 size={14} color="#0D9488" />
-                <Text style={styles.inlineBtnText}>Reproducir tono de {TEST_TONE_HZ} Hz</Text>
-              </Pressable>
-            )}
+            {LISTEN_SPECS.map(spec => {
+              const answered = checks.find(c => c.id === spec.id);
+              return (
+                <View key={spec.id} style={styles.listenRow}>
+                  <Text style={styles.listenLabel}>{spec.label}</Text>
+                  <Text style={styles.listenWhat}>{spec.what}</Text>
+                  {asking === spec.id ? (
+                    <View style={styles.answerRow}>
+                      <Text style={styles.answerQ}>¿Lo ha oído?</Text>
+                      <Pressable
+                        style={[styles.answerBtn, styles.answerYes]}
+                        onPress={() => onAnswer(spec, true)}>
+                        <Text style={styles.answerYesText}>Sí</Text>
+                      </Pressable>
+                      <Pressable
+                        style={[styles.answerBtn, styles.answerNo]}
+                        onPress={() => onAnswer(spec, false)}>
+                        <Text style={styles.answerNoText}>No</Text>
+                      </Pressable>
+                    </View>
+                  ) : (
+                    <Pressable
+                      style={styles.inlineBtn}
+                      disabled={emitting !== null}
+                      onPress={() => onEmit(spec)}>
+                      <Volume2 size={14} color="#0D9488" />
+                      <Text style={styles.inlineBtnText}>
+                        {emitting === spec.id
+                          ? 'Emitiendo…'
+                          : answered
+                            ? 'Repetir emisión'
+                            : 'Reproducir'}
+                      </Text>
+                    </Pressable>
+                  )}
+                </View>
+              );
+            })}
           </View>
         ) : null}
 
@@ -326,6 +444,10 @@ const styles = StyleSheet.create({
   pillText: { fontFamily: MONO, fontSize: 10, fontWeight: '700', letterSpacing: 0.8 },
   cardDetail: { fontSize: 14, lineHeight: 21, color: '#524B42', marginTop: 8 },
   cardHint: { fontSize: 13, lineHeight: 20, color: '#9A3412', marginTop: 8 },
+
+  listenRow: { marginTop: 14, paddingTop: 14, borderTopWidth: 1, borderTopColor: '#EFEAE0' },
+  listenLabel: { fontSize: 14, fontWeight: '700', color: '#2B2620' },
+  listenWhat: { fontSize: 13, lineHeight: 20, color: '#6E6459', marginTop: 4 },
 
   inlineBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 12, alignSelf: 'flex-start' },
   inlineBtnText: { fontSize: 13, fontWeight: '700', color: '#0D9488' },

@@ -248,15 +248,37 @@ export default function BienvenidaScreen() {
             </Animated.View>
           </View>
 
-          {/* Rótulos del flujo de señal */}
+          {/* LEYENDA DEL ESCENARIO.
+
+              Es lo que EXPLICA la animación, no un adorno: sin ella las
+              partículas son puntos que se mueven. Iba a cuerpo 10 —ilegible a
+              la distancia a la que se usa una tableta en consulta—, así que
+              nadie llegaba a leer que las dispersas son señal en bruto y las
+              alineadas, el dato clínico. Cuerpo grande y una frase que lo
+              dice con todas las letras. */}
           <View style={styles.stageLabelsRow}>
-            <Text style={styles.stageLabelLeft}>RUIDO</Text>
+            <Text
+              style={[styles.stageLabelLeft, isTabletLandscape && styles.stageLabelWide]}
+              numberOfLines={2}>
+              RUIDO
+            </Text>
             <View style={styles.arrowRow}>
               <View style={styles.arrowLine} />
               <Text style={styles.arrowHead}>→</Text>
             </View>
-            <Text style={styles.stageLabelRight}>INFORMACIÓN CLÍNICA</Text>
+            <Text
+              style={[styles.stageLabelRight, isTabletLandscape && styles.stageLabelWide]}
+              numberOfLines={2}>
+              INFORMACIÓN CLÍNICA
+            </Text>
           </View>
+          <Text style={[styles.stageCaption, isTabletLandscape && styles.stageCaptionWide]}>
+            Cada punto es una muestra de la señal acústica. Entran dispersas y
+            sin orden —eso es <Text style={styles.stageCaptionStrong}>ruido</Text>—
+            y salen alineadas en una onda:{' '}
+            <Text style={styles.stageCaptionStrong}>información clínica</Text> que
+            VIA+ ya puede medir.
+          </Text>
         </View>
 
         {/* ================================================================== */}
@@ -422,17 +444,42 @@ const styles = StyleSheet.create({
   },
   stageLabelLeft: {
     fontFamily: MONO,
-    fontSize: 10,
+    fontSize: 15,
     fontWeight: '700',
     letterSpacing: 1.1,
-    color: '#8C8275',
+    color: '#6E6459',
+    flexShrink: 1,
   },
   stageLabelRight: {
     fontFamily: MONO,
-    fontSize: 10,
+    fontSize: 15,
     fontWeight: '700',
     letterSpacing: 1.1,
-    color: '#D97706',
+    color: '#B45309',
+    flexShrink: 1,
+    textAlign: 'right',
+  },
+  /* En tableta apaisada, que es el banco de pruebas real, sube otro escalón. */
+  stageLabelWide: {
+    fontSize: 18,
+    letterSpacing: 1.4,
+  },
+  /* La frase que convierte la animación en explicación. */
+  stageCaption: {
+    marginTop: 12,
+    paddingHorizontal: 8,
+    fontSize: 15,
+    lineHeight: 22,
+    textAlign: 'center',
+    color: '#5C544A',
+  },
+  stageCaptionWide: {
+    fontSize: 16,
+    lineHeight: 24,
+  },
+  stageCaptionStrong: {
+    fontWeight: '800',
+    color: '#2B2620',
   },
   arrowRow: {
     flexDirection: 'row',
@@ -447,7 +494,7 @@ const styles = StyleSheet.create({
   },
   arrowHead: {
     color: '#8C8275',
-    fontSize: 12,
+    fontSize: 16,
     marginLeft: 2,
   },
 

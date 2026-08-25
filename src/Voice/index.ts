@@ -50,10 +50,17 @@ export {
   canSpeak,
   canSpeakText,
   voiceStatus,
+  probeSystemVoice,
   retryVoiceEngine,
   onVoiceStatusChange,
 } from './viaVoice';
-export { playVoiceAsset, stopVoiceAsset, disposeVoicePlayback } from './viaVoicePlayback';
+export {
+  playVoiceAsset,
+  probeVoiceAsset,
+  stopVoiceAsset,
+  disposeVoicePlayback,
+} from './viaVoicePlayback';
+export type { VoiceAssetProbe } from './viaVoicePlayback';
 
 export { useVoiceEngineStatus } from './useVoiceEngineStatus';
 export type { VoiceEngineStatus } from './useVoiceEngineStatus';

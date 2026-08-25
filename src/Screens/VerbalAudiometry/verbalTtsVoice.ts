@@ -11,7 +11,10 @@
 /*      suenan mejor, pero cada palabra exige una petición de síntesis online  */
 /*      y el dictado se cae A MITAD DE LA PRUEBA en cuanto el wifi de la       */
 /*      consulta falla. Una voz instalada debe ganar SIEMPRE a una de red del  */
-/*      mismo idioma, por mucha calidad que ésta declare;                      */
+/*      mismo idioma, por mucha calidad que ésta declare. Cómo se sabe cuál    */
+/*      es cuál está explicado en el bloque «DISPONIBILIDAD SIN RED»: NO por   */
+/*      la bandera `networkConnectionRequired`, que `expo-speech` no envía     */
+/*      nunca, sino leyendo el id como hace Valeria+;                          */
 /*    · mayor `quality` (Android/iOS: 500 = mejorada/premium > 300 normal);    */
 /*    · voces NEURALES (marcadores en id/nombre: «-x-», network, enhanced,     */
 /*      neural, premium, wavenet) — mucho más naturales que las clásicas.      */
@@ -50,6 +53,67 @@ const PREFERRED_DIALECT: Record<string, string> = { es: 'es-es', gl: 'gl-es', eu
 
 const NEURAL_MARKER = /(-x-|network|enhanced|neural|premium|wavenet|natural)/i;
 
+/* -------------------------------------------------------------------------- */
+/*  DISPONIBILIDAD SIN RED — cómo se sabe, y por qué NO por la bandera.        */
+/*                                                                             */
+/*  Este módulo puntuaba «+1500 si la voz no necesita red» leyendo             */
+/*  `networkConnectionRequired === false`. Esa bandera NO EXISTE en el motor   */
+/*  que la app usa: `expo-speech` devuelve las voces con `VoiceRecord`, que    */
+/*  declara EXACTAMENTE cuatro campos —`identifier`, `name`, `quality`,        */
+/*  `language`— (node_modules/expo-speech/android/src/main/java/expo/modules/  */
+/*  speech/VoiceRecord.kt, y el tipo `Voice` de Speech.types.ts dice lo        */
+/*  mismo). `notInstalled` tampoco existe. Las dos llegaban siempre            */
+/*  `undefined`, así que `=== false` era siempre falso y la regla que este     */
+/*  módulo declaraba como imprescindible NUNCA se aplicó.                      */
+/*                                                                             */
+/*  Consecuencia medible con la puntuación de abajo: la voz de red de Google   */
+/*  (`es-es-x-eed-network`, calidad Enhanced → 500·4 = 2000) ganaba a la       */
+/*  local equivalente (`es-es-x-eed-local`, Default → 300·4 = 1200) por 800    */
+/*  puntos. Es decir: la app elegía sistemáticamente la voz que EXIGE          */
+/*  conectividad. Sin red, Android emite `onError` por locución y no se oye    */
+/*  nada — y en el modelo hablado del T.A.R., que es fuego y olvido, no hay    */
+/*  degradación: la pantalla se queda muda sin decir por qué.                  */
+/*                                                                             */
+/*  Valeria+ —la referencia demostrada, regla 1— no usa la bandera: lee el     */
+/*  id. `scoreVoice` de `src/valeriaVoice.ts` hace `if (id.includes('local'))  */
+/*  s += 2;` y `if (id.includes('network')) s += 1;`, y penaliza los motores   */
+/*  heredados con `-6`. Aquí se porta esa misma disciplina a esta escala.      */
+/* -------------------------------------------------------------------------- */
+
+/** Voces de Google TTS servidas desde el dispositivo (`…-x-eed-local`). */
+const LOCAL_MARKER = /local/i;
+/** Voces que sintetizan EN SERVIDOR: suenan mejor y no suenan sin cobertura. */
+const NETWORK_MARKER = /network/i;
+/** Motores heredados notoriamente metálicos (misma lista que Valeria+). */
+const LEGACY_MARKER = /(eloquence|compact|espeak|pico)/i;
+
+/** id + nombre en minúsculas, que es donde el motor deja estas marcas. */
+const voiceTag = (v: TtsVoice): string => `${v.id ?? ''} ${v.name ?? ''}`.toLowerCase();
+
+/**
+ * ¿Se puede sintetizar con esta voz SIN conexión? Es una condición de
+ * fiabilidad clínica, no un desempate: una voz de red se cae a mitad de la
+ * prueba en cuanto el wifi de la consulta falla, y en el emulador de
+ * Android Studio no llega a sonar nunca.
+ *
+ * Se prefiere la bandera del motor cuando existe (iOS/web podrían declararla);
+ * si no, se lee el id, que es lo único que `expo-speech` entrega.
+ */
+export const isOfflineVoice = (v: TtsVoice): boolean => {
+  if (v.networkConnectionRequired === false) return true;
+  if (v.networkConnectionRequired === true) return false;
+  const tag = voiceTag(v);
+  if (NETWORK_MARKER.test(tag)) return false;
+  return LOCAL_MARKER.test(tag);
+};
+
+/** Bonus por no depender de la red. Mayor que la ventaja máxima de una voz de
+ *  red (800 de calidad + 600 de marcador neural), para que una voz INSTALADA
+ *  gane SIEMPRE a una de red del mismo idioma. */
+const OFFLINE_BONUS = 1500;
+/** Penalización de los motores heredados: por debajo de cualquier alternativa. */
+const LEGACY_PENALTY = 3000;
+
 /** ¿Es una voz española utilizable (instalada y en algún dialecto es-*)? */
 export const isUsableSpanishVoice = (v: TtsVoice): boolean =>
   !v.notInstalled && typeof v.language === 'string' && v.language.toLowerCase().startsWith('es');
@@ -57,18 +121,14 @@ export const isUsableSpanishVoice = (v: TtsVoice): boolean =>
 /** Puntuación de idoneidad (mayor = mejor). Solo tiene sentido para voces es-*. */
 export const scoreSpanishVoice = (v: TtsVoice): number => {
   const lang = (v.language ?? '').toLowerCase();
+  const tag = voiceTag(v);
   let score = 0;
   if (lang === 'es-es') score += 3000; // castellano peninsular
   else if (lang.startsWith('es')) score += 1000; // otro español (es-MX, es-US…)
   score += (v.quality ?? 300) * 4; // calidad declarada (300→1200, 500→2000)
-  if (NEURAL_MARKER.test(`${v.id ?? ''} ${v.name ?? ''}`)) score += 600; // voz neural
-  // Disponible sin red: +1500 para que una voz INSTALADA gane siempre a una de
-  // red del mismo dialecto — la ventaja máxima de una voz de red es 1400
-  // ((500−300)·4 de calidad + 600 de marcador neural). Con el antiguo +400 la
-  // «es-es-x-…-network» (calidad 500) empataba o superaba a la local (400) y el
-  // dictado quedaba a merced del wifi de la consulta: sonaba de maravilla hasta
-  // que la síntesis online fallaba a mitad de la prueba.
-  if (v.networkConnectionRequired === false) score += 1500;
+  if (NEURAL_MARKER.test(tag)) score += 600; // voz neural
+  if (isOfflineVoice(v)) score += OFFLINE_BONUS;
+  if (LEGACY_MARKER.test(tag)) score -= LEGACY_PENALTY;
   return score;
 };
 
@@ -98,10 +158,12 @@ const isUsableVoiceOf = (v: TtsVoice, prefix: string): boolean =>
 /** Puntuación de idoneidad dentro de un prefijo de idioma. */
 const scoreVoiceOf = (v: TtsVoice, prefix: string): number => {
   const lang = (v.language ?? '').toLowerCase();
+  const tag = voiceTag(v);
   let score = lang === PREFERRED_DIALECT[prefix] ? 3000 : 1000;
   score += (v.quality ?? 300) * 4;
-  if (NEURAL_MARKER.test(`${v.id ?? ''} ${v.name ?? ''}`)) score += 600;
-  if (v.networkConnectionRequired === false) score += 1500;
+  if (NEURAL_MARKER.test(tag)) score += 600;
+  if (isOfflineVoice(v)) score += OFFLINE_BONUS;
+  if (LEGACY_MARKER.test(tag)) score -= LEGACY_PENALTY;
   return score;
 };
 

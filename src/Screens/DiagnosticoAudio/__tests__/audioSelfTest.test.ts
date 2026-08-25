@@ -75,6 +75,36 @@ describe('veredicto de la toma de prueba', () => {
     expect(r.status).toBe('warn');
     expect(r.hint).toMatch(/tan bajo/);
   });
+
+  /* -------------------------------------------------------------------------
+   *  RECORRIDO DINÁMICO — la duda de campo del 25/8/2026: «cuando me acerco o
+   *  uso otro micrófono externo no cambia la supuesta intensidad de señal».
+   *
+   *  Con un solo nivel medio esa pregunta no tiene respuesta: una entrada
+   *  nivelada por el sistema entrega bloques perfectamente y devuelve siempre
+   *  la misma cifra. El recorrido entre el bloque más flojo y el más fuerte
+   *  sí la tiene, y por eso se PUBLICA. Lo que NO se hace es convertirlo en un
+   *  veredicto: una toma en silencio también es plana, y llamarla avería sería
+   *  inventarse un diagnóstico.
+   * ------------------------------------------------------------------------- */
+  it('publica el recorrido entre el bloque más flojo y el más fuerte', () => {
+    const r = describeCapture(30, 48000, -12, -20, 'live', { minRmsDb: -46, maxRmsDb: -18 });
+    expect(r.detail).toMatch(/recorrido 28\.0 dB/);
+    expect(r.status).toBe('ok');
+    expect(r.hint).toBeUndefined();
+  });
+
+  it('un nivel que no se mueve se EXPLICA, pero no se declara avería', () => {
+    const r = describeCapture(30, 48000, -12, -20, 'live', { minRmsDb: -21, maxRmsDb: -19 });
+    expect(r.status).toBe('ok'); // no hay prueba de avería: no se inventa
+    expect(r.detail).toMatch(/recorrido 2\.0 dB/);
+    expect(r.hint).toMatch(/HABLANDO y CALLANDO/);
+    expect(r.hint).toMatch(/INTENSIDAD/);
+  });
+
+  it('sin recorrido medido, el detalle no se lo inventa', () => {
+    expect(describeCapture(1, 4800, -12, -20, 'live').detail).not.toMatch(/recorrido/);
+  });
 });
 
 describe('resumen', () => {

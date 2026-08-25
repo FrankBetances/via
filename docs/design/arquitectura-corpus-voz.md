@@ -71,6 +71,52 @@ el logopeda); esta capa es para consignas/instrucciones y futuros módulos.
 | Reconocimiento (T.A.R.) | `src/valeriaVoice.ts` (expo-speech-recognition) | **`src/Screens/Articulation/speechRecognitionBridge.ts`** (expo-speech-recognition) |
 | Mapa generado | `src/valeriaVoiceAssets.ts` | **`src/Voice/viaVoiceAssets.ts`** (GENERADO) |
 | Corpus serializado | `voice-corpus.json` | **`voice-corpus.json`** |
+| Elección de la voz del sistema | `scoreVoice` en `src/valeriaVoice.ts` | **`src/Screens/VerbalAudiometry/verbalTtsVoice.ts`** (`scoreVoiceOf`) |
+
+### 2 bis. La elección de voz DIVERGÍA, y era la divergencia que enmudecía la app
+
+Registro del 25/8/2026, tras el informe de campo «la audiometría verbal y el
+test de articulación siguen sin sonido».
+
+Valeria+ y VIA+ puntúan las voces del sistema para quedarse con la mejor. La
+diferencia estaba en **de dónde sacan si una voz necesita conexión**:
+
+| | Valeria+ (funciona) | VIA+ (antes) |
+|---|---|---|
+| Señal usada | el **id** de la voz: `id.includes('local')` → +2, `id.includes('network')` → +1 | la bandera `networkConnectionRequired === false` → +1500 |
+| ¿Existe esa señal? | Sí: el id es uno de los cuatro campos que `expo-speech` entrega | **No.** `VoiceRecord.kt` de expo-speech declara `identifier`, `name`, `quality` y `language`, y nada más |
+| Efecto | gana la voz `-local` | la bandera era siempre `undefined`, el bonus **nunca se aplicó** y ganaba la voz `-network` (calidad Enhanced: 2000 contra 1200) |
+
+Consecuencia: VIA+ elegía sistemáticamente la voz que se sintetiza **en
+servidor**. Sin cobertura —el caso normal en el emulador de Android Studio—
+Android emite `onError` por locución y no sale nada. La audiometría verbal
+degrada al recorte tras dos fallos, pero el modelo hablado del T.A.R. es fuego
+y olvido: se quedaba mudo sin degradar y sin avisar.
+
+**Arreglado portando la disciplina de Valeria+**: `isOfflineVoice` lee el id, la
+bandera del motor solo manda si existe, y los motores heredados
+(`espeak`/`pico`/`compact`) pierden contra cualquier alternativa. Vigilado por
+`verbalTtsVoice.test.ts`, en un bloque que construye las voces **con los cuatro
+campos reales de expo-speech y ninguno más** — los tests anteriores fijaban
+`networkConnectionRequired` a mano y por eso daban verde sobre una app muda
+(regla 3: un mock que no respeta el contrato nativo no prueba nada).
+
+### 2 ter. El servicio en primer plano de `react-native-audio-api` NO se declara
+
+`AudioPlayer::start()` (Android) llama a `NativeAudioPlayer.start()`, que hace
+`MediaSessionManager.startForegroundServiceIfNecessary()` →
+`ContextCompat.startForegroundService(…, AudioForegroundService)`. El
+`AndroidManifest.xml` de la librería está **vacío**: no declara ni el servicio
+ni `FOREGROUND_SERVICE`, así que esa llamada es un no-op silencioso (Android
+registra «Unable to start service … not found» y sigue).
+
+**Divergencia deliberada, con su motivo:** declararlo arrancaría un servicio en
+primer plano con notificación permanente en cuanto la app abre el contexto de
+audio —VIA+ lo abre al arrancar y no lo suelta— y VIA+ no necesita controles de
+pantalla de bloqueo. El no-op no afecta a la emisión de audio. **No verificado
+en dispositivo**: si alguna vez hace falta reproducción en segundo plano, hay
+que declarar el servicio con `foregroundServiceType="mediaPlayback"` y sus dos
+permisos.
 
 ## 3. El contrato de id (`voiceCorpusId`)
 
