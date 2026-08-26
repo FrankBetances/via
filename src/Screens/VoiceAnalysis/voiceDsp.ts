@@ -251,9 +251,6 @@ const SILENCE_RMS = 0.0010; // análisis de la toma (solo silencio digital)
  *  patológicas sin descartar tramos válidos. */
 const VOICED_RMS_FRACTION = 0.12;
 const MIN_PEAK = 0.28; // umbral de periodicidad calibrado
-/** Un pico de autocorrelación que alcance esta fracción del máximo cuenta como
- *  candidato a periodo. */
-const PEAK_FRACTION = 0.78;
 /**
  * Orden del modelo LPC. Regla estándar del análisis de formantes: DOS polos
  * por formante esperado, más 2–4 de margen para la fuente glotal y la
@@ -276,8 +273,8 @@ const clampCorrelationForHnr = (peak: number): number =>
   Math.min(0.999, Math.max(0.001, peak));
 
 /** F0 + fuerza de periodicidad de una ventana por autocorrelación normalizada.
- *  Elige el primer máximo local que supere `PEAK_FRACTION·max` (evita el salto
- *  de octava a subarmónicos) y afina el lag por interpolación parabólica.
+ *  Elige entre los máximos locales con el coste de octava de Praat (ver el
+ *  cuerpo) y afina el lag por interpolación parabólica.
  *  `minRms` permite a `analysePcm` pasar un umbral adaptado al nivel real de
  *  la toma (por defecto, el suelo absoluto para el feedback en vivo). */
 export function analyseFrame(
@@ -308,18 +305,39 @@ export function analyseFrame(
   }
   if (bestR < MIN_PEAK) return null;
 
-  // Primer lag (F0 más alta) que sea máximo local y llegue al umbral relativo.
-  const thr = Math.max(MIN_PEAK, PEAK_FRACTION * bestR);
+  // Elección del periodo entre los máximos locales de la correlación, con el
+  // COSTE DE OCTAVA de Praat: a la fuerza de cada candidato se le resta un
+  // término que crece con el logaritmo del lag, de modo que un periodo largo
+  // —una F0 grave— tiene que ser claramente mejor para ganar. Es lo que evita
+  // que el estimador se enganche a un subarmónico.
+  //
+  // Antes se cogía el PRIMER máximo local que superase `PEAK_FRACTION` del
+  // máximo global, o sea el lag más corto aceptable. Esa regla no puede elegir
+  // nunca un lag más largo, y por eso enmascaraba sus propios errores: un
+  // subarmónico no la engañaba, pero un armónico sí. Medido con el banco de
+  // `tools/acoustics/` sobre fuente de pulsos (26/8/2026): en una /a/ de
+  // 150 Hz con F1 en 900 Hz, la regla del primer máximo devolvía 233,2 Hz
+  // —Praat: 150,0— y arrastraba con ella el HNR y el shimmer, porque la
+  // segmentación en ciclos cuelga de esa F0. Con el coste de octava sale
+  // 150,0 Hz, y ningún otro caso del banco cambia.
+  //
+  // El cambio viene de la rama ASHA_UX; el número (0.035) es el que trae
+  // Praat por defecto.
+  const OCTAVE_COST = 0.035;
   let bestLag = 0;
+  let bestScore = -Infinity;
   for (let lag = MIN_LAG + 1; lag <= maxLag - 1; lag++) {
-    if (r[lag] >= thr && r[lag] >= r[lag - 1] && r[lag] >= r[lag + 1]) {
-      bestLag = lag;
-      break;
+    if (r[lag] >= MIN_PEAK && r[lag] >= r[lag - 1] && r[lag] >= r[lag + 1]) {
+      const score = r[lag] - OCTAVE_COST * Math.log2(lag / MIN_LAG);
+      if (score > bestScore) {
+        bestScore = score;
+        bestLag = lag;
+      }
     }
   }
-  if (bestLag === 0) {
-    bestLag = bestGlobalLag;
-  }
+  // Sin ningún máximo local utilizable, el máximo global es la última red: un
+  // pico ancho sin vértice claro sigue siendo una periodicidad.
+  if (bestLag === 0 && bestR >= MIN_PEAK) bestLag = bestGlobalLag;
   if (bestLag === 0) return null;
 
   // Interpolación parabólica del vértice para una F0 más precisa.
@@ -332,6 +350,190 @@ export function analyseFrame(
     if (denom < 0) lag = bestLag + (0.5 * (y1 - y3)) / denom;
   }
   return { f0: SAMPLE_RATE / lag, peak: r[bestLag], rms };
+}
+
+
+/* --------------------- jitter y shimmer CICLO A CICLO --------------------- */
+
+/**
+ * Perturbación del periodo y de la amplitud medida PULSO A PULSO, como la mide
+ * Praat, y no a partir de las medias por ventana.
+ *
+ * POR QUÉ HACÍA FALTA. Hasta agosto de 2026 el jitter y el shimmer del informe
+ * salían de las series por VENTANA: una F0 y un RMS cada 16 ms, es decir, ya
+ * promediados sobre ~5 ciclos glotales. Promediar es justo lo que borra la
+ * perturbación que se quiere medir, y el banco de `tools/acoustics/` lo dejó a
+ * la vista en cuanto se le pidieron estas dos cifras: sobre una señal con 1 %
+ * de jitter inyectado, VIA+ informaba 0.1 % y Praat 0.8 %; con 8 % de shimmer
+ * inyectado, VIA+ informaba 1.3 % y Praat 5.4 %.
+ *
+ * Es un error en la dirección PELIGROSA: infravalorar la perturbación hace que
+ * una voz patológica se lea como sana.
+ *
+ * EL PICO SE INTERPOLA, y no es un adorno. Tomar como instante del pulso la
+ * muestra de máximo valor cuantiza el periodo a un número entero de muestras:
+ * a 16 kHz, un ciclo de 300 Hz son 53.3 muestras, así que un desplazamiento de
+ * UNA muestra por ruido ya son ~2 % de jitter aparente sobre una voz sana. Con
+ * la parábola por los tres puntos del vértice el instante es continuo y el
+ * ruido deja de fabricar perturbación.
+ */
+export interface GlottalCycleMetrics {
+  /** Jitter local (%) — perturbación relativa media del periodo. */
+  jitterLocalPct: number;
+  /** Shimmer local (%) — perturbación relativa media de la amplitud de pico. */
+  shimmerLocalPct: number;
+  /** Ciclos glotales que entraron en la medida (0 = no se pudo medir). */
+  cycles: number;
+}
+
+/** Tramo sonoro contiguo sobre el que buscar pulsos glotales. */
+export interface VoicedSegment {
+  start: number;
+  length: number;
+  meanPeriod: number;
+}
+
+/** Techos de publicación: por encima, la lectura no discrimina nada clínico. */
+const JITTER_CEILING_PCT = 30;
+const SHIMMER_CEILING_PCT = 45;
+/** Amplitud mínima de un pulso para contarlo (por debajo es suelo de ruido). */
+const MIN_PULSE_AMPLITUDE = 0.002;
+/** Salto de periodo por encima del cual el par no es un ciclo consecutivo. */
+const MAX_PERIOD_JUMP = 0.3;
+
+export function computeCycleMetrics(
+  pcm: Float32Array,
+  voicedSegments: VoicedSegment[],
+): GlottalCycleMetrics {
+  const periods: number[] = [];
+  const amplitudes: number[] = [];
+
+  for (const seg of voicedSegments) {
+    const T = seg.meanPeriod;
+    if (!(T >= MIN_LAG && T <= MAX_LAG)) continue;
+    const minStep = Math.max(2, Math.floor(T * 0.92));
+    const maxStep = Math.ceil(T * 1.08);
+    const end = Math.min(seg.start + seg.length, pcm.length);
+    // Ventana de comparación: medio periodo alrededor del pulso. Basta para
+    // capturar el ataque glotal, que es lo que ancla el instante del ciclo.
+    const win = Math.max(4, Math.floor(T * 0.5));
+
+    /**
+     * Periodo hasta el siguiente ciclo, por CORRELACIÓN CRUZADA entre la
+     * ventana que arranca en `from` y la misma ventana desplazada.
+     *
+     * No se interpola el máximo de la FORMA DE ONDA, y esto es lo que costó
+     * encontrarlo: la muestra de máximo valor de un ciclo cae sobre el ataque
+     * glotal, que es un transitorio abrupto, no una cresta suave. Ajustarle
+     * una parábola por tres puntos da un vértice cuyo sesgo depende de la fase
+     * SUB-MUESTRA del pulso, y esa fase va rotando cuando el periodo no cabe
+     * en un número entero de muestras. Resultado medido: una /a/ SANA de
+     * 150 Hz (periodo 106,67 muestras) salía con 3,1 % de jitter, lectura de
+     * voz patológica, mientras que a 200 Hz (periodo 80 exacto) daba 0,0 %.
+     * La curva de correlación sí es suave alrededor de su máximo, así que ahí
+     * la parábola es el modelo correcto.
+     */
+    const periodAt = (from: number): { period: number; lag: number } | null => {
+      if (from + maxStep + win >= end) return null;
+      let bestLag = 0;
+      let bestScore = -Infinity;
+      const scores = new Float64Array(maxStep + 2);
+      for (let lag = minStep; lag <= maxStep; lag++) {
+        let num = 0;
+        let energy = 0;
+        for (let i = 0; i < win; i++) {
+          num += pcm[from + i] * pcm[from + i + lag];
+          energy += pcm[from + i + lag] * pcm[from + i + lag];
+        }
+        const score = energy > 0 ? num / Math.sqrt(energy) : 0;
+        scores[lag] = score;
+        if (score > bestScore) {
+          bestScore = score;
+          bestLag = lag;
+        }
+      }
+      if (bestLag === 0) return null;
+      let period = bestLag;
+      if (bestLag > minStep && bestLag < maxStep) {
+        const y1 = scores[bestLag - 1];
+        const y2 = scores[bestLag];
+        const y3 = scores[bestLag + 1];
+        const denom = y1 - 2 * y2 + y3;
+        if (denom < 0) {
+          const delta = (0.5 * (y1 - y3)) / denom;
+          if (Math.abs(delta) <= 0.5) period = bestLag + delta;
+        }
+      }
+      return { period, lag: bestLag };
+    };
+
+    /**
+     * Amplitud del ciclo PICO A PICO. Un residuo lento —el retumbe de
+     * climatización que el pasa-alto de 55 Hz atenúa pero no borra— desplaza
+     * por igual la cresta y el valle: la diferencia lo cancela, el valor
+     * absoluto del máximo no. Midiendo el máximo a secas, una /a/ sana con
+     * retumbe de 20 Hz daba 6 % de shimmer (Praat: 2,6 %).
+     */
+    const amplitudeAt = (from: number, span: number): number => {
+      let hiAt = -1;
+      let loAt = -1;
+      let hi = -Infinity;
+      let lo = Infinity;
+      const to = Math.min(from + span, end);
+      for (let i = from; i < to; i++) {
+        if (pcm[i] > hi) { hi = pcm[i]; hiAt = i; }
+        if (pcm[i] < lo) { lo = pcm[i]; loAt = i; }
+      }
+      if (hiAt < 0 || loAt < 0) return 0;
+      return hi - lo;
+    };
+
+    // Anclaje en el primer máximo del tramo, que es donde empieza un ciclo.
+    let pos = seg.start;
+    let peakValue = -Infinity;
+    for (let i = seg.start; i < Math.min(seg.start + Math.ceil(T), end); i++) {
+      if (pcm[i] > peakValue) {
+        peakValue = pcm[i];
+        pos = i;
+      }
+    }
+
+    while (pos + maxStep + win < end) {
+      const found = periodAt(pos);
+      if (!found) break;
+      const amplitude = amplitudeAt(pos, found.lag);
+      if (amplitude > MIN_PULSE_AMPLITUDE) {
+        periods.push(found.period / SAMPLE_RATE);
+        amplitudes.push(amplitude);
+      }
+      pos += found.lag;
+    }
+  }
+
+  const relativePerturbation = (values: number[], jumpGuard: boolean): number => {
+    if (values.length < 2) return 0;
+    let sumDiff = 0;
+    let count = 0;
+    let sum = 0;
+    for (let i = 0; i < values.length - 1; i++) {
+      const diff = Math.abs(values[i] - values[i + 1]);
+      if (!jumpGuard || diff < MAX_PERIOD_JUMP * values[i]) {
+        sumDiff += diff;
+        count += 1;
+      }
+      sum += values[i];
+    }
+    sum += values[values.length - 1];
+    const mean = sum / values.length;
+    if (!(count > 0) || !(mean > 0)) return 0;
+    return (sumDiff / count / mean) * 100;
+  };
+
+  return {
+    jitterLocalPct: Math.min(JITTER_CEILING_PCT, relativePerturbation(periods, true)),
+    shimmerLocalPct: Math.min(SHIMMER_CEILING_PCT, relativePerturbation(amplitudes, false)),
+    cycles: periods.length,
+  };
 }
 
 /* ----------------------------- formantes (LPC) ---------------------------- */
@@ -489,6 +691,30 @@ export async function analysePcm(raw: Float32Array): Promise<VoiceMicResult> {
     }
   }
 
+  // Tramos sonoros CONTIGUOS (ventanas consecutivas separadas por un salto
+  // exacto), para buscar los pulsos glotales dentro de cada uno. Cortar por
+  // tramos y no analizar la toma entera evita medir un «periodo» a caballo de
+  // un silencio o de un cambio de fonación.
+  const voicedSegments: VoicedSegment[] = [];
+  for (let i = 0; i < voicedOffsets.length; ) {
+    let j = i;
+    let f0Sum = f0s[i];
+    while (j + 1 < voicedOffsets.length && voicedOffsets[j + 1] === voicedOffsets[j] + VOICE_HOP) {
+      j += 1;
+      f0Sum += f0s[j];
+    }
+    const meanF0 = f0Sum / (j - i + 1);
+    if (meanF0 > 0) {
+      voicedSegments.push({
+        start: voicedOffsets[i],
+        length: voicedOffsets[j] + FRAME - voicedOffsets[i],
+        meanPeriod: SAMPLE_RATE / meanF0,
+      });
+    }
+    i = j + 1;
+  }
+  const cycles = computeCycleMetrics(pcm, voicedSegments);
+
   // Formantes solo sobre una muestra de ventanas sonoras (coste acotado),
   // repartida por TODA la toma
   const MAX_FORMANT_WINDOWS = 32;
@@ -503,6 +729,13 @@ export async function analysePcm(raw: Float32Array): Promise<VoiceMicResult> {
     amplitudes,
     hnrs,
     formants,
-    stats: { totalFrames: frameRms.length, levelRef: ref, voicedFrames: f0s.length },
+    stats: {
+      totalFrames: frameRms.length,
+      levelRef: ref,
+      voicedFrames: f0s.length,
+      jitterCyclePct: cycles.cycles > 0 ? cycles.jitterLocalPct : undefined,
+      shimmerCyclePct: cycles.cycles > 0 ? cycles.shimmerLocalPct : undefined,
+      glottalCycles: cycles.cycles,
+    },
   };
 }

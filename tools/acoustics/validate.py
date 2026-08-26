@@ -56,6 +56,21 @@ TOLERANCES = {
     # F2 y F3 se acercan (/i/) ambos se desplazan, Praat incluido. La tolerancia
     # lo refleja en vez de fingir una precisión que ninguno de los dos tiene.
     "f3_hz": 500.0,      # Hz
+    # JITTER Y SHIMMER. Son los dos números de perturbación que salen impresos
+    # en el informe clínico y hasta agosto de 2026 NADIE los validaba: el banco
+    # medía F0, HNR y formantes y se saltaba justo las dos cifras sobre las que
+    # el logopeda decide si una voz es sana.
+    #
+    # Las tolerancias son ANCHAS a propósito, y conviene decir por qué en vez
+    # de fingir precisión: VIA+ los deriva de las series por VENTANA (una F0 y
+    # una amplitud cada 16 ms) y Praat de los PULSOS GLOTALES uno a uno sobre
+    # un PointProcess. Son dos definiciones distintas de «ciclo», así que sobre
+    # la misma señal dan números distintos por construcción. Lo que estas
+    # tolerancias vigilan es que no se separen por un ORDEN DE MAGNITUD — que
+    # es lo que pasaba con la contaminación de baja frecuencia, cuando VIA+
+    # daba 33 % de jitter sobre una voz sana.
+    "jitter_pct": 1.5,   # %
+    "shimmer_pct": 6.0,  # %
 }
 
 # ---------------------------------------------------------------------------
@@ -261,10 +276,41 @@ def via_measures(case: dict) -> dict:
     return {
         "f0_hz": via.get("f0"),
         "hnr_db": via.get("hnr"),
+        # Jitter y shimmer llegan de `computeParams`, que es la función que
+        # alimenta la pantalla y el informe — no se recalculan en el banco.
+        "jitter_pct": via.get("jitterPct"),
+        "shimmer_pct": via.get("shimmerPct"),
         "f1_hz": formants.get("f1"),
         "f2_hz": formants.get("f2"),
         "f3_hz": formants.get("f3"),
     }
+
+
+# Tolerancia de formantes CONTRA EL GUION en la familia de fuente de pulsos.
+# Es holgada porque un estimador LPC lee el máximo de la envolvente, que con
+# F0 alta cae en el armónico más cercano al formante y no en el formante: a
+# 400 Hz de F0 los armónicos van de 400 en 400, así que ±200 Hz es el error
+# irreducible del método, no del código.
+TRUTH_FORMANT_TOL_HZ = 250.0
+
+
+def compare_vowel_truth(name: str, via: dict, truth: dict) -> list:
+    """VIA+ contra los formantes SINTETIZADOS (lo que Praat no arbitra bien)."""
+    expected = truth.get("formants") or []
+    problems = []
+    for n, key in enumerate(("f1_hz", "f2_hz", "f3_hz")):
+        if n >= len(expected):
+            continue
+        a, b = via.get(key), expected[n]
+        # No estimar es una respuesta legítima; ver `compare`.
+        if a is None or b is None:
+            continue
+        delta = abs(a - b)
+        if delta > TRUTH_FORMANT_TOL_HZ:
+            problems.append(
+                f"{name}: {key} VIA+={a:.1f} guion={b:.1f} (Δ{delta:.1f} > {TRUTH_FORMANT_TOL_HZ})"
+            )
+    return problems
 
 
 def compare(name: str, via: dict, praat: dict) -> list:
@@ -350,7 +396,18 @@ def main() -> int:
             if via.get(key) is None and praat.get(key) is not None:
                 not_estimated.append(f"{name}: {key}")
 
-        problems.extend(compare(name, via, praat))
+        expected = case.get("expected") or {}
+        if expected.get("formants"):
+            # Familia de fuente de pulsos: los formantes los arbitra el guion
+            # (ver `compare_vowel_truth`); del resto sigue encargándose Praat.
+            problems.extend(
+                p
+                for p in compare(name, via, praat)
+                if not any(p.split(": ")[1].startswith(k) for k in ("f1_hz", "f2_hz", "f3_hz"))
+            )
+            problems.extend(compare_vowel_truth(name, via, expected))
+        else:
+            problems.extend(compare(name, via, praat))
 
     def is_kind(data, kind):
         return data.get("kind", "vowel") == kind
