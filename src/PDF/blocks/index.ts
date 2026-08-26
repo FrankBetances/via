@@ -22,6 +22,7 @@ export { SahsScreeningDetail } from './SahsScreeningDetail';
 export { ArticulationDetail } from './ArticulationDetail';
 export { VerbalAudiometryDetail } from './VerbalAudiometryDetail';
 export { ExecutiveFunctionsDetail } from './ExecutiveFunctionsDetail';
+export { AshaScreeningDetail } from './AshaScreeningDetail';
 
 import { ClinicalAssessmentDetail } from './ClinicalAssessmentDetail';
 import { ScreeningDetail } from './ScreeningDetail';
@@ -33,6 +34,7 @@ import { SahsScreeningDetail } from './SahsScreeningDetail';
 import { ArticulationDetail } from './ArticulationDetail';
 import { VerbalAudiometryDetail } from './VerbalAudiometryDetail';
 import { ExecutiveFunctionsDetail } from './ExecutiveFunctionsDetail';
+import { AshaScreeningDetail } from './AshaScreeningDetail';
 
 /**
  * Registro de bloques de informe por módulo, recorrido por
@@ -49,4 +51,5 @@ export const blocks: Record<string, PdfBlock<any>> = {
   ArticulationDetail,
   VerbalAudiometryDetail,
   ExecutiveFunctionsDetail,
+  AshaScreeningDetail,
 };

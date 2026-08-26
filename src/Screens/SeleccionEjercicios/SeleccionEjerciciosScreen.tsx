@@ -200,6 +200,21 @@ const MODULES: ModuleCard[] = [
     soft: '#FEE2E2',
     badgeParam: 'SpO₂ · desaturación',
   },
+  {
+    id: 'AshaScreening',
+    title: 'Hitos del Lenguaje ASHA',
+    subtitle: '(Percentil 75)',
+    description: 'Cribado normativo (0–5 años) de dominios comunicativos con motor CDSS y alertas.',
+    duration: '5–8 min',
+    durationMinutes: 6,
+    ages: '0–5 años',
+    icon: Puzzle,
+    category: 'neuro',
+    tag: 'NEURODESARROLLO',
+    color: '#0D9488',
+    soft: '#CCFBF1',
+    badgeParam: 'CDSS Percentil 75',
+  },
 ];
 
 interface FilterCategoryDef {

@@ -20,6 +20,7 @@ import { SahsScreening } from '@/Models/SahsScreening/SahsScreening';
 import { ArticulationTest } from '@/Models/ArticulationTest/ArticulationTest';
 import { VerbalAudiometryTest } from '@/Models/VerbalAudiometry/VerbalAudiometryTest';
 import { ExecutiveFunctionsTest } from '@/Models/ExecutiveFunctions/ExecutiveFunctionsTest';
+import { AshaMilestoneTest } from '@/Models/Asha/AshaMilestoneTest';
 
 /* -------------------------------------------------------------------------- */
 /*  TypeORM DataSource — VIA+ (offline-first, SQLite local).                  */
@@ -68,6 +69,7 @@ export const AppDataSource = new DataSource({
     ArticulationTest,
     VerbalAudiometryTest,
     ExecutiveFunctionsTest,
+    AshaMilestoneTest,
   ],
   migrations: [],
   subscribers: [],
