@@ -16,8 +16,27 @@ distintos, y conviene que conste por qué:
 | --- | --- | --- |
 | Módulo ASHA | Integrado con correcciones (ver abajo) | Aporta un módulo que no existía |
 | Normalización de reproducción, medidor VU, sonómetro compartido, `rate` 0,95 | Integrados aparte | Mejoras reales y verificables |
-| DSP: NSDF con coste de octava, jitter/shimmer ciclo a ciclo | **No integrado** | Rompe dos pruebas de voz infantil: un niño a 300 Hz se mide en 257 Hz, y el shimmer de una voz sana sube a 5,76 % |
-| Retirada del `stop()` previo a `speak()` | **No integrado** | Valeria+ hace justo eso en sus tres puntos de entrada (`src/valeriaVoice.ts:318, 329, 390`) y locuta. `expo-speech` habla con `TextToSpeech.QUEUE_ADD` (`SpeechModule.kt:126`): sin el `stop()`, las locuciones se **encolan** en vez de relevarse |
+| DSP: coste de octava y jitter/shimmer ciclo a ciclo | **Integrado en la tanda C, tras medirlo** | La primera lectura fue que era una regresión, y era falsa: el test que fallaba usaba una señal mal construida. Arbitrado con Praat, el coste de octava corrige una /a/ de 150 Hz que salía en 233 Hz, y la medida ciclo a ciclo corrige una infravaloración del jitter y el shimmer de seis a diez veces. Ver `tools/acoustics/README.md` |
+| Rediseño de Bienvenida, Créditos y CAP | **Integrado en la tanda D** | Sin pérdida de datos clínicos: el CAP escribe exactamente los mismos campos y `clinicalAssessmentResult.ts` (la lógica) no se toca |
+| Retirada del `stop()` previo a `speak()` | **NO integrado** | Valeria+ hace justo eso en sus tres puntos de entrada (`src/valeriaVoice.ts:318, 329, 390`) y locuta. `expo-speech` habla con `TextToSpeech.QUEUE_ADD` (`SpeechModule.kt:126`): sin el `stop()`, las locuciones se **encolan** en vez de relevarse |
+| `canSpeak()` / `canSpeakText()` degradados a «¿existe el módulo?» | **NO integrado** | Es el patrón que prohíbe la regla 4: enumerar no es emitir. Y en la app es inerte, porque el adaptador se instala siempre (`src/App.tsx:58`) |
+| Respaldo directo a `expo-speech` en `viaVoice.ts` | **NO integrado** | Inalcanzable: solo se dispara si el adaptador verbal NO está instalado, y se instala siempre |
+| Borrado de los comentarios de `verbalAudiometryAudio.ts` y `viaVoice.ts` | **NO integrado** | Son el registro de por qué cada decisión existe. Una decisión sin motivo escrito no se revisa: se hereda |
+
+### Dos cambios de texto que NO se aplicaron, y por qué
+
+Los trae el rediseño y no son de estilo:
+
++ **Veredictos del CAP renombrados**: «Restricción» → «Adaptar» y «Bloqueo» →
+  «Bloqueado», con las etiquetas duplicadas dentro de la hoja de estilos en vez
+  de leerlas de `DOMAIN_LABELS`. Renombrar un veredicto clínico es una decisión
+  clínica. Se mantiene el vocabulario actual y una sola fuente para él, vigilado
+  por `clinicalAssessmentRender.test.tsx`.
++ **Acreditación de Créditos**: «Innovación tecnológica en salud» → «Innovación
+  sanitaria **avalada por el ISCIII**». Es una afirmación más fuerte sobre un
+  sello. Se mantiene la actual hasta que Frank confirme los términos.
+
+Los dos están **pendientes de decisión**, no descartados.
 
 El `README_ASHA_UX.md` de esa rama atribuye además al cambio la migración a
 `expo-speech`, la sonda `probeSpeech` y el análisis del fallo de `voices()` de
@@ -37,9 +56,9 @@ El `README_ASHA_UX.md` de esa rama atribuye además al cambio la migración a
 
 ## Estratificación
 
-- **Rojo** — al menos una bandera roja no cumplida.
-- **Amarillo** — algún hito fallado, ninguno con bandera roja.
-- **Verde** — todos los hitos de la banda cumplidos.
++ **Rojo** — al menos una bandera roja no cumplida.
++ **Amarillo** — algún hito fallado, ninguno con bandera roja.
++ **Verde** — todos los hitos de la banda cumplidos.
 
 Un hito **sin contestar no cuenta como fallado**, ni en el motor ni en el
 informe: es la regla 4 aplicada a un dato clínico. Un cribado a medias no puede

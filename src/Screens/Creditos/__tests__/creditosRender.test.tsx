@@ -17,6 +17,17 @@ jest.mock('@/Components/Common', () => ({
   Header: () => null,
 }));
 
+// La pantalla lee el área segura para colocar su barra superior en tableta.
+// `useSafeAreaInsets` LANZA si no encuentra proveedor, así que el árbol se
+// monta dentro de uno con métricas fijas: la app real sí lo tiene (`App.tsx`),
+// y este doble evita que la prueba dependa de la pantalla del ejecutor.
+import { SafeAreaProvider } from 'react-native-safe-area-context';
+
+const SAFE_AREA_METRICS = {
+  frame: { x: 0, y: 0, width: 1024, height: 768 },
+  insets: { top: 24, left: 0, right: 0, bottom: 16 },
+};
+
 import CreditosScreen from '../CreditosScreen';
 import { ORBIT_MODULES } from '../orbitModules';
 
@@ -26,7 +37,11 @@ describe('CreditosScreen', () => {
   it('monta la pantalla completa y pinta los doce módulos', () => {
     let tree: ReturnType<typeof create> | undefined;
     act(() => {
-      tree = create(<CreditosScreen navigation={navigation} route={{} as never} />);
+      tree = create(
+        <SafeAreaProvider initialMetrics={SAFE_AREA_METRICS}>
+          <CreditosScreen navigation={navigation} route={{} as never} />
+        </SafeAreaProvider>,
+      );
     });
     expect(tree).toBeDefined();
 
@@ -37,9 +52,20 @@ describe('CreditosScreen', () => {
       expect(json).toContain(m.color);
     });
 
-    // Y las secciones de la pantalla siguen ahí.
-    ['AUTORÍA Y DIRECCIÓN CLÍNICA', 'COLABORADORES', 'CALIDAD Y NORMATIVA', 'Comenzar'].forEach(
-      texto => expect(json).toContain(texto),
+    // Y las secciones de la pantalla siguen ahí. El rediseño de agosto de 2026
+    // renombró la última («CALIDAD Y NORMATIVA» → «CALIDAD Y REGULACIÓN
+    // SANITARIA») sin quitar nada de dentro.
+    [
+      'AUTORÍA Y DIRECCIÓN CLÍNICA',
+      'COLABORADORES',
+      'CALIDAD Y REGULACIÓN SANITARIA',
+      'Comenzar',
+    ].forEach(texto => expect(json).toContain(texto));
+
+    // Las menciones institucionales y regulatorias no se pierden en un
+    // rediseño: son lo que esta pantalla existe para acreditar.
+    ['ITEMAS', 'ACOPROS', 'FONDOCYT', 'SaMD Clase IIa', 'MDR 2017/745'].forEach(texto =>
+      expect(json).toContain(texto),
     );
 
     act(() => {

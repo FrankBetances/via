@@ -9,7 +9,7 @@ import {
   useWindowDimensions,
   View,
 } from 'react-native';
-import Svg, { Path } from 'react-native-svg';
+import Svg, { Defs, LinearGradient, Path, Stop } from 'react-native-svg';
 import Animated, {
   cancelAnimation,
   Easing,
@@ -20,11 +20,21 @@ import Animated, {
   withDelay,
   withRepeat,
   withSequence,
+  withSpring,
   withTiming,
 } from 'react-native-reanimated';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { ArrowRight, Lock, Stethoscope, Trophy } from 'lucide-react-native';
+import {
+  Activity,
+  ArrowRight,
+  Award,
+  Lock,
+  ShieldCheck,
+  Sparkles,
+  Stethoscope,
+} from 'lucide-react-native';
 
 import type { RootStackParamList } from '@/Navigators/screenTypeNavigator';
 import ViaIcon from '@/Components/Common/ViaIcon';
@@ -32,16 +42,17 @@ import ViaIcon from '@/Components/Common/ViaIcon';
 type Nav = NativeStackNavigationProp<RootStackParamList, 'Bienvenida'>;
 
 /* -------------------------------------------------------------------------- */
-/*  BienvenidaScreen — "Del ruido a la información clínica" en tableta (4:3)   */
-/*  Escenario cinemático de partículas + onda dual a la izquierda, propuesta   */
-/*  de valor clínico estructurada y CTA a la derecha.                          */
+/*  BienvenidaScreen — "Del ruido a la información clínica"                   */
+/*  Diseño clínico cálido, riguroso y optimizado para tableta 4:3 y móviles.   */
+/*  Escenario cinemático acústico a la izquierda, tarjetas de valor clínico    */
+/*  y llamada a la acción accesible a la derecha.                             */
 /* -------------------------------------------------------------------------- */
 
-const ICON_SIZE = 92;
+const ICON_SIZE = 88;
 const RING_DURATION = 2600;
-const FIELD_H = 220;
+const FIELD_H = 200;
 const PARTICLES = 28;
-const TRAVEL_MS = 5400;
+const TRAVEL_MS = 5200;
 
 interface ParticleSpec {
   delay: number;
@@ -62,14 +73,14 @@ function buildSpecs(): ParticleSpec[] {
     return seed / 4294967296;
   };
   return Array.from({ length: PARTICLES }, (_, i) => ({
-    delay: i * (TRAVEL_MS / PARTICLES) + rnd() * 160,
-    duration: TRAVEL_MS * (0.88 + rnd() * 0.28),
+    delay: i * (TRAVEL_MS / PARTICLES) + rnd() * 140,
+    duration: TRAVEL_MS * (0.88 + rnd() * 0.24),
     size: 3.5 + Math.round(rnd() * 3),
     baseY: rnd() * 2 - 1,
-    amp: 16 + rnd() * 28,
-    f1: 6 + rnd() * 9,
+    amp: 14 + rnd() * 24,
+    f1: 6 + rnd() * 8,
     p1: rnd() * Math.PI * 2,
-    f2: 14 + rnd() * 14,
+    f2: 12 + rnd() * 12,
     p2: rnd() * Math.PI * 2,
   }));
 }
@@ -91,24 +102,24 @@ function Particle({ spec, width }: { spec: ParticleSpec; width: number }) {
     const p = prog.value;
     const x = interpolate(p, [0, 1], [-8, width + 8]);
 
-    // Grado de desorden: 1 antes del logo (0-40%), 0 después (40-100%)
-    const disorder = 1 - Math.min(1, Math.max(0, (p - 0.35) / 0.18));
+    // Grado de desorden: 1 antes del isotipo (0-38%), 0 después (38-100%)
+    const disorder = 1 - Math.min(1, Math.max(0, (p - 0.34) / 0.18));
 
     const yChaos =
-      spec.baseY * (FIELD_H / 2 - 20) +
+      spec.baseY * (FIELD_H / 2 - 24) +
       Math.sin(p * spec.f1 + spec.p1) * spec.amp +
       Math.sin(p * spec.f2 + spec.p2) * spec.amp * 0.5;
-    const yOrder = Math.sin(p * Math.PI * 2 * 2.5) * 22;
+    const yOrder = Math.sin(p * Math.PI * 2 * 2.6) * 18;
     const y = disorder * yChaos + (1 - disorder) * yOrder;
 
     const opacity =
-      interpolate(p, [0, 0.05, 0.92, 1], [0, 1, 1, 0]) * (0.55 + 0.45 * (1 - disorder));
+      interpolate(p, [0, 0.06, 0.92, 1], [0, 1, 1, 0]) * (0.55 + 0.45 * (1 - disorder));
 
     return {
       transform: [
         { translateX: x },
         { translateY: y },
-        { scale: 0.85 + 0.5 * (1 - disorder) },
+        { scale: 0.85 + 0.45 * (1 - disorder) },
       ],
       opacity,
       backgroundColor: interpolateColor(disorder, [0, 1], ['#FF7F00', '#A39988']),
@@ -129,26 +140,41 @@ function Particle({ spec, width }: { spec: ParticleSpec; width: number }) {
 
 export default function BienvenidaScreen() {
   const navigation = useNavigation<Nav>();
+  const insets = useSafeAreaInsets();
   const { width: winW } = useWindowDimensions();
   const isTabletLandscape = winW >= 850;
-  const stageWidth = isTabletLandscape ? Math.min(winW * 0.48, 500) : Math.min(winW - 48, 480);
+  const stageWidth = isTabletLandscape
+    ? Math.min(winW * 0.46, 520)
+    : Math.min(winW - 48, 480);
   const specs = useMemo(buildSpecs, []);
 
+  // Shared values para animaciones continuas del escenario
   const floatY = useSharedValue(0);
   const ring1 = useSharedValue(0);
   const ring2 = useSharedValue(0);
   const waveProg = useSharedValue(0);
 
+  // Animaciones de entrada escalonada (Staggered Entrance)
+  const introOpacity = useSharedValue(0);
+  const introTranslateY = useSharedValue(20);
+  const btnScale = useSharedValue(1);
+
   useEffect(() => {
+    // Entrada fluida
+    introOpacity.value = withTiming(1, { duration: 650, easing: Easing.out(Easing.cubic) });
+    introTranslateY.value = withTiming(0, { duration: 650, easing: Easing.out(Easing.cubic) });
+
+    // Isotipo flotante
     floatY.value = withRepeat(
       withSequence(
-        withTiming(-6, { duration: 3000, easing: Easing.inOut(Easing.sin) }),
-        withTiming(0, { duration: 3000, easing: Easing.inOut(Easing.sin) }),
+        withTiming(-5, { duration: 2800, easing: Easing.inOut(Easing.sin) }),
+        withTiming(0, { duration: 2800, easing: Easing.inOut(Easing.sin) }),
       ),
       -1,
       false,
     );
 
+    // Ondas acústicas concéntricas
     const makePulse = () =>
       withRepeat(
         withSequence(
@@ -162,7 +188,7 @@ export default function BienvenidaScreen() {
     ring2.value = withDelay(RING_DURATION / 2, makePulse());
 
     waveProg.value = withRepeat(
-      withTiming(1, { duration: 4000, easing: Easing.linear }),
+      withTiming(1, { duration: 3600, easing: Easing.linear }),
       -1,
       false,
     );
@@ -172,27 +198,52 @@ export default function BienvenidaScreen() {
       cancelAnimation(ring1);
       cancelAnimation(ring2);
       cancelAnimation(waveProg);
+      cancelAnimation(introOpacity);
+      cancelAnimation(introTranslateY);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  const introStyle = useAnimatedStyle(() => ({
+    opacity: introOpacity.value,
+    transform: [{ translateY: introTranslateY.value }],
+  }));
+
   const floatStyle = useAnimatedStyle(() => ({
     transform: [{ translateY: floatY.value }],
   }));
+
   const ring1Style = useAnimatedStyle(() => ({
-    transform: [{ scale: interpolate(ring1.value, [0, 1], [0.92, 1.65]) }],
+    transform: [{ scale: interpolate(ring1.value, [0, 1], [0.92, 1.62]) }],
     opacity: interpolate(ring1.value, [0, 1], [0.45, 0]),
   }));
+
   const ring2Style = useAnimatedStyle(() => ({
-    transform: [{ scale: interpolate(ring2.value, [0, 1], [0.92, 1.65]) }],
+    transform: [{ scale: interpolate(ring2.value, [0, 1], [0.92, 1.62]) }],
     opacity: interpolate(ring2.value, [0, 1], [0.45, 0]),
   }));
 
+  const btnAnimatedStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: btnScale.value }],
+  }));
+
+  const handlePressIn = () => {
+    btnScale.value = withSpring(0.97, { damping: 15, stiffness: 300 });
+  };
+
+  const handlePressOut = () => {
+    btnScale.value = withSpring(1, { damping: 15, stiffness: 300 });
+  };
+
+  const handleStart = () => {
+    navigation.navigate('Creditos');
+  };
+
   return (
-    <View style={styles.root}>
+    <View style={[styles.root, { paddingTop: Math.max(insets.top, 16), paddingBottom: Math.max(insets.bottom, 16) }]}>
       <StatusBar barStyle="dark-content" backgroundColor="#F5F2EC" />
 
-      {/* Ambient background glows */}
+      {/* Fondos de luz ambiental cálida */}
       <View style={styles.blobTopLeft} pointerEvents="none" />
       <View style={styles.blobBottomRight} pointerEvents="none" />
 
@@ -204,143 +255,196 @@ export default function BienvenidaScreen() {
         showsVerticalScrollIndicator={false}>
         
         {/* ================================================================== */}
-        {/* COLUMNA IZQUIERDA: Escenario Cinemático de Partículas + Onda Dual  */}
+        {/* COLUMNA IZQUIERDA: Escenario Cinemático Acústico ("Del Ruido...") */}
         {/* ================================================================== */}
-        <View style={[styles.stageColumn, { width: stageWidth }]}>
-          <View style={[styles.fieldContainer, { width: stageWidth }]}>
-            
-            {/* Partículas de fondo */}
-            <View style={styles.particleTrack} pointerEvents="none">
-              {specs.map((spec, i) => (
-                <Particle key={i} spec={spec} width={stageWidth} />
-              ))}
+        <Animated.View style={[styles.stageColumn, { width: stageWidth }, introStyle]}>
+          <View style={[styles.stageCard, { width: stageWidth }]}>
+            {/* Header del escenario con etiqueta de señal en tiempo real */}
+            <View style={styles.stageCardHeader}>
+              <View style={styles.signalLiveBadge}>
+                <View style={styles.liveDot} />
+                <Text style={styles.signalLiveText}>PROCESAMIENTO DSP</Text>
+              </View>
+              <Text style={styles.signalSamplingText}>48 kHz · 24-bit</Text>
             </View>
 
-            {/* Onda senoidal dual armónica renderizada en SVG */}
-            <View style={styles.waveLayer} pointerEvents="none">
-              <Svg width={stageWidth * 0.58} height={120} viewBox="0 0 240 120" fill="none">
-                {/* Onda 1: Naranja Radiante (Armónica fundamental) */}
-                <Path
-                  d="M 10 60 C 35 15, 60 105, 95 60 C 130 15, 160 105, 195 60 C 215 35, 230 45, 238 60"
-                  stroke="#FF7F00"
-                  strokeWidth="3.8"
-                  strokeLinecap="round"
-                  fill="none"
-                  opacity="0.9"
-                />
-                {/* Onda 2: Turquesa / Teal (Formante clínico secundario) */}
-                <Path
-                  d="M 10 60 C 40 30, 65 90, 105 60 C 145 30, 170 90, 205 60 C 220 48, 232 52, 238 60"
-                  stroke="#0D9488"
-                  strokeWidth="2.8"
-                  strokeLinecap="round"
-                  fill="none"
-                  opacity="0.8"
-                />
-              </Svg>
+            {/* Contenedor del osciloscopio cinemático */}
+            <View style={[styles.fieldContainer, { width: stageWidth - 32 }]}>
+              {/* Partículas de señal en movimiento */}
+              <View style={styles.particleTrack} pointerEvents="none">
+                {specs.map((spec, i) => (
+                  <Particle key={i} spec={spec} width={stageWidth - 32} />
+                ))}
+              </View>
+
+              {/* Onda senoidal dual armónica renderizada en SVG */}
+              <View style={styles.waveLayer} pointerEvents="none">
+                <Svg width={(stageWidth - 32) * 0.58} height={100} viewBox="0 0 240 100" fill="none">
+                  <Defs>
+                    <LinearGradient id="orangeWave" x1="0" y1="0" x2="1" y2="0">
+                      <Stop offset="0" stopColor="#FF7F00" stopOpacity="0.3" />
+                      <Stop offset="0.5" stopColor="#FF7F00" stopOpacity="0.95" />
+                      <Stop offset="1" stopColor="#E08A3D" stopOpacity="0.8" />
+                    </LinearGradient>
+                    <LinearGradient id="tealWave" x1="0" y1="0" x2="1" y2="0">
+                      <Stop offset="0" stopColor="#0D9488" stopOpacity="0.2" />
+                      <Stop offset="0.6" stopColor="#0D9488" stopOpacity="0.9" />
+                      <Stop offset="1" stopColor="#14B8A6" stopOpacity="0.7" />
+                    </LinearGradient>
+                  </Defs>
+
+                  {/* Onda 1: Armónica fundamental en Naranja Radiante */}
+                  <Path
+                    d="M 10 50 C 35 15, 60 85, 95 50 C 130 15, 160 85, 195 50 C 215 30, 230 40, 238 50"
+                    stroke="url(#orangeWave)"
+                    strokeWidth="3.6"
+                    strokeLinecap="round"
+                    fill="none"
+                  />
+                  {/* Onda 2: Formante clínica secundaria en Turquesa */}
+                  <Path
+                    d="M 10 50 C 40 25, 65 75, 105 50 C 145 25, 170 75, 205 50 C 220 40, 232 44, 238 50"
+                    stroke="url(#tealWave)"
+                    strokeWidth="2.6"
+                    strokeLinecap="round"
+                    fill="none"
+                  />
+                </Svg>
+              </View>
+
+              {/* Isotipo VIA+ con pulso de anillos acústicos */}
+              <Animated.View style={[styles.iconWrapper, floatStyle]}>
+                <Animated.View style={[styles.ring, ring1Style]} />
+                <Animated.View style={[styles.ring, ring2Style]} />
+                <ViaIcon size={ICON_SIZE} variant="color" />
+              </Animated.View>
             </View>
 
-            {/* Isotipo VIA+ con pulso de anillos concéntricos */}
-            <Animated.View style={[styles.iconWrapper, floatStyle]}>
-              <Animated.View style={[styles.ring, ring1Style]} />
-              <Animated.View style={[styles.ring, ring2Style]} />
-              <ViaIcon size={ICON_SIZE} variant="color" />
-            </Animated.View>
+            {/* Cápsula de transformación DSP */}
+            <View style={styles.stageLabelsRow}>
+              <View style={styles.stagePillLeft}>
+                <Text style={styles.stageLabelLeft}>RUIDO</Text>
+              </View>
+              <View style={styles.arrowRow}>
+                <View style={styles.arrowLine} />
+                <Text style={styles.arrowHead}>➔</Text>
+              </View>
+              <View style={styles.stagePillRight}>
+                <Text style={styles.stageLabelRight}>INFORMACIÓN CLÍNICA</Text>
+              </View>
+            </View>
           </View>
 
-          {/* LEYENDA DEL ESCENARIO.
-
-              Es lo que EXPLICA la animación, no un adorno: sin ella las
-              partículas son puntos que se mueven. Iba a cuerpo 10 —ilegible a
-              la distancia a la que se usa una tableta en consulta—, así que
-              nadie llegaba a leer que las dispersas son señal en bruto y las
-              alineadas, el dato clínico. Cuerpo grande y una frase que lo
-              dice con todas las letras. */}
-          <View style={styles.stageLabelsRow}>
-            <Text
-              style={[styles.stageLabelLeft, isTabletLandscape && styles.stageLabelWide]}
-              numberOfLines={2}>
-              RUIDO
-            </Text>
-            <View style={styles.arrowRow}>
-              <View style={styles.arrowLine} />
-              <Text style={styles.arrowHead}>→</Text>
-            </View>
-            <Text
-              style={[styles.stageLabelRight, isTabletLandscape && styles.stageLabelWide]}
-              numberOfLines={2}>
-              INFORMACIÓN CLÍNICA
-            </Text>
-          </View>
+          {/* Leyenda explicativa clara para el facultativo */}
           <Text style={[styles.stageCaption, isTabletLandscape && styles.stageCaptionWide]}>
-            Cada punto es una muestra de la señal acústica. Entran dispersas y
-            sin orden —eso es <Text style={styles.stageCaptionStrong}>ruido</Text>—
-            y salen alineadas en una onda:{' '}
-            <Text style={styles.stageCaptionStrong}>información clínica</Text> que
-            VIA+ ya puede medir.
+            Transformación determinista de la señal acústica:{' '}
+            <Text style={styles.stageCaptionMuted}>de muestras dispersas no calibradas a</Text>{' '}
+            <Text style={styles.stageCaptionStrong}>parámetros biomédicos reproducibles</Text>.
           </Text>
-        </View>
+        </Animated.View>
 
         {/* ================================================================== */}
-        {/* COLUMNA DERECHA: Propuesta de Valor, Tarjetas y Botón de Inicio   */}
+        {/* COLUMNA DERECHA: Narrativa Clínica, Tarjetas de Valor y Acción     */}
         {/* ================================================================== */}
-        <View style={styles.narrativeColumn}>
-          {/* Wordmark VIA+ */}
-          <View style={styles.wordmark}>
-            <Text style={styles.wordmarkVia}>VIA</Text>
-            <Text style={styles.wordmarkPlus}>+</Text>
+        <Animated.View style={[styles.narrativeColumn, introStyle]}>
+          {/* Cabecera / Wordmark VIA+ */}
+          <View style={styles.wordmarkRow}>
+            <View style={styles.wordmark}>
+              <Text style={styles.wordmarkVia}>VIA</Text>
+              <Text style={styles.wordmarkPlus}>+</Text>
+            </View>
+            <View style={styles.samdHeaderPill}>
+              <ShieldCheck size={14} color="#0D9488" strokeWidth={2.2} />
+              <Text style={styles.samdHeaderText}>SaMD Clase IIa</Text>
+            </View>
           </View>
 
-          {/* Titular destacado */}
+          {/* Titular Principal */}
           <View style={styles.titleWrapper}>
-            <Text style={styles.titleEyebrow}>BIENVENIDO A VIA+</Text>
+            <Text style={styles.titleEyebrow}>VALORACIÓN INTERACTIVA DE AUDICIÓN Y LENGUAJE</Text>
             <Text style={[styles.titleLead, isTabletLandscape && styles.titleLeadWide]}>
               Del ruido a la
             </Text>
             <View style={styles.titleHighlightPill}>
-              <Text
-                style={[styles.titleHighlightText, isTabletLandscape && styles.titleHighlightWide]}>
+              <Sparkles size={isTabletLandscape ? 26 : 20} color="#9A3412" strokeWidth={2} style={styles.sparkleIcon} />
+              <Text style={[styles.titleHighlightText, isTabletLandscape && styles.titleHighlightWide]}>
                 información clínica
               </Text>
             </View>
           </View>
 
-          {/* Párrafo explicativo */}
+          {/* Descripción clínica */}
           <Text style={[styles.description, isTabletLandscape && styles.descriptionWide]}>
-            VIA+ procesa objetivamente la señal acústica y la transforma en parámetros diagnósticos precisos para optimizar la toma de decisiones clínicas.
+            Plataforma avanzada de evaluación audiológica y del lenguaje. Procesa objetivamente la acústica vocal y el comportamiento auditivo para una toma de decisiones clínicas con máxima precisión.
           </Text>
 
-          {/* 3 Tarjetas / Chips de Valor Clínico */}
-          <View style={styles.chipsContainer}>
-            <View style={styles.valueChip}>
-              <Stethoscope size={16} color="#0284C7" />
-              <Text style={styles.valueChipText}>12 Módulos Clínicos</Text>
+          {/* 3 Tarjetas de Valor Clínico Enriquecidas */}
+          <View style={styles.cardsContainer}>
+            {/* Tarjeta 1: 12 Módulos Clínicos */}
+            <View style={styles.clinicalCard}>
+              <View style={[styles.cardIconBox, { backgroundColor: '#E0F2FE' }]}>
+                <Stethoscope size={20} color="#0284C7" strokeWidth={2.2} />
+              </View>
+              <View style={styles.cardContent}>
+                <Text style={styles.cardTitle}>12 Módulos de Batería Clínica</Text>
+                <Text style={styles.cardSubtitle}>
+                  Audiometría (tonal, CPA y verbal), voz acústica, prosodia, articulación, disfagia, SAHS y FE.
+                </Text>
+              </View>
             </View>
 
-            <View style={styles.valueChip}>
-              <Lock size={15} color="#0D9488" />
-              <Text style={styles.valueChipText}>100% On-Device · Zero-PHI</Text>
+            {/* Tarjeta 2: 100% On-Device · Zero-PHI */}
+            <View style={styles.clinicalCard}>
+              <View style={[styles.cardIconBox, { backgroundColor: '#CCFBF1' }]}>
+                <Lock size={19} color="#0D9488" strokeWidth={2.2} />
+              </View>
+              <View style={styles.cardContent}>
+                <Text style={styles.cardTitle}>100% On-Device · Zero-PHI</Text>
+                <Text style={styles.cardSubtitle}>
+                  DSP acústico local sin subida de audio a la nube. Privacidad total y cumplimiento normativo estricto.
+                </Text>
+              </View>
             </View>
 
-            <View style={styles.valueChip}>
-              <Trophy size={16} color="#D97706" />
-              <Text style={styles.valueChipText}>Sello ITEMAS 2024</Text>
+            {/* Tarjeta 3: Sello ITEMAS 2024 */}
+            <View style={styles.clinicalCard}>
+              <View style={[styles.cardIconBox, { backgroundColor: '#FEF3C7' }]}>
+                <Award size={20} color="#D97706" strokeWidth={2.2} />
+              </View>
+              <View style={styles.cardContent}>
+                <Text style={styles.cardTitle}>Sello de Calidad ITEMAS 2024</Text>
+                <Text style={styles.cardSubtitle}>
+                  Innovación sanitaria avalada por el Instituto de Salud Carlos III y validación multicéntrica.
+                </Text>
+              </View>
             </View>
           </View>
 
-          {/* Botón de Acción Principal en Naranja Radiante */}
-          <Pressable
-            style={({ pressed }) => [styles.ctaButton, pressed && styles.ctaButtonPressed]}
-            onPress={() => navigation.navigate('Creditos')}>
-            <Text style={styles.ctaButtonText}>Comenzar Exploración</Text>
-            <ArrowRight size={18} color="#FFFFFF" strokeWidth={2.5} />
-          </Pressable>
+          {/* Botón de Acción Principal (*Primary CTA*) */}
+          <Animated.View style={[styles.ctaWrapper, btnAnimatedStyle]}>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Comenzar Exploración Clínica"
+              accessibilityHint="Navega a la pantalla de créditos e inicio de sesión"
+              style={({ pressed }) => [styles.ctaButton, pressed && styles.ctaButtonPressed]}
+              onPressIn={handlePressIn}
+              onPressOut={handlePressOut}
+              onPress={handleStart}>
+              <Text style={styles.ctaButtonText}>Comenzar Exploración</Text>
+              <View style={styles.ctaArrowCircle}>
+                <ArrowRight size={18} color="#FF7F00" strokeWidth={2.6} />
+              </View>
+            </Pressable>
+          </Animated.View>
 
-          {/* Nota regulatoria */}
-          <Text style={styles.regulatoryNote}>
-            VIA+ · SaMD Clase IIa · MDR 2017/745
-          </Text>
-        </View>
+          {/* Nota regulatoria y de rigor sanitario */}
+          <View style={styles.regulatoryRow}>
+            <Activity size={13} color="#9C9284" />
+            <Text style={styles.regulatoryNote}>
+              VIA+ Medical System · MDR 2017/745 · IEC 62304 / ISO 14971
+            </Text>
+          </View>
+        </Animated.View>
       </ScrollView>
     </View>
   );
@@ -355,47 +459,105 @@ const styles = StyleSheet.create({
   },
   blobTopLeft: {
     position: 'absolute',
-    top: -140,
+    top: -120,
     left: -100,
-    width: 420,
-    height: 420,
-    borderRadius: 210,
-    backgroundColor: 'rgba(240, 174, 108, 0.16)',
-  },
-  blobBottomRight: {
-    position: 'absolute',
-    bottom: -160,
-    right: -120,
     width: 440,
     height: 440,
     borderRadius: 220,
-    backgroundColor: 'rgba(255, 204, 128, 0.14)',
+    backgroundColor: 'rgba(240, 174, 108, 0.18)',
+  },
+  blobBottomRight: {
+    position: 'absolute',
+    bottom: -140,
+    right: -100,
+    width: 460,
+    height: 460,
+    borderRadius: 230,
+    backgroundColor: 'rgba(255, 204, 128, 0.16)',
   },
   scrollContent: {
     flexGrow: 1,
     paddingHorizontal: 24,
-    paddingVertical: 32,
+    paddingVertical: 16,
     alignItems: 'center',
     justifyContent: 'center',
   },
   scrollContentLandscape: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-around',
-    paddingHorizontal: 40,
+    justifyContent: 'space-evenly',
+    paddingHorizontal: 36,
   },
 
-  /* Columna Escenario */
+  /* -------------------------------------------------------------------------- */
+  /* Columna Escenario Acústico Cinemático                                      */
+  /* -------------------------------------------------------------------------- */
   stageColumn: {
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 24,
+  },
+  stageCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 24,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#E8E2D5',
+    shadowColor: '#2B2620',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.05,
+    shadowRadius: 14,
+    elevation: 3,
+    alignItems: 'center',
+  },
+  stageCardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    width: '100%',
+    paddingHorizontal: 8,
+    marginBottom: 8,
+  },
+  signalLiveBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: '#F0FDF4',
+    paddingVertical: 3,
+    paddingHorizontal: 8,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#DCFCE7',
+  },
+  liveDot: {
+    width: 7,
+    height: 7,
+    borderRadius: 3.5,
+    backgroundColor: '#16A34A',
+  },
+  signalLiveText: {
+    fontFamily: MONO,
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#15803D',
+    letterSpacing: 0.6,
+  },
+  signalSamplingText: {
+    fontFamily: MONO,
+    fontSize: 11,
+    color: '#8C8275',
+    letterSpacing: 0.4,
   },
   fieldContainer: {
     height: FIELD_H,
     alignItems: 'center',
     justifyContent: 'center',
     position: 'relative',
+    backgroundColor: '#FAF8F4',
+    borderRadius: 18,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: '#EFEAE1',
   },
   particleTrack: {
     position: 'absolute',
@@ -412,15 +574,15 @@ const styles = StyleSheet.create({
   waveLayer: {
     position: 'absolute',
     right: 0,
-    top: FIELD_H / 2 - 60,
+    top: FIELD_H / 2 - 50,
     width: '60%',
-    height: 120,
+    height: 100,
     alignItems: 'flex-start',
     justifyContent: 'center',
   },
   iconWrapper: {
     position: 'absolute',
-    left: 20,
+    left: 18,
     width: ICON_SIZE + 20,
     height: ICON_SIZE + 20,
     alignItems: 'center',
@@ -439,204 +601,275 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     width: '100%',
-    paddingHorizontal: 12,
-    marginTop: 8,
+    paddingHorizontal: 4,
+    marginTop: 14,
+  },
+  stagePillLeft: {
+    backgroundColor: '#F3F0E9',
+    paddingVertical: 5,
+    paddingHorizontal: 10,
+    borderRadius: 8,
+  },
+  stagePillRight: {
+    backgroundColor: '#FEF3C7',
+    paddingVertical: 5,
+    paddingHorizontal: 10,
+    borderRadius: 8,
   },
   stageLabelLeft: {
     fontFamily: MONO,
-    fontSize: 15,
+    fontSize: 12,
     fontWeight: '700',
-    letterSpacing: 1.1,
+    letterSpacing: 0.8,
     color: '#6E6459',
-    flexShrink: 1,
   },
   stageLabelRight: {
     fontFamily: MONO,
-    fontSize: 15,
+    fontSize: 12,
     fontWeight: '700',
-    letterSpacing: 1.1,
+    letterSpacing: 0.8,
     color: '#B45309',
-    flexShrink: 1,
-    textAlign: 'right',
-  },
-  /* En tableta apaisada, que es el banco de pruebas real, sube otro escalón. */
-  stageLabelWide: {
-    fontSize: 18,
-    letterSpacing: 1.4,
-  },
-  /* La frase que convierte la animación en explicación. */
-  stageCaption: {
-    marginTop: 12,
-    paddingHorizontal: 8,
-    fontSize: 15,
-    lineHeight: 22,
-    textAlign: 'center',
-    color: '#5C544A',
-  },
-  stageCaptionWide: {
-    fontSize: 16,
-    lineHeight: 24,
-  },
-  stageCaptionStrong: {
-    fontWeight: '800',
-    color: '#2B2620',
   },
   arrowRow: {
     flexDirection: 'row',
     alignItems: 'center',
     flex: 1,
-    marginHorizontal: 10,
+    marginHorizontal: 8,
   },
   arrowLine: {
     flex: 1,
-    height: 1,
+    height: 1.5,
     backgroundColor: '#D1C7B8',
   },
   arrowHead: {
-    color: '#8C8275',
-    fontSize: 16,
-    marginLeft: 2,
+    color: '#B45309',
+    fontSize: 14,
+    marginLeft: 3,
+    fontWeight: '700',
+  },
+  stageCaption: {
+    marginTop: 14,
+    paddingHorizontal: 8,
+    fontSize: 14,
+    lineHeight: 21,
+    textAlign: 'center',
+    color: '#4B4339',
+  },
+  stageCaptionWide: {
+    fontSize: 15,
+    lineHeight: 22,
+  },
+  stageCaptionMuted: {
+    color: '#786F63',
+  },
+  stageCaptionStrong: {
+    fontWeight: '700',
+    color: '#B45309',
   },
 
-  /* Columna Narrativa */
+  /* -------------------------------------------------------------------------- */
+  /* Columna Narrativa y Tarjetas Clínicas                                      */
+  /* -------------------------------------------------------------------------- */
   narrativeColumn: {
     maxWidth: 520,
     alignItems: 'flex-start',
   },
+  wordmarkRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    width: '100%',
+    marginBottom: 8,
+  },
   wordmark: {
     flexDirection: 'row',
     alignItems: 'flex-end',
-    marginBottom: 12,
   },
   wordmarkVia: {
-    fontSize: 42,
+    fontSize: 40,
     fontWeight: '800',
-    letterSpacing: -2,
-    lineHeight: 46,
+    letterSpacing: -1.5,
+    lineHeight: 44,
     color: '#2B2620',
   },
   wordmarkPlus: {
-    fontSize: 42,
+    fontSize: 40,
     fontWeight: '800',
-    letterSpacing: -1,
-    lineHeight: 46,
+    letterSpacing: -0.5,
+    lineHeight: 44,
     color: '#FF7F00',
   },
-  titleWrapper: {
-    marginBottom: 16,
+  samdHeaderPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    backgroundColor: '#CCFBF1',
+    paddingVertical: 5,
+    paddingHorizontal: 10,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#99F6E4',
   },
-  /* Antetítulo en versal: es lo que hace que el bloque LEA como el titular de
-   * una pantalla de bienvenida y no como un párrafo destacado. */
+  samdHeaderText: {
+    fontFamily: MONO,
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#0F766E',
+    letterSpacing: 0.3,
+  },
+  titleWrapper: {
+    marginBottom: 14,
+  },
   titleEyebrow: {
     fontFamily: MONO,
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '700',
-    letterSpacing: 2,
+    letterSpacing: 1.5,
     color: '#B45309',
-    marginBottom: 8,
+    marginBottom: 6,
   },
   titleLead: {
-    fontSize: 38,
+    fontSize: 36,
     fontWeight: '800',
     letterSpacing: -1,
-    lineHeight: 44,
+    lineHeight: 42,
     color: '#2B2620',
   },
   titleLeadWide: {
-    fontSize: 48,
-    lineHeight: 54,
-    letterSpacing: -1.4,
+    fontSize: 44,
+    lineHeight: 50,
+    letterSpacing: -1.2,
   },
   titleHighlightPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
     backgroundColor: '#FED7AA',
-    borderRadius: 10,
-    paddingHorizontal: 14,
-    paddingVertical: 5,
-    marginTop: 6,
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    marginTop: 4,
     alignSelf: 'flex-start',
   },
+  sparkleIcon: {
+    marginRight: 6,
+  },
   titleHighlightText: {
-    fontSize: 36,
+    fontSize: 32,
     fontWeight: '800',
-    letterSpacing: -0.9,
-    lineHeight: 44,
+    letterSpacing: -0.8,
+    lineHeight: 40,
     color: '#9A3412',
   },
   titleHighlightWide: {
-    fontSize: 46,
-    lineHeight: 54,
-    letterSpacing: -1.3,
+    fontSize: 40,
+    lineHeight: 48,
+    letterSpacing: -1,
   },
   description: {
-    fontSize: 15,
+    fontSize: 14.5,
     color: '#524B42',
-    lineHeight: 24,
-    marginBottom: 22,
+    lineHeight: 22,
+    marginBottom: 18,
   },
   descriptionWide: {
-    fontSize: 17,
-    lineHeight: 27,
+    fontSize: 16,
+    lineHeight: 25,
   },
 
-  /* Feature chips */
-  chipsContainer: {
+  /* Tarjetas Clínicas */
+  cardsContainer: {
     gap: 10,
     width: '100%',
-    marginBottom: 24,
+    marginBottom: 20,
   },
-  valueChip: {
+  clinicalCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
     backgroundColor: '#FFFFFF',
-    borderRadius: 14,
-    paddingVertical: 10,
-    paddingHorizontal: 14,
+    borderRadius: 16,
+    paddingVertical: 11,
+    paddingHorizontal: 13,
     borderWidth: 1,
     borderColor: '#E8E2D5',
-    shadowColor: '#0F172A',
+    shadowColor: '#2B2620',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.04,
     shadowRadius: 6,
-    elevation: 1,
+    elevation: 1.5,
   },
-  valueChipText: {
-    fontSize: 13,
-    fontWeight: '600',
+  cardIconBox: {
+    width: 38,
+    height: 38,
+    borderRadius: 11,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
+  cardContent: {
+    flex: 1,
+  },
+  cardTitle: {
+    fontSize: 13.5,
+    fontWeight: '700',
     color: '#2B2620',
+    marginBottom: 2,
+  },
+  cardSubtitle: {
+    fontSize: 12,
+    color: '#6B635A',
+    lineHeight: 16,
   },
 
-  /* Botón CTA */
+  /* Botón CTA Principal */
+  ctaWrapper: {
+    width: '100%',
+    marginTop: 4,
+  },
   ctaButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 10,
     backgroundColor: '#FF7F00',
-    borderRadius: 24,
-    paddingVertical: 14,
-    paddingHorizontal: 28,
+    borderRadius: 28,
+    height: 56,
+    paddingHorizontal: 26,
     shadowColor: '#FF7F00',
-    shadowOpacity: 0.32,
-    shadowRadius: 16,
+    shadowOpacity: 0.35,
+    shadowRadius: 14,
     shadowOffset: { width: 0, height: 6 },
     elevation: 5,
   },
   ctaButtonPressed: {
-    opacity: 0.9,
-    transform: [{ translateY: -1 }],
+    opacity: 0.94,
   },
   ctaButtonText: {
     color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '700',
+    fontSize: 16.5,
+    fontWeight: '800',
+    letterSpacing: 0.2,
+    marginRight: 10,
+  },
+  ctaArrowCircle: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: '#FFFFFF',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 
+  /* Pie regulatorio */
+  regulatoryRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: 16,
+  },
   regulatoryNote: {
     fontFamily: MONO,
     fontSize: 11,
     color: '#9C9284',
-    marginTop: 20,
-    letterSpacing: 0.4,
+    letterSpacing: 0.3,
   },
 });
+

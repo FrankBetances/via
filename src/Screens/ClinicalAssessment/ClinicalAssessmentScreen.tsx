@@ -1,12 +1,16 @@
 import React, { useMemo, useState } from 'react';
-import { KeyboardAvoidingView, Platform, Pressable, ScrollView } from 'react-native';
+import {
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  View,
+} from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import {
   Box,
-  Card,
-  Center,
   HStack,
-  Icon,
   Input,
   InputField,
   Textarea,
@@ -16,6 +20,8 @@ import {
 import {
   ArrowRight,
   Check,
+  ChevronRight,
+  Droplets,
   Ear,
   Eye,
   Hand,
@@ -23,10 +29,12 @@ import {
   MessageSquare,
   ShieldCheck,
   ShieldQuestion,
+  UserCheck,
   X,
 } from 'lucide-react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { Button, Content, FontSizeControl, Header, ScaledTextScope, Text } from '@/Components/Common';
+import { Content, FontSizeControl, Header, ScaledTextScope, Text } from '@/Components/Common';
 import RadialBackground from '@/Components/Themed/RadialBackground';
 import { RootStackParamList } from '@/Navigators';
 import { RootState } from '@/Store';
@@ -54,57 +62,157 @@ import {
 } from './clinicalAssessmentResult';
 
 /* -------------------------------------------------------------------------- */
-/*  Tokens de color por estado (alineados a los tokens Gluestack del repo)     */
+/*  Tokens de color semántico clínico para estados del CAP                     */
 /* -------------------------------------------------------------------------- */
 
-const KIND_COLOR: Record<DomainKind, { fg: string; bg: string; dot: string }> = {
-  ok: { fg: '$success700', bg: '$success50', dot: '$success600' },
-  warn: { fg: '$warning800', bg: '$warning50', dot: '$warning600' },
-  block: { fg: '$error700', bg: '$error50', dot: '$error500' },
-  pending: { fg: '$textLight500', bg: '$backgroundLight100', dot: '$borderLight300' },
+/**
+ * Colores del chip de estado. La PALABRA no vive aquí: sale de `DOMAIN_LABELS`,
+ * que está junto a la lógica que produce el `DomainKind`.
+ *
+ * El rediseño traía las etiquetas duplicadas dentro de esta tabla y, de paso,
+ * renombradas —«Restricción» pasaba a «Adaptar» y «Bloqueo» a «Bloqueado»—.
+ * Renombrar un veredicto clínico es una decisión clínica, no un efecto
+ * colateral de un cambio de estilo, así que se mantiene el vocabulario actual
+ * y se deja una sola fuente para él.
+ */
+const KIND_THEME: Record<DomainKind, { fg: string; bg: string; border: string; dot: string }> = {
+  ok: {
+    fg: '#15803D',
+    bg: '#F0FDF4',
+    border: '#BBF7D0',
+    dot: '#16A34A',
+  },
+  warn: {
+    fg: '#B45309',
+    bg: '#FFFBEB',
+    border: '#FDE68A',
+    dot: '#D97706',
+  },
+  block: {
+    fg: '#B91C1C',
+    bg: '#FEF2F2',
+    border: '#FECACA',
+    dot: '#DC2626',
+  },
+  pending: {
+    fg: '#64748B',
+    bg: '#F8FAFC',
+    border: '#E2E8F0',
+    dot: '#94A3B8',
+  },
 };
 
 type DomainId = 'otoscopia' | 'visual' | 'verbal' | 'motor';
 
-const DOMAINS: { id: DomainId; short: string; title: string; icon: any }[] = [
-  { id: 'otoscopia', short: 'Otoscopia', title: 'Dominio 1 · Otoscopia', icon: Ear },
-  { id: 'visual', short: 'Visual', title: 'Dominio 2 · Capacidad visual mínima', icon: Eye },
-  { id: 'verbal', short: 'Verbal', title: 'Dominio 3 · Capacidad verbal mínima', icon: MessageSquare },
-  { id: 'motor', short: 'Motora', title: 'Dominio 4 · Capacidad motora mínima', icon: Hand },
+const DOMAINS: {
+  id: DomainId;
+  short: string;
+  title: string;
+  subtitle: string;
+  icon: any;
+  accent: string;
+  bgLight: string;
+}[] = [
+  {
+    id: 'otoscopia',
+    short: 'Otoscopia',
+    title: 'Dominio 1 · Otoscopia',
+    subtitle: 'Exploración de CAE y membrana timpánica',
+    icon: Ear,
+    accent: '#EA580C',
+    bgLight: '#FFF7ED',
+  },
+  {
+    id: 'visual',
+    short: 'Visual',
+    title: 'Dominio 2 · Capacidad visual',
+    subtitle: 'Fijación y discriminación en pantalla',
+    icon: Eye,
+    accent: '#0284C7',
+    bgLight: '#F0F9FF',
+  },
+  {
+    id: 'verbal',
+    short: 'Verbal',
+    title: 'Dominio 3 · Capacidad verbal',
+    subtitle: 'Comprensión y respuesta según edad',
+    icon: MessageSquare,
+    accent: '#0D9488',
+    bgLight: '#F0FDFA',
+  },
+  {
+    id: 'motor',
+    short: 'Motora',
+    title: 'Dominio 4 · Capacidad motora',
+    subtitle: 'Interacción táctil y control intencional',
+    icon: Hand,
+    accent: '#7C3AED',
+    bgLight: '#F5F3FF',
+  },
 ];
 
 /* -------------------------------------------------------------------------- */
-/*  Subcomponentes UI                                                          */
+/*  Subcomponentes UI Ergonómicos                                              */
 /* -------------------------------------------------------------------------- */
 
 const StatusChip = ({ kind }: { kind: DomainKind }) => {
-  const c = KIND_COLOR[kind];
+  const t = KIND_THEME[kind];
   return (
-    <Box bg={c.bg} px="$2.5" py="$0.5" borderRadius="$full">
-      <Text size="2xs" weight="bold" color={c.fg} style={{ textTransform: 'uppercase', letterSpacing: 0.3 }}>
+    <View style={[styles.statusChip, { backgroundColor: t.bg, borderColor: t.border }]}>
+      <View style={[styles.statusDot, { backgroundColor: t.dot }]} />
+      <Text size="2xs" weight="bold" style={{ color: t.fg, letterSpacing: 0.4 }}>
         {DOMAIN_LABELS[kind]}
       </Text>
-    </Box>
+    </View>
   );
 };
 
-const YesNoToggle = ({ value, onYes, onNo }: { value: boolean | null; onYes: () => void; onNo: () => void }) => (
-  <HStack space="sm">
-    <Pressable onPress={onYes}>
-      <Center px="$4" py="$1.5" borderRadius="$full" borderWidth={1.5} bg={value === true ? '$success600' : '$white'} borderColor={value === true ? '$success600' : '$borderLight200'}>
-        <Text size="sm" weight="bold" color={value === true ? '$white' : '$textLight400'}>
-          Sí
-        </Text>
-      </Center>
+const YesNoToggle = ({
+  value,
+  onYes,
+  onNo,
+}: {
+  value: boolean | null;
+  onYes: () => void;
+  onNo: () => void;
+}) => (
+  <View style={styles.toggleRow}>
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel="Sí"
+      style={({ pressed }) => [
+        styles.toggleBtn,
+        value === true && styles.toggleBtnYesActive,
+        pressed && styles.toggleBtnPressed,
+      ]}
+      onPress={onYes}>
+      <Check size={16} color={value === true ? '#FFFFFF' : '#64748B'} strokeWidth={2.6} />
+      <Text
+        size="sm"
+        weight="bold"
+        style={{ color: value === true ? '#FFFFFF' : '#64748B', marginLeft: 4 }}>
+        Sí
+      </Text>
     </Pressable>
-    <Pressable onPress={onNo}>
-      <Center px="$4" py="$1.5" borderRadius="$full" borderWidth={1.5} bg={value === false ? '$error500' : '$white'} borderColor={value === false ? '$error500' : '$borderLight200'}>
-        <Text size="sm" weight="bold" color={value === false ? '$white' : '$textLight400'}>
-          No
-        </Text>
-      </Center>
+
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel="No"
+      style={({ pressed }) => [
+        styles.toggleBtn,
+        value === false && styles.toggleBtnNoActive,
+        pressed && styles.toggleBtnPressed,
+      ]}
+      onPress={onNo}>
+      <X size={16} color={value === false ? '#FFFFFF' : '#64748B'} strokeWidth={2.6} />
+      <Text
+        size="sm"
+        weight="bold"
+        style={{ color: value === false ? '#FFFFFF' : '#64748B', marginLeft: 4 }}>
+        No
+      </Text>
     </Pressable>
-  </HStack>
+  </View>
 );
 
 const ItemRow = ({
@@ -122,36 +230,43 @@ const ItemRow = ({
   onYes: () => void;
   onNo: () => void;
 }) => (
-  <HStack alignItems="center" justifyContent="space-between" space="md" py="$3" borderBottomWidth={1} borderColor="$borderLight50">
-    <HStack space="sm" alignItems="flex-start" style={{ flex: 1 }}>
-      <Box bg="$backgroundLight100" px="$2" py="$0.5" borderRadius={6} mt="$0.5">
-        <Text size="2xs" weight="semiBold" color="$textLight500" style={{ fontVariant: ['tabular-nums'] }}>
+  <View style={styles.itemRowContainer}>
+    <View style={styles.itemTextCol}>
+      <View style={styles.itemCodeBadge}>
+        <Text size="2xs" weight="bold" color="$textLight600" style={{ fontVariant: ['tabular-nums'] }}>
           {code}
         </Text>
-      </Box>
-      <VStack style={{ flex: 1 }}>
-        <Text size="sm" color="$textLight700" style={{ lineHeight: 19 }}>
+      </View>
+      <View style={{ flex: 1 }}>
+        <Text size="sm" weight="medium" color="$textLight800" style={{ lineHeight: 20 }}>
           {label}
         </Text>
         {note ? (
-          <Text size="2xs" color="$warning700" mt="$0.5">
-            ⚠ {note}
-          </Text>
+          <View style={styles.itemNoteRow}>
+            <Info size={12} color="#D97706" />
+            <Text size="2xs" color="$warning800" style={{ flex: 1 }}>
+              {note}
+            </Text>
+          </View>
         ) : null}
-      </VStack>
-    </HStack>
+      </View>
+    </View>
     <YesNoToggle value={value} onYes={onYes} onNo={onNo} />
-  </HStack>
+  </View>
 );
 
 /* -------------------------------------------------------------------------- */
-/*  Pantalla principal                                                         */
+/*  Pantalla Principal: ClinicalAssessmentScreen (CAP)                         */
 /* -------------------------------------------------------------------------- */
 
 type Props = NativeStackScreenProps<RootStackParamList, 'ClinicalAssessment'>;
 
 export default function ClinicalAssessmentScreen({ navigation }: Props) {
-  const activeEvaluation = useClassSelector(Evaluation, (state: RootState) => state.activeEvaluation.evaluation);
+  const insets = useSafeAreaInsets();
+  const activeEvaluation = useClassSelector(
+    Evaluation,
+    (state: RootState) => state.activeEvaluation.evaluation,
+  );
   const [isSaving, setIsSaving] = useState(false);
 
   const [activeDomain, setActiveDomain] = useState<DomainId>('otoscopia');
@@ -161,7 +276,9 @@ export default function ClinicalAssessmentScreen({ navigation }: Props) {
   const [motObs, setMotObs] = useState('');
   const [otoObs, _setOtoObs] = useState('');
   const [evaluatorName, setEvaluatorName] = useState(activeEvaluation?.professional?.name ?? '');
-  const [evaluatorLicense, setEvaluatorLicense] = useState(activeEvaluation?.professional?.licenseNumber ?? '');
+  const [evaluatorLicense, setEvaluatorLicense] = useState(
+    activeEvaluation?.professional?.licenseNumber ?? '',
+  );
 
   const patient = activeEvaluation?.patient;
   const patientName = patient ? `${patient.name} ${patient.lastName}`.trim() : null;
@@ -176,20 +293,17 @@ export default function ClinicalAssessmentScreen({ navigation }: Props) {
 
   /* ----------------------------- handlers ------------------------------- */
   const setFinding = (ear: 'od' | 'oi', f: EarFinding) => setS(prev => ({ ...prev, [ear]: f }));
-  const setVisual = (id: string, val: boolean) => setS(prev => ({ ...prev, visual: { ...prev.visual, [id]: val } }));
-  const setMotor = (id: string, val: boolean) => setS(prev => ({ ...prev, motor: { ...prev.motor, [id]: val } }));
-  const setVerbal = (id: string, val: boolean) => setS(prev => ({ ...prev, verbal: { ...prev.verbal, [id]: val } }));
-  const setAge = (g: AgeGroup) => setS(prev => ({ ...prev, ageGroup: g, verbal: { VB1: null, VB2: null, VB3: null } }));
+  const setVisual = (id: string, val: boolean) =>
+    setS(prev => ({ ...prev, visual: { ...prev.visual, [id]: val } }));
+  const setMotor = (id: string, val: boolean) =>
+    setS(prev => ({ ...prev, motor: { ...prev.motor, [id]: val } }));
+  const setVerbal = (id: string, val: boolean) =>
+    setS(prev => ({ ...prev, verbal: { ...prev.verbal, [id]: val } }));
+  const setAge = (g: AgeGroup) =>
+    setS(prev => ({ ...prev, ageGroup: g, verbal: { VB1: null, VB2: null, VB3: null } }));
 
   const confirmReady = !!evaluatorName.trim() && !!evaluatorLicense.trim();
 
-  /**
-   * Garantiza un id real de `Evaluation` para colgar el CAP. Sesiones creadas
-   * antes del fix de PacientesScreen pueden llegar aquí con id 0 (paciente sin
-   * evaluación): con ese id el INSERT del CAP viola la FK y la pantalla se
-   * quedaba bloqueada. Se busca la evaluación pendiente del paciente o se
-   * crea una nueva.
-   */
   const ensureEvaluationId = async (): Promise<number | null> => {
     if (activeEvaluation?.id) return activeEvaluation.id;
     const patientId = activeEvaluation?.patient?.id;
@@ -239,7 +353,14 @@ export default function ClinicalAssessmentScreen({ navigation }: Props) {
       ca.activeGames = a.activeCount;
       ca.totalGames = a.totalGames;
       ca.domains = {
-        otoscopia: { od: s.od, oi: s.oi, odNotes: s.odNotes, oiNotes: s.oiNotes, notes: otoObs, kind: a.otoKind },
+        otoscopia: {
+          od: s.od,
+          oi: s.oi,
+          odNotes: s.odNotes,
+          oiNotes: s.oiNotes,
+          notes: otoObs,
+          kind: a.otoKind,
+        },
         visual: { answers: s.visual, notes: visObs, kind: a.visKind },
         verbal: { ageGroup: s.ageGroup, answers: s.verbal, notes: verObs, kind: a.verKind },
         motor: { answers: s.motor, notes: motObs, kind: a.motKind },
@@ -250,9 +371,6 @@ export default function ClinicalAssessmentScreen({ navigation }: Props) {
       ca.completedAt = new Date();
       ca.evaluation = { id: evaluationId } as Evaluation;
 
-      // Escritura con verificación por lectura (ver Helpers/dbWrite.ts). Solo
-      // se acepta como "guardado" un CAP de este intento (completedAt actual),
-      // no uno antiguo de la misma evaluación.
       const attemptTime = ca.completedAt.getTime();
       await writeWithVerify(
         () => ClinicalAssessmentRepository.createClinicalAssessment(ca),
@@ -262,9 +380,10 @@ export default function ClinicalAssessmentScreen({ navigation }: Props) {
           return new Date(latest.completedAt).getTime() >= attemptTime - 60_000 ? latest : null;
         },
       );
-      showSuccessToast('CAP generado', `${a.globalLabel} · ${a.activeCount}/${a.totalGames} pruebas habilitadas.`);
-      // Tras el CAP debe verificarse la sala con el sonómetro ANTES de acceder
-      // a la selección de pruebas (RoomNoiseCheck navega a SeleccionEjercicios).
+      showSuccessToast(
+        'CAP generado',
+        `${a.globalLabel} · ${a.activeCount}/${a.totalGames} pruebas habilitadas.`,
+      );
       navigation.navigate('RoomNoiseCheck');
     } catch (e) {
       const detail = e instanceof Error && e.message ? ` (${e.message})` : '';
@@ -275,7 +394,6 @@ export default function ClinicalAssessmentScreen({ navigation }: Props) {
     }
   };
 
-  /* ------------------------------- render ------------------------------- */
   const verbalGroup = VERBAL_GROUPS[s.ageGroup];
 
   return (
@@ -284,8 +402,22 @@ export default function ClinicalAssessmentScreen({ navigation }: Props) {
       insetTop={false}
       radialBackgrounds={
         <>
-          <RadialBackground topMultiplier={0.12} leftMultiplier={-0.2} widthMultiplier={2} heightMultiplier={2} center={(w, _h) => [w, w]} radiusMultiplier={1} />
-          <RadialBackground topMultiplier={-0.95} leftMultiplier={-0.8} widthMultiplier={2} heightMultiplier={2} center={(w, _h) => [w, w]} radiusMultiplier={1} />
+          <RadialBackground
+            topMultiplier={0.12}
+            leftMultiplier={-0.2}
+            widthMultiplier={2}
+            heightMultiplier={2}
+            center={(w, _h) => [w, w]}
+            radiusMultiplier={1}
+          />
+          <RadialBackground
+            topMultiplier={-0.95}
+            leftMultiplier={-0.8}
+            widthMultiplier={2}
+            heightMultiplier={2}
+            center={(w, _h) => [w, w]}
+            radiusMultiplier={1}
+          />
         </>
       }>
       <KeyboardAvoidingView
@@ -294,387 +426,541 @@ export default function ClinicalAssessmentScreen({ navigation }: Props) {
         <VStack flex={1}>
           <Header animationType="expand" />
 
-          {/* Todo el contenido va en un ScrollView: el CAP es más alto que la
-              pantalla (4 dominios + perfil de aptitud + evaluador) y sin
-              scroll los resultados y el botón de confirmar quedan fuera. */}
           <ScrollView
             style={{ flex: 1 }}
-            contentContainerStyle={{ paddingHorizontal: 24, paddingTop: 8, paddingBottom: 32 }}
+            contentContainerStyle={[
+              styles.scrollContent,
+              { paddingBottom: 40 + Math.max(insets.bottom, 16) },
+            ]}
             keyboardShouldPersistTaps="handled"
             showsVerticalScrollIndicator={false}>
-            <VStack space="md">
-              {/* ----- title ----- */}
-              <VStack>
-                <HStack alignItems="center" space="sm">
-                  <Text size="2xl" weight="bold" color="$textLight900">
-                    Evaluación Clínica Previa
-                  </Text>
-                  <Box bg="$primary50" px="$2" py="$0.5" borderRadius="$full">
-                    <Text size="2xs" weight="bold" color="$primary800" style={{ letterSpacing: 0.4 }}>
-                      PRERREQUISITO · CAP
+            <VStack space="lg">
+              {/* ============================================================ */}
+              {/* HEADER CLÍNICO & PACIENTE                                    */}
+              {/* ============================================================ */}
+              <View style={styles.headerCard}>
+                <View style={styles.headerTitleRow}>
+                  <View style={{ flex: 1 }}>
+                    <View style={styles.badgePrereqRow}>
+                      <ShieldCheck size={14} color="#0D9488" strokeWidth={2.2} />
+                      <Text size="2xs" weight="bold" color="$teal700" style={{ letterSpacing: 0.4 }}>
+                        PRERREQUISITO CLÍNICO · CAP
+                      </Text>
+                    </View>
+                    <Text size="2xl" weight="bold" color="$textLight900" style={{ marginTop: 2 }}>
+                      Evaluación Clínica Previa
                     </Text>
-                  </Box>
-                </HStack>
-                <Text size="xs" color="$textLight500">
-                  {patientName
-                    ? `${patientName}${patient?.nhc ? ` · NHC ${patient.nhc}` : ''}`
-                    : 'Certificado de Aptitud para la Prueba · condiciones mínimas de viabilidad'}
-                </Text>
-              </VStack>
+                  </View>
 
-              {/* La exploración de disfagia no requiere CAP ni sonómetro:
-                  atajo para saltar el prerrequisito cuando la sesión es solo
-                  de disfagia. */}
-              <Pressable onPress={() => navigation.navigate('DysphagiaTest')}>
-                <HStack
-                  space="xs"
-                  alignItems="center"
-                  justifyContent="center"
-                  py="$2.5"
-                  borderRadius={14}
-                  borderWidth={1.5}
-                  borderColor="$info200"
-                  bg="$info50">
-                  <Text size="sm">💧</Text>
-                  <Text size="xs" weight="bold" color="$info700">
-                    ¿Solo disfagia? Ir directo — no requiere CAP ni sonómetro
+                  <View style={styles.samdBadge}>
+                    <Text size="2xs" weight="bold" color="$textLight600">
+                      SaMD Clase IIa
+                    </Text>
+                  </View>
+                </View>
+
+                <View style={styles.patientInfoBar}>
+                  <Text size="xs" weight="semiBold" color="$textLight800">
+                    {patientName ? `Paciente: ${patientName}` : 'Paciente sin registrar'}
                   </Text>
-                </HStack>
+                  {patient?.nhc ? (
+                    <Text size="2xs" color="$textLight500" style={{ marginLeft: 8 }}>
+                      NHC: {patient.nhc}
+                    </Text>
+                  ) : null}
+                </View>
+              </View>
+
+              {/* ============================================================ */}
+              {/* ACCESO RÁPIDO: DISFAGIA                                     */}
+              {/* ============================================================ */}
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Ir directo a exploración de disfagia"
+                style={({ pressed }) => [styles.dysphagiaBanner, pressed && styles.bannerPressed]}
+                onPress={() => navigation.navigate('DysphagiaTest')}>
+                <View style={styles.dysphagiaIconBox}>
+                  <Droplets size={20} color="#0284C7" strokeWidth={2.2} />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text size="xs" weight="bold" color="$info800">
+                    ¿Sesión exclusiva de Disfagia (EAT-10 / Protocolo Deglutorio)?
+                  </Text>
+                  <Text size="2xs" color="$info700" style={{ marginTop: 1 }}>
+                    Ir directo — este módulo clínico no requiere CAP ni control de ruido.
+                  </Text>
+                </View>
+                <ChevronRight size={18} color="#0284C7" strokeWidth={2.2} />
               </Pressable>
 
-              {/* ----- domain selector ----- */}
-              <HStack space="sm">
+              {/* ============================================================ */}
+              {/* SELECTOR DE PESTAÑAS POR DOMINIO                             */}
+              {/* ============================================================ */}
+              <View style={styles.tabsGrid}>
                 {DOMAINS.map(d => {
                   const active = activeDomain === d.id;
                   const k = kindByDomain[d.id];
+                  const t = KIND_THEME[k];
+                  const IconComp = d.icon;
                   return (
-                    <Pressable key={d.id} style={{ flex: 1 }} onPress={() => setActiveDomain(d.id)}>
-                      <VStack
-                        alignItems="center"
-                        space="xs"
-                        py="$2.5"
-                        borderRadius={16}
-                        borderWidth={1.5}
-                        bg={active ? '$primary50' : '$white'}
-                        borderColor={active ? '$primary200' : '$borderLight100'}>
-                        <Icon as={d.icon} size="sm" color={active ? '$primary600' : '$textLight400'} />
-                        <Text size="2xs" weight="bold" color={active ? '$primary700' : '$textLight500'}>
+                    <Pressable
+                      key={d.id}
+                      style={({ pressed }) => [
+                        styles.tabItem,
+                        active && styles.tabItemActive,
+                        { borderColor: active ? d.accent : '#E8E2D5' },
+                        pressed && { opacity: 0.88 },
+                      ]}
+                      onPress={() => setActiveDomain(d.id)}>
+                      <View style={[styles.tabIconBox, { backgroundColor: active ? d.bgLight : '#F8FAFC' }]}>
+                        <IconComp size={20} color={active ? d.accent : '#64748B'} strokeWidth={2.2} />
+                      </View>
+                      <View style={{ flex: 1 }}>
+                        <Text size="xs" weight="bold" color={active ? '$textLight900' : '$textLight600'}>
                           {d.short}
                         </Text>
-                        <Box w={7} h={7} borderRadius="$full" bg={KIND_COLOR[k].dot} />
-                      </VStack>
+                        <View style={styles.tabStatusRow}>
+                          <View style={[styles.statusMiniDot, { backgroundColor: t.dot }]} />
+                          <Text size="2xs" weight="semiBold" style={{ color: t.fg }}>
+                            {DOMAIN_LABELS[k]}
+                          </Text>
+                        </View>
+                      </View>
                     </Pressable>
                   );
                 })}
-              </HStack>
-    
-              {/* tamaño de letra ajustable: facilita la lectura del cuestionario */}
+              </View>
+
+              {/* Control de accesibilidad de tamaño de texto */}
               <FontSizeControl />
 
-              {/* ===================== OTOSCOPIA ===================== */}
+              {/* ============================================================ */}
+              {/* CONTENIDO DEL DOMINIO ACTIVO                                 */}
+              {/* ============================================================ */}
               <ScaledTextScope.Provider value={true}>
-              {activeDomain === 'otoscopia' && (
-                <Card bgColor="$white" borderRadius={22} p="$5">
-                  <HStack alignItems="center" justifyContent="space-between" mb="$1">
-                    <Text size="lg" weight="bold" color="$textLight900">
-                      Otoscopia
-                    </Text>
-                    <StatusChip kind={a.otoKind} />
-                  </HStack>
-                  <Text size="xs" color="$textLight500" mb="$4">
-                    Seleccione el hallazgo de cada oído. A realizar por médico/ORL o enfermería con formación en otoscopia.
-                  </Text>
-    
-                  {(['od', 'oi'] as const).map(ear => {
-                    const finding = s[ear];
-                    const sev = earSeverity(finding);
-                    const sevKind: DomainKind = sev === 0 ? 'pending' : sev === 1 ? 'ok' : sev === 2 ? 'warn' : 'block';
-                    return (
-                      <VStack key={ear} mb="$4" p="$3.5" borderRadius={16} borderWidth={1} borderColor="$borderLight100" bg="$backgroundLight50">
-                        <HStack alignItems="center" justifyContent="space-between" mb="$3">
-                          <Text size="sm" weight="semiBold" color="$textLight800">
-                            {ear === 'od' ? 'Oído derecho · OD' : 'Oído izquierdo · OI'}
+                {/* -------------------- 1. OTOSCOPIA -------------------- */}
+                {activeDomain === 'otoscopia' && (
+                  <View style={styles.cardSection}>
+                    <View style={styles.sectionHeaderRow}>
+                      <View style={styles.sectionTitleCol}>
+                        <View style={styles.sectionTitleBadge}>
+                          <Ear size={16} color="#EA580C" strokeWidth={2.2} />
+                          <Text size="sm" weight="bold" color="$textLight900">
+                            Dominio 1 · Otoscopia Clínica
                           </Text>
-                          <StatusChip kind={sevKind} />
-                        </HStack>
-                        <HStack space="xs" flexWrap="wrap" style={{ gap: 7 }}>
-                          {FINDING_OPTIONS.map(f => {
-                            const selected = finding === f;
-                            const fsev = earSeverity(f);
-                            const fkind: DomainKind = fsev === 1 ? 'ok' : fsev === 2 ? 'warn' : 'block';
-                            const c = KIND_COLOR[fkind];
-                            return (
-                              <Pressable key={f} onPress={() => setFinding(ear, f)}>
-                                <Box px="$3" py="$1.5" borderRadius="$full" borderWidth={1.5} bg={selected ? c.dot : '$white'} borderColor={selected ? c.dot : '$borderLight200'}>
-                                  <Text size="xs" weight="medium" color={selected ? '$white' : '$textLight600'}>
+                        </View>
+                        <Text size="2xs" color="$textLight500" style={{ marginTop: 2 }}>
+                          Seleccione el hallazgo de cada oído (OD / OI). Obligatorio para habilitar audiometría.
+                        </Text>
+                      </View>
+                      <StatusChip kind={a.otoKind} />
+                    </View>
+
+                    {/* Paneles de Oído Derecho e Izquierdo */}
+                    {(['od', 'oi'] as const).map(ear => {
+                      const finding = s[ear];
+                      const sev = earSeverity(finding);
+                      const sevKind: DomainKind =
+                        sev === 0 ? 'pending' : sev === 1 ? 'ok' : sev === 2 ? 'warn' : 'block';
+                      const isRight = ear === 'od';
+
+                      return (
+                        <View
+                          key={ear}
+                          style={[
+                            styles.earBox,
+                            { borderLeftColor: isRight ? '#EF4444' : '#0284C7' },
+                          ]}>
+                          <View style={styles.earHeader}>
+                            <View style={styles.earLabelBadge}>
+                              <View
+                                style={[
+                                  styles.earIndicatorCircle,
+                                  { backgroundColor: isRight ? '#EF4444' : '#0284C7' },
+                                ]}
+                              />
+                              <Text size="sm" weight="bold" color="$textLight900">
+                                {isRight ? 'Oído Derecho (OD)' : 'Oído Izquierdo (OI)'}
+                              </Text>
+                            </View>
+                            <StatusChip kind={sevKind} />
+                          </View>
+
+                          <View style={styles.findingsPillsWrap}>
+                            {FINDING_OPTIONS.map(f => {
+                              const selected = finding === f;
+                              const fsev = earSeverity(f);
+                              const fkind: DomainKind =
+                                fsev === 1 ? 'ok' : fsev === 2 ? 'warn' : 'block';
+                              const c = KIND_THEME[fkind];
+                              return (
+                                <Pressable
+                                  key={f}
+                                  style={({ pressed }) => [
+                                    styles.findingPill,
+                                    selected && {
+                                      backgroundColor: c.dot,
+                                      borderColor: c.dot,
+                                    },
+                                    pressed && { opacity: 0.8 },
+                                  ]}
+                                  onPress={() => setFinding(ear, f)}>
+                                  <Text
+                                    size="xs"
+                                    weight="bold"
+                                    style={{ color: selected ? '#FFFFFF' : '#475569' }}>
                                     {f}
                                   </Text>
-                                </Box>
-                              </Pressable>
-                            );
-                          })}
-                        </HStack>
-                        <Input variant="outline" borderRadius={11} mt="$3" bg="$white">
-                          <InputField
-                            placeholder="Observaciones libres…"
-                            value={ear === 'od' ? s.odNotes : s.oiNotes}
-                            onChangeText={t => setS(prev => ({ ...prev, [ear === 'od' ? 'odNotes' : 'oiNotes']: t }))}
-                          />
-                        </Input>
-                      </VStack>
-                    );
-                  })}
-    
-                  <HStack space="sm" alignItems="flex-start" p="$3" borderRadius={14} bg="$primary0">
-                    <Icon as={Info} size="xs" color="$primary600" style={{ marginTop: 1 }} />
-                    <Text size="2xs" color="$primary800" style={{ flex: 1, lineHeight: 16 }}>
-                      Cerumen oclusivo, OMA y perforación bloquean la audiometría tonal de ese oído. Ref.: protocolo de audiometría
-                      pediátrica del SNS · guías CODEPEH.
-                    </Text>
-                  </HStack>
-                </Card>
-              )}
-    
-              {/* ===================== VISUAL ===================== */}
-              {activeDomain === 'visual' && (
-                <Card bgColor="$white" borderRadius={22} p="$5">
-                  <HStack alignItems="center" justifyContent="space-between" mb="$1">
-                    <Text size="lg" weight="bold" color="$textLight900">
-                      Capacidad visual mínima
-                    </Text>
-                    <StatusChip kind={a.visKind} />
-                  </HStack>
-                  <Text size="xs" color="$textLight500" mb="$2">
-                    El niño debe distinguir estímulos de ≥5 cm en pantalla a 30–50 cm. Evaluación funcional mínima, no examen
-                    oftalmológico.
-                  </Text>
-                  {VISUAL_ITEMS.map(it => (
-                    <ItemRow
-                      key={it.id}
-                      code={it.code}
-                      label={it.label}
-                      value={s.visual[it.id] as boolean | null}
-                      onYes={() => setVisual(it.id, true)}
-                      onNo={() => setVisual(it.id, false)}
-                    />
-                  ))}
-                  <Box mt="$4">
-                    <Text size="2xs" color="$textLight500" mb="$1.5">
-                      Observaciones del dominio
-                    </Text>
-                    <Textarea borderRadius={13} bg="$backgroundLight50">
-                      <TextareaInput placeholder="Anotaciones del profesional…" value={visObs} onChangeText={setVisObs} />
-                    </Textarea>
-                  </Box>
-                  <Text size="2xs" color="$textLight400" mt="$3" style={{ lineHeight: 15 }}>
-                    Si V-02 o V-03 son «No» se bloquean las pruebas visuales. No se registran datos de agudeza visual.
-                  </Text>
-                </Card>
-              )}
-    
-              {/* ===================== VERBAL ===================== */}
-              {activeDomain === 'verbal' && (
-                <Card bgColor="$white" borderRadius={22} p="$5">
-                  <HStack alignItems="center" justifyContent="space-between" mb="$1">
-                    <Text size="lg" weight="bold" color="$textLight900">
-                      Capacidad verbal mínima
-                    </Text>
-                    <StatusChip kind={a.verKind} />
-                  </HStack>
-                  <Text size="xs" color="$textLight500" mb="$3">
-                    Comprensión de instrucciones sencillas y/o respuesta vocal o gestual. El criterio se adapta al rango de edad.
-                  </Text>
-                  <HStack space="sm" alignItems="center" mb="$3" flexWrap="wrap">
-                    <Text size="2xs" color="$textLight500">
-                      Grupo de edad
-                    </Text>
-                    {(['A', 'B', 'C'] as AgeGroup[]).map(g => (
-                      <Pressable key={g} onPress={() => setAge(g)}>
-                        <Box px="$3.5" py="$1" borderRadius="$full" borderWidth={1.5} bg={s.ageGroup === g ? '$primary500' : '$white'} borderColor={s.ageGroup === g ? '$primary500' : '$borderLight200'}>
-                          <Text size="sm" weight="bold" color={s.ageGroup === g ? '$white' : '$textLight400'}>
-                            {g}
+                                </Pressable>
+                              );
+                            })}
+                          </View>
+
+                          <Input variant="outline" borderRadius={12} mt="$3" bg="$white">
+                            <InputField
+                              placeholder="Anotaciones de otoscopia (tímpano, CAE)..."
+                              value={isRight ? s.odNotes : s.oiNotes}
+                              onChangeText={t =>
+                                setS(prev => ({
+                                  ...prev,
+                                  [isRight ? 'odNotes' : 'oiNotes']: t,
+                                }))
+                              }
+                            />
+                          </Input>
+                        </View>
+                      );
+                    })}
+
+                    <View style={styles.clinicalAlertBox}>
+                      <Info size={16} color="#0D9488" style={{ marginTop: 2 }} />
+                      <Text size="2xs" color="$teal800" style={{ flex: 1, lineHeight: 17 }}>
+                        Criterio de Seguridad Audiológica: Cerumen oclusivo, OMA y perforación timpánica bloquean
+                        específicamente la audiometría tonal del oído afectado (Ref.: Guías CODEPEH / SNS).
+                      </Text>
+                    </View>
+                  </View>
+                )}
+
+                {/* -------------------- 2. VISUAL -------------------- */}
+                {activeDomain === 'visual' && (
+                  <View style={styles.cardSection}>
+                    <View style={styles.sectionHeaderRow}>
+                      <View style={styles.sectionTitleCol}>
+                        <View style={styles.sectionTitleBadge}>
+                          <Eye size={16} color="#0284C7" strokeWidth={2.2} />
+                          <Text size="sm" weight="bold" color="$textLight900">
+                            Dominio 2 · Capacidad Visual Mínima
                           </Text>
-                        </Box>
-                      </Pressable>
+                        </View>
+                        <Text size="2xs" color="$textLight500" style={{ marginTop: 2 }}>
+                          Discriminación de estímulos en pantalla (≥5 cm a 30–50 cm de distancia).
+                        </Text>
+                      </View>
+                      <StatusChip kind={a.visKind} />
+                    </View>
+
+                    {VISUAL_ITEMS.map(it => (
+                      <ItemRow
+                        key={it.id}
+                        code={it.code}
+                        label={it.label}
+                        value={s.visual[it.id] as boolean | null}
+                        onYes={() => setVisual(it.id, true)}
+                        onNo={() => setVisual(it.id, false)}
+                      />
                     ))}
-                  </HStack>
-                  <Text size="2xs" color="$textLight400" mb="$1">
-                    {verbalGroup.label}
-                  </Text>
-                  {verbalGroup.items.map(it => (
-                    <ItemRow
-                      key={it.id}
-                      code={it.code}
-                      label={it.label}
-                      value={s.verbal[it.id] as boolean | null}
-                      onYes={() => setVerbal(it.id, true)}
-                      onNo={() => setVerbal(it.id, false)}
-                    />
-                  ))}
-                  <Box mt="$4">
-                    <Text size="2xs" color="$textLight500" mb="$1.5">
-                      Observaciones del dominio
-                    </Text>
-                    <Textarea borderRadius={13} bg="$backgroundLight50">
-                      <TextareaInput placeholder="Anotaciones del profesional…" value={verObs} onChangeText={setVerObs} />
-                    </Textarea>
-                  </Box>
-                  <Text size="2xs" color="$textLight400" mt="$3" style={{ lineHeight: 15 }}>
-                    Si &lt;50% de los ítems son «Sí», se bloquean las pruebas con producción verbal. La discriminación auditiva pasiva
-                    permanece activa.
-                  </Text>
-                </Card>
-              )}
-    
-              {/* ===================== MOTOR ===================== */}
-              {activeDomain === 'motor' && (
-                <Card bgColor="$white" borderRadius={22} p="$5">
-                  <HStack alignItems="center" justifyContent="space-between" mb="$1">
-                    <Text size="lg" weight="bold" color="$textLight900">
-                      Capacidad motora mínima
-                    </Text>
-                    <StatusChip kind={a.motKind} />
-                  </HStack>
-                  <Text size="xs" color="$textLight500" mb="$2">
-                    El niño debe interactuar con la pantalla táctil con al menos un dedo de forma intencional y reproducible.
-                  </Text>
-                  {MOTOR_ITEMS.map(it => (
-                    <ItemRow
-                      key={it.id}
-                      code={it.code}
-                      label={it.label}
-                      note={it.note}
-                      value={s.motor[it.id] as boolean | null}
-                      onYes={() => setMotor(it.id, true)}
-                      onNo={() => setMotor(it.id, false)}
-                    />
-                  ))}
-                  <Box mt="$4">
-                    <Text size="2xs" color="$textLight500" mb="$1.5">
-                      Observaciones del dominio
-                    </Text>
-                    <Textarea borderRadius={13} bg="$backgroundLight50">
-                      <TextareaInput placeholder="Anotaciones del profesional…" value={motObs} onChangeText={setMotObs} />
-                    </Textarea>
-                  </Box>
-                  <Text size="2xs" color="$textLight400" mt="$3" style={{ lineHeight: 15 }}>
-                    M-01 «No» bloquea todas las pruebas interactivas. M-03 «No» bloquea solo las pruebas con arrastre.
-                  </Text>
-                </Card>
-              )}
+
+                    <Box mt="$4">
+                      <Text size="2xs" weight="bold" color="$textLight600" mb="$1.5">
+                        OBSERVACIONES DEL DOMINIO VISUAL
+                      </Text>
+                      <Textarea borderRadius={12} bg="$backgroundLight50">
+                        <TextareaInput
+                          placeholder="Anotaciones oftalmológicas o de respuesta visual..."
+                          value={visObs}
+                          onChangeText={setVisObs}
+                        />
+                      </Textarea>
+                    </Box>
+                  </View>
+                )}
+
+                {/* -------------------- 3. VERBAL -------------------- */}
+                {activeDomain === 'verbal' && (
+                  <View style={styles.cardSection}>
+                    <View style={styles.sectionHeaderRow}>
+                      <View style={styles.sectionTitleCol}>
+                        <View style={styles.sectionTitleBadge}>
+                          <MessageSquare size={16} color="#0D9488" strokeWidth={2.2} />
+                          <Text size="sm" weight="bold" color="$textLight900">
+                            Dominio 3 · Capacidad Verbal Mínima
+                          </Text>
+                        </View>
+                        <Text size="2xs" color="$textLight500" style={{ marginTop: 2 }}>
+                          Comprensión y respuesta adaptada al rango etario del paciente.
+                        </Text>
+                      </View>
+                      <StatusChip kind={a.verKind} />
+                    </View>
+
+                    {/* Selector de Grupo de Edad */}
+                    <View style={styles.ageGroupContainer}>
+                      <Text size="2xs" weight="bold" color="$textLight600" mb="$2">
+                        GRUPO DE EDAD DEL PACIENTE:
+                      </Text>
+                      <View style={styles.ageButtonsRow}>
+                        {(['A', 'B', 'C'] as AgeGroup[]).map(g => {
+                          const active = s.ageGroup === g;
+                          const gLabel =
+                            g === 'A'
+                              ? 'Grupo A (18m - 2a 11m)'
+                              : g === 'B'
+                                ? 'Grupo B (3a - 4a 11m)'
+                                : 'Grupo C (≥ 5 años)';
+                          return (
+                            <Pressable
+                              key={g}
+                              style={({ pressed }) => [
+                                styles.ageGroupBtn,
+                                active && styles.ageGroupBtnActive,
+                                pressed && { opacity: 0.85 },
+                              ]}
+                              onPress={() => setAge(g)}>
+                              <Text
+                                size="xs"
+                                weight="bold"
+                                style={{ color: active ? '#FFFFFF' : '#475569' }}>
+                                {gLabel}
+                              </Text>
+                            </Pressable>
+                          );
+                        })}
+                      </View>
+                    </View>
+
+                    {verbalGroup.items.map(it => (
+                      <ItemRow
+                        key={it.id}
+                        code={it.code}
+                        label={it.label}
+                        value={s.verbal[it.id] as boolean | null}
+                        onYes={() => setVerbal(it.id, true)}
+                        onNo={() => setVerbal(it.id, false)}
+                      />
+                    ))}
+
+                    <Box mt="$4">
+                      <Text size="2xs" weight="bold" color="$textLight600" mb="$1.5">
+                        OBSERVACIONES DEL DOMINIO VERBAL
+                      </Text>
+                      <Textarea borderRadius={12} bg="$backgroundLight50">
+                        <TextareaInput
+                          placeholder="Anotaciones de lenguaje o comunicación..."
+                          value={verObs}
+                          onChangeText={setVerObs}
+                        />
+                      </Textarea>
+                    </Box>
+                  </View>
+                )}
+
+                {/* -------------------- 4. MOTOR -------------------- */}
+                {activeDomain === 'motor' && (
+                  <View style={styles.cardSection}>
+                    <View style={styles.sectionHeaderRow}>
+                      <View style={styles.sectionTitleCol}>
+                        <View style={styles.sectionTitleBadge}>
+                          <Hand size={16} color="#7C3AED" strokeWidth={2.2} />
+                          <Text size="sm" weight="bold" color="$textLight900">
+                            Dominio 4 · Capacidad Motora Mínima
+                          </Text>
+                        </View>
+                        <Text size="2xs" color="$textLight500" style={{ marginTop: 2 }}>
+                          Capacidad para interactuar con la pantalla táctil de manera intencional.
+                        </Text>
+                      </View>
+                      <StatusChip kind={a.motKind} />
+                    </View>
+
+                    {MOTOR_ITEMS.map(it => (
+                      <ItemRow
+                        key={it.id}
+                        code={it.code}
+                        label={it.label}
+                        note={it.note}
+                        value={s.motor[it.id] as boolean | null}
+                        onYes={() => setMotor(it.id, true)}
+                        onNo={() => setMotor(it.id, false)}
+                      />
+                    ))}
+
+                    <Box mt="$4">
+                      <Text size="2xs" weight="bold" color="$textLight600" mb="$1.5">
+                        OBSERVACIONES DEL DOMINIO MOTOR
+                      </Text>
+                      <Textarea borderRadius={12} bg="$backgroundLight50">
+                        <TextareaInput
+                          placeholder="Anotaciones psicomotrices o de lateralidad..."
+                          value={motObs}
+                          onChangeText={setMotObs}
+                        />
+                      </Textarea>
+                    </Box>
+                  </View>
+                )}
               </ScaledTextScope.Provider>
 
-              {/* ===================== PERFIL DE APTITUD ===================== */}
-              <Card bgColor="$white" borderRadius={22} p="$5">
-                <HStack space="sm" alignItems="center" mb="$3">
-                  <Icon as={ShieldCheck} size="sm" color="$primary500" />
-                  <Text size="sm" weight="bold" color="$textLight800" style={{ textTransform: 'uppercase', letterSpacing: 0.4 }}>
-                    Perfil de aptitud
+              {/* ============================================================ */}
+              {/* RESUMEN DE PERFIL DE APTITUD DIAGNÓSTICA                     */}
+              {/* ============================================================ */}
+              <View style={styles.aptitudeSection}>
+                <View style={styles.aptitudeHeaderRow}>
+                  <ShieldCheck size={20} color="#FF7F00" strokeWidth={2.4} />
+                  <Text size="md" weight="bold" color="$textLight900">
+                    Perfil de Aptitud y Gating de Pruebas
                   </Text>
-                </HStack>
-    
-                {/* global */}
-                <VStack p="$4" borderRadius={18} bg={KIND_COLOR[a.globalKind].bg} mb="$4">
-                  <Text size="2xs" weight="bold" color={KIND_COLOR[a.globalKind].fg} style={{ letterSpacing: 0.4 }}>
-                    RESULTADO GLOBAL
-                  </Text>
-                  <Text size="xl" weight="bold" color={KIND_COLOR[a.globalKind].fg} mt="$0.5">
-                    {a.globalLabel}
-                  </Text>
-                  <Text size="xs" color={KIND_COLOR[a.globalKind].fg} mt="$1" style={{ lineHeight: 17, opacity: 0.95 }}>
+                </View>
+
+                {/* Banner de Veredicto Global */}
+                <View
+                  style={[
+                    styles.globalResultCard,
+                    {
+                      backgroundColor: KIND_THEME[a.globalKind].bg,
+                      borderColor: KIND_THEME[a.globalKind].border,
+                    },
+                  ]}>
+                  <View style={styles.globalResultTop}>
+                    <View style={{ flex: 1 }}>
+                      <Text
+                        size="2xs"
+                        weight="bold"
+                        style={{ color: KIND_THEME[a.globalKind].fg, letterSpacing: 0.6 }}>
+                        VEREDICTO CLÍNICO GLOBAL
+                      </Text>
+                      <Text
+                        size="xl"
+                        weight="bold"
+                        style={{ color: KIND_THEME[a.globalKind].fg, marginTop: 2 }}>
+                        {a.globalLabel}
+                      </Text>
+                    </View>
+                    <View
+                      style={[
+                        styles.globalResultBadge,
+                        { backgroundColor: KIND_THEME[a.globalKind].dot },
+                      ]}>
+                      <Text size="xs" weight="bold" color="$white">
+                        {a.activeCount}/{a.totalGames} Activas
+                      </Text>
+                    </View>
+                  </View>
+                  <Text
+                    size="xs"
+                    style={{ color: KIND_THEME[a.globalKind].fg, marginTop: 6, lineHeight: 18 }}>
                     {a.globalDesc}
                   </Text>
-                </VStack>
-    
-                {/* per-domain */}
-                <Text size="2xs" weight="bold" color="$textLight400" mb="$1" style={{ letterSpacing: 0.4 }}>
-                  RESULTADO POR DOMINIO
+                </View>
+
+                {/* Desglose de Pruebas de la Sesión */}
+                <Text size="2xs" weight="bold" color="$textLight600" mt="$3" mb="$2" style={{ letterSpacing: 0.5 }}>
+                  ESTADO DE HABILITACIÓN DE PRUEBAS DE LA BATERÍA
                 </Text>
-                {DOMAINS.map(d => {
-                  const k = kindByDomain[d.id];
-                  return (
-                    <HStack key={d.id} alignItems="center" justifyContent="space-between" py="$2" borderBottomWidth={1} borderColor="$borderLight50">
-                      <HStack space="sm" alignItems="center">
-                        <Box w={8} h={8} borderRadius="$full" bg={KIND_COLOR[k].dot} />
-                        <Text size="sm" color="$textLight700">
-                          {d.short === 'Otoscopia' ? 'Otoscopia' : `Capacidad ${d.short.toLowerCase()}`}
-                        </Text>
-                      </HStack>
-                      <StatusChip kind={k} />
-                    </HStack>
-                  );
-                })}
-    
-                {/* games */}
-                <HStack alignItems="center" justifyContent="space-between" mt="$4" mb="$2">
-                  <Text size="sm" weight="bold" color="$textLight800">
-                    Pruebas de la sesión
-                  </Text>
-                  <Box bg="$primary50" px="$2.5" py="$0.5" borderRadius="$full">
-                    <Text size="2xs" weight="bold" color="$primary800">
-                      {a.activeCount}/{a.totalGames}
-                    </Text>
-                  </Box>
-                </HStack>
-                <VStack space="xs">
+                <View style={styles.gamesListWrap}>
                   {a.games.map(g => (
-                    <HStack key={g.code} space="sm" alignItems="center" p="$2.5" borderRadius={12} bg={g.active ? '$backgroundLight50' : '$error50'}>
-                      <Center w={28} h={28} borderRadius={9} bg={g.active ? '$success50' : '$error100'}>
-                        <Icon as={g.active ? Check : X} size="xs" color={g.active ? '$success700' : '$error500'} />
-                      </Center>
-                      <VStack style={{ flex: 1 }}>
-                        <HStack space="xs" alignItems="center">
-                          <Text size="2xs" color="$textLight400">
-                            {g.code}
-                          </Text>
-                          <Text size="sm" weight="semiBold" color="$textLight800">
-                            {g.title}
-                          </Text>
-                        </HStack>
-                        <Text size="2xs" color={g.active ? '$success700' : '$textLight500'}>
+                    <View
+                      key={g.code}
+                      style={[
+                        styles.gameGateItem,
+                        { backgroundColor: g.active ? '#F8FAFC' : '#FEF2F2' },
+                      ]}>
+                      <View
+                        style={[
+                          styles.gameStatusIcon,
+                          { backgroundColor: g.active ? '#DCFCE7' : '#FEE2E2' },
+                        ]}>
+                        {g.active ? (
+                          <Check size={14} color="#16A34A" strokeWidth={2.8} />
+                        ) : (
+                          <X size={14} color="#DC2626" strokeWidth={2.8} />
+                        )}
+                      </View>
+                      <View style={{ flex: 1 }}>
+                        <Text size="xs" weight="bold" color="$textLight900">
+                          {g.code} · {g.title}
+                        </Text>
+                        <Text
+                          size="2xs"
+                          weight="medium"
+                          style={{ color: g.active ? '#15803D' : '#DC2626' }}>
                           {g.reason}
                         </Text>
-                      </VStack>
-                    </HStack>
+                      </View>
+                    </View>
                   ))}
-                </VStack>
-              </Card>
-    
-              {/* ===================== EVALUADOR + CONFIRM ===================== */}
-              <Card bgColor="$white" borderRadius={22} p="$5">
-                <Text size="sm" weight="bold" color="$textLight800" mb="$2">
-                  Evaluador responsable
-                </Text>
-                <HStack space="sm" mb="$4">
-                  <Input variant="outline" borderRadius={12} style={{ flex: 2 }}>
-                    <InputField placeholder="Nombre" value={evaluatorName} onChangeText={setEvaluatorName} />
-                  </Input>
-                  <Input variant="outline" borderRadius={12} style={{ flex: 1 }}>
-                    <InputField placeholder="Nº Colegiado" value={evaluatorLicense} onChangeText={setEvaluatorLicense} />
-                  </Input>
-                </HStack>
-                <Button
-                  action="primary"
-                  variant="solid"
-                  rounded="$full"
-                  isDisabled={!confirmReady || isSaving}
-                  isLoading={isSaving}
-                  onPress={handleSave}>
-                  <HStack space="sm" alignItems="center">
-                    <Icon as={ShieldQuestion} size="sm" color="$white" />
-                    <Text size="md" weight="bold" color="$white">
-                      Confirmar y generar CAP
+                </View>
+              </View>
+
+              {/* ============================================================ */}
+              {/* FIRMA Y CONFIRMACIÓN DEL PROFESIONAL                         */}
+              {/* ============================================================ */}
+              <View style={styles.evaluatorSection}>
+                <View style={styles.evaluatorHeaderRow}>
+                  <UserCheck size={18} color="#0D9488" strokeWidth={2.2} />
+                  <Text size="sm" weight="bold" color="$textLight900">
+                    Profesional Evaluador Responsable
+                  </Text>
+                </View>
+
+                <HStack space="md" mb="$4" mt="$2">
+                  <View style={{ flex: 2 }}>
+                    <Text size="2xs" weight="bold" color="$textLight600" mb="$1">
+                      NOMBRE DEL PROFESIONAL
                     </Text>
-                    <Icon as={ArrowRight} size="sm" color="$white" />
-                  </HStack>
-                </Button>
+                    <Input variant="outline" borderRadius={12} bg="$white">
+                      <InputField
+                        placeholder="Ej. Dr. Frank Betances"
+                        value={evaluatorName}
+                        onChangeText={setEvaluatorName}
+                      />
+                    </Input>
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text size="2xs" weight="bold" color="$textLight600" mb="$1">
+                      Nº COLEGIADO
+                    </Text>
+                    <Input variant="outline" borderRadius={12} bg="$white">
+                      <InputField
+                        placeholder="Nº Colegiado"
+                        value={evaluatorLicense}
+                        onChangeText={setEvaluatorLicense}
+                      />
+                    </Input>
+                  </View>
+                </HStack>
+
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel="Confirmar y generar Certificado de Aptitud"
+                  disabled={!confirmReady || isSaving}
+                  style={({ pressed }) => [
+                    styles.confirmButton,
+                    (!confirmReady || isSaving) && styles.confirmButtonDisabled,
+                    pressed && confirmReady && !isSaving && styles.confirmButtonPressed,
+                  ]}
+                  onPress={handleSave}>
+                  <ShieldQuestion size={18} color="#FFFFFF" strokeWidth={2.2} />
+                  <Text size="md" weight="bold" color="$white" style={{ marginHorizontal: 8 }}>
+                    {isSaving ? 'Guardando Certificado...' : 'Confirmar y Generar CAP'}
+                  </Text>
+                  <ArrowRight size={18} color="#FFFFFF" strokeWidth={2.4} />
+                </Pressable>
+
                 <Text size="2xs" color="$textLight400" mt="$3" style={{ textAlign: 'center', lineHeight: 15 }}>
-                  Certifica únicamente las condiciones mínimas de viabilidad de la prueba. No constituye diagnóstico ni informe
-                  clínico.
+                  El CAP certifica las condiciones de viabilidad para la sesión actual. Cumplimiento MDR 2017/745 y protocolos clínicos.
                 </Text>
-              </Card>
-    
-              <Box h="$10" />
+              </View>
             </VStack>
           </ScrollView>
         </VStack>
@@ -682,3 +968,405 @@ export default function ClinicalAssessmentScreen({ navigation }: Props) {
     </Content>
   );
 }
+
+const styles = StyleSheet.create({
+  scrollContent: {
+    paddingHorizontal: 20,
+    paddingTop: 10,
+  },
+
+  /* Header Card */
+  headerCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#E8E2D5',
+    shadowColor: '#2B2620',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  headerTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+  },
+  badgePrereqRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    marginBottom: 4,
+  },
+  samdBadge: {
+    backgroundColor: '#F1F5F9',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  patientInfoBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F8FAFC',
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    borderRadius: 10,
+    marginTop: 12,
+    borderWidth: 1,
+    borderColor: '#F1F5F9',
+  },
+
+  /* Disfagia Callout */
+  dysphagiaBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    backgroundColor: '#F0F9FF',
+    borderRadius: 16,
+    padding: 12,
+    borderWidth: 1.5,
+    borderColor: '#BAE6FD',
+  },
+  dysphagiaIconBox: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    backgroundColor: '#E0F2FE',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  bannerPressed: {
+    opacity: 0.85,
+    transform: [{ translateY: -1 }],
+  },
+
+  /* Pestañas de Dominio */
+  tabsGrid: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  tabItem: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    paddingVertical: 10,
+    paddingHorizontal: 10,
+    borderWidth: 1.5,
+    shadowColor: '#2B2620',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.03,
+    shadowRadius: 6,
+    elevation: 1,
+  },
+  tabItemActive: {
+    backgroundColor: '#FFFFFF',
+    shadowOpacity: 0.08,
+    elevation: 3,
+  },
+  tabIconBox: {
+    width: 34,
+    height: 34,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  tabStatusRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginTop: 2,
+  },
+  statusMiniDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+  },
+
+  /* Tarjeta de Contenido de Dominio */
+  cardSection: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 22,
+    padding: 18,
+    borderWidth: 1,
+    borderColor: '#E8E2D5',
+    shadowColor: '#2B2620',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.04,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  sectionHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 16,
+    paddingBottom: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F1F5F9',
+  },
+  sectionTitleCol: {
+    flex: 1,
+    marginRight: 12,
+  },
+  sectionTitleBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+
+  /* Otoscopia */
+  earBox: {
+    backgroundColor: '#FAFAF9',
+    borderRadius: 16,
+    padding: 14,
+    marginBottom: 14,
+    borderWidth: 1,
+    borderColor: '#E7E5E4',
+    borderLeftWidth: 4,
+  },
+  earHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 10,
+  },
+  earLabelBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  earIndicatorCircle: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+  },
+  findingsPillsWrap: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  findingPill: {
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 20,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1.5,
+    borderColor: '#CBD5E1',
+  },
+  clinicalAlertBox: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 8,
+    backgroundColor: '#F0FDFA',
+    borderRadius: 14,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: '#CCFBF1',
+    marginTop: 4,
+  },
+
+  /* Toggles y Preguntas */
+  itemRowContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F1F5F9',
+    gap: 12,
+  },
+  itemTextCol: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 10,
+  },
+  itemCodeBadge: {
+    backgroundColor: '#F1F5F9',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 6,
+    marginTop: 1,
+  },
+  itemNoteRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginTop: 3,
+  },
+  toggleRow: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  toggleBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+    borderRadius: 20,
+    borderWidth: 1.5,
+    borderColor: '#E2E8F0',
+    backgroundColor: '#FFFFFF',
+    minWidth: 62,
+    minHeight: 40,
+  },
+  toggleBtnYesActive: {
+    backgroundColor: '#16A34A',
+    borderColor: '#16A34A',
+  },
+  toggleBtnNoActive: {
+    backgroundColor: '#DC2626',
+    borderColor: '#DC2626',
+  },
+  toggleBtnPressed: {
+    opacity: 0.8,
+  },
+
+  /* Grupo de Edad */
+  ageGroupContainer: {
+    backgroundColor: '#F8FAFC',
+    padding: 12,
+    borderRadius: 14,
+    marginBottom: 14,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  ageButtonsRow: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  ageGroupBtn: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 8,
+    paddingHorizontal: 8,
+    borderRadius: 12,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1.5,
+    borderColor: '#CBD5E1',
+  },
+  ageGroupBtnActive: {
+    backgroundColor: '#0D9488',
+    borderColor: '#0D9488',
+  },
+
+  /* Perfil de Aptitud */
+  aptitudeSection: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 22,
+    padding: 18,
+    borderWidth: 1,
+    borderColor: '#E8E2D5',
+    shadowColor: '#2B2620',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.04,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  aptitudeHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 14,
+  },
+  globalResultCard: {
+    borderRadius: 16,
+    padding: 14,
+    borderWidth: 1.5,
+  },
+  globalResultTop: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  globalResultBadge: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  gamesListWrap: {
+    gap: 6,
+  },
+  gameGateItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    padding: 10,
+    borderRadius: 12,
+  },
+  gameStatusIcon: {
+    width: 24,
+    height: 24,
+    borderRadius: 7,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  /* Evaluador y Confirmación */
+  evaluatorSection: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 22,
+    padding: 18,
+    borderWidth: 1,
+    borderColor: '#E8E2D5',
+    shadowColor: '#2B2620',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.04,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  evaluatorHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 8,
+  },
+  confirmButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#FF7F00',
+    borderRadius: 28,
+    height: 56,
+    paddingHorizontal: 24,
+    shadowColor: '#FF7F00',
+    shadowOpacity: 0.35,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 4,
+  },
+  confirmButtonDisabled: {
+    backgroundColor: '#CBD5E1',
+    shadowOpacity: 0,
+    elevation: 0,
+  },
+  confirmButtonPressed: {
+    opacity: 0.92,
+    transform: [{ translateY: -1 }],
+  },
+
+  /* Chips de Estado */
+  statusChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingVertical: 3,
+    paddingHorizontal: 8,
+    borderRadius: 12,
+    borderWidth: 1,
+  },
+  statusDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+  },
+});
+

@@ -21,10 +21,12 @@ import Animated, {
   withDelay,
   withRepeat,
   withSequence,
+  withSpring,
   withTiming,
 } from 'react-native-reanimated';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { ArrowRight, UserCheck } from 'lucide-react-native';
+import { ArrowLeft, ArrowRight, ShieldCheck, UserCheck } from 'lucide-react-native';
 
 import { RootStackParamList } from '@/Navigators';
 import ViaIcon from '@/Components/Common/ViaIcon';
@@ -37,14 +39,14 @@ import {
 import { ORBIT_MODULES, OrbitModule } from './orbitModules';
 
 /* -------------------------------------------------------------------------- */
-/*  CreditosScreen — Quién hay detrás de VIA+ en formato Tableta 4:3           */
-/*  Diseño de 2 columnas panorámicas: Emblema y Autor a la izquierda,          */
-/*  Alianzas, Voces y Calidad a la derecha, con Action Dock inferior.          */
+/*  CreditosScreen — Quién hay detrás de VIA+ en formato Tableta 4:3 y Móvil   */
+/*  Diseño clínico panorámico: Emblema de órbita y autor a la izquierda,       */
+/*  Alianzas, Voces y Calidad Sanitaria a la derecha, con Action Dock seguro.  */
 /* -------------------------------------------------------------------------- */
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Creditos'>;
 
-const EMBLEM = 88;
+const EMBLEM = 84;
 const RING_DURATION = 2600;
 const ORBIT_TILT = 0.82;
 
@@ -61,9 +63,9 @@ const LANGUAGE_CREDITS = [
 ];
 
 /* ----------------------- Banda de partículas del autor ---------------------- */
-const BAND_H = 110;
+const BAND_H = 100;
 const PARTICLE_COUNT = 26;
-const LANES = [-16, -5, 5, 16];
+const LANES = [-14, -4, 4, 14];
 const CHAOS_COLORS = ['#C9BEA9', '#B3A791', '#D8CFC0', '#F0AE6C'];
 const ORDER_COLOR = '#FF7F00';
 
@@ -190,15 +192,25 @@ function OrbitDot({ module: m }: { module: OrbitModule }) {
 }
 
 export default function CreditosScreen({ navigation }: Props) {
+  const insets = useSafeAreaInsets();
   const { width: winW } = useWindowDimensions();
   const isTabletLandscape = winW >= 850;
   const [bandWidth, setBandWidth] = useState(0);
 
+  // Animaciones continuas de pulso y flotación
   const ring1 = useSharedValue(0);
   const ring2 = useSharedValue(0);
   const float = useSharedValue(0);
 
+  // Animaciones de entrada escalonada y botón
+  const introOpacity = useSharedValue(0);
+  const introTranslateY = useSharedValue(18);
+  const btnScale = useSharedValue(1);
+
   useEffect(() => {
+    introOpacity.value = withTiming(1, { duration: 600, easing: Easing.out(Easing.cubic) });
+    introTranslateY.value = withTiming(0, { duration: 600, easing: Easing.out(Easing.cubic) });
+
     const makePulse = () =>
       withRepeat(
         withSequence(
@@ -222,9 +234,16 @@ export default function CreditosScreen({ navigation }: Props) {
       cancelAnimation(ring1);
       cancelAnimation(ring2);
       cancelAnimation(float);
+      cancelAnimation(introOpacity);
+      cancelAnimation(introTranslateY);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  const introStyle = useAnimatedStyle(() => ({
+    opacity: introOpacity.value,
+    transform: [{ translateY: introTranslateY.value }],
+  }));
 
   const ring1Style = useAnimatedStyle(() => ({
     transform: [{ scale: interpolate(ring1.value, [0, 1], [0.95, 1.75]) }],
@@ -238,28 +257,57 @@ export default function CreditosScreen({ navigation }: Props) {
     transform: [{ translateY: float.value }],
   }));
 
+  const btnAnimatedStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: btnScale.value }],
+  }));
+
+  const handleBack = () => {
+    if (navigation.canGoBack()) {
+      navigation.goBack();
+    } else {
+      navigation.navigate('Bienvenida');
+    }
+  };
+
+  const handleContinue = () => {
+    navigation.navigate('SeleccionProfesional');
+  };
+
   return (
     <View style={styles.root}>
       <StatusBar barStyle="dark-content" backgroundColor="#F5F2EC" />
       <View style={styles.blobTopRight} pointerEvents="none" />
       <View style={styles.blobBottomLeft} pointerEvents="none" />
 
-      {/* Top Navbar */}
-      <View style={styles.topNavbar}>
-        <View style={styles.navLogoRow}>
-          <ViaIcon size={28} variant="color" />
-          <Text style={styles.navLogoText}>
-            VIA<Text style={{ color: '#FF7F00' }}>+</Text>
-          </Text>
+      {/* Top Navbar con insets seguros */}
+      <View style={[styles.topNavbar, { paddingTop: Math.max(insets.top, 12) }]}>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Volver a la pantalla de bienvenida"
+          style={({ pressed }) => [styles.navBackButton, pressed && styles.navButtonPressed]}
+          onPress={handleBack}>
+          <ArrowLeft size={20} color="#2B2620" strokeWidth={2.4} />
+          <View style={styles.navLogoRow}>
+            <ViaIcon size={24} variant="color" />
+            <Text style={styles.navLogoText}>
+              VIA<Text style={{ color: '#FF7F00' }}>+</Text>
+            </Text>
+          </View>
+        </Pressable>
+
+        <Text style={styles.navTitle}>Créditos y Avales</Text>
+
+        <View style={styles.samdBadgeNav}>
+          <ShieldCheck size={13} color="#0D9488" strokeWidth={2.2} />
+          <Text style={styles.samdBadgeNavText}>Clase IIa</Text>
         </View>
-        <Text style={styles.navTitle}>Créditos</Text>
-        <View style={{ width: 60 }} />
       </View>
 
       <ScrollView
         style={{ flex: 1 }}
         contentContainerStyle={[
           styles.scroll,
+          { paddingBottom: 100 + Math.max(insets.bottom, 16) },
           isTabletLandscape && styles.scrollLandscape,
         ]}
         showsVerticalScrollIndicator={false}>
@@ -267,10 +315,13 @@ export default function CreditosScreen({ navigation }: Props) {
         {/* ================================================================== */}
         {/* COLUMNA IZQUIERDA: Emblema de Órbita + Tarjeta del Autor           */}
         {/* ================================================================== */}
-        <View style={[styles.leftColumn, isTabletLandscape && styles.columnHalf]}>
+        <Animated.View style={[styles.leftColumn, isTabletLandscape && styles.columnHalf, introStyle]}>
           {/* Emblema de 12 módulos orbitando */}
           <View style={styles.emblemCard}>
-            <Text style={styles.emblemHeading}>DOCE MÓDULOS · UNA SOLA BATERÍA</Text>
+            <View style={styles.emblemHeaderRow}>
+              <View style={styles.emblemDotLive} />
+              <Text style={styles.emblemHeading}>DOCE MÓDULOS · UNA SOLA BATERÍA</Text>
+            </View>
             
             <Animated.View
               style={[styles.emblemWrapper, floatStyle]}
@@ -281,9 +332,7 @@ export default function CreditosScreen({ navigation }: Props) {
               <Animated.View style={[styles.ring, ring2Style]} />
               
               <View style={styles.emblemCore}>
-                <Text style={styles.emblemCoreText}>
-                  VIA<Text style={{ color: '#FF7F00' }}>+</Text>
-                </Text>
+                <ViaIcon size={56} variant="color" />
               </View>
 
               <View style={styles.orbitLayer} pointerEvents="none">
@@ -292,6 +341,10 @@ export default function CreditosScreen({ navigation }: Props) {
                 ))}
               </View>
             </Animated.View>
+
+            <Text style={styles.emblemFootnote}>
+              Arquitectura integrada de valoración audiológica, fonética y deglutoria
+            </Text>
           </View>
 
           {/* Tarjeta del Autor (Dr. Betances) */}
@@ -306,11 +359,11 @@ export default function CreditosScreen({ navigation }: Props) {
               </View>
               <View style={{ flex: 1 }}>
                 <View style={styles.authorBadgeRow}>
-                  <UserCheck size={14} color="#EA580C" />
+                  <UserCheck size={14} color="#EA580C" strokeWidth={2.4} />
                   <Text style={styles.authorBadgeText}>AUTORÍA Y DIRECCIÓN CLÍNICA</Text>
                 </View>
                 <Text style={styles.authorName}>Dr. Frank Alberto Betances Reinoso</Text>
-                <Text style={styles.authorRole}>Otorrinolaringólogo y desarrollador principal</Text>
+                <Text style={styles.authorRole}>Otorrinolaringólogo e investigador principal</Text>
               </View>
             </View>
 
@@ -322,24 +375,24 @@ export default function CreditosScreen({ navigation }: Props) {
                 : null}
             </View>
           </View>
-        </View>
+        </Animated.View>
 
         {/* ================================================================== */}
         {/* COLUMNA DERECHA: Colaboradores, Voces y Calidad Regulatoria        */}
         {/* ================================================================== */}
-        <View style={[styles.rightColumn, isTabletLandscape && styles.columnHalf]}>
+        <Animated.View style={[styles.rightColumn, isTabletLandscape && styles.columnHalf, introStyle]}>
           {/* Tarjeta 1: Entidades Colaboradoras */}
           <View style={styles.cardBlock}>
-            <Text style={styles.cardBlockTitle}>COLABORADORES</Text>
+            <Text style={styles.cardBlockTitle}>ALIANZAS Y COLABORADORES</Text>
             
             <View style={styles.partnerList}>
               <View style={styles.partnerItem}>
                 <View style={styles.partnerIconBox}>
-                  <QuisqueyaHablaMark size={32} />
+                  <QuisqueyaHablaMark size={34} />
                 </View>
                 <View style={{ flex: 1 }}>
                   <Text style={styles.partnerName}>Quisqueya Habla (FONDOCYT)</Text>
-                  <Text style={styles.partnerSubtitle}>Proyecto FONDOCYT · variante dominicana de la batería</Text>
+                  <Text style={styles.partnerSubtitle}>Proyecto FONDOCYT · adaptación lingüística dominicana</Text>
                 </View>
               </View>
 
@@ -347,7 +400,7 @@ export default function CreditosScreen({ navigation }: Props) {
 
               <View style={styles.partnerItem}>
                 <View style={styles.partnerIconBox}>
-                  <AcoprosMark size={32} />
+                  <AcoprosMark size={34} />
                 </View>
                 <View style={{ flex: 1 }}>
                   <Text style={styles.partnerName}>ACOPROS</Text>
@@ -359,11 +412,11 @@ export default function CreditosScreen({ navigation }: Props) {
 
               <View style={styles.partnerItem}>
                 <View style={styles.partnerIconBox}>
-                  <EarlifyMark size={32} />
+                  <EarlifyMark size={34} />
                 </View>
                 <View style={{ flex: 1 }}>
                   <Text style={styles.partnerName}>Earlify Health</Text>
-                  <Text style={styles.partnerSubtitle}>Tecnología e ingeniería clínica</Text>
+                  <Text style={styles.partnerSubtitle}>Tecnología e ingeniería clínica sanitaria</Text>
                 </View>
               </View>
             </View>
@@ -371,7 +424,7 @@ export default function CreditosScreen({ navigation }: Props) {
 
           {/* Tarjeta 2: Voces y Variantes */}
           <View style={styles.cardBlock}>
-            <Text style={styles.cardBlockTitle}>VOCES Y LENGUAJES</Text>
+            <Text style={styles.cardBlockTitle}>VOCES Y LOCALIZACIÓN</Text>
             
             <View style={styles.langList}>
               {LANGUAGE_CREDITS.map((item, idx) => (
@@ -388,12 +441,17 @@ export default function CreditosScreen({ navigation }: Props) {
 
           {/* Tarjeta 3: Calidad y Marco Regulatorio */}
           <View style={styles.cardBlock}>
-            <Text style={styles.cardBlockTitle}>CALIDAD Y NORMATIVA</Text>
+            <Text style={styles.cardBlockTitle}>CALIDAD Y REGULACIÓN SANITARIA</Text>
             
             <View style={styles.sealRow}>
-              <ItemasSealMark size={36} />
-              <View style={{ flex: 1, marginLeft: 12 }}>
-                <Text style={styles.sealTitle}>Sello ITEMAS 2024</Text>
+              <ItemasSealMark size={40} />
+              <View style={{ flex: 1, marginLeft: 14 }}>
+                <Text style={styles.sealTitle}>Sello de Calidad ITEMAS 2024</Text>
+                {/* El rediseño proponía «Innovación sanitaria avalada por el
+                    ISCIII». Es una afirmación sobre una acreditación, más
+                    fuerte que la actual, y cambiarla no es un efecto colateral
+                    de un cambio de estilo: se mantiene la que ya estaba hasta
+                    que Frank confirme los términos del sello. */}
                 <Text style={styles.sealSubtitle}>Innovación tecnológica en salud</Text>
               </View>
             </View>
@@ -410,17 +468,25 @@ export default function CreditosScreen({ navigation }: Props) {
               </View>
             </View>
           </View>
-        </View>
+        </Animated.View>
       </ScrollView>
 
-      {/* Action Dock Inferior */}
-      <View style={styles.actionDock}>
-        <Pressable
-          style={({ pressed }) => [styles.dockButton, pressed && styles.dockButtonPressed]}
-          onPress={() => navigation.navigate('SeleccionProfesional')}>
-          <Text style={styles.dockButtonText}>Comenzar Selección Profesional</Text>
-          <ArrowRight size={18} color="#FFFFFF" strokeWidth={2.5} />
-        </Pressable>
+      {/* Action Dock Inferior con manejo dinámico de Safe Area */}
+      <View style={[styles.actionDock, { paddingBottom: Math.max(insets.bottom, 14) }]}>
+        <Animated.View style={btnAnimatedStyle}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Comenzar Selección Profesional"
+            style={({ pressed }) => [styles.dockButton, pressed && styles.dockButtonPressed]}
+            onPressIn={() => (btnScale.value = withSpring(0.97, { damping: 15, stiffness: 300 }))}
+            onPressOut={() => (btnScale.value = withSpring(1, { damping: 15, stiffness: 300 }))}
+            onPress={handleContinue}>
+            <Text style={styles.dockButtonText}>Comenzar Selección Profesional</Text>
+            <View style={styles.dockArrowCircle}>
+              <ArrowRight size={18} color="#FF7F00" strokeWidth={2.6} />
+            </View>
+          </Pressable>
+        </Animated.View>
       </View>
     </View>
   );
@@ -455,39 +521,59 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 24,
-    paddingTop: 16,
-    paddingBottom: 10,
+    paddingHorizontal: 20,
+    paddingBottom: 12,
     borderBottomWidth: 1,
     borderBottomColor: '#EDE7DC',
+    backgroundColor: 'rgba(245, 242, 236, 0.94)',
+  },
+  navBackButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingVertical: 4,
+    paddingHorizontal: 6,
+    borderRadius: 10,
+  },
+  navButtonPressed: {
+    opacity: 0.7,
   },
   navLogoRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
   },
-  iconSquare: {
-    width: 28,
-    height: 28,
-    borderRadius: 8,
-    backgroundColor: '#FFF7ED',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
   navLogoText: {
     fontSize: 18,
     fontWeight: '800',
     color: '#2B2620',
+    letterSpacing: -0.5,
   },
   navTitle: {
-    fontSize: 18,
+    fontSize: 17,
     fontWeight: '700',
     color: '#2B2620',
+  },
+  samdBadgeNav: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#CCFBF1',
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#99F6E4',
+  },
+  samdBadgeNavText: {
+    fontFamily: MONO,
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#0F766E',
   },
   scroll: {
     paddingHorizontal: 24,
     paddingTop: 16,
-    paddingBottom: 100,
   },
   scrollLandscape: {
     flexDirection: 'row',
@@ -496,12 +582,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 36,
   },
   leftColumn: {
-    gap: 20,
-    marginBottom: 20,
+    gap: 18,
+    marginBottom: 18,
   },
   rightColumn: {
-    gap: 16,
-    marginBottom: 20,
+    gap: 14,
+    marginBottom: 18,
   },
   columnHalf: {
     flex: 1,
@@ -517,31 +603,43 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderWidth: 1,
     borderColor: '#EDE7DC',
-    shadowColor: '#0F172A',
+    shadowColor: '#2B2620',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.04,
     shadowRadius: 10,
     elevation: 2,
   },
+  emblemHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 14,
+  },
+  emblemDotLive: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#FF7F00',
+  },
   emblemHeading: {
     fontFamily: MONO,
     fontSize: 11,
     fontWeight: '700',
-    letterSpacing: 1.2,
+    letterSpacing: 1.1,
     color: '#2B2620',
-    marginBottom: 16,
   },
   emblemWrapper: {
     width: 200,
     height: 200,
     alignItems: 'center',
     justifyContent: 'center',
+    marginVertical: 4,
   },
   ring: {
     position: 'absolute',
-    width: EMBLEM + 30,
-    height: EMBLEM + 30,
-    borderRadius: (EMBLEM + 30) / 2,
+    width: EMBLEM + 36,
+    height: EMBLEM + 36,
+    borderRadius: (EMBLEM + 36) / 2,
     borderWidth: 1.5,
     borderColor: 'rgba(255, 127, 0, 0.35)',
   },
@@ -549,21 +647,16 @@ const styles = StyleSheet.create({
     width: EMBLEM,
     height: EMBLEM,
     borderRadius: EMBLEM / 2,
-    backgroundColor: '#FFF7ED',
+    backgroundColor: '#FFFFFF',
     borderWidth: 2,
     borderColor: '#FF7F00',
     alignItems: 'center',
     justifyContent: 'center',
     shadowColor: '#FF7F00',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
+    shadowOpacity: 0.22,
     shadowRadius: 8,
     elevation: 3,
-  },
-  emblemCoreText: {
-    fontSize: 22,
-    fontWeight: '800',
-    color: '#2B2620',
   },
   orbitLayer: {
     position: 'absolute',
@@ -579,6 +672,14 @@ const styles = StyleSheet.create({
     shadowRadius: 2,
     elevation: 2,
   },
+  emblemFootnote: {
+    fontSize: 12,
+    color: '#6B635A',
+    textAlign: 'center',
+    marginTop: 10,
+    lineHeight: 16,
+    paddingHorizontal: 8,
+  },
 
   /* Autor */
   authorCard: {
@@ -589,8 +690,8 @@ const styles = StyleSheet.create({
     borderLeftWidth: 4,
     borderLeftColor: '#FF7F00',
     overflow: 'hidden',
-    padding: 18,
-    shadowColor: '#0F172A',
+    padding: 16,
+    shadowColor: '#2B2620',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.04,
     shadowRadius: 10,
@@ -603,11 +704,11 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   authorBadgeText: {
-    fontSize: 11,
+    fontSize: 10.5,
     fontWeight: '700',
     color: '#EA580C',
     textTransform: 'uppercase',
-    letterSpacing: 0.5,
+    letterSpacing: 0.6,
   },
   authorHeaderRow: {
     flexDirection: 'row',
@@ -644,7 +745,7 @@ const styles = StyleSheet.create({
     top: 0,
   },
   authorName: {
-    fontSize: 16,
+    fontSize: 15.5,
     fontWeight: '800',
     color: '#2B2620',
     lineHeight: 20,
@@ -663,19 +764,20 @@ const styles = StyleSheet.create({
     padding: 16,
     borderWidth: 1,
     borderColor: '#EDE7DC',
-    shadowColor: '#0F172A',
+    shadowColor: '#2B2620',
     shadowOffset: { width: 0, height: 3 },
     shadowOpacity: 0.04,
     shadowRadius: 8,
     elevation: 1.5,
   },
   cardBlockTitle: {
-    fontSize: 12,
+    fontFamily: MONO,
+    fontSize: 11,
     fontWeight: '700',
     color: '#475569',
     marginBottom: 12,
     textTransform: 'uppercase',
-    letterSpacing: 0.6,
+    letterSpacing: 0.8,
   },
   partnerList: {
     gap: 8,
@@ -686,20 +788,22 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   partnerIconBox: {
-    width: 38,
-    height: 38,
-    borderRadius: 10,
+    width: 40,
+    height: 40,
+    borderRadius: 11,
     backgroundColor: '#F8FAFC',
     alignItems: 'center',
     justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: '#F1F5F9',
   },
   partnerName: {
-    fontSize: 13,
+    fontSize: 13.5,
     fontWeight: '700',
     color: '#1E293B',
   },
   partnerSubtitle: {
-    fontSize: 11,
+    fontSize: 11.5,
     color: '#64748B',
   },
   divider: {
@@ -723,7 +827,7 @@ const styles = StyleSheet.create({
     color: '#1E293B',
   },
   langRole: {
-    fontSize: 11,
+    fontSize: 11.5,
     color: '#64748B',
   },
   sealRow: {
@@ -737,7 +841,7 @@ const styles = StyleSheet.create({
     color: '#B45309',
   },
   sealSubtitle: {
-    fontSize: 11,
+    fontSize: 11.5,
     color: '#64748B',
   },
   chipsRow: {
@@ -768,10 +872,10 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     borderTopWidth: 1,
     borderTopColor: '#EDE7DC',
-    paddingVertical: 14,
+    paddingTop: 12,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#0F172A',
+    shadowColor: '#2B2620',
     shadowOffset: { width: 0, height: -4 },
     shadowOpacity: 0.08,
     shadowRadius: 10,
@@ -781,24 +885,33 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 10,
     backgroundColor: '#FF7F00',
-    borderRadius: 24,
-    paddingVertical: 12,
-    paddingHorizontal: 32,
+    borderRadius: 28,
+    height: 54,
+    paddingHorizontal: 28,
     shadowColor: '#FF7F00',
-    shadowOpacity: 0.3,
-    shadowRadius: 10,
+    shadowOpacity: 0.35,
+    shadowRadius: 12,
     shadowOffset: { width: 0, height: 4 },
     elevation: 4,
   },
   dockButtonPressed: {
-    opacity: 0.9,
-    transform: [{ translateY: -1 }],
+    opacity: 0.92,
   },
   dockButtonText: {
     color: '#FFFFFF',
-    fontSize: 15,
-    fontWeight: '700',
+    fontSize: 15.5,
+    fontWeight: '800',
+    letterSpacing: 0.2,
+    marginRight: 10,
+  },
+  dockArrowCircle: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: '#FFFFFF',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });
+
