@@ -193,6 +193,40 @@ export function conditionForAnalysis(
   return out;
 }
 
+/* ---------------------------- medidor de nivel ---------------------------- */
+
+/** Suelo de la escala del medidor (dBFS). Por debajo, la barra está a cero. */
+export const VU_FLOOR_DBFS = -50;
+
+/**
+ * Nivel 0..1 para la BARRA del medidor en vivo, en escala de decibelios fondo
+ * de escala.
+ *
+ * El cálculo anterior era `min(1, rms * 4)`, que es lineal: satura a tope con
+ * un RMS de 0,25 y, por debajo, aplasta contra el suelo todo el rango en el que
+ * de verdad ocurre la fonación. En la práctica la barra estaba o al 100 % o
+ * casi a cero, así que no informaba de nada — y el medidor está justo para que
+ * el clínico vea si el niño está fonando a un nivel utilizable.
+ *
+ * La escala logarítmica reparte el recorrido donde importa:
+ *   −50 dBFS → 0,00   silencio / suelo de sala
+ *   −35 dBFS → 0,30   habla floja
+ *   −25 dBFS → 0,50   fonación /a/ sostenida en zona buena
+ *   −10 dBFS → 0,80
+ *     0 dBFS → 1,00   saturación digital
+ *
+ * OJO: esto es PRESENTACIÓN, no medida. El nivel absoluto de la captura depende
+ * del micrófono y de la distancia, que aquí no están calibrados; la barra sirve
+ * para guiar la toma, no para informar de un nivel en dB SPL.
+ */
+export function calculateVuLevel(rms: number): number {
+  if (!(rms > 0)) return 0;
+  const dbFs = 20 * Math.log10(rms);
+  if (dbFs <= VU_FLOOR_DBFS) return 0;
+  const normalized = (dbFs - VU_FLOOR_DBFS) / -VU_FLOOR_DBFS;
+  return normalized > 1 ? 1 : normalized;
+}
+
 const MIN_LAG = Math.floor(SAMPLE_RATE / 500); // 500 Hz
 /** Techo de periodo (suelo de F0) a 70 Hz. El valor histórico (100 Hz) estaba
  *  pensado solo para voz infantil y dejaba FUERA de banda la voz masculina

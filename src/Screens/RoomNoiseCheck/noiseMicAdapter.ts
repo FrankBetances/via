@@ -1,7 +1,12 @@
 import { PermissionsAndroid, Platform } from 'react-native';
-import { AudioManager, AudioRecorder } from 'react-native-audio-api';
+import { AudioManager } from 'react-native-audio-api';
 
-import { acquireRecordingSession } from '@/Audio';
+import {
+  acquireRecorder,
+  acquireRecordingSession,
+  setRecorderPermissionGranted,
+  type SharedRecorder,
+} from '@/Audio';
 import { NoiseMicAdapter, setNoiseMicAdapter } from './useNoiseMeter';
 import {
   createNoiseWeightingChain,
@@ -53,7 +58,6 @@ import {
 /* -------------------------------------------------------------------------- */
 
 const CAPTURE_SR = 48000;
-const BUFFER_SAMPLES = Math.round(CAPTURE_SR * 0.1); // ~100 ms por bloque
 /** Peso del bloque nuevo en el promedio energético (Leq). ~100 ms/bloque →
  *  constante de tiempo ≈0.8 s (respuesta «slow» estable de un sonómetro). */
 const LEQ_ALPHA = 0.12;
@@ -67,20 +71,24 @@ const WARMUP_BLOCKS = 4;
 const MAX_BLOCK_HISTORY = 600;
 
 async function ensureMicPermission(): Promise<boolean> {
+  let ok = false;
   if (Platform.OS === 'android') {
     const granted = await PermissionsAndroid.request(PermissionsAndroid.PERMISSIONS.RECORD_AUDIO, {
       title: 'Permiso de micrófono',
       message: 'Se necesita el micrófono para medir el ruido ambiente de la sala.',
       buttonPositive: 'Permitir',
     });
-    return granted === PermissionsAndroid.RESULTS.GRANTED;
+    ok = granted === PermissionsAndroid.RESULTS.GRANTED;
+  } else {
+    try {
+      const perm = await AudioManager.requestRecordingPermissions();
+      ok = perm === 'Granted';
+    } catch {
+      ok = true;
+    }
   }
-  try {
-    const perm = await AudioManager.requestRecordingPermissions();
-    return perm === 'Granted';
-  } catch {
-    return true; // targets sin AudioManager: el recorder pedirá el permiso
-  }
+  setRecorderPermissionGranted(ok);
+  return ok;
 }
 
 let registered = false;
@@ -94,7 +102,8 @@ let disposeCurrent: (() => void) | null = null;
 export function registerNoiseMicAdapter(): boolean {
   if (registered) return true;
 
-  let recorder: AudioRecorder | null = null;
+  let recorder: SharedRecorder | null = null;
+  let unsubscribe: (() => void) | null = null;
   let lastDb: number | null = null;
   let lastLevels: number[] | null = null;
   // Energía acumulada del Leq y espectro suavizado (persisten entre bloques).
@@ -109,10 +118,10 @@ export function registerNoiseMicAdapter(): boolean {
   let pendingBlockDb: number[] = [];
   /** Cadena de medición con estado (se reinicia en cada `start`). */
   const chain = createNoiseWeightingChain(CAPTURE_SR);
-  let releaseSession: (() => void) | null = null;
 
   /** ¿Está la medición activa? (el stream vive entre mediciones). */
   let capturing = false;
+  let releaseSession: (() => void) | null = null;
 
   /** Detiene la medición conservando el recorder para la siguiente. */
   const pauseCapture = () => {
@@ -122,40 +131,52 @@ export function registerNoiseMicAdapter(): boolean {
     } catch {
       /* noop */
     }
-    releaseSession?.();
-    releaseSession = null;
+    if (releaseSession) {
+      releaseSession();
+      releaseSession = null;
+    }
   };
 
   /** Cierra del todo (solo al desregistrar el adaptador). */
   const teardownNative = () => {
     pauseCapture();
-    recorder = null;
+    if (unsubscribe) {
+      unsubscribe();
+      unsubscribe = null;
+    }
+    if (recorder) {
+      recorder.release();
+      recorder = null;
+    }
   };
 
   /**
-   * Recorder ÚNICO del adaptador, creado y suscrito una sola vez.
+   * Micrófono COMPARTIDO de `@/Audio`, reservado y suscrito una sola vez.
    *
-   * `AudioRecorder` de react-native-audio-api 0.8 abre el stream nativo en el
-   * CONSTRUCTOR y no expone `close()`: solo se cierra cuando el GC libera el
-   * host object. Construir uno por medición dejaba streams de entrada abiertos
-   * a la espera del recolector y, cuando la apertura del siguiente fallaba, el
-   * constructor nativo se lo tragaba (ignora el `Result` de `openStream`) y
-   * `start()` no hacía nada ni lanzaba: el sonómetro se quedaba mudo sin ningún
-   * error. Además cada `onAudioReady()` deja una suscripción viva y solo la
-   * última queda conectada.
+   * Antes el adaptador construía su propio `AudioRecorder` de
+   * react-native-audio-api. Ese objeto abre el stream nativo en el CONSTRUCTOR
+   * y no expone `close()`: solo se cierra cuando el GC libera el host object.
+   * Uno por medición dejaba streams de entrada abiertos esperando al
+   * recolector y, cuando la apertura del siguiente fallaba, el constructor
+   * nativo se lo tragaba (ignora el `Result` de `openStream`) y `start()` no
+   * hacía nada ni lanzaba: el sonómetro se quedaba mudo sin ningún error.
+   * Además cada `onAudioReady()` deja una suscripción viva y solo la última
+   * queda conectada.
+   *
+   * `acquireRecorder()` resuelve las dos cosas: un único stream para toda la
+   * app con cuenta de referencias, y suscripciones que se dan de baja. Es
+   * también lo que evita que el sonómetro y el análisis de voz se peleen por
+   * la entrada al pasar de una pantalla a otra (Oboe es exclusivo en Android).
    */
-  const ensureRecorder = (): AudioRecorder => {
+  const ensureRecorder = (): SharedRecorder => {
     if (recorder) return recorder;
 
-    const created = new AudioRecorder({
-      sampleRate: CAPTURE_SR,
-      bufferLengthInSamples: BUFFER_SAMPLES,
-    });
+    const shared = acquireRecorder();
+    if (!shared) throw new Error('No hay motor de captura de audio disponible');
 
-    created.onAudioReady(({ buffer }) => {
+    unsubscribe = shared.subscribe(pcm => {
       if (!capturing) return; // stream vivo pero sin medición en curso
       try {
-        const pcm = buffer.getChannelData(0) as Float32Array;
         if (!pcm.length) return;
         blocks += 1;
 
@@ -194,8 +215,8 @@ export function registerNoiseMicAdapter(): boolean {
       }
     });
 
-    recorder = created;
-    return created;
+    recorder = shared;
+    return shared;
   };
 
   const adapter: NoiseMicAdapter = {

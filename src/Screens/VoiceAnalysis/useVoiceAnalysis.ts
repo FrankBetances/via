@@ -6,6 +6,7 @@ import {
   VoiceSource,
 } from '@/Models/VoiceAnalysis/VoiceAnalysis';
 import { roundTo } from '@/Helpers/numeric';
+import { calculateVuLevel } from './voiceDsp';
 
 /* -------------------------------------------------------------------------- */
 /*  Hook del análisis acústico de voz — SOLO captura real.                     */
@@ -376,7 +377,7 @@ export function useVoiceAnalysis() {
     try {
       await micAdapter.startRecording(frame => {
         if (frame.f0) setLiveF0(Math.round(frame.f0));
-        setLevel(Math.min(1, frame.rms * 4));
+        setLevel(calculateVuLevel(frame.rms));
       });
     } catch (e) {
       setErrorMsg(

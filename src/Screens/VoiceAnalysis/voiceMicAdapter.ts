@@ -6,6 +6,8 @@ import {
   acquireAudioContext,
   acquireRecorder,
   acquireRecordingSession,
+  clampSample,
+  playbackNormalizationGain,
   recorderHealth,
   releaseAudioContext,
   resumeAudioContext,
@@ -335,12 +337,19 @@ export function registerVoiceMicAdapter(): boolean {
       }
       resumeAudioContext();
 
+      // Nivel de ESCUCHA, no de análisis: la captura en modo «measurement»
+      // entrega la toma a ~−30 dBFS y en el altavoz de una tableta apenas se
+      // oye. Se normaliza el pico solo para reproducir; `analyse` sigue
+      // recibiendo el PCM crudo (ver `@/Audio/playbackGain`).
+      const gain = playbackNormalizationGain(pcm);
+
       // Re-expansión ×3 (16 kHz → 48 kHz) por interpolación lineal para que la
       // toma suene a la frecuencia del contexto de reproducción.
       const up = new Float32Array(pcm.length * DECIMATE);
       for (let i = 0; i < pcm.length; i++) {
-        const a = pcm[i];
-        const b = i + 1 < pcm.length ? pcm[i + 1] : a;
+        const a = clampSample(pcm[i] * gain);
+        const next = i + 1 < pcm.length ? pcm[i + 1] : pcm[i];
+        const b = clampSample(next * gain);
         const base = i * DECIMATE;
         up[base] = a;
         up[base + 1] = a + (b - a) / 3;

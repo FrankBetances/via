@@ -429,7 +429,18 @@ export default function VoiceAnalysisScreen({ navigation }: Props) {
                       style={{
                         height: '100%',
                         width: `${Math.round(voice.level * 100)}%`,
-                        backgroundColor: voice.level > 0.6 ? '#2A7948' : voice.level > 0.3 ? '#FF7F00' : '#D8CFC0',
+                        // Umbrales sobre la escala dBFS de `calculateVuLevel`:
+                        // >0,90 (≈ −5 dBFS) es riesgo de saturación, 0,45–0,90
+                        // (≈ −27…−5 dBFS) es la zona de fonación buena, y por
+                        // debajo de 0,15 (≈ −42 dBFS) no hay señal utilizable.
+                        backgroundColor:
+                          voice.level > 0.9
+                            ? '#DC2626'
+                            : voice.level > 0.45
+                              ? '#2A7948'
+                              : voice.level > 0.15
+                                ? '#FF7F00'
+                                : '#D8CFC0',
                         borderRadius: 999,
                       }}
                     />

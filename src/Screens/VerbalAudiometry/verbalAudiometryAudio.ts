@@ -366,7 +366,11 @@ export function installVerbalAudioAdapter(opts: VerbalAudioAdapterOptions = {}):
     return {
       language: ttsLanguageTagFor(lang),
       ...(voiceId ? { voice: voiceId } : {}),
-      rate: 0.48,
+      // Ritmo de Valeria+ (`speakChain` usa 0.92 de base). El 0.48 heredado de
+      // `react-native-tts` venía de una escala distinta —allí 0.5 era el ritmo
+      // NORMAL— y en `expo-speech`, donde 1.0 es el normal del motor, dejaba
+      // una locución arrastrada que los adultos leen como avería.
+      rate: 0.95,
       pitch: 1.0,
     };
   };
