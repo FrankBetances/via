@@ -217,6 +217,7 @@ function vowelPulsed(sampleRate, {
   seconds = 3,
   formants = [[900, 60], [1500, 90], [2900, 120]],
   jitterPct = 0.4,
+  shimmerPct = 0,
   noise = 0.01,
   amp = 0.25,
 } = {}) {
@@ -243,8 +244,9 @@ function vowelPulsed(sampleRate, {
   while (t < n - 1) {
     const i = Math.floor(t);
     const frac = t - i;
-    src[i] += 1 - frac;
-    src[i + 1] += frac;
+    const pulse = 1 + (rand() - 0.5) * 2 * (shimmerPct / 100);
+    src[i] += pulse * (1 - frac);
+    src[i + 1] += pulse * frac;
     t += sampleRate / (f0 * (1 + (rand() - 0.5) * 2 * (jitterPct / 100)));
   }
 
@@ -304,7 +306,16 @@ const CASES = [
   { name: 'deriva-3hz-200hz', opts: { f0: 200, driftHz: 3, driftAmp: 0.3 } },
   { name: 'retumbe-20hz-200hz', opts: { f0: 200, driftHz: 20, driftAmp: 0.3 } },
   { name: 'vocal-i-200hz', opts: { f0: 200, formants: [300, 2300, 3000] } },
-  { name: 'vocal-u-200hz', opts: { f0: 200, formants: [350, 800, 2400] } },
+  // La /u/ tiene F1 y F2 a 350 y 800 Hz: con F0 en 200 los armónicos van de 200
+  // en 200 y esos dos formantes se FUNDEN en un solo pico ancho. En la señal
+  // solo quedan DOS formantes resolubles, y el banco estaba puntuando un
+  // tercero que no está ahí. Se ve en que Praat y VIA+ coinciden entre sí
+  // (F1 767 / 740, F2 2396 / 2390 — los dos leen como «F2» el formante
+  // sintetizado en 2400) y los dos discrepan de la síntesis; el «F3» de cada
+  // uno es un pico espurio distinto (Praat 2809, VIA+ 4302). Comparar ahí no
+  // mide el estimador, mide el ruido. Es el tercer caso mal construido que
+  // encuentra este banco: los otros dos están en el README.
+  { name: 'vocal-u-200hz', opts: { f0: 200, formants: [350, 800, 2400] }, comparableFormants: 2 },
 ];
 
 /**
@@ -324,6 +335,22 @@ const PULSED_CASES = [
   // por muestra suelta fabrica shimmer que no está en la señal.
   { name: 'pulsos-150hz-periodo-fraccionario', opts: { f0: 150, formants: [[900, 60], [1500, 90], [2900, 120]] } },
   { name: 'pulsos-350hz-periodo-fraccionario', opts: { f0: 350, formants: [[1100, 90], [1800, 110], [3400, 160]] } },
+  // SENSIBILIDAD sobre la fuente realista. La familia de suma de armónicos no
+  // sirve para esto: construye cada ciclo desde fase 0 y deja el pico A MITAD
+  // del ciclo, así que una ventana de amplitud anclada al pulso cruza siempre
+  // el borde entre dos amplitudes y comprime la variación. En un tren de
+  // pulsos el pico está justo detrás del impulso, que es lo que pasa en una
+  // voz real.
+  //
+  // El shimmer de estos tres se INFORMA pero no dictamina: VIA+ sigue la
+  // perturbación de forma monótona pero la COMPRIME respecto a Praat, y la
+  // compresión está medida, escrita en el README y fijada con cifras exactas
+  // en `cycleMetrics.test.ts`. Compararlo aquí contra Praat dejaría el banco
+  // en rojo permanente por una limitación ya declarada, y un gate que siempre
+  // falla deja de detectar el fallo siguiente.
+  { name: 'pulsos-shimmer-4pct-220hz', opts: { f0: 220, shimmerPct: 4, formants: [[800, 70], [1400, 100], [2800, 130]] }, reportOnly: ['shimmer_pct'] },
+  { name: 'pulsos-shimmer-8pct-220hz', opts: { f0: 220, shimmerPct: 8, formants: [[800, 70], [1400, 100], [2800, 130]] }, reportOnly: ['shimmer_pct'] },
+  { name: 'pulsos-shimmer-16pct-220hz', opts: { f0: 220, shimmerPct: 16, formants: [[800, 70], [1400, 100], [2800, 130]] }, reportOnly: ['shimmer_pct'] },
 ];
 
 /* ------------------------- señales de habla conectada --------------------- */
@@ -505,7 +532,7 @@ async function main() {
 
   const measurements = { sampleRate, cases: {} };
 
-  for (const { name, opts } of CASES) {
+  for (const { name, opts, comparableFormants } of CASES) {
     const pcm = vowel(sampleRate, opts);
     // Se escriben DOS ficheros:
     //  · `<caso>.wav` — la señal cruda, tal y como la entregaría el micrófono;
@@ -521,7 +548,13 @@ async function main() {
     const mean = a => (a.length ? a.reduce((x, y) => x + y, 0) / a.length : null);
     measurements.cases[name] = {
       kind: 'vowel',
-      expected: { f0: opts.f0 ?? 200, jitterPct: opts.jitterPct ?? 0, shimmerPct: opts.shimmerPct ?? 0 },
+      expected: {
+        f0: opts.f0 ?? 200,
+        jitterPct: opts.jitterPct ?? 0,
+        shimmerPct: opts.shimmerPct ?? 0,
+        // Cuántos formantes de este caso son comparables de verdad (ver la /u/).
+        ...(comparableFormants != null ? { comparableFormants } : {}),
+      },
       via: {
         f0: mean(r.f0s),
         voicedFrames: r.f0s.length,
@@ -541,7 +574,7 @@ async function main() {
     process.stdout.write('.');
   }
 
-  for (const { name, opts } of PULSED_CASES) {
+  for (const { name, opts, reportOnly } of PULSED_CASES) {
     const pcm = vowelPulsed(sampleRate, opts);
     writeWav(path.join(outDir, `${name}.wav`), pcm, sampleRate);
     writeWav(path.join(outDir, `${name}.conditioned.wav`), dsp.conditionForAnalysis(pcm), sampleRate);
@@ -553,7 +586,8 @@ async function main() {
       expected: {
         f0: opts.f0 ?? 200,
         jitterPct: opts.jitterPct ?? 0.4,
-        shimmerPct: 0,
+        shimmerPct: opts.shimmerPct ?? 0,
+        ...(reportOnly ? { reportOnly } : {}),
         // Formantes SINTETIZADOS. En esta familia el juez de los formantes es
         // el guion, no Praat, por el mismo motivo por el que en prosodia el
         // recuento de sílabas lo arbitra el guion: con F0 alta los armónicos

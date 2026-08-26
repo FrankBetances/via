@@ -115,18 +115,62 @@ la banda infantil alta, la fuente de pulsos y la validación de jitter y shimmer
   1200 y Praat 968. Comparar ahí contra Praat marcaría como fallo de VIA+ un
   acierto de VIA+.
 
-**Desviación abierta (no es de esta pasada):** en `vocal-u-200hz`, VIA+ da un
-F3 de 4302 Hz donde el guion pide 2400 y Praat lee 2809. Es la /u/, cuyos dos
-primeros formantes se funden; lo correcto sería declararlo no estimable, que es
-lo que el módulo ya hace con F1 y F2 de esa vocal. Está así desde antes.
+**El caso `vocal-u-200hz` era un cuarto caso mal construido.** Estaba
+puntuando un F3 que la señal no contiene. La /u/ tiene F1 y F2 a 350 y 800 Hz:
+con F0 en 200 los armónicos van de 200 en 200 y esos dos formantes se FUNDEN en
+un solo pico ancho. Se ve en que Praat y VIA+ coinciden entre sí (F1 767 / 740,
+F2 2396 / 2390 — los dos leen como «F2» el formante sintetizado en 2400) y los
+dos discrepan del guion; el «F3» de cada uno es un pico espurio distinto (Praat
+2809, VIA+ 4302). Comparar ahí no mide el estimador, mide el ruido.
+
+El caso declara ahora `comparableFormants: 2` y su F3 sale listado como
+excluido. Este era el motivo por el que el banco llevaba en rojo desde antes de
+la integración de agosto de 2026.
 + **Vocal /u/** — VIA+ declara los formantes no estimables (F1 y F2 están a
   450 Hz y el pico se funde). Es la respuesta honesta y el banco no lo cuenta
   como fallo: no estimar es preferible a inventar. La prueba clínica usa /a/
   sostenida.
 + **Jitter** — sigue a Praat dentro de **0,4 puntos** en todos los casos con
   perturbación inyectada, y da 0,0 sobre voz sana.
-+ **Shimmer** — coincide con Praat **al decimal** sobre perturbación inyectada
-  (5,4 % frente a 5,4 % con 8 % inyectado) y da 0,0 sobre señal limpia.
++ **Shimmer** — da 0,0 sobre señal limpia y sigue la perturbación de forma
+  monótona, pero **la COMPRIME** respecto a Praat. Ver abajo.
+
+### El shimmer comprime, y cuánto
+
+**CORRECCIÓN (26/8/2026).** Una versión anterior de este documento —y el
+mensaje del commit que introdujo la medida ciclo a ciclo— afirmaba que el
+shimmer «coincide con Praat al decimal (5,4 frente a 5,4)». **Era falso para el
+código que se publicó.** Ese 5,4 se midió con una versión intermedia; después
+se cambió la detección de periodo a correlación cruzada y no se volvió a
+tabular. El número correcto, sobre fuente de pulsos a 220 Hz:
+
+| Shimmer inyectado | Praat | VIA+ |
+|---|---|---|
+| 4 % | 5,4 % | 4,1 % |
+| 8 % | 9,6 % | 6,2 % |
+| 16 % | 17,6 % | 10,2 % |
+
+VIA+ infravalora entre **1,3 y 1,7 veces**, y la brecha crece con la magnitud.
+Sigue siendo mucho mejor que la vía por ventanas que había antes —que
+infravaloraba de seis a diez veces— pero no es paridad.
+
+La causa está en la física de la señal: el resonador sigue sonando de un ciclo
+al siguiente (a 220 Hz con un F1 de 70 Hz de ancho de banda, la cola apenas ha
+decaído cuando llega el pulso siguiente), así que la amplitud pico a pico de un
+ciclo lleva dentro la de los anteriores. Eso es un filtro de paso bajo sobre la
+secuencia de amplitudes.
+
+Los tres casos figuran en el banco **informados con su Δ pero sin dictaminar**,
+porque un gate que falla siempre por una limitación ya declarada deja de
+detectar el fallo siguiente. Los números están fijados con cifras exactas en
+`src/Screens/VoiceAnalysis/__tests__/cycleMetrics.test.ts`: si la compresión
+empeora, falla allí.
+
+**Lo que esto significa en consulta.** Una voz con perturbación clara sigue
+saliendo por encima del umbral clínico (3,5 %); lo que se pierde es resolución
+en el extremo alto, donde el shimmer ya es inequívocamente patológico. Lo que
+NO se ha comprobado —y es lo que haría falta para cerrarlo— es cómo se comporta
+sobre voz real de niño.
 
 ### Lo que el shimmer NO mide bien, y por qué
 

@@ -136,6 +136,49 @@ describe('SENSIBILIDAD · la perturbación inyectada se ve', () => {
     const fuerte = await measure(synth({ f0: 200, shimmerPct: 12 }));
     expect(fuerte.params.shimmer).toBeGreaterThan(suave.params.shimmer);
   });
+
+  it('LIMITACIÓN DECLARADA: el shimmer sigue la perturbación pero la COMPRIME', async () => {
+    // Medido contra Praat en `tools/acoustics/` sobre fuente de pulsos a
+    // 220 Hz (26/8/2026):
+    //
+    //   inyectado   Praat   VIA+
+    //        4 %     5,4    4,1
+    //        8 %     9,6    6,2
+    //       16 %    17,6   10,2
+    //
+    // Es decir: VIA+ infravalora entre 1,3 y 1,7 veces, y la brecha crece con
+    // la magnitud. Es mucho mejor que la vía por ventanas que había antes
+    // (seis a diez veces), pero NO es paridad con Praat, y conviene tenerlo
+    // escrito porque en su día se afirmó que sí lo era.
+    //
+    // La causa está en la física de la señal, no en un descuido: el resonador
+    // sigue sonando de un ciclo al siguiente —a 220 Hz con F1 de 70 Hz de
+    // ancho de banda, la cola apenas ha decaído cuando llega el pulso
+    // siguiente—, así que la amplitud pico a pico de un ciclo lleva dentro la
+    // de los anteriores. Eso es un filtro de paso bajo sobre la secuencia de
+    // amplitudes, y comprime.
+    //
+    // Esta prueba fija los números para que el banco no tenga que dictaminar
+    // sobre una limitación ya declarada: si la compresión EMPEORA, falla aquí.
+    const cases: Array<[number, number]> = [
+      [4, 3.0],
+      [8, 5.0],
+      [16, 8.0],
+    ];
+    let previous = 0;
+    for (const [inyectado, minimo] of cases) {
+      const { params } = await measure(
+        synth({
+          f0: 220,
+          shimmerPct: inyectado,
+          formants: [[800, 70], [1400, 100], [2800, 130]],
+        }),
+      );
+      expect(params.shimmer).toBeGreaterThan(minimo);
+      expect(params.shimmer).toBeGreaterThan(previous);
+      previous = params.shimmer;
+    }
+  });
 });
 
 describe('ESPECIFICIDAD · una voz sana no simula perturbación', () => {

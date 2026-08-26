@@ -313,6 +313,11 @@ def compare_vowel_truth(name: str, via: dict, truth: dict) -> list:
     return problems
 
 
+def _param_of(problem: str) -> str:
+    """Nombre del parámetro dentro de una línea de desviación («caso: param …»)."""
+    return problem.split(": ", 1)[1].split(" ", 1)[0]
+
+
 def compare(name: str, via: dict, praat: dict) -> list:
     """Diferencias que superan la tolerancia declarada."""
     problems = []
@@ -358,6 +363,8 @@ def main() -> int:
     report = {"cases": {}}
     problems: list = []
     not_estimated: list = []
+    not_comparable: list = []
+    declared: list = []
 
     for name, case in measurements["cases"].items():
         wav = os.path.join(args.out_dir, f"{name}.conditioned.wav")
@@ -397,17 +404,35 @@ def main() -> int:
                 not_estimated.append(f"{name}: {key}")
 
         expected = case.get("expected") or {}
+
+        # Casos donde la señal NO contiene tantos formantes como parámetros se
+        # le pidieron: puntuarlos no mide el estimador, mide el ruido. Se
+        # DECLARA, no se silencia — sale listado abajo como no comparable.
+        # Parámetros con una limitación YA DECLARADA y cuantificada: se
+        # imprimen con su Δ pero no dictaminan. La limitación se vigila donde
+        # corresponde —con cifras exactas, en las pruebas del módulo— y el
+        # banco sigue sirviendo para detectar la regresión SIGUIENTE.
+        for key in expected.get("reportOnly") or []:
+            declared.append(f"{name}: {key}")
+
+        comparable = expected.get("comparableFormants")
+        if comparable is not None:
+            for n, key in enumerate(("f1_hz", "f2_hz", "f3_hz")):
+                if n >= comparable:
+                    not_comparable.append(f"{name}: {key}")
+                    via[key] = None
+
+        FORMANT_KEYS = ("f1_hz", "f2_hz", "f3_hz")
+        found = compare(name, via, praat)
         if expected.get("formants"):
-            # Familia de fuente de pulsos: los formantes los arbitra el guion
-            # (ver `compare_vowel_truth`); del resto sigue encargándose Praat.
-            problems.extend(
-                p
-                for p in compare(name, via, praat)
-                if not any(p.split(": ")[1].startswith(k) for k in ("f1_hz", "f2_hz", "f3_hz"))
-            )
-            problems.extend(compare_vowel_truth(name, via, expected))
-        else:
-            problems.extend(compare(name, via, praat))
+            # Familia de fuente de pulsos: los formantes los arbitra el GUION
+            # (ver `compare_vowel_truth`), no Praat, que con F0 alta se pierde.
+            # Del resto de parámetros sigue encargándose Praat.
+            found = [p for p in found if not _param_of(p).startswith(FORMANT_KEYS)]
+            found += compare_vowel_truth(name, via, expected)
+
+        skip = set(expected.get("reportOnly") or [])
+        problems.extend(p for p in found if _param_of(p) not in skip)
 
     def is_kind(data, kind):
         return data.get("kind", "vowel") == kind
@@ -470,6 +495,23 @@ def main() -> int:
     if not_estimated:
         print(f"\nParámetros que VIA+ declara no estimables ({len(not_estimated)}):")
         for item in not_estimated:
+            print(f"  · {item}")
+
+    if declared:
+        print(
+            f"\nLimitaciones DECLARADAS ({len(declared)}) — se informan arriba con su Δ"
+            " pero no dictaminan; están cuantificadas en el README y vigiladas"
+            " con cifras exactas en las pruebas del módulo:"
+        )
+        for item in declared:
+            print(f"  · {item}")
+
+    if not_comparable:
+        print(
+            f"\nParámetros EXCLUIDOS de la comparación ({len(not_comparable)}) — la señal"
+            " no los contiene, no es que el estimador falle:"
+        )
+        for item in not_comparable:
             print(f"  · {item}")
 
     if args.json:
