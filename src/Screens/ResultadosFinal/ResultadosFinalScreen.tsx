@@ -54,6 +54,7 @@ import { ProsodyAnalysisRepository } from '@/Repositories/ProsodyAnalysisReposit
 import { VerbalAudiometryRepository } from '@/Repositories/VerbalAudiometryRepository';
 import { ScreeningRepository } from '@/Repositories/ScreeningRepository';
 import { ExecutiveFunctionsRepository } from '@/Repositories/ExecutiveFunctionsRepository';
+import { AshaMilestoneTestRepository } from '@/Repositories/AshaMilestoneTestRepository';
 
 import { FREQS, interpretAudiometry } from '@/Screens/Audiometry/audiometryResult';
 import {
@@ -72,6 +73,8 @@ import {
 import { prosodyInterpretation, prosodyReportRows } from '@/Screens/ProsodyAnalysis/prosodyResult';
 import { imcLabel, suspicionLabel } from '@/Screens/SahsScreening/sahsScreeningResult';
 import { EF_DOMAIN_META, EF_DOMAIN_ORDER, efLabelFromTest, efStatus } from '@/Screens/ExecutiveFunctions/executiveFunctionsGame';
+import { ASHA_DOMAIN_META, getMilestonesForAgeBand } from '@/Screens/AshaScreening/ashaMilestones';
+import { ASHA_RISK_LABELS } from '@/Screens/AshaScreening/ashaCdssEngine';
 import { generateReport } from '@/PDF/templates/Report';
 import { showErrorToast, showSuccessToast } from '@/Helpers/showToast';
 
@@ -646,6 +649,50 @@ export default function ResultadosFinalScreen({ navigation }: Props) {
               color: '#059669',
               params,
               interp: ef.interpretation || 'Exploración lúdica de funciones ejecutivas completada.',
+            });
+          });
+        });
+
+        /* -------------------------- Cribado de hitos ASHA ------------------- */
+        await collect('cribado de hitos ASHA', async () => {
+          const ashaTests = await AshaMilestoneTestRepository.getAshaTestsByEvaluation(evaluationId);
+          ashaTests.forEach(a => {
+            const status: StatusKind =
+              a.riskLevel === 'red' ? 'alt' : a.riskLevel === 'yellow' ? 'warn' : 'ok';
+            const milestones = getMilestonesForAgeBand(a.ageBand as never);
+            const responses = a.responses || {};
+            const failed = Array.isArray(a.failedDomains) ? a.failedDomains : [];
+            // Por dominio: cuántos hitos cumple de los CONTESTADOS. Un hito sin
+            // respuesta no se cuenta ni como cumplido ni como fallado (ver
+            // `ashaCdssEngine`), y el denominador lo dice.
+            const params: ParamRow[] = (['receptive', 'expressive', 'pragmatic'] as const).map(
+              domain => {
+                const ofDomain = milestones.filter(m => m.domain === domain);
+                const answered = ofDomain.filter(m => typeof responses[m.id] === 'boolean');
+                const achieved = answered.filter(m => responses[m.id] === true);
+                return {
+                  label: ASHA_DOMAIN_META[domain].label,
+                  value: answered.length
+                    ? `${achieved.length}/${answered.length} hitos`
+                    : 'sin evaluar',
+                  status: !answered.length ? 'warn' : failed.includes(domain) ? 'alt' : 'ok',
+                  ref: 'percentil 75 (ASHA)',
+                } as ParamRow;
+              },
+            );
+            const referrals = Array.isArray(a.recommendedReferrals) ? a.recommendedReferrals : [];
+            result.push({
+              id: `asha-${a.id}`,
+              kind: 'params',
+              status,
+              title: 'Hitos del Lenguaje · ASHA',
+              subtitle: `Cribado normativo · banda ${a.ageBand} · ${ASHA_RISK_LABELS[a.riskLevel]}`,
+              icon: Puzzle,
+              color: '#0D9488',
+              params,
+              interp: referrals.length
+                ? referrals.join(' · ')
+                : 'Cribado registrado sin recomendaciones de derivación.',
             });
           });
         });

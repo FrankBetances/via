@@ -6,6 +6,7 @@ import {
   VoiceSource,
 } from '@/Models/VoiceAnalysis/VoiceAnalysis';
 import { roundTo } from '@/Helpers/numeric';
+import { calculateVuLevel } from './voiceDsp';
 
 /* -------------------------------------------------------------------------- */
 /*  Hook del análisis acústico de voz — SOLO captura real.                     */
@@ -39,6 +40,12 @@ export interface VoiceMicResult {
     totalFrames: number; // ventanas totales de la toma
     levelRef: number; // nivel RMS de referencia (p95) de la toma
     voicedFrames: number; // ventanas con voz periódica detectada
+    /** Jitter local (%) medido PULSO A PULSO (`computeCycleMetrics`). */
+    jitterCyclePct?: number;
+    /** Shimmer local (%) medido PULSO A PULSO. */
+    shimmerCyclePct?: number;
+    /** Ciclos glotales que entraron en las dos medidas de arriba. */
+    glottalCycles?: number;
   };
 }
 
@@ -164,31 +171,51 @@ export const computeParams = (r: VoiceMicResult): AcousticResult | null => {
 
   const avgF0 = valid.reduce((a, b) => a + b, 0) / valid.length;
 
-  // Jitter (perturbación relativa media de periodos con filtrado de saltos de octava)
-  let jSum = 0;
-  let pSum = 0;
-  let jCount = 0;
-  for (let i = 0; i < valid.length - 1; i++) {
-    const p1 = 1 / valid[i];
-    const p2 = 1 / valid[i + 1];
-    if (Math.abs(valid[i] - valid[i + 1]) < 0.4 * valid[i]) {
-      jSum += Math.abs(p1 - p2);
-      jCount++;
+  /* --------------------------- jitter y shimmer --------------------------- */
+  //
+  // La vía BUENA es ciclo a ciclo (`computeCycleMetrics` en voiceDsp): mide la
+  // perturbación entre pulsos glotales consecutivos, que es como la define
+  // Praat y como la entiende el logopeda.
+  //
+  // Lo de abajo —perturbación entre VENTANAS— se conserva solo como respaldo
+  // para cuando no se pudo aislar ningún ciclo (toma muy corta, fonación que
+  // no llega a estabilizarse). Y hay que decir lo que vale: las ventanas van
+  // cada 16 ms, o sea que cada valor ya es la media de unos cinco ciclos, y
+  // promediar es justo lo que borra la perturbación. Medido contra Praat en
+  // `tools/acoustics/`, esta vía INFRAVALORA entre seis y diez veces: sobre 1 %
+  // de jitter inyectado informaba 0.1 %, y sobre 8 % de shimmer, 1.3 %. Es el
+  // error en la dirección peligrosa —una voz patológica leída como sana—, así
+  // que solo se usa cuando no hay nada mejor.
+  const perturbationOfWindows = (values: number[], jumpGuard: boolean): number => {
+    if (values.length < 2) return 0;
+    let sumDiff = 0;
+    let count = 0;
+    let sum = 0;
+    for (let i = 0; i < values.length - 1; i++) {
+      const diff = Math.abs(values[i] - values[i + 1]);
+      if (!jumpGuard || diff < 0.4 * values[i]) {
+        sumDiff += diff;
+        count += 1;
+      }
+      sum += values[i];
     }
-    pSum += p1;
-  }
-  pSum += 1 / valid[valid.length - 1];
-  const jitter = jCount > 0 ? (jSum / jCount / (pSum / valid.length)) * 100 : 0;
+    sum += values[values.length - 1];
+    const mean = sum / values.length;
+    if (!(count > 0) || !(mean > 0)) return 0;
+    return (sumDiff / count / mean) * 100;
+  };
 
-  // Shimmer (perturbación relativa media de amplitud)
-  let sSum = 0;
-  let aSum = 0;
-  for (let i = 0; i < amps.length - 1; i++) {
-    sSum += Math.abs(amps[i] - amps[i + 1]);
-    aSum += amps[i];
-  }
-  aSum += amps[amps.length - 1] ?? 0;
-  const shimmer = amps.length > 1 ? (sSum / (amps.length - 1) / (aSum / amps.length)) * 100 : 0;
+  const jitterFallback = perturbationOfWindows(
+    valid.map(f => 1 / f),
+    // Sobre PERIODOS, un salto de octava sale como una diferencia enorme; se
+    // filtra igual que antes para no contar la ventana en que el estimador se
+    // equivocó de armónico.
+    true,
+  );
+  const shimmerFallback = perturbationOfWindows(amps, false);
+
+  const jitter = r.stats?.jitterCyclePct ?? jitterFallback;
+  const shimmer = r.stats?.shimmerCyclePct ?? shimmerFallback;
 
   const hnr = hnrs && hnrs.length ? hnrs.reduce((a, b) => a + b, 0) / hnrs.length : 20;
 
@@ -376,7 +403,7 @@ export function useVoiceAnalysis() {
     try {
       await micAdapter.startRecording(frame => {
         if (frame.f0) setLiveF0(Math.round(frame.f0));
-        setLevel(Math.min(1, frame.rms * 4));
+        setLevel(calculateVuLevel(frame.rms));
       });
     } catch (e) {
       setErrorMsg(

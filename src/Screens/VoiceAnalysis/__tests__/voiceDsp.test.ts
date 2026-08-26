@@ -39,8 +39,21 @@ function synthVowel({
     seed = (seed * 1103515245 + 12345) & 0x7fffffff;
     return seed / 0x7fffffff;
   };
-  while (t < n) {
-    src[Math.floor(t)] = 1;
+  // El pulso se reparte entre las DOS muestras vecinas, y no se clava con
+  // `Math.floor`. Clavarlo cuantiza el periodo a un número entero de muestras
+  // y, cuando el periodo real no lo es, el patrón de redondeo SE REPITE y crea
+  // un subarmónico de verdad: a 16 kHz, 300 Hz cae en 53,33 muestras y con
+  // `floor` salía la secuencia 53-53-54, que suma 160 muestras cada tres
+  // ciclos — una señal cuyo fundamental REAL es 100 Hz. Praat la medía como
+  // 100 Hz, que era la respuesta correcta, y este test la daba por buena a
+  // 300 porque el estimador de VIA+ no puede elegir un lag más largo.
+  // Comprobado con `praat-parselmouth` el 26/8/2026: con el reparto
+  // fraccionario, Praat lee 300,0 Hz.
+  while (t < n - 1) {
+    const i = Math.floor(t);
+    const frac = t - i;
+    src[i] += 1 - frac;
+    src[i + 1] += frac;
     const period = sr / (f0 * (1 + (rand() - 0.5) * 2 * (jitterPct / 100)));
     t += period;
   }

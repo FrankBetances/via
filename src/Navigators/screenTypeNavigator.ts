@@ -28,6 +28,7 @@ export type RootStackParamList = {
   Articulation: undefined;
   VerbalAudiometry: undefined;
   ExecutiveFunctions: undefined;
+  AshaScreening: undefined;
 
   // New screen routes appended by later phases (mockup-based hub screens, etc.)
   /**

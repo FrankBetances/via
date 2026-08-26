@@ -30,7 +30,13 @@ const SRC = path.join(ROOT, 'src');
 /* --------------------------- carga del DSP real --------------------------- */
 
 function loadDsp() {
-  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'voicedsp-cjs-'));
+  // El directorio de compilación va DENTRO del proyecto, no en /tmp: el módulo
+  // de parámetros (`useVoiceAnalysis`) es un hook y arrastra `react` en su
+  // cabecera, y desde /tmp Node no encuentra el `node_modules` del proyecto al
+  // subir por el árbol. `node_modules/.cache` ya está fuera de git.
+  const cacheRoot = path.join(ROOT, 'node_modules', '.cache');
+  fs.mkdirSync(cacheRoot, { recursive: true });
+  const tmp = fs.mkdtempSync(path.join(cacheRoot, 'voicedsp-cjs-'));
   const localTsc = path.join(ROOT, 'node_modules', '.bin', 'tsc');
   const tsc = fs.existsSync(localTsc) ? localTsc : 'tsc';
 
@@ -64,6 +70,11 @@ function loadDsp() {
     include: [],
     files: [
       path.join(SRC, 'Screens', 'VoiceAnalysis', 'voiceDsp.ts'),
+      // `computeParams` vive aquí y es quien convierte las series por ventana
+      // en el jitter, el shimmer y el HNR que ve el clínico. Sin él, el banco
+      // validaba el DSP pero NO los dos números de perturbación que salen
+      // impresos en el informe.
+      path.join(SRC, 'Screens', 'VoiceAnalysis', 'useVoiceAnalysis.ts'),
       path.join(SRC, 'Screens', 'ProsodyAnalysis', 'prosodyDsp.ts'),
     ],
   }));
@@ -79,16 +90,38 @@ function loadDsp() {
     /* errores de tipos tolerados: lo que importa es que haya emitido */
   }
   const outVoice = path.join(tmp, 'cjs', 'Screens', 'VoiceAnalysis', 'voiceDsp.js');
+  const outParams = path.join(tmp, 'cjs', 'Screens', 'VoiceAnalysis', 'useVoiceAnalysis.js');
   const outProsody = path.join(tmp, 'cjs', 'Screens', 'ProsodyAnalysis', 'prosodyDsp.js');
-  for (const out of [outVoice, outProsody]) {
+  for (const out of [outVoice, outParams, outProsody]) {
     if (!fs.existsSync(out)) {
       throw new Error(`tsc no emitió el DSP en ${out} (revise el módulo con \`npm run tsc\`)`);
     }
   }
+
+  // El alias `@/…` lo resuelve el bundler de la app, no Node: tsc lo emite tal
+  // cual y el `require` del banco falla. Se reescribe apuntando al árbol YA
+  // COMPILADO (tsc arrastra las dependencias de los módulos que se le pasan),
+  // y no al fuente, que Node no sabe requerir. Se hace sobre el JavaScript
+  // emitido para no obligar a los módulos de la app a escribir rutas
+  // relativas solo por comodidad de esta herramienta.
+  const resolveAliases = dir => {
+    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+      const full = path.join(dir, entry.name);
+      if (entry.isDirectory()) { resolveAliases(full); continue; }
+      if (!entry.name.endsWith('.js')) continue;
+      const code = fs.readFileSync(full, 'utf8');
+      const fixed = code.replace(
+        /require\((["'])@\/([^"']+)\1\)/g,
+        (_m, _q, rest) => `require(${JSON.stringify(path.join(tmp, 'cjs', rest))})`,
+      );
+      if (fixed !== code) fs.writeFileSync(full, fixed);
+    }
+  };
+  resolveAliases(path.join(tmp, 'cjs'));
   // `prosodyDsp` importa `voiceDsp` por ruta RELATIVA justamente para que este
   // `require` funcione: con el alias `@/` el JavaScript emitido pediría un
   // módulo que Node no sabe resolver y el banco no arrancaría.
-  return { voice: require(outVoice), prosody: require(outProsody) };
+  return { voice: require(outVoice), params: require(outParams), prosody: require(outProsody) };
 }
 
 /* ------------------------------ señales de prueba ------------------------- */
@@ -163,11 +196,101 @@ function vowel(sampleRate, {
   return x;
 }
 
+
+/**
+ * /a/ sostenida con FUENTE DE PULSOS: tren de impulsos glotales filtrado por
+ * resonadores de dos polos, uno por formante. Es el modelo de Klatt, y es más
+ * parecido a una voz real que la suma de armónicos de `vowel()`: los pulsos
+ * dejan la autocorrelación con picos marcados en cada múltiplo del periodo,
+ * que es justo donde un estimador de F0 se equivoca de octava.
+ *
+ * POR QUÉ HACEN FALTA LAS DOS FAMILIAS. Sobre la suma de armónicos, los dos
+ * estimadores que se compararon en agosto de 2026 —el de `main` y el «alineado
+ * con Praat» de la rama ASHA_UX— daban EXACTAMENTE la misma F0 en los 28
+ * casos. Sobre esta fuente de pulsos no: el banco no distinguía dos DSP que se
+ * comportan distinto porque su única señal era demasiado fácil.
+ *
+ * Determinista, como el resto del banco.
+ */
+function vowelPulsed(sampleRate, {
+  f0 = 200,
+  seconds = 3,
+  formants = [[900, 60], [1500, 90], [2900, 120]],
+  jitterPct = 0.4,
+  noise = 0.01,
+  amp = 0.25,
+} = {}) {
+  const n = Math.floor(sampleRate * seconds);
+  let seed = 20260826;
+  const rand = () => {
+    seed = (seed * 1103515245 + 12345) & 0x7fffffff;
+    return seed / 0x7fffffff;
+  };
+
+  // Tren de impulsos glotales con jitter de periodo.
+  //
+  // El pulso se reparte entre las DOS muestras vecinas por interpolación
+  // lineal, y no se clava con `Math.floor`. No es un refinamiento: clavarlo
+  // cuantiza el periodo a un número entero de muestras y, cuando el periodo
+  // real no lo es, el patrón de redondeo SE REPITE y crea un subarmónico de
+  // verdad. A 16 kHz una F0 de 300 Hz cae en 53,33 muestras: con `floor` sale
+  // la secuencia 53-53-54, que suma 160 muestras cada tres ciclos, o sea una
+  // señal cuyo fundamental REAL es 100 Hz. Praat lo medía correctamente como
+  // 100 Hz y parecía un fallo del estimador de VIA+. Es el mismo error que ya
+  // documentó este banco con el jitter alternado (ver README).
+  const src = new Float64Array(n);
+  let t = 0;
+  while (t < n - 1) {
+    const i = Math.floor(t);
+    const frac = t - i;
+    src[i] += 1 - frac;
+    src[i + 1] += frac;
+    t += sampleRate / (f0 * (1 + (rand() - 0.5) * 2 * (jitterPct / 100)));
+  }
+
+  // Un resonador de dos polos por formante, en paralelo.
+  const out = new Float64Array(n);
+  for (const [fc, bw] of formants) {
+    const r = Math.exp((-Math.PI * bw) / sampleRate);
+    const theta = (2 * Math.PI * fc) / sampleRate;
+    const a1 = 2 * r * Math.cos(theta);
+    const a2 = -r * r;
+    let y1 = 0;
+    let y2 = 0;
+    for (let i = 0; i < n; i++) {
+      const y = src[i] + a1 * y1 + a2 * y2;
+      y2 = y1;
+      y1 = y;
+      out[i] += y;
+    }
+  }
+
+  let peak = 0;
+  for (let i = 0; i < n; i++) peak = Math.max(peak, Math.abs(out[i]));
+  const g = peak > 0 ? amp / peak : 1;
+
+  const x = new Float32Array(n);
+  for (let i = 0; i < n; i++) x[i] = out[i] * g + (rand() - 0.5) * 2 * noise;
+  return x;
+}
+
 /** Casos: voz sana, voces con perturbación conocida y capturas contaminadas. */
 const CASES = [
   { name: 'infantil-sana-200hz', opts: { f0: 200 } },
   { name: 'adulta-grave-110hz', opts: { f0: 110 } },
   { name: 'adulta-aguda-260hz', opts: { f0: 260 } },
+  // BANDA INFANTIL ALTA. El banco llegaba hasta 260 Hz, que es voz de mujer
+  // adulta, y VIA+ explora NIÑOS: una /a/ sostenida de preescolar vive entre
+  // 250 y 400 Hz, y por encima de 300 Hz el periodo cabe en tan pocas
+  // muestras que un estimador de F0 se juega ahí el salto de octava. El banco
+  // no miraba ese tramo, así que un cambio del estimador que lo empeorase no
+  // habría dejado rastro aquí.
+  { name: 'infantil-280hz', opts: { f0: 280 } },
+  { name: 'infantil-300hz', opts: { f0: 300 } },
+  { name: 'infantil-350hz', opts: { f0: 350 } },
+  { name: 'infantil-400hz', opts: { f0: 400 } },
+  { name: 'infantil-300hz-jitter-1pct', opts: { f0: 300, jitterPct: 1 } },
+  { name: 'infantil-300hz-ruido-medio', opts: { f0: 300, noise: 0.03 } },
   { name: 'jitter-1pct-200hz', opts: { f0: 200, jitterPct: 1 } },
   { name: 'shimmer-8pct-200hz', opts: { f0: 200, shimmerPct: 8 } },
   // Escalera de ruido: da HNR en el rango CLÍNICO (≈5–25 dB), que es donde la
@@ -182,6 +305,25 @@ const CASES = [
   { name: 'retumbe-20hz-200hz', opts: { f0: 200, driftHz: 20, driftAmp: 0.3 } },
   { name: 'vocal-i-200hz', opts: { f0: 200, formants: [300, 2300, 3000] } },
   { name: 'vocal-u-200hz', opts: { f0: 200, formants: [350, 800, 2400] } },
+];
+
+/**
+ * Casos con FUENTE DE PULSOS (ver `vowelPulsed`). Cubren la banda infantil
+ * completa, que es donde el estimador de F0 se juega el salto de octava.
+ */
+const PULSED_CASES = [
+  { name: 'pulsos-nino-250hz', opts: { f0: 250, formants: [[900, 60], [1500, 90], [2900, 120]] } },
+  { name: 'pulsos-nino-300hz', opts: { f0: 300, formants: [[1000, 80], [1700, 100], [3200, 150]] } },
+  { name: 'pulsos-nino-350hz', opts: { f0: 350, formants: [[1100, 90], [1800, 110], [3400, 160]] } },
+  { name: 'pulsos-nina-400hz', opts: { f0: 400, formants: [[1150, 90], [1900, 120], [3500, 160]] } },
+  { name: 'pulsos-adulta-200hz', opts: { f0: 200, formants: [[750, 60], [1250, 90], [2600, 120]] } },
+  { name: 'pulsos-adulto-110hz', opts: { f0: 110, formants: [[700, 60], [1200, 90], [2500, 120]] } },
+  // Periodos que NO caben en un número entero de muestras (106,67 y 45,71 a
+  // 16 kHz). La fase sub-muestra del pulso va rotando y la cresta cae cada vez
+  // en un sitio distinto entre dos muestras: es donde una medida de amplitud
+  // por muestra suelta fabrica shimmer que no está en la señal.
+  { name: 'pulsos-150hz-periodo-fraccionario', opts: { f0: 150, formants: [[900, 60], [1500, 90], [2900, 120]] } },
+  { name: 'pulsos-350hz-periodo-fraccionario', opts: { f0: 350, formants: [[1100, 90], [1800, 110], [3400, 160]] } },
 ];
 
 /* ------------------------- señales de habla conectada --------------------- */
@@ -358,7 +500,7 @@ async function main() {
     : path.join(__dirname, 'out');
   fs.mkdirSync(outDir, { recursive: true });
 
-  const { voice: dsp, prosody } = loadDsp();
+  const { voice: dsp, params: voiceParams, prosody } = loadDsp();
   const sampleRate = dsp.SAMPLE_RATE;
 
   const measurements = { sampleRate, cases: {} };
@@ -386,6 +528,56 @@ async function main() {
         totalFrames: r.stats ? r.stats.totalFrames : null,
         hnr: mean(r.hnrs || []),
         formants: r.formants,
+        // Jitter y shimmer TAL Y COMO LLEGAN AL INFORME: no se recalculan
+        // aquí, se piden a `computeParams`, que es la función que la pantalla
+        // usa. Si se recalculasen, el banco estaría validando una segunda
+        // implementación nuestra y no la que ve el clínico.
+        ...(() => {
+          const p = voiceParams.computeParams(r);
+          return p ? { jitterPct: p.jitter, shimmerPct: p.shimmer, hnrReported: p.hnr } : {};
+        })(),
+      },
+    };
+    process.stdout.write('.');
+  }
+
+  for (const { name, opts } of PULSED_CASES) {
+    const pcm = vowelPulsed(sampleRate, opts);
+    writeWav(path.join(outDir, `${name}.wav`), pcm, sampleRate);
+    writeWav(path.join(outDir, `${name}.conditioned.wav`), dsp.conditionForAnalysis(pcm), sampleRate);
+
+    const r = await dsp.analysePcm(pcm);
+    const mean = a => (a.length ? a.reduce((x, y) => x + y, 0) / a.length : null);
+    measurements.cases[name] = {
+      kind: 'vowel',
+      expected: {
+        f0: opts.f0 ?? 200,
+        jitterPct: opts.jitterPct ?? 0.4,
+        shimmerPct: 0,
+        // Formantes SINTETIZADOS. En esta familia el juez de los formantes es
+        // el guion, no Praat, por el mismo motivo por el que en prosodia el
+        // recuento de sílabas lo arbitra el guion: con F0 alta los armónicos
+        // están tan separados que la envolvente espectral queda submuestreada
+        // y el seguidor de Praat se pierde. Medido: en `pulsos-nino-350hz` el
+        // F3 sintetizado es 3400 Hz, VIA+ da 3490 y Praat 2174; en
+        // `pulsos-nina-400hz` el F1 es 1150, VIA+ da 1200 y Praat 968. Comparar
+        // ahí contra Praat marcaría como fallo de VIA+ un acierto de VIA+.
+        formants: (opts.formants ?? []).map(f => (Array.isArray(f) ? f[0] : f)),
+      },
+      via: {
+        f0: mean(r.f0s),
+        voicedFrames: r.f0s.length,
+        totalFrames: r.stats ? r.stats.totalFrames : null,
+        hnr: mean(r.hnrs || []),
+        formants: r.formants,
+        // Jitter y shimmer TAL Y COMO LLEGAN AL INFORME: no se recalculan
+        // aquí, se piden a `computeParams`, que es la función que la pantalla
+        // usa. Si se recalculasen, el banco estaría validando una segunda
+        // implementación nuestra y no la que ve el clínico.
+        ...(() => {
+          const p = voiceParams.computeParams(r);
+          return p ? { jitterPct: p.jitter, shimmerPct: p.shimmer, hnrReported: p.hnr } : {};
+        })(),
       },
     };
     process.stdout.write('.');
@@ -424,9 +616,9 @@ async function main() {
     path.join(outDir, 'via-measurements.json'),
     `${JSON.stringify(measurements, null, 2)}\n`,
   );
-  const total = CASES.length + PROSODY_CASES.length;
+  const total = CASES.length + PULSED_CASES.length + PROSODY_CASES.length;
   console.log(
-    `\n${total} casos (${CASES.length} vocal · ${PROSODY_CASES.length} prosodia)` +
+    `\n${total} casos (${CASES.length} vocal · ${PULSED_CASES.length} vocal por pulsos · ${PROSODY_CASES.length} prosodia)` +
     ` → ${path.relative(ROOT, outDir)}`,
   );
 }

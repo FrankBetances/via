@@ -12,6 +12,7 @@ import { SahsScreeningRepository } from '@/Repositories/SahsScreeningRepository'
 import { ArticulationTestRepository } from '@/Repositories/ArticulationTestRepository';
 import { VerbalAudiometryRepository } from '@/Repositories/VerbalAudiometryRepository';
 import { ExecutiveFunctionsRepository } from '@/Repositories/ExecutiveFunctionsRepository';
+import { AshaMilestoneTestRepository } from '@/Repositories/AshaMilestoneTestRepository';
 
 /* -------------------------------------------------------------------------- */
 /*  Generador de informe PDF — VIA+.                                        */
@@ -146,6 +147,12 @@ export async function generateReport({ evaluation }: GenerateReportOptions): Pro
   for (const test of articulations) {
     const page = pdfDoc.addPage(PAGE_SIZE);
     await blocks.ArticulationDetail({ test }, { page, fonts, t });
+  }
+
+  const ashaTests = await AshaMilestoneTestRepository.getAshaTestsByEvaluation(evaluation.id);
+  for (const test of ashaTests) {
+    const page = pdfDoc.addPage(PAGE_SIZE);
+    await blocks.AshaScreeningDetail({ test }, { page, fonts, t });
   }
 
   return pdfDoc.save();

@@ -33,3 +33,11 @@ export {
   __resetSharedAudioRecorderForTests,
 } from './sharedAudioRecorder';
 export type { RecorderHealth, RecorderListener, SharedRecorder } from './sharedAudioRecorder';
+
+export {
+  clampSample,
+  playbackNormalizationGain,
+  PLAYBACK_MAX_GAIN,
+  PLAYBACK_MIN_PEAK,
+  PLAYBACK_TARGET_PEAK,
+} from './playbackGain';
