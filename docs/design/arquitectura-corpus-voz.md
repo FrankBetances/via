@@ -2,8 +2,11 @@
 
 > **Estado:** INFRAESTRUCTURA (v1). Capa `src/Voice/` portada del blueprint
 > replicable de Valeria+ (`arquitectura-corpus-voz-nos-ilenia.json`, Proxecto
-> Nós / ILENIA) y adaptada a la pila de VIA+ (React Native + `react-native-tts`
-> + `react-native-audio-api`). Documentos hermanos: `integracion-proxecto-nos.md`
+> Nós / ILENIA) y adaptada a la pila de VIA+ (React Native + `expo-speech`
+> + `expo-audio` + `react-native-audio-api`). El encabezado decía
+> `react-native-tts` hasta el 27/8/2026: esa librería es justo la que se retiró
+> por enmudecer la app (§2 y §2 bis), y dejarla escrita aquí describía una pila
+> que ya no existe. Documentos hermanos: `integracion-proxecto-nos.md`
 > (gallego), `integracion-quisqueya-habla.md` (dominicano) e
 > **`integracion-valeria.md`** — este último contrasta línea a línea la receta
 > de síntesis de Valeria+ con la de VIA+ y deja escrito qué divergencias son
@@ -277,7 +280,7 @@ recomendada: resuelve texto y voz a la vez con `resolveSpokenText` y delega en
 1. **asset neuronal de esa lengua** (`VOICE_ASSETS[voiceCorpusId(style,text,lang)]`);
 2. **asset de su base, SOLO si es una variante** (`es-DO → es`): mismo idioma,
    otro acento. Un idioma completo **no** cruza al banco castellano;
-3. **voz del sistema** (`react-native-tts`) vía el adaptador de la audiometría
+3. **voz del sistema** (`expo-speech`) vía el adaptador de la audiometría
    verbal ya registrado (no se duplica el motor ni la selección de voz);
 4. **sin voz utilizable → silencio** (el clínico lee la consigna).
 

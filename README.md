@@ -330,6 +330,34 @@ id = [${lang}_]${style}_${fnv1a32(normalize(text))}_${len}
 **Cadena de degradación de `speak()`:** asset neuronal de la lengua → asset neuronal base `es` →
 voz del sistema con la mejor voz verificada de esa lengua → silencio (el clínico lee la consigna).
 
+#### Estado en dispositivo: la app locuta (27/8/2026)
+
+Durante varios ciclos de desarrollo VIA+ estuvo **muda en el emulador de Android Studio**, en el
+mismo emulador donde Valeria+ locutaba con voz neuronal. La causa era la elección de la voz del
+sistema, no la síntesis: VIA+ puntuaba las voces con la bandera `networkConnectionRequired`, que
+`expo-speech` **no entrega nunca** (`VoiceRecord.kt` declara `identifier`, `name`, `quality` y
+`language`, y nada más). El bonus de «voz local» no se aplicaba jamás y ganaba siempre la voz
+`-network` de Google, que se sintetiza en servidor: sin cobertura —el caso normal en un emulador—
+Android emite `onError` y no sale nada. Arreglado el 25/8/2026 leyendo el **id** de la voz, como
+hace Valeria+.
+
+**Confirmado en el emulador por Frank el 27/8/2026: la app habla.**
+
+Conviene ser exacto con lo que esa confirmación cubre y lo que no, porque el fallo anterior enseñó
+que las vías de salida son varias y se comprobaban de una en una:
+
+| Vía de salida | Motor | Estado |
+|---|---|---|
+| Locución de consignas y modelos hablados | `expo-speech` | 🟢 **Confirmado en dispositivo** (27/8/2026) |
+| Recortes empaquetados del banco verbal | `expo-audio` | 🟡 Sin confirmación explícita en dispositivo |
+| Estímulo de la audiometría verbal (base64 → `BufferSource`) | `react-native-audio-api` | 🟡 Sin confirmación explícita en dispositivo |
+| Tonos de audiometría (osciladores) | `react-native-audio-api` | 🟡 Sin confirmación explícita en dispositivo |
+
+Las tres últimas se contestan en la pantalla **Comprobar audio**, que emite una por una y **no dice
+«todo funciona» mientras falte alguna**: dice `SALIDA NO COMPROBADA` y cuántas quedan. Enumerar el
+catálogo de voces no es emitir, y `state === 'running'` del `AudioContext` no prueba que el stream
+se abriera: por eso el veredicto se apoya en escuchas, no en banderas.
+
 ### Corpus general y pipeline
 
 El corpus enumerable actual tiene **388 entradas, 97 por lengua** en las cuatro: los 86 modelos
@@ -510,8 +538,8 @@ Cada módulo emite eventos con su granularidad natural (tiempo = respuesta; 2.ª
 | **Formularios** | react-hook-form + Yup | Validación de cuestionarios y formularios clínicos |
 | **Síntesis de tono + DSP de audio** | `react-native-audio-api` (Software Mansion, sobre Oboe en Android) | Tonos puros (audiometrías) y captura/análisis PCM (voz y sonómetro), sobre un **único `AudioContext` compartido a 48 kHz** (`src/Audio`) |
 | **Captura de nivel sonoro** | `react-native-audio-api` (`AudioRecorder`) | Sonómetro Ambiental: ponderación **A con estado** (IEC 61672) → **LAeq** + percentiles L10/L90 |
-| **Capa de voz de la app** | `src/Voice` sobre `react-native-tts` + assets `.m4a` | Un solo motor de voz para toda la app: recorte neuronal → recorte base `es` → voz del sistema → silencio |
-| **Grabación/reproducción + voz** | `react-native-audio-recorder-player` · `@react-native-voice/voice` | Articulación T.A.R. (repetición y auto-evaluación); el reconocedor arranca con la etiqueta de la lengua y reintenta con la base |
+| **Capa de voz de la app** | `src/Voice` sobre `expo-speech` (síntesis) + `expo-audio` (recortes `.m4a`) | Un solo motor de voz para toda la app: recorte neuronal → recorte base `es` → voz del sistema → silencio |
+| **Reconocimiento de voz (T.A.R.)** | `expo-speech-recognition` | Articulación T.A.R.: el reconocedor arranca con la etiqueta de la lengua y reintenta con la base. Trae `requiresOnDeviceRecognition` de serie, que es lo que sostiene el Zero-PHI sin parches nativos |
 | **Permisos runtime** | `react-native-permissions` | Micrófono y Bluetooth (escaneo + conexión), unificados Android/iOS. La app **no declara permiso de cámara** |
 | **Pulsioximetría BLE** | `react-native-ble-plx` (perfil Pulse Oximeter 0x1822) | Test de Disfagia MECV-V |
 | **Periférico de refuerzo BLE** | `react-native-ble-plx` sobre el GATT de Lúa (`src/Lua`) | Recompensa al cerrar la sesión y silencio clínico; **comparte el mismo `BleManager`** que el pulsioxímetro, ver [Lúa](#lúa-periférico-de-refuerzo) |
@@ -711,7 +739,7 @@ npm run tsc
 
 - **Dominio:** Logopedia — registro descriptivo SODA por fonema
 - **Objetivo:** El niño repite el modelo hablado; clasificación Correcto/Sustitución/Omisión/Distorsión/Adición por ítem, con % de acierto y fonemas a intervenir
-- **Nativo:** modelo hablado servido por la capa `@/Voice` (recorte neuronal → recorte base `es` → mejor voz verificada del sistema), grabación (`react-native-audio-recorder-player`) y reconocimiento de voz (`@react-native-voice/voice`) que auto-evalúa la repetición; degrada a SODA manual sin hardware/permiso
+- **Nativo:** modelo hablado servido por la capa `@/Voice` (recorte neuronal → recorte base `es` → mejor voz verificada del sistema), toma de la repetición por el **micrófono compartido de `@/Audio`** (PCM en memoria, sin fichero) y reconocimiento de voz (`expo-speech-recognition`) que auto-evalúa la repetición; degrada a SODA manual sin hardware/permiso
 - **Idioma:** la preparación del registro tiene **selector de idioma**, que escribe en el mismo `state.locale.language` que el hub. El **inventario fonético es del español**: lo que cambia es la voz (y la etiqueta del reconocedor: es-ES, es-DO, gl-ES, eu-ES, con reintento en la lengua base), no las palabras
 - **Datos:** entidad `ArticulationTest` · informe PDF `ArticulationDetail`
 
@@ -727,7 +755,7 @@ npm run tsc
 
 - **Dominio:** Exploración lúdica del neurodesarrollo (cribado orientativo, cortes provisionales)
 - **Objetivo:** Batería de 5 mini-juegos de tarjetas (atención, inhibición, flexibilidad, memoria de trabajo y planificación) con dificultad graduada por banda de edad A–D; puntuaciones 0–100 por dominio
-- **Nativo:** dictado por voz de las consignas de los mini-juegos (`react-native-tts`); no requiere hardware adicional para jugar
+- **Nativo:** dictado por voz de las consignas de los mini-juegos (`@/Voice`, sobre `expo-speech`); no requiere hardware adicional para jugar
 - **Datos:** entidad `ExecutiveFunctionsTest` (tabla `executive_functions_test`) · informe PDF
 
 ### 12 — Análisis Prosódico 🎙️ (`ProsodyAnalysis`)
@@ -1119,7 +1147,7 @@ Earlify Health
 | Generación de informes PDF | 🟢 Integrado |
 | Resultados de sesión e historial del paciente | 🟢 Integrado |
 | Telemetría de usabilidad Zero-PHI (Likert → QR) | 🟢 Integrado |
-| Capa de voz neuronal multi-idioma (es · gl · eu · es-DO) | 🟢 Integrada (consignas `gl`/`eu` con voz del sistema) |
+| Capa de voz neuronal multi-idioma (es · gl · eu · es-DO) | 🟢 Integrada (consignas `gl`/`eu` con voz del sistema) · **locución confirmada en emulador el 27/8/2026** |
 | Validación del análisis acústico contra Praat | 🟢 En CI |
 | Sitio público y política de privacidad (Pages) | 🟢 Publicable |
 | Release firmada de Android (APK + AAB) | 🟢 En CI, con puerta de locuciones |

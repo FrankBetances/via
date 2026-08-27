@@ -60,6 +60,7 @@ hay que actualizarlo a mano.
 | Las lenguas de sesión o su estado de validación | Sección 7 (tablas de lenguas y de voces) |
 | Los umbrales o criterios de interpretación | Secciones 8–12 (tarjetas de criterios) |
 | Los controles de privacidad realmente implementados | Sección 15 y el README del repositorio |
+| El motor de voz o las vías de salida de audio | Sección 7 (cadena de degradación) y sección 15 (**Comprobar audio**) |
 | Que el reconocimiento de voz salga o no del dispositivo | Sección 9 (ficha del T.A.R.) y sección 15 (privacidad) |
 
 ### Al añadir un chip o una tarjeta de módulo

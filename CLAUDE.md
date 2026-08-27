@@ -439,9 +439,11 @@ descargado, y las imágenes de AVD no lo traen. **Eso no es una avería.**
 
 ## Pendiente (abierto: no lo des por cerrado)
 
-- **Compilar y verificar en el emulador.** La migración de voz de agosto de 2026
-  está probada en JS (640 tests, `tsc` limpio) y **sin compilar ni una vez**.
-  Nada de eso cuenta como verificado en dispositivo.
+- **Verificar en el emulador el resto de la batería.** La migración de voz de
+  agosto de 2026 ya NO está sin compilar: el 27/8/2026 Frank informa de que
+  **la app habla** en el emulador, así que compiló, arrancó y locuta. Lo que
+  sigue abierto es todo lo demás — ningún módulo clínico se ha recorrido en
+  dispositivo, y las sesiones de Claude aquí siguen sin SDK de Android.
 - **Registrar el repositorio de referencia del análisis de prosodia.** Frank
   dio uno y su URL no consta en el repositorio. Hasta que esté en la tabla de
   la regla 1, no se toca `src/Screens/ProsodyAnalysis/`.
@@ -458,15 +460,20 @@ descargado, y las imágenes de AVD no lo traen. **Eso no es una avería.**
   instancia**. Es decisión de producto, no de limpieza.
 - **Revisar la lista de errores que Gemini encontró** en la última revisión.
   Frank la tiene; no se ha incorporado.
-- **Confirmar en el emulador si la app YA suena.** El 25/8/2026 se arregló la
-  elección de voz del sistema (VIA+ prefería sistemáticamente la voz `-network`
-  de Google, que no emite sin cobertura, porque la regla «local gana a red»
-  colgaba de una bandera que `expo-speech` no envía nunca — ver
-  `docs/design/arquitectura-corpus-voz.md` §2 bis). **Es una causa demostrada
-  sobre el código y las fuentes de la librería, no una causa confirmada en
-  dispositivo:** aquí no se puede compilar. Lo que hay que hacer en el emulador
-  es abrir **Comprobar audio** y contestar las CUATRO pruebas de escucha; el
-  resumen copiable ya nombra la vía concreta que no se oye.
+- **La app HABLA (confirmado 27/8/2026), y quedan tres vías de salida sin
+  confirmar.** El 25/8/2026 se arregló la elección de voz del sistema (VIA+
+  prefería sistemáticamente la voz `-network` de Google, que no emite sin
+  cobertura, porque la regla «local gana a red» colgaba de una bandera que
+  `expo-speech` no envía nunca — ver `docs/design/arquitectura-corpus-voz.md`
+  §2 bis). **Frank confirma en el emulador que la app locuta**, así que esa
+  causa queda demostrada también en dispositivo, no solo sobre el código.
+  **Cuidado con extrapolarlo:** «habla» confirma la vía de `expo-speech` y
+  ninguna más. `LISTEN_CHECK_IDS` son CUATRO —`tone`, `verbal-clip-heard`,
+  `voice-bank-heard`, `tts-heard`— y las otras tres pasan por motores
+  distintos (`expo-audio` y `react-native-audio-api`). Justamente las dos vías
+  que enmudecieron en agosto no eran la de `expo-speech`. Hasta que las cuatro
+  escuchas de **Comprobar audio** estén contestadas, no se escribe ni se dice
+  «el audio funciona».
 - **El micrófono no cambia de nivel al acercarse (25/8/2026).** Frank lo
   reporta como duda, no como avería, y no está resuelto. La toma de prueba
   publica ahora el **recorrido** (bloque más flojo → más fuerte) para que la
