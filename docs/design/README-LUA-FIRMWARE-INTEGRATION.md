@@ -1,271 +1,341 @@
-# Arquitectura de Integración de Firmware de Lúa (Mascota Periférica BLE)
-## Plataformas VIA+ y Valeria+ · Dispositivo Médico SaMD Clase IIa / MDR 2017/745
+# Integración de VIA+ con el periférico Lúa
+
+> **Reescrito entero el 27/8/2026, contra el enlace real.**
+>
+> La versión anterior de este documento describía un aparato que no existe:
+> otros UUID (`19B10000-…`), una trama con byte de suma de verificación, `GRANT`
+> con TTL de hasta 255 s, latido cada 2 000 ms, un catálogo de nueve insignias
+> clínicas que el firmware no tiene, y un «ejemplo de implementación» en C++ de
+> ochenta líneas. Nada de eso es el enlace. Quien hubiera programado un
+> periférico siguiéndolo habría construido un aparato con el que VIA+ **no puede
+> hablar**, y quien lo leyera para depurar habría buscado el fallo en el sitio
+> equivocado.
+>
+> Es el caso que el `CLAUDE.md` de `lua-firmware` llama §0 bis: un dato sin
+> comprobar que nadie comprueba deja de leerse como dudoso y empieza a leerse
+> como cierto. Todo lo que sigue está contrastado contra el código, y **cada
+> sección dice contra qué fichero**.
 
 ---
 
-## 1. Visión General y Propósito Clínico
+## 0. Dónde está la verdad, y en qué orden
 
-**Lúa** es la compañera interactiva y biofeedback visual para las baterías clínicas de evaluación y rehabilitación del habla, audición y lenguaje en **VIA+** y **Valeria+**.
+| Qué | Fuente ÚNICA | Aquí |
+| :--- | :--- | :--- |
+| Tabla de opcodes, UUID, límites | `FrankBetances/Valeria` · `firmware/lua/protocol.json` | copia vendorizada en [`src/Lua/protocol.json`](../../src/Lua/protocol.json), de la que `scripts/build-lua-protocol.js` genera `src/Lua/luaProtocol.ts` |
+| Comportamiento del aparato | `FrankBetances/lua-firmware` · `core/src/device.cpp` | leído a mano en [`src/Lua/luaWire.ts`](../../src/Lua/luaWire.ts), con la línea citada |
+| Dibujo de caras e insignias | `FrankBetances/Valeria` · `src/ValeriaPixelArt.ts` | no se replica: VIA+ solo manda índices |
 
-El periférico físico consiste en un dispositivo autónomo de bajo consumo equipado con:
-* **Microcontrolador**: ESP32-C3 o ESP32-S3 con radio BLE 5.0.
-* **Pantalla**: Display LCD circular IPS GC9A01 (240×240 píxeles, SPI a 40–80 MHz).
-* **Alimentación**: Batería LiPo con gestor de carga TP4056/BQ24075 y monitor de tensión por ADC.
+**Este documento no es fuente de nada.** Si contradice a `protocol.json` o al
+firmware, se equivoca él. El procedimiento para refrescar la copia está en
+[`integracion-lua.md`](integracion-lua.md) §2.1, y desde el 24/8/2026 lo vigila
+un gate que vive en el repositorio del firmware —el único que ve los tres—:
 
-```
-+-----------------------------------------------------------------------------+
-|                                TABLETA (VIA+)                               |
-|                                                                             |
-|  [Audio Neuronal/TTS]  [DSP Acústico]  [Lógica Clínica / Evaluaciones]      |
-|           |                 |                         |                     |
-|           +-----------------+                         |                     |
-|                   |                                   |                     |
-|     (Mudez total durante pruebas)                     v                     |
-|                                            [ useLuaCompanion.ts ]           |
-|                                            [ luaAdapter.ts BLE ]            |
-+-------------------------------------------------------+---------------------+
-                                                        | BLE GATT (2.4 GHz)
-                                                        | WriteWithoutResponse
-                                                        v
-+-----------------------------------------------------------------------------+
-|                           PERIFÉRICO FÍSICO LÚA                             |
-|                                                                             |
-|  [ ESP32-C3 / S3 ] <---> [ NimBLE Server ]                                  |
-|         |                     |                                             |
-|         v                     v                                             |
-|  [ Anillo LED/Ring ]   [ GC9A01 Circular SPI ]                              |
-|   (12 niveles)          (24x24 px Pixel Art, 21 colores, 9 emociones)       |
-+-----------------------------------------------------------------------------+
+```bash
+# desde un clon de lua-firmware, con este repositorio al lado
+node tools/check-via-parity.js --via ../via
 ```
 
----
-
-## 2. Perfil GATT y Servicios BLE
-
-* **Service UUID**: `19B10000-E8F2-537E-4F6C-D104768A1214` (Servicio Principal Lúa)
-
-### Características GATT
-
-| Característica | UUID | Permisos / Tipo | Longitud | Descripción |
-| :--- | :--- | :--- | :--- | :--- |
-| **CTRL** | `19B10001-E8F2-537E-4F6C-D104768A1214` | Write / WriteWithoutResponse | 4 bytes | Comandos de control de estado, emoción, fase, veredicto, insignias y nivel. |
-| **SAFE** | `19B10002-E8F2-537E-4F6C-D104768A1214` | Write / WriteWithResponse | 2 bytes | Comandos de seguridad crítica (concesión visual `GRANT`, parada de emergencia, silence). |
-| **STATE** | `19B10003-E8F2-537E-4F6C-D104768A1214` | Read / Notify | 8 bytes | Telemetría del dispositivo (Batería %, Estado de pantalla, Latido, Concesión activa). |
-| **CFG** | `19B10004-E8F2-537E-4F6C-D104768A1214` | Read / Write | 20 bytes | Configuración de brillo, orientación y timeout de reposo. |
+Compara los opcodes, las capacidades y los ocho bytes de `STATE`. Lo que **no**
+compara, y no hay que confundirlo: que VIA+ *use* lo que tiene en la tabla. Que
+un opcode esté en el `.json` no dice que haya una pantalla que lo mande.
 
 ---
 
-## 3. Formato de Tramas y Tabla de Opcodes (`CTRL` / `SAFE`)
+## 1. Qué es Lúa y qué no es
 
-Cada trama de control enviada a la característica `CTRL` o `SAFE` se compone de **4 bytes**:
+Un periférico BLE con una pantalla y nada más: sin micrófono, sin motores y sin
+salida de audio. Acompaña al niño durante la batería de VIA+ y celebra al
+cerrar; **no mide, no registra y no decide nada**.
+
+Hay **dos placas**, y no son intercambiables:
+
+| | V1 · la oficial | V2 · en evaluación |
+| :--- | :--- | :--- |
+| MCU | ESP32-C3 | ESP32-S3 |
+| Panel | GC9A01 redondo, 240×240 | ST7789 cuadrado, 240×240 |
+| Táctil | no lleva | CST816 |
+| Estado | ha corrido el firmware entero (19/8/2026) | arranca; **todavía no ha pintado un frame** |
+
+La V1 es la placa sobre la que se decide y la que se pone delante de un niño.
+La V2 lleva dos micrófonos y un códec montados de fábrica, **y el firmware no
+los toca**: `board_v2.h` no define ni un pin de audio y hay un gate
+(`check-lua-mute.js`) que rompe el build si alguien los baja a código.
+
+Ni una de las dos afirmaciones de esta sección se ha comprobado desde aquí: son
+lo que dicen el `README.md` y el `CLAUDE.md` de `lua-firmware` a fecha de
+27/8/2026, y ahí está la validación de hardware con su informe.
+
+---
+
+## 2. Perfil GATT
+
+**Contrastado contra** `src/Lua/luaProtocol.ts` (generado) y `protocol.json`.
+
+* **Servicio**: `6c75612d-0001-4000-b000-000000000001`
+
+Los UUID son ASCII: `6c 75 61 2d` es `lua-`. **No cambian nunca** — hay aparatos
+flasheados.
+
+| Característica | UUID | Propiedades | Bytes |
+| :--- | :--- | :--- | ---: |
+| `CTRL` | `6c75612d-0002-…` | `writeWithoutResponse` | 4 |
+| `SAFE` | `6c75612d-0003-…` | `write` (con confirmación) | 2 |
+| `STATE` | `6c75612d-0004-…` | `read` + `notify` | 8 |
+| `CFG` | `6c75612d-0005-…` | `write` | 20 |
+
+`CTRL` va **sin confirmación a propósito**: es el camino de latencia, y pedir
+ACK duplica el peor caso. Una celebración perdida no le importa a nadie. `SAFE`
+sí confirma, porque ahí importa saber que llegó.
+
+---
+
+## 3. La trama de `CTRL`: cuatro bytes, y el primero es la versión
+
+**Contrastado contra** `luaFrame()` en `src/Lua/luaProtocol.ts` y
+`Device::onCtrl` en `core/src/device.cpp`.
 
 ```text
-Byte 0: Opcode (uint8_t)
-Byte 1: Param1 (uint8_t)
-Byte 2: Param2 (uint8_t)
-Byte 3: Checksum XOR o reservado (uint8_t = Byte0 ^ Byte1 ^ Byte2)
+Byte 0: versión del protocolo (hoy 1) — el firmware descarta lo que no reconoce
+Byte 1: opcode
+Byte 2: parámetro, byte BAJO
+Byte 3: parámetro, byte ALTO
 ```
 
-### Tabla Completa de Opcodes
+El parámetro es **un entero de 16 bits little-endian**, no dos parámetros
+independientes. Donde la tabla habla de «byte bajo» y «byte alto» —`AWARD`,
+`ACCESSORY`, `GRANT`, `PICTO_PAIR`— son las dos mitades de ese entero.
 
-| Opcode | Nombre | Param1 | Param2 | Descripción |
-| :--- | :--- | :--- | :--- | :--- |
-| **`0x01`** | `PHASE` | `phase_id` (0=intro, 1=test, 2=results) | `subphase` | Transición de fase clínica de la prueba activa. |
-| **`0x02`** | `VERDICT` | `kind` (0=fallo/neutro, 1=ánimo, 2=éxito) | `streak` | Veredicto post-reactivo (Cero castigo: `kind=0` retorna a calma receptiva). |
-| **`0x03`** | `CELEBRATE`| `intensity` (1=media, 2=estelar) | `duration_s` | Animación ceremonial de confeti/estrellas en pantalla circular. |
-| **`0x04`** | `IDLE` | `mode` (0=reposo, 1=respiración) | `tempo_bpm` | Retorno al ciclo orgánico de respiración y parpadeo. |
-| **`0x05`** | `CALL` | `variant` (0=saludo, 1=atención) | `0x00` | Llamada visual de atención al niño. |
-| **`0x06`** | `AFFECT` | `emotion_id` (0–15) | `intensity` | Conmuta inmediatamente a una de las emociones de la tabla §4. Los ids no reconocidos se repliegan a `kExprTranquility` (3). |
-| **`0x07`** | `PICTO` | `picto_id` (0–255) | `frame` | Muestra un pictograma/estímulo 24×24 en el centro de la pantalla. |
-| **`0x08`** | `AWARD` | `badge_id` (0–8) | `stars` (1–3) | Despliega y activa la insignia clínica otorgada. |
-| **`0x09`** | `LEVEL` | `level` (1–12) | `0x00` | Actualiza el arco circular de progreso (1 a 12 segmentos activos). |
-| **`0x10`** | `GRANT` | `ttl_seconds` (1–255) | `cap_mask` | **Seguridad**: Concede permiso de emisión (`0x00` = Solo visual). |
-| **`0x11`** | `HEARTBEAT`| `seq_num` | `status` | Latido periódico cada 2000 ms desde la tableta. Si expira el TTL, Lúa se apaga. |
+**No hay suma de verificación.** BLE ya la lleva por debajo; un cuarto byte de
+XOR sería un byte de parámetro perdido.
 
----
+## 4. Tabla de opcodes
 
-## 4. Matriz de Emociones (`AFFECT 0–15`)
+**Contrastado contra** `LUA_OP` en `src/Lua/luaProtocol.ts` y el `switch` de
+`core/src/device.cpp`.
 
-Lúa implementa 9 estados afectivos canónicos basados en pixel art de 24×24 px con paleta indexada de 21 colores. El campo admite hasta 16 ids para poder ampliar la tabla sin revisar el protocolo; todo id no implementado DEBE replegarse a `kExprTranquility` (3):
+| Código | Nombre | Parámetro | Qué hace |
+| :--- | :--- | :--- | :--- |
+| `0x01` | `PHASE` | 0-3 | espeja el turno: escucha · repite · veredicto · misión |
+| `0x02` | `VERDICT` | 0-2 | 0 no coincide · 1 casi · 2 lo dijo |
+| `0x03` | `CELEBRATE` | 0-2 | 0 cierre · 1 subida de nivel · 2 insignia |
+| `0x04` | `IDLE` | — | cara neutra |
+| `0x05` | `CALL` | — | llamada del Modo Vínculo |
+| `0x06` | `AFFECT` | 0-7 | las ocho emociones puras (ver §5) |
+| `0x07` | `PICTO` | índice · `0xFFFF` lo quita | la ficha del ejercicio |
+| `0x08` | `AWARD` | glifo (bajo) + rango (alto) | la insignia (ver §6) |
+| `0x09` | `LEVEL` | 1-12 | el anillo de progreso |
+| `0x0A` | `PICTO_PAIR` | dos índices | **RESERVADO**: el firmware lo ignora |
+| `0x0B` | `MOOD` | 0-4 | la vida de la mascota fuera del ejercicio |
+| `0x0C` | `ACCESSORY` | ítem (bajo) + ranura (alto) | el armario; `0xFF` lo quita |
+| `0x0D` | `RELAX` | 1-60 s | la gata se duerme (regla 20-20-20) |
+| `0x10` | `GRANT` | ttl (bajo) + capacidades (alto) | concede (ver §7) |
+| `0x11` | `HEARTBEAT` | — | renueva la concesión viva |
+| `0xF0` | `BENCH` | — | banco de la Fase 0; no se usa en producción |
 
-| ID | Emoción | Nombre Clínico | Ojos / Expresión | Color de Acento | Uso en Batería VIA+ |
-| :---: | :--- | :--- | :--- | :--- | :--- |
-| **0** | `kExprJoy` | **Alegría** | Ojos cerrados curvados hacia arriba (`^^`) | Ámbar (`#F59E0B`) | Acierto en silbato, acierto en tarjeta verbal. |
-| **1** | `kExprLove` | **Cariño** | Ojos tiernos con destello, cabeza ladeada | Rosa (`#F43F5E`) | Prosodia: escucha empática de la narración. |
-| **2** | `kExprGratitude`| **Gratitud** | Inclinación suave y sonrisa acogedora | Azul Marino (`#0EA5E9`) | Bienvenida y cierre de sesión. |
-| **3** | `kExprTranquility`| **Calma** | Ojos relajados, pulso de respiración lenta | Cian (`#06B6D4`) | Espera de estímulo, biofeedback diafragmático. |
-| **4** | `kExprHope` | **Esperanza** | Ojos abiertos brillantes mirando arriba | Púrpura (`#A855F7`) | Cambio de norma DCCS, inicio de nivel difícil. |
-| **5** | `kExprPride` | **Orgullo** | Mentón alto, pecho erguido, estrella | Esmeralda (`#10B981`) | Finalización de prueba e informes finales. |
-| **6** | `kExprInspire`| **Inspiración** | Ojos firmes enfocados, postura activa | Índigo (`#6366F1`) | Sostén fonatorio de la `/a/` sostenida (5 s). |
-| **7** | `kExprFun` | **Diversión** | Guiño cómplice y rebote juguetón | Naranja (`#FF7F00`) | Mini-juegos de funciones ejecutivas. |
-| **8** | `kExprAttentive`| **Escucha atenta** | Orejas erguidas, ojos abiertos, quietud alerta | Pizarra (`#64748B`) | Audiometría verbal y T.A.R.: Lúa acompaña sin intervenir. |
+Los códigos `0x0E` y `0x0F` no existen: el salto a `0x10` es deliberado, para
+que los opcodes de seguridad queden en su propio tramo.
 
----
+**Un opcode desconocido no hace nada.** El `default` del `switch` lo descarta;
+por eso se puede añadir al final sin romper un aparato ya flasheado, y por eso
+**no se reordena nada nunca**.
 
-## 5. Catálogo de Insignias Clínicas (`AWARD 0–8`)
+## 5. Emociones (`AFFECT`)
 
-| ID | Clave | Nombre de la Insignia | Módulo Origen | Icono Display |
-| :---: | :--- | :--- | :--- | :---: |
-| **0** | `oido_atento` | **Oído Atento** | Audiometría Condicionada | 🚂 Tren / Silbato |
-| **1** | `palabras_claras` | **Palabras Claras** | Audiometría Verbal | 👂 Oreja / Tarjeta |
-| **2** | `voz_sonora` | **Voz Firme y Sonora** | Análisis Acústico | 🎙️ Micrófono / Espectro |
-| **3** | `ritmo_melodia` | **Ritmo y Melodía** | Prosodia | 🎵 Notas / Onda |
-| **4** | `maestro_articular` | **Maestro Articulatorio** | Test T.A.R. | 🗣️ Perfil / SODA |
-| **5** | `mente_agil` | **Mente Ágil** | Funciones Ejecutivas | 🧩 Puzzle / Cerebro |
-| **6** | `deglucion_segura` | **Deglución Segura** | Disfagia MECV-V | 💧 Gota / Escudo |
-| **7** | `sueno_reparador` | **Sueño Reparador** | Cribado SAHS | 🌙 Luna / Nube |
-| **8** | `final_champion` | **Gran Campeón VIA+** | Informe Final Completo | 🏆 Copa / Gran Estrella |
+**Contrastado contra** `case LUA_OP_AFFECT` en `core/src/device.cpp`.
 
----
+La tabla declara **ocho**, 0-7: Alegría, Amor, Gratitud, Tranquilidad,
+Esperanza, Orgullo, Inspiración, Diversión. Cada una pone su cara **y** siembra
+sus partículas.
 
-## 6. Arquitectura de Firmware ESP32 (Ejemplo de Implementación C++)
+`LuaEmotion.Attentive = 8` de este repositorio **no está en la tabla**. Funciona
+—deja la cara en escucha atenta, sin partículas— porque el `switch` del firmware
+manda a `kExprAttentive` todo id que no reconozca y se salta el `spawnAffect`
+con `if (param <= 7)`. Que el resultado sea justo el que hace falta en la
+audiometría verbal y en el T.A.R. no lo convierte en contrato: **depende de una
+rama `default`**. Añadir el 8 a la tabla se decide en Valeria+, y está anotado
+como pendiente en [`integracion-lua.md`](integracion-lua.md).
 
-```cpp
-#include <Arduino.h>
-#include <NimBLEDevice.h>
-#include <TFT_eSPI.h> // Driver GC9A01 240x240
+`kExprAttentive` es además a donde vuelven `VERDICT(0)` y la ficha que se quita.
+Ahí está la **regla de cero castigo**: un fallo no produce nunca una cara triste,
+y eso está fijado en el firmware con un test propio (`testNoSadFace`). Si alguien
+quiere una cara de decepción, pasa por logopedia y por el plan, no por un commit.
 
-// UUIDs
-#define SERVICE_UUID        "19B10000-E8F2-537E-4F6C-D104768A1214"
-#define CHAR_CTRL_UUID      "19B10001-E8F2-537E-4F6C-D104768A1214"
-#define CHAR_SAFE_UUID      "19B10002-E8F2-537E-4F6C-D104768A1214"
-#define CHAR_STATE_UUID     "19B10003-E8F2-537E-4F6C-D104768A1214"
+## 6. Insignias (`AWARD`)
 
-TFT_eSPI tft = TFT_eSPI();
+**Contrastado contra** `core/include/lua/awards_generated.h` (generado desde
+`src/ValeriaPixelArt.ts` de Valeria+) y `drawAward` en `core/src/renderer.cpp`.
 
-enum Opcode {
-  OP_PHASE     = 0x01,
-  OP_VERDICT   = 0x02,
-  OP_CELEBRATE = 0x03,
-  OP_IDLE      = 0x04,
-  OP_CALL      = 0x05,
-  OP_AFFECT    = 0x06,
-  OP_PICTO     = 0x07,
-  OP_AWARD     = 0x08,
-  OP_LEVEL     = 0x09,
-  OP_GRANT     = 0x10,
-  OP_HEARTBEAT = 0x11
-};
+El aparato lleva flasheadas **nueve familias × cinco rangos = 45 insignias**, y
+el parámetro son las dos POSICIONES en esas listas:
 
-// Expresiones de la tabla §4. `kExprCount` cierra la lista: el manejador de
-// AFFECT lo usa para replegar a calma todo id que este firmware aún no pinte,
-// de modo que una app más nueva nunca deje a Lúa con una cara equivocada.
-enum Expression {
-  kExprJoy = 0,
-  kExprLove,
-  kExprGratitude,
-  kExprTranquility,
-  kExprHope,
-  kExprPride,
-  kExprInspire,
-  kExprFun,
-  kExprAttentive,
-  kExprCount
-};
-
-uint8_t current_emotion = kExprTranquility;
-uint8_t current_level = 1;
-uint32_t last_heartbeat_ms = 0;
-uint16_t grant_ttl_sec = 0;
-
-void renderEmotion(uint8_t emotionId);
-void renderProgressRing(uint8_t level);
-void renderBadgeAward(uint8_t badgeId);
-
-class ControlCallbacks : public NimBLECharacteristicCallbacks {
-  void onWrite(NimBLECharacteristic* pCharacteristic) {
-    std::string rx = pCharacteristic->getValue();
-    if (rx.length() < 3) return;
-
-    uint8_t op = rx[0];
-    uint8_t p1 = rx[1];
-    uint8_t p2 = rx[2];
-
-    switch (op) {
-      case OP_AFFECT:
-        // Repliegue explícito, NO módulo: `p1 % 8` convertiría la escucha atenta
-        // (8) en Alegría (0) justo cuando Lúa debe permanecer quieta.
-        current_emotion = (p1 < kExprCount) ? p1 : kExprTranquility;
-        renderEmotion(current_emotion);
-        break;
-
-      case OP_LEVEL:
-        current_level = (p1 >= 1 && p1 <= 12) ? p1 : 1;
-        renderProgressRing(current_level);
-        break;
-
-      case OP_AWARD:
-        renderBadgeAward(p1);
-        break;
-
-      case OP_VERDICT:
-        if (p1 == 2) {
-          // Éxito: alegría temporal
-          renderEmotion(0); // Joy
-        } else {
-          // Fallo/neutro: retorno sin castigo a tranquilidad
-          renderEmotion(3); // Tranquility
-        }
-        break;
-
-      case OP_GRANT:
-        grant_ttl_sec = p1;
-        // En VIA+ la capacidad de sonido física queda permanentemente anulada (MDR D-K)
-        break;
-
-      case OP_HEARTBEAT:
-        last_heartbeat_ms = millis();
-        break;
-
-      default:
-        break;
-    }
-  }
-};
-
-void setup() {
-  Serial.begin(115200);
-  tft.init();
-  tft.setRotation(0);
-  tft.fillScreen(TFT_BLACK);
-
-  NimBLEDevice::init("LUA-COMPANION");
-  NimBLEServer* pServer = NimBLEDevice::createServer();
-  NimBLEService* pService = pServer->createService(SERVICE_UUID);
-
-  NimBLECharacteristic* pCtrl = pService->createCharacteristic(
-    CHAR_CTRL_UUID,
-    NIMBLE_PROPERTY::WRITE | NIMBLE_PROPERTY::WRITE_NR
-  );
-  pCtrl->setCallbacks(new ControlCallbacks());
-
-  pService->start();
-  NimBLEAdvertising* pAdvertising = NimBLEDevice::getAdvertising();
-  pAdvertising->addServiceUUID(SERVICE_UUID);
-  pAdvertising->start();
-
-  renderEmotion(current_emotion);
-  renderProgressRing(current_level);
-}
-
-void loop() {
-  // Liveness Check: apagar display si no hay latido en 5 segundos
-  if (millis() - last_heartbeat_ms > 5000 && last_heartbeat_ms != 0) {
-    tft.writecommand(0x10); // Display Sleep
-  }
-  delay(20);
-}
+```text
+byte bajo = glifo, 0-8      byte alto = rango, 0-4
 ```
 
+Ni el nombre ni la descripción viajan: no existe el campo. El aparato enseña el
+dibujo número N de su catálogo y no sabe qué se ha ganado.
+
+| # | Dibujo | # | Rango |
+| :---: | :--- | :---: | :--- |
+| 0 | cascabel fonador | 0 | bronce |
+| 1 | huella de exploradora | 1 | plata |
+| 2 | orejitas atentas | 2 | oro |
+| 3 | lupa curiosa | 3 | diamante |
+| 4 | Lúa soñadora | 4 | rubí |
+| 5 | mochila de palabras | | |
+| 6 | ovillo de cuentos | | |
+| 7 | ronroneo afectivo | | |
+| 8 | corona | | |
+
+**Los nueve dibujos cambiaron el 25/8/2026** —Valeria+ los redibujó porque a
+30 px «la huella parecía una cara y el cascabel un bolso»— y **las claves siguen
+llamándose igual** (`flame`, `paw`, `star`…). Ese desfase es una trampa con
+nombre propio: este repositorio tenía el mapa de insignias clínicas escrito
+contra los nombres viejos, y la audiometría condicionada («Oído Atento») pintaba
+el cascabel de la voz. La tabla de arriba es lo que se DIBUJA, que es lo único
+que ve el niño.
+
+El reparto de VIA+ vive en `LUA_CLINICAL_BADGES`
+([`src/Lua/useLuaCompanion.ts`](../../src/Lua/useLuaCompanion.ts)), con el
+porqué de cada elección al lado. Los índices 4 y 7 se quedan libres para el
+cribado de SAHS y la disfagia cuando esos módulos cierren sesión.
+
+Las hojas de contactos de las 45 están en `lua-firmware`:
+`make shots-insignias` → `docs/insignias/catalogo.png`.
+
+## 7. Concesiones, capacidades y seguridad
+
+**Contrastado contra** `LUA_CAP`, `LUA_SAFE` y `LUA_LIMITS` en
+`src/Lua/luaProtocol.ts`, y `Device::onCtrl` / `Device::onSafe`.
+
+### `GRANT` — nada se dibuja sin permiso vivo
+
+```text
+byte bajo = TTL en segundos, 1-60      byte alto = máscara de capacidades
+```
+
+| Bit | Capacidad | |
+| :---: | :--- | :--- |
+| 0 | `VISUAL` | dibujar. Es lo que concede una máscara a 0 |
+| 1 | `SOUND` | emitir sonido. **Nunca implícita**: hay que pedir el bit |
+| 2 | `NO_TOUCH` | el único bit que **RESTA**: inhibe el táctil durante la concesión |
+
+`NO_TOUCH` es feo y es deliberado: el dedo ya se atendía antes de que el bit
+existiera, y un bit aditivo habría dejado sin caricia a todo lo ya escrito.
+
+**REPOSO es el estado por omisión.** Ningún camino —fallo, desconexión,
+reinicio, opcode desconocido, trama corta, ni un dedo en el cristal— lleva a
+ACTIVA sin un `GRANT` explícito y reciente. El firmware lo prueba con 100
+caducidades de 100 en cada cambio de `device.cpp`.
+
+El latido es cada **10 s** (`LUA_LIMITS.heartbeatSeconds`), no cada 2 000 ms, y
+solo sirve mientras la concesión anterior siga viva: si llega tarde, el aparato
+ya está en REPOSO y hay que volver a conceder.
+
+### `SAFE` — dos bytes, y sin byte de versión
+
+`[operación, 0x00]`. El segundo va a cero porque la característica declara dos
+bytes; el firmware lee `v[0]` directamente.
+
+| Código | Operación | |
+| :---: | :--- | :--- |
+| `0x01` | `CLINICAL_SILENCE` | revoca toda concesión y **bloquea** nuevas. El cierre total |
+| `0x02` | `UNLOCK` | levanta el bloqueo y el silencio sonoro. Devuelve a REPOSO, nunca a ACTIVA |
+| `0x03` | `MUTE` | quita SOLO el sonido y deja viva la pantalla. Pega hasta un `UNLOCK` |
+
+En `LOCKED` el aparato **no dibuja aunque se le conceda**. Por eso la recompensa
+de cierre pide `UNLOCK` antes de `GRANT`; el orden está en
+[`closingReward.ts`](../../src/Lua/closingReward.ts) y no es un detalle.
+
+## 8. `STATE` — ocho bytes, y ninguno es la batería
+
+**Contrastado contra** `Device::stateBytes` en `core/src/device.cpp:507-519` y
+el decodificador de [`luaWire.ts`](../../src/Lua/luaWire.ts).
+
+```text
+ [0]    modo: 0 REPOSO · 1 ACTIVA · 2 BLOQUEADA
+ [1]    segundos de concesión restantes, recortado a 255
+ [2]    último opcode dibujado (diagnóstico; no se interpreta)
+ [3]    versión de protocolo que dice hablar el firmware
+ [4]    fps medidos por el aparato, recortado a 255
+ [5..7] microsegundos de despacho, 24 bits little-endian (criterio de la Fase 0)
+```
+
+**La nota de `protocol.json` está mal aquí** y conviene saberlo: dice «modo,
+capacidad viva, segundos de concesión restantes, batería, versión de firmware».
+El firmware no publica batería ni capacidades. `luaWire.ts` sigue al firmware,
+que es quien decide; corregir la nota se hace en Valeria+.
+
+Este es exactamente el sitio donde la primera versión del códec se equivocó:
+inventó un TTL en décimas de segundo y un byte de batería que no existen. Lo
+único que lo sujeta hoy es que `check-via-parity.js` compare este desglose
+contra `Device::stateBytes`.
+
 ---
 
-## 7. Muro Regulatorio y Seguridad Médica (MDR 2017/745)
+## 9. Qué manda VIA+ hoy, y qué no
 
-1. **Mudez Total Durante Pruebas Acústicas (Mandato D-K)**:
-   El firmware de Lúa **tiene prohibido emitir cualquier pitido o sonido** durante las fases de audiometría, análisis acústico de voz, prosodia y articulación. Todo estímulo sonoro calibrado se origina exclusivamente en los altavoces de la tableta para no viciar las mediciones acústicas.
-2. **Cero Texto en Periférico**:
-   Para evitar sesgos cognitivos o requerimientos de lectoescritura en prelectores o niños con dificultades de lenguaje, la interfaz de Lúa es **100% iconográfica** mediante matrices de 24×24 px.
-3. **Cero Castigo**:
-   Los fallos en las pruebas nunca producen expresiones tristes, de enfado o punitivas; el periférico conmuta de inmediato a una postura de calma receptiva y escucha atenta (`kExprTranquility` o `kExprAttentive`).
-4. **Desconexión Segura (`GRANT` Timeout)**:
-   Si se pierde el enlace BLE con la tableta, Lúa entra en modo reposo orgánico de forma automática para evitar distracciones durante la consulta médica.
+**Contrastado contra** `grep` sobre `src/` el 27/8/2026.
+
+| Quién | Manda |
+| :--- | :--- |
+| `ResultadosFinal` · `closingReward.ts` | `UNLOCK` → `GRANT` → `CELEBRATE(2)`, con latido cada 10 s |
+| Los seis módulos · `useLuaCompanion.ts` | `GRANT` + latido al entrar, `AFFECT`, `LEVEL`, `PHASE`, `VERDICT`, y al cerrar `AFFECT` + `CELEBRATE` y la insignia (`AWARD`) 2 s después |
+| Tiene ayudante, no lo llama nadie | `PICTO`, `CALL` |
+| No existe ni el ayudante | `MOOD`, `ACCESSORY`, `RELAX`, `PICTO_PAIR`, `BENCH` |
+
+Los seis módulos son audiometría condicionada, audiometría verbal, análisis
+acústico de voz, prosodia, T.A.R. y funciones ejecutivas.
+
+**La insignia va 2 s detrás de la celebración, y esa espera es el arreglo del
+27/8/2026**: las tres tramas salían juntas y en el aparato cada opcode sustituye
+la cara, así que la insignia duraba lo que tarda la siguiente en cruzar el aire.
+Está fijado en [`useLuaCompanion.test.tsx`](../../src/Lua/__tests__/useLuaCompanion.test.tsx),
+que falla si alguien las vuelve a juntar.
+
+La recompensa de cierre es **la única integración que el plan de Valeria+ (§8.2)
+abre en la v1**: con la exploración terminada y los datos ya sellados, ahí Lúa
+no puede contaminar nada. El resto de la lista existe en el código y su alcance
+es una decisión de producto abierta — el §8.4 deja el refuerzo *durante* la
+medición explícitamente fuera de la v1, y meterlo obligaría a plantearse si Lúa
+pasa a ser parte del dispositivo. Esa conversación es con el organismo
+notificado, no un commit.
+
+Y hay un requisito de plataforma que sigue sin resolver: `react-native-ble-plx`
+está declarada y **nadie instancia un `BleManager`**. Sin eso, todo lo de este
+documento es una capa que no habla con ningún aparato. Está en la lista de
+pendientes del `CLAUDE.md` como decisión de producto.
+
+---
+
+## 10. El muro regulatorio, que no cambia
+
+1. **Mudez durante las pruebas.** Lúa no emite un pitido durante audiometría,
+   análisis acústico, prosodia ni articulación. Hoy es estructural —no hay
+   salida de audio, no hay pin y hay un gate que lo impide— y cuando algún día
+   la haya, seguirá siendo la regla: la capacidad sonora se concede aparte y
+   `MUTE` la quita sin apagar la pantalla.
+2. **Cero texto en el periférico.** No es una decisión de interfaz: es la
+   garantía **estructural** de Zero-PHI. Un nombre de paciente no puede llegar
+   al aparato porque no existe el campo donde meterlo — todo son opcodes y
+   números de catálogo.
+3. **Cero castigo.** `VERDICT(0)` vuelve a *atenta*, nunca a una cara triste
+   (§5).
+4. **Desconexión segura.** Al caerse el enlace o caducar la concesión, el
+   aparato vuelve a REPOSO solo. Nadie tiene que acordarse de apagarlo.
+
+---
+
+## 11. Lo que este documento ya no trae, y por qué
+
+La versión anterior incluía un **ejemplo de implementación del firmware en
+C++**. Se ha quitado entero, y no por espacio: el firmware existe, está en
+`FrankBetances/lua-firmware`, tiene emulador de escritorio, 57 073
+comprobaciones y capturas de las 28 caras. Un ejemplo escrito aquí solo puede
+hacer dos cosas —repetirlo peor o contradecirlo—, y ya hizo la segunda: el que
+había declaraba otros UUID, otra trama y un `AFFECT` de 0 a 15.
+
+Si hace falta leer cómo responde el aparato a un opcode, se lee
+`core/src/device.cpp`. Si hace falta verlo, `make run` levanta el emulador con
+todos los mandos.

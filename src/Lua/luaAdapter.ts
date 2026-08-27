@@ -123,14 +123,27 @@ export const luaCelebrate = (intensity: number): void =>
   luaCtrl(LUA_OP.CELEBRATE, Math.max(0, Math.min(2, Math.round(intensity))));
 
 /**
- * Estado afectivo emocional (0-15):
+ * Estado afectivo emocional. La tabla del enlace declara **0-7**:
  * 0: Alegría, 1: Amor, 2: Gratitud, 3: Tranquilidad, 4: Esperanza, 5: Orgullo,
- * 6: Inspiración, 7: Diversión, 8: Escucha atenta.
+ * 6: Inspiración, 7: Diversión.
  *
- * El rango se acota a 0-15 (medio byte) para dejar sitio a nuevas emociones sin
- * volver a tocar el protocolo. Un firmware que solo conozca las 8 originales
- * debe replegar los identificadores que no reconozca a `Tranquility` (3), NO
- * tomar el módulo: `8 % 8` pintaría Alegría en plena escucha.
+ * El 8 —«escucha atenta»— NO está en la tabla, y aquí funciona por el
+ * `default` del firmware, no por diseño. Comprobado el 27/8/2026 contra
+ * `core/src/device.cpp` de lua-firmware: el `switch` de `LUA_OP_AFFECT` manda
+ * a `kExprAttentive` todo id que no reconozca, y el `spawnAffect` de las
+ * partículas se salta con `if (param <= 7)`. O sea que un `AFFECT(8)` deja la
+ * cara atenta y sin partículas, que es exactamente lo que hace falta en la
+ * audiometría verbal y en el T.A.R.
+ *
+ * Este comentario decía hasta hoy que un firmware que no reconociera el id
+ * debía replegarlo a `Tranquility` (3). **Era falso**: el aparato lo repliega a
+ * la escucha atenta, no a la calma. Que el resultado nos venga bien no lo
+ * convierte en contrato — mientras el 8 no esté en `protocol.json` esto depende
+ * de una rama `default`, y eso está anotado en `docs/design/integracion-lua.md`
+ * para subirlo a Valeria+, que es donde se decide la tabla.
+ *
+ * El rango se sigue acotando a 0-15 (medio byte) para no inventar un parámetro
+ * imposible, y NO se toma el módulo: `8 % 8` pintaría Alegría en plena escucha.
  */
 export const luaAffect = (emotion: number): void =>
   luaCtrl(LUA_OP.AFFECT, Math.max(0, Math.min(15, Math.round(emotion))));

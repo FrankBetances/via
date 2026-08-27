@@ -568,6 +568,15 @@ gata que guía la terapia», ni que acompaña, mejora o sostiene el tratamiento.
    plan y la decisión de dirección del 14/8/2026, que es lo que hoy impide
    escribir una sola línea de audio en cualquiera de los tres repositorios:
    [`lua-salida-y-alertas-sonoras.md`](lua-salida-y-alertas-sonoras.md) §6.
+7. **Subir a Valeria+ la «escucha atenta» de `AFFECT`.** `LuaEmotion.Attentive`
+   vale 8 y la tabla declara `AFFECT 0-7`. Hoy llega a la cara correcta —el
+   firmware manda a `kExprAttentive` todo id que no reconozca— pero eso es una
+   rama `default`, no un contrato: el día que alguien añada las emociones 8 y 9
+   al final de la tabla, las dos pantallas en que Lúa acompaña sin intervenir
+   (audiometría verbal y T.A.R.) pasarán a pintar lo que ocupe el 8. Se pide
+   como fila nueva en `protocol.json`, que es donde se decide; **no se arregla
+   aquí**. Comprobado el 27/8/2026 contra `core/src/device.cpp` de
+   `lua-firmware`.
 
 Lo que **no** hay que decidir otra vez: el protocolo no se negocia —se genera—, y
 la postura regulatoria de VIA+ está fijada en el §8 del plan de Valeria+, no aquí.
