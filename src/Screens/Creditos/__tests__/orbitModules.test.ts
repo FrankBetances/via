@@ -1,18 +1,28 @@
 import { ORBIT_MODULES, ORBIT_MAX_REACH } from '../orbitModules';
+import { MODULES } from '@/Screens/SeleccionEjercicios/moduleCards';
 
-/* La constelación de la pantalla de créditos afirma algo verificable: que hay
-   DOCE módulos, que empiezan en el CAP y terminan en Funciones Ejecutivas, y
-   que ninguno comparte órbita ni velocidad con otro (si lo hicieran, girarían
-   pegados y el conjunto dejaría de recomponerse). */
+/* La constelación de la pantalla de créditos afirma algo verificable: que están
+   TODOS los módulos de la batería, que empiezan en el CAP y terminan en el
+   último del flujo, y que ninguno comparte órbita ni velocidad con otro (si lo
+   hicieran, girarían pegados y el conjunto dejaría de recomponerse).
+
+   El recuento se contrasta contra la parrilla del hub y los dos prerrequisitos
+   que no son tarjeta (CAP y sonómetro de sala), en vez de contra un número
+   escrito a mano: así, añadir un módulo y olvidarse de la órbita falla aquí.
+   Pasó con el cribado ASHA en agosto de 2026 — entró en el hub, en la
+   navegación y en el informe, y la pantalla de créditos siguió pintando doce
+   puntos. */
 
 describe('ORBIT_MODULES', () => {
-  it('son exactamente los doce módulos de la batería', () => {
-    expect(ORBIT_MODULES).toHaveLength(12);
+  it('están TODOS los módulos de la batería, contados desde el hub', () => {
+    // Módulos de la parrilla + los dos prerrequisitos que no son tarjeta.
+    const enElHub = MODULES.length;
+    expect(ORBIT_MODULES).toHaveLength(enElHub + 2);
   });
 
-  it('van del CAP a Funciones Ejecutivas, en el orden del flujo clínico', () => {
+  it('van del CAP al último del flujo clínico', () => {
     expect(ORBIT_MODULES[0].key).toBe('cap');
-    expect(ORBIT_MODULES[ORBIT_MODULES.length - 1].key).toBe('ejecutivas');
+    expect(ORBIT_MODULES[ORBIT_MODULES.length - 1].key).toBe('asha');
   });
 
   it('no repite identificadores', () => {

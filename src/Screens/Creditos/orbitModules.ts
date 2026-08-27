@@ -1,5 +1,5 @@
 /* -------------------------------------------------------------------------- */
-/*  Los DOCE módulos que componen la batería de VIA+, en el orden real del     */
+/*  Los TRECE módulos que componen la batería de VIA+, en el orden real del    */
 /*  flujo clínico: del CAP (Certificado de Aptitud para la Prueba, bloqueante) */
 /*  a Funciones Ejecutivas. Es la fuente única que alimenta la constelación    */
 /*  de la pantalla de créditos: cada módulo es un punto orbitando el isotipo   */
@@ -9,6 +9,13 @@
 /*  (mismo módulo, mismo color en toda la app). CAP y sonómetro de sala no     */
 /*  son tarjetas de la parrilla —son prerrequisitos— y toman los tonos con     */
 /*  que aparecen en sus accesos rápidos.                                       */
+/*                                                                            */
+/*  PENDIENTE DE DECISIÓN: el cribado ASHA entró con el MISMO verde azulado    */
+/*  (#0D9488) que la audiometría condicionada, y viene así de su tarjeta del   */
+/*  hub. Aquí se respeta la regla de arriba —mismo módulo, mismo color— pero   */
+/*  en una constelación codificada por color dos módulos indistinguibles no    */
+/*  cumplen su función. Repintar un módulo es decisión de diseño de Frank; si  */
+/*  se cambia, hay que cambiarlo EN LOS DOS SITIOS.                            */
 /*                                                                            */
 /*  Radios y duraciones están escritos a mano (no generados) para que la       */
 /*  constelación sea reproducible y revisable: ninguna pareja comparte órbita  */
@@ -50,6 +57,7 @@ const SPEC: Omit<OrbitModule, 'phase'>[] = [
   { key: 'mchat',      label: 'Cribado de autismo · M-CHAT',  color: '#DB2777', radius: 73,  size: 6,   durationMs: 31000 },
   { key: 'sahs',       label: 'Cribado SAHS infantil',        color: '#4F46E5', radius: 85,  size: 5.5, durationMs: 32800 },
   { key: 'ejecutivas', label: 'Funciones ejecutivas',         color: '#059669', radius: 97,  size: 6.5, durationMs: 34600 },
+  { key: 'asha',       label: 'Hitos del lenguaje · ASHA',    color: '#0D9488', radius: 67,  size: 5.5, durationMs: 36400 },
 ];
 
 export const ORBIT_MODULES: OrbitModule[] = SPEC.map((m, i) => ({

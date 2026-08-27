@@ -80,7 +80,10 @@ describe('prosodia · registro del módulo en la app', () => {
   });
 
   it('el módulo aparece en el hub de selección de pruebas', () => {
-    expect(read('src/Screens/SeleccionEjercicios/SeleccionEjerciciosScreen.tsx')).toContain(
+    // La parrilla vive en `moduleCards.ts` desde agosto de 2026: se extrajo de
+    // la pantalla para que el recuento de módulos se pueda contar sin arrastrar
+    // react-redux (lo usa la constelación de Créditos).
+    expect(read('src/Screens/SeleccionEjercicios/moduleCards.ts')).toContain(
       "id: 'ProsodyAnalysis'",
     );
   });

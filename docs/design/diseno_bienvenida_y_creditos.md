@@ -31,7 +31,8 @@ Este documento recopila las referencias visuales aprobadas para las pantallas de
 
 ### Estructura de la Pantalla
 1. **Columna Izquierda (Identidad y Autoría)**:
-   - **Emblema Central de Órbita**: Isotipo `VIA+` rodeado de 12 puntos de colores correspondientes a cada uno de los 12 módulos de la batería girando en órbitas elípticas vivas (`DOCE MÓDULOS · UNA SOLA BATERÍA`).
+   - **Emblema Central de Órbita**: Isotipo `VIA+` rodeado de un punto de color por cada módulo de la batería —**trece** desde que entró el cribado ASHA— girando en órbitas elípticas vivas, bajo el rótulo `TRECE MÓDULOS · UNA SOLA BATERÍA`.
+     > El recuento del rótulo y el de la etiqueta de accesibilidad **se deducen de `ORBIT_MODULES`**, no se escriben a mano: estuvieron anunciando «DOCE MÓDULOS» encima de trece puntos. Al añadir un módulo basta con darlo de alta en `orbitModules.ts`; el rótulo se corrige solo y `creditosRender.test.tsx` lo contrasta.
    - **Tarjeta de Autoría** (`AUTORÍA Y DIRECCIÓN CLÍNICA`): Tarjeta blanca con raíl naranja y corriente de partículas ordenadas, con el sello y crédito al **`Dr. Frank Alberto Betances Reinoso`** *(Otorrinolaringólogo y desarrollador principal)*.
 2. **Columna Derecha (Alianzas, Voces y Calidad)** — rótulos en castellano, nunca los marcadores del mockup en inglés:
    - **`COLABORADORES`**: *Quisqueya Habla (FONDOCYT)*, *ACOPROS* y *Earlify Health*.

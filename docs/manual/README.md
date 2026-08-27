@@ -38,10 +38,11 @@ Consentimiento y CAP · Sonómetro de sala y selección de pruebas ·
 Voz y articulación (T.A.R.) · **Análisis prosódico (ritmo, pausas y tono)** ·
 Disfagia, M-CHAT y SAHS ·
 Módulos nuevos (Audiometría Verbal y Funciones Ejecutivas) ·
+**Cribado de hitos del lenguaje (ASHA, percentil 75, 0–5 años)** ·
 Resultados, valoración de uso (Likert → QR de telemetría Zero-PHI) e informe PDF ·
 Casos de uso · Buenas prácticas, privacidad y soporte.
 
-La batería cubre **12 módulos** de evaluación en **cuatro lenguas de sesión**.
+La batería cubre **13 módulos** de evaluación en **cuatro lenguas de sesión**.
 
 Los cuatro casos de uso de principio a fin son: cribado auditivo infantil,
 valoración de lenguaje y voz, exploración de disfagia por la vía rápida y sesión

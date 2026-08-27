@@ -80,7 +80,7 @@ La aplicación opera sobre **tablets iOS/Android** en entornos clínicos bajo su
 
 ## Características Principales
 
-- 🎮 **Baterías gamificadas** — 12 módulos de evaluación adaptados al paciente pediátrico
+- 🎮 **Baterías gamificadas** — 13 módulos de evaluación adaptados al paciente pediátrico
 - 🔇 **Offline-first** — Operación completa sin conexión; los datos clínicos del paciente residen solo en el dispositivo
 - 🌐 **Cuatro lenguas de sesión** — Castellano · Galego · Euskara · Español dominicano, con [banco de estímulos y voz propios](#idiomas-y-voz-neuronal)
 - 🧠 **Cero IA en el dispositivo** — Los modelos neuronales solo corren en **build-time**; la app reproduce audio ya empaquetado y mide con DSP determinista. Principio **ratificado** en [ADR de inferencia en el dispositivo](./docs/design/adr-inferencia-en-dispositivo.md)
@@ -246,7 +246,7 @@ El siguiente flujo es **obligatorio** y no puede omitirse. Cada fase es un prere
       │  Selección y orden de los módulos · estado del motor de voz (con reintento)
       ▼
 [5] BATERÍA DE EVALUACIÓN GAMIFICADA
-      │  12 módulos adaptados al perfil del paciente (clínicos + gamificados)
+      │  13 módulos adaptados al perfil del paciente (clínicos + gamificados)
       │  Modo Niño: interfaz lúdica sin elementos clínicos visibles
       │  Al guardar cada módulo, `finishModule` lleva a los resultados de la sesión
       │  → Sin refuerzo del periférico Lúa en ninguna medición (ver §Lúa)
@@ -676,7 +676,21 @@ npm run tsc
 - **Dominio:** Biomarcadores vocales infantiles
 - **Objetivo:** F0, jitter, shimmer y HNR de voz sostenida (/a/), con formantes F1–F3 vía LPC
 - **Nativo:** captura PCM real (`react-native-audio-api`) + DSP propio (`voiceDsp.ts`, módulo puro)
-- **Validación:** contrastado contra **Praat** ([`tools/acoustics`](./tools/acoustics/README.md)) sobre señales sintéticas deterministas — F0 coincide al decimal; **orden LPC 20** (con 14 F3 se quedaba sin polos); pasa-alto de acondicionado a 55 Hz; techo del HNR documentado (~30 dB); **F3 ya no se fabrica** cuando no es estimable
+- **Perturbación CICLO A CICLO:** el jitter y el shimmer se miden **pulso a pulso**
+  (`computeCycleMetrics`), no sobre las medias por ventana. La vía anterior promediaba
+  sobre unos cinco ciclos glotales —que es justo lo que borra la perturbación— e
+  **infravaloraba entre seis y diez veces**: con 8 % de shimmer inyectado informaba 1,3 %,
+  dentro del rango sano. Es el error en la dirección peligrosa, y por eso se cambió
+- **Validación:** contrastado contra **Praat** ([`tools/acoustics`](./tools/acoustics/README.md))
+  sobre señales sintéticas deterministas — F0 coincide al decimal en las **dos** familias de
+  fuente (suma de armónicos y tren de pulsos glotales), de 110 a 400 Hz; **orden LPC 20**
+  (con 14 F3 se quedaba sin polos); pasa-alto de acondicionado a 55 Hz; techo del HNR
+  documentado (~30 dB); **F3 ya no se fabrica** cuando no es estimable
+- **Limitación declarada:** el shimmer sigue la perturbación de forma monótona pero la
+  **comprime** entre 1,3 y 1,7 veces respecto a Praat (4 % inyectado → 4,1 frente a 5,4;
+  16 % → 10,2 frente a 17,6). La causa es física —el resonador sigue sonando de un ciclo
+  al siguiente—, está cuantificada en `tools/acoustics/README.md` y fijada con cifras
+  exactas en `cycleMetrics.test.ts`
 - **Datos:** entidad `VoiceAnalysis` · informe PDF `VoiceAnalysisDetail`
 
 ### 7 — Test de Disfagia MECV-V 📶 (`DysphagiaTest`)
@@ -724,6 +738,27 @@ npm run tsc
 - **Nativo:** micrófono compartido (`@/Audio/sharedAudioRecorder`) + DSP propio en TypeScript (`prosodyDsp.ts`), reutilizando el acondicionado y la F0 del análisis de voz. Sin modelos ni librerías de análisis en el dispositivo
 - **Afirmaciones:** **descriptivas, nunca normativas** — no hay baremos pediátricos españoles de prosodia y los de otras lenguas no son transferibles ni por lengua ni por tarea. Ver [`docs/design/b0-prosodia-tarea-y-afirmaciones.md`](./docs/design/b0-prosodia-tarea-y-afirmaciones.md)
 - **Datos:** entidad `ProsodyAnalysis` (tabla `prosody_analysis`) · informe PDF `ProsodyDetail`
+
+### 13 — Cribado de Hitos del Lenguaje ASHA 🧩 (`AshaScreening`)
+
+- **Dominio:** Desarrollo del lenguaje y la comunicación en primera infancia (0–5 años)
+- **Objetivo:** Cribado normativo sobre umbrales de **percentil 75** de la *American
+  Speech-Language-Hearing Association*, con estratificación en tres niveles y rutas de
+  derivación interdisciplinar
+- **Contenido:** catálogo estático de **21 hitos** en 7 bandas de edad y 3 dominios
+  (receptivo, expresivo, pragmático), con **8 banderas rojas** explícitas
+- **Motor:** `evaluateAshaScreening()` — función **pura y determinista**, sin efectos ni
+  red. Rojo si hay bandera roja no cumplida; amarillo si hay fallo sin bandera roja;
+  verde si se cumple toda la banda. Un hito **sin contestar no cuenta como fallado**
+- **Control de riesgo (ISO 14971):** modal bloqueante inicial — la evaluación se hace por
+  observación clínica directa y entrevista profesional, **no** por autoinforme familiar
+- **Nativo:** ninguno. La banda de edad se deduce de la fecha de nacimiento de la ficha, y
+  la pantalla **dice** si viene de ahí o si hay que elegirla a mano
+- **Datos:** entidad `AshaMilestoneTest` (tabla `asha_milestone_test`) · tarjeta en
+  Resultados · informe PDF `AshaScreeningDetail` con el descargo regulatorio obligatorio
+- **Hueco abierto:** las 8 banderas rojas están todas entre 0 y 36 meses, así que en las
+  bandas `3-4y` y `4-5y` un cribado no puede llegar a rojo. Sin decidir — ver
+  [`docs/design/cribado-hitos-asha.md`](./docs/design/cribado-hitos-asha.md)
 
 ---
 
@@ -879,8 +914,17 @@ pip install -r tools/acoustics/requirements.txt
 python3 tools/acoustics/validate.py               # mide con Praat y compara (sale ≠0 si se desvía)
 ```
 
-Hallazgos de la primera pasada: orden LPC insuficiente (F3 no estimable en 10 de 11 casos), techo
-del HNR no declarado, y un caso de prueba mal construido. Detalle en
+**39 casos** en tres familias: vocal sostenida por suma de armónicos, vocal sostenida por
+**tren de pulsos glotales** (modelo de Klatt, la señal que se parece a una voz real) y
+habla conectada. Valida F0, HNR, formantes, **jitter y shimmer**, pausas y ritmo.
+
+Hallazgos de la primera pasada: orden LPC insuficiente (F3 no estimable en 10 de 11 casos),
+techo del HNR no declarado, y un caso de prueba mal construido. En la segunda (agosto de
+2026): **el jitter y el shimmer no los validaba nadie** —y estaban infravalorados de seis a
+diez veces—, el banco no miraba por encima de 260 Hz mientras VIA+ explora niños, su única
+familia de señal era demasiado fácil para separar dos estimadores, y el estimador de F0 no
+podía elegir un lag largo (una /a/ de 150 Hz salía en 233 Hz). Cuatro casos de prueba mal
+construidos en total. Detalle en
 [`tools/acoustics/README.md`](./tools/acoustics/README.md).
 
 ---
@@ -1060,7 +1104,10 @@ Earlify Health
 ## Estado del Proyecto
 
 > Estado de integración según el Contrato de Compilación v3 (2026-06-25/26). La fuente de
-> verdad es cada paquete `VIA+ <Módulo> (React Native)` (pantalla + `integration/`).
+> verdad es el propio repositorio: la pantalla del módulo bajo `src/Screens/`, su entidad,
+> su repositorio y su bloque de informe. (El contrato hablaba de un paquete por módulo con
+> su carpeta `integration/`; **esa carpeta ya no existe** —desapareció en `168368e`— y la
+> tabla de abajo se lee contra el árbol actual.)
 
 | Componente | Estado |
 |---|---|
@@ -1083,9 +1130,9 @@ Earlify Health
 | Sincronización clínica HL7-FHIR | 🔴 Pendiente (roadmap) |
 | Certificación MDR Clase IIa | 🔴 En proceso |
 
-### Batería de evaluación — 12 módulos
+### Batería de evaluación — 13 módulos
 
-| # | Módulo | Pantalla + `integration/` | Servicio local | Hardware nativo |
+| # | Módulo | Pantalla | Servicio local | Hardware nativo |
 |---|---|---|---|---|
 | 1 | Evaluación Clínica Previa | 🟢 Construido | 🟢 OK | 🟢 ninguno |
 | 2 | Autismo M-CHAT-R | 🟢 Construido | 🟢 OK (`screenings`) | 🟢 ninguno |
@@ -1099,10 +1146,24 @@ Earlify Health
 | 10 | Audiometría Verbal | 🟢 Construido | 🟢 OK (`verbalAudiometry`) | 🟢 recortes neuronales en 4 idiomas (campo libre) |
 | 11 | Funciones Ejecutivas | 🟢 Construido | 🟢 OK (`executiveFunctions`) | 🟢 consignas locutadas (`@/Voice`) |
 | 12 | Análisis Prosódico | 🟢 Construido | 🟢 OK (`prosodyAnalysis`) | 🟢 mic compartido + DSP propio (validado vs. Praat) |
+| 13 | Cribado de Hitos ASHA | 🟢 Construido | 🟡 Solo repositorio (sin carpeta en `Services/local`) | 🟢 ninguno (motor CDSS determinista) |
 
-> Los 12 módulos están construidos (pantalla + `integration/`) con su servicio local y
-> migración TypeORM propia. Las 12 rutas están registradas en `RootStackParamList` y la
-> batería completa persiste en la base SQLite local del dispositivo.
+> Los 13 módulos están construidos y sus 13 rutas registradas en `RootStackParamList`;
+> la batería completa persiste en la base SQLite local del dispositivo.
+>
+> **Dos precisiones que esta nota afirmaba y no eran ciertas** (corregido el 27/8/2026):
+>
+> 1. **No existe ninguna carpeta `integration/`** en el repositorio: desapareció en
+>    `168368e`.
+> 2. **Ninguna migración TypeORM se ejecuta.** Hay ficheros de migración escritos bajo
+>    `src/Database/migrations/`, pero `config.ts` va con `migrations: []` y
+>    `synchronize: true`: las tablas las crea TypeORM desde las entidades, y esas clases
+>    no las llama nadie. Ellas mismas lo dicen («Registro (cuando se use)»).
+>
+> Sobre los servicios: `src/Services/local/modules/` tiene **diez** carpetas, y no van una
+> por módulo (`audiometry` sirve a las dos audiometrías tonales, `clinicalAssessments` es
+> el CAP). El cribado ASHA no tiene ninguna: persiste por su repositorio
+> (`AshaMilestoneTestRepository`), que es lo que la pantalla usa.
 
 ---
 

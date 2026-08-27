@@ -50,7 +50,26 @@ const EMBLEM = 84;
 const RING_DURATION = 2600;
 const ORBIT_TILT = 0.82;
 
-const ORBIT_LABEL = `Los doce módulos de la batería VIA+ orbitando el isotipo: ${ORBIT_MODULES.map(
+/* El recuento se DEDUCE de la constelación, nunca se escribe a mano: el
+   cribado ASHA entró en agosto de 2026 y esta pantalla siguió anunciando
+   «DOCE MÓDULOS» encima de trece puntos. Un número escrito a mano en un
+   rótulo no lo revisa nadie al añadir un módulo. */
+const NUMERALES = [
+  'CERO', 'UN', 'DOS', 'TRES', 'CUATRO', 'CINCO', 'SEIS', 'SIETE', 'OCHO',
+  'NUEVE', 'DIEZ', 'ONCE', 'DOCE', 'TRECE', 'CATORCE', 'QUINCE', 'DIECISÉIS',
+  'DIECISIETE', 'DIECIOCHO', 'DIECINUEVE', 'VEINTE',
+];
+
+/** «TRECE» si hay palabra para el número; si no, el dígito. */
+export const orbitCountWord = (n: number): string =>
+  NUMERALES[n] ?? String(n);
+
+const ORBIT_COUNT = ORBIT_MODULES.length;
+const ORBIT_HEADING = `${orbitCountWord(ORBIT_COUNT)} MÓDULOS · UNA SOLA BATERÍA`;
+
+const ORBIT_LABEL = `Los ${orbitCountWord(
+  ORBIT_COUNT,
+).toLowerCase()} módulos de la batería VIA+ orbitando el isotipo: ${ORBIT_MODULES.map(
   m => m.label,
 ).join(', ')}.`;
 
@@ -316,11 +335,11 @@ export default function CreditosScreen({ navigation }: Props) {
         {/* COLUMNA IZQUIERDA: Emblema de Órbita + Tarjeta del Autor           */}
         {/* ================================================================== */}
         <Animated.View style={[styles.leftColumn, isTabletLandscape && styles.columnHalf, introStyle]}>
-          {/* Emblema de 12 módulos orbitando */}
+          {/* Emblema con un punto por módulo de la batería */}
           <View style={styles.emblemCard}>
             <View style={styles.emblemHeaderRow}>
               <View style={styles.emblemDotLive} />
-              <Text style={styles.emblemHeading}>DOCE MÓDULOS · UNA SOLA BATERÍA</Text>
+              <Text style={styles.emblemHeading}>{ORBIT_HEADING}</Text>
             </View>
             
             <Animated.View

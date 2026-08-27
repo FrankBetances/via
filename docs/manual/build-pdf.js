@@ -171,6 +171,7 @@ const repl = {
   '__CHIP_🔊_#2563EB_#DBEAFE_Audiometría Verbal_Palabras por tarjetas__': chip('🔊', '#2563EB', '#DBEAFE', 'Audiometría Verbal', 'Palabras por tarjetas'),
   '__CHIP_🧠_#059669_#D1FAE5_Funciones Ejecutivas_5 mini-juegos__': chip('🧠', '#059669', '#D1FAE5', 'Funciones Ejecutivas', '5 mini-juegos'),
   '__CHIP_〰️_#C026D3_#FAE8FF_Análisis Prosódico_Ritmo · pausas · tono__': chip('〰️', '#C026D3', '#FAE8FF', 'Análisis Prosódico', 'Ritmo · pausas · tono'),
+  '__CHIP_🧩_#0D9488_#CCFBF1_Hitos del Lenguaje ASHA_Percentil 75 · 0-5 a__': chip('🧩', '#0D9488', '#CCFBF1', 'Hitos del Lenguaje ASHA', 'Percentil 75 · 0-5 a'),
 };
 for (const [k, v] of Object.entries(repl)) {
   html = html.split(k).join(v);
