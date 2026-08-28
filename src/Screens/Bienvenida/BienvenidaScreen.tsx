@@ -48,11 +48,74 @@ type Nav = NativeStackNavigationProp<RootStackParamList, 'Bienvenida'>;
 /*  y llamada a la acción accesible a la derecha.                             */
 /* -------------------------------------------------------------------------- */
 
-const ICON_SIZE = 88;
 const RING_DURATION = 2600;
-const FIELD_H = 200;
 const PARTICLES = 28;
 const TRAVEL_MS = 5200;
+
+/* El escenario acustico se dimensiona con la ventana: en tabletas altas crece
+   hasta llenar la columna y en moviles se encoge para no empujar el CTA fuera. */
+const FIELD_H_MIN = 150;
+const FIELD_H_MAX = 420;
+
+const clamp = (value: number, min: number, max: number) =>
+  Math.min(max, Math.max(min, value));
+
+/* Cromo vertical de la tarjeta del escenario: cabecera (24 + 8), fila de
+   etiquetas (14 + 26) y relleno de la propia tarjeta (16 arriba + 16 abajo). */
+const STAGE_CHROME_H = 118;
+
+export interface StageLayout {
+  isTabletLandscape: boolean;
+  stageWidth: number;
+  fieldHeight: number;
+  iconSize: number;
+  waveHeight: number;
+}
+
+/**
+ * Reparte la ventana entre las dos columnas.
+ *
+ * El escenario acústico tenía alto fijo (200 px), así que en tableta apaisada
+ * la columna izquierda se quedaba corta y sobraba fondo por arriba y por
+ * abajo, mientras la columna narrativa se salía por el pie. Aquí el escenario
+ * se estira hasta llenar el alto útil real —descontados el área segura y el
+ * relleno del ScrollView— y se encoge en móviles para que el botón de acción
+ * siga entrando en pantalla.
+ */
+export function computeStageLayout({
+  winW,
+  winH,
+  insetTop,
+  insetBottom,
+}: {
+  winW: number;
+  winH: number;
+  insetTop: number;
+  insetBottom: number;
+}): StageLayout {
+  const isTabletLandscape = winW >= 850;
+  const stageWidth = isTabletLandscape
+    ? Math.min(winW * 0.46, 520)
+    : Math.min(winW - 48, 480);
+
+  // Alto útil real, ya descontados el área segura y el relleno del ScrollView.
+  const availableH =
+    winH - Math.max(insetTop, 16) - Math.max(insetBottom, 16) - 32;
+
+  const fieldHeight = Math.round(
+    isTabletLandscape
+      ? clamp(availableH - STAGE_CHROME_H, FIELD_H_MIN, FIELD_H_MAX)
+      : clamp(availableH * 0.26, FIELD_H_MIN, 232),
+  );
+
+  return {
+    isTabletLandscape,
+    stageWidth,
+    fieldHeight,
+    iconSize: Math.round(clamp(fieldHeight * 0.44, 62, 96)),
+    waveHeight: Math.round(clamp(fieldHeight * 0.5, 70, 130)),
+  };
+}
 
 interface ParticleSpec {
   delay: number;
@@ -85,7 +148,15 @@ function buildSpecs(): ParticleSpec[] {
   }));
 }
 
-function Particle({ spec, width }: { spec: ParticleSpec; width: number }) {
+function Particle({
+  spec,
+  width,
+  height,
+}: {
+  spec: ParticleSpec;
+  width: number;
+  height: number;
+}) {
   const prog = useSharedValue(0);
 
   useEffect(() => {
@@ -96,7 +167,7 @@ function Particle({ spec, width }: { spec: ParticleSpec; width: number }) {
     );
     return () => cancelAnimation(prog);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [spec, width]);
+  }, [spec, width, height]);
 
   const style = useAnimatedStyle(() => {
     const p = prog.value;
@@ -106,7 +177,7 @@ function Particle({ spec, width }: { spec: ParticleSpec; width: number }) {
     const disorder = 1 - Math.min(1, Math.max(0, (p - 0.34) / 0.18));
 
     const yChaos =
-      spec.baseY * (FIELD_H / 2 - 24) +
+      spec.baseY * (height / 2 - 24) +
       Math.sin(p * spec.f1 + spec.p1) * spec.amp +
       Math.sin(p * spec.f2 + spec.p2) * spec.amp * 0.5;
     const yOrder = Math.sin(p * Math.PI * 2 * 2.6) * 18;
@@ -141,11 +212,14 @@ function Particle({ spec, width }: { spec: ParticleSpec; width: number }) {
 export default function BienvenidaScreen() {
   const navigation = useNavigation<Nav>();
   const insets = useSafeAreaInsets();
-  const { width: winW } = useWindowDimensions();
-  const isTabletLandscape = winW >= 850;
-  const stageWidth = isTabletLandscape
-    ? Math.min(winW * 0.46, 520)
-    : Math.min(winW - 48, 480);
+  const { width: winW, height: winH } = useWindowDimensions();
+  const { isTabletLandscape, stageWidth, fieldHeight, iconSize, waveHeight } =
+    computeStageLayout({
+      winW,
+      winH,
+      insetTop: insets.top,
+      insetBottom: insets.bottom,
+    });
   const specs = useMemo(buildSpecs, []);
 
   // Shared values para animaciones continuas del escenario
@@ -257,7 +331,13 @@ export default function BienvenidaScreen() {
         {/* ================================================================== */}
         {/* COLUMNA IZQUIERDA: Escenario Cinemático Acústico ("Del Ruido...") */}
         {/* ================================================================== */}
-        <Animated.View style={[styles.stageColumn, { width: stageWidth }, introStyle]}>
+        <Animated.View
+          style={[
+            styles.stageColumn,
+            { width: stageWidth },
+            isTabletLandscape && styles.stageColumnLandscape,
+            introStyle,
+          ]}>
           <View style={[styles.stageCard, { width: stageWidth }]}>
             {/* Header del escenario con etiqueta de señal en tiempo real */}
             <View style={styles.stageCardHeader}>
@@ -269,17 +349,34 @@ export default function BienvenidaScreen() {
             </View>
 
             {/* Contenedor del osciloscopio cinemático */}
-            <View style={[styles.fieldContainer, { width: stageWidth - 32 }]}>
+            <View
+              style={[styles.fieldContainer, { width: stageWidth - 32, height: fieldHeight }]}>
               {/* Partículas de señal en movimiento */}
-              <View style={styles.particleTrack} pointerEvents="none">
+              <View
+                style={[styles.particleTrack, { top: fieldHeight / 2 }]}
+                pointerEvents="none">
                 {specs.map((spec, i) => (
-                  <Particle key={i} spec={spec} width={stageWidth - 32} />
+                  <Particle
+                    key={i}
+                    spec={spec}
+                    width={stageWidth - 32}
+                    height={fieldHeight}
+                  />
                 ))}
               </View>
 
               {/* Onda senoidal dual armónica renderizada en SVG */}
-              <View style={styles.waveLayer} pointerEvents="none">
-                <Svg width={(stageWidth - 32) * 0.58} height={100} viewBox="0 0 240 100" fill="none">
+              <View
+                style={[
+                  styles.waveLayer,
+                  { top: fieldHeight / 2 - waveHeight / 2, height: waveHeight },
+                ]}
+                pointerEvents="none">
+                <Svg
+                  width={(stageWidth - 32) * 0.58}
+                  height={waveHeight}
+                  viewBox="0 0 240 100"
+                  fill="none">
                   <Defs>
                     <LinearGradient id="orangeWave" x1="0" y1="0" x2="1" y2="0">
                       <Stop offset="0" stopColor="#FF7F00" stopOpacity="0.3" />
@@ -313,10 +410,15 @@ export default function BienvenidaScreen() {
               </View>
 
               {/* Isotipo VIA+ con pulso de anillos acústicos */}
-              <Animated.View style={[styles.iconWrapper, floatStyle]}>
-                <Animated.View style={[styles.ring, ring1Style]} />
-                <Animated.View style={[styles.ring, ring2Style]} />
-                <ViaIcon size={ICON_SIZE} variant="color" />
+              <Animated.View
+                style={[
+                  styles.iconWrapper,
+                  { width: iconSize + 20, height: iconSize + 20 },
+                  floatStyle,
+                ]}>
+                <Animated.View style={[styles.ring, ringSize(iconSize), ring1Style]} />
+                <Animated.View style={[styles.ring, ringSize(iconSize), ring2Style]} />
+                <ViaIcon size={iconSize} variant="color" />
               </Animated.View>
             </View>
 
@@ -334,19 +436,17 @@ export default function BienvenidaScreen() {
               </View>
             </View>
           </View>
-
-          {/* Leyenda explicativa clara para el facultativo */}
-          <Text style={[styles.stageCaption, isTabletLandscape && styles.stageCaptionWide]}>
-            Transformación determinista de la señal acústica:{' '}
-            <Text style={styles.stageCaptionMuted}>de muestras dispersas no calibradas a</Text>{' '}
-            <Text style={styles.stageCaptionStrong}>parámetros biomédicos reproducibles</Text>.
-          </Text>
         </Animated.View>
 
         {/* ================================================================== */}
         {/* COLUMNA DERECHA: Narrativa Clínica, Tarjetas de Valor y Acción     */}
         {/* ================================================================== */}
-        <Animated.View style={[styles.narrativeColumn, introStyle]}>
+        <Animated.View
+          style={[
+            styles.narrativeColumn,
+            isTabletLandscape && styles.narrativeColumnLandscape,
+            introStyle,
+          ]}>
           {/* Cabecera / Wordmark VIA+ */}
           <View style={styles.wordmarkRow}>
             <View style={styles.wordmark}>
@@ -452,6 +552,13 @@ export default function BienvenidaScreen() {
 
 const MONO = Platform.OS === 'ios' ? 'Courier' : 'monospace';
 
+/* El anillo acustico sigue al isotipo: mismo radio relativo que el logotipo. */
+const ringSize = (iconSize: number) => ({
+  width: iconSize,
+  height: iconSize,
+  borderRadius: (iconSize * 42) / 150,
+});
+
 const styles = StyleSheet.create({
   root: {
     flex: 1,
@@ -485,8 +592,9 @@ const styles = StyleSheet.create({
   scrollContentLandscape: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-evenly',
-    paddingHorizontal: 36,
+    justifyContent: 'center',
+    gap: 28,
+    paddingHorizontal: 28,
   },
 
   /* -------------------------------------------------------------------------- */
@@ -495,7 +603,10 @@ const styles = StyleSheet.create({
   stageColumn: {
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 24,
+    marginBottom: 16,
+  },
+  stageColumnLandscape: {
+    marginBottom: 0,
   },
   stageCard: {
     backgroundColor: '#FFFFFF',
@@ -549,7 +660,6 @@ const styles = StyleSheet.create({
     letterSpacing: 0.4,
   },
   fieldContainer: {
-    height: FIELD_H,
     alignItems: 'center',
     justifyContent: 'center',
     position: 'relative',
@@ -563,7 +673,6 @@ const styles = StyleSheet.create({
     position: 'absolute',
     left: 0,
     right: 0,
-    top: FIELD_H / 2,
     height: 0,
   },
   particle: {
@@ -574,25 +683,18 @@ const styles = StyleSheet.create({
   waveLayer: {
     position: 'absolute',
     right: 0,
-    top: FIELD_H / 2 - 50,
     width: '60%',
-    height: 100,
     alignItems: 'flex-start',
     justifyContent: 'center',
   },
   iconWrapper: {
     position: 'absolute',
     left: 18,
-    width: ICON_SIZE + 20,
-    height: ICON_SIZE + 20,
     alignItems: 'center',
     justifyContent: 'center',
   },
   ring: {
     position: 'absolute',
-    width: ICON_SIZE,
-    height: ICON_SIZE,
-    borderRadius: (ICON_SIZE * 42) / 150,
     borderWidth: 2,
     borderColor: 'rgba(255, 127, 0, 0.38)',
   },
@@ -647,32 +749,15 @@ const styles = StyleSheet.create({
     marginLeft: 3,
     fontWeight: '700',
   },
-  stageCaption: {
-    marginTop: 14,
-    paddingHorizontal: 8,
-    fontSize: 14,
-    lineHeight: 21,
-    textAlign: 'center',
-    color: '#4B4339',
-  },
-  stageCaptionWide: {
-    fontSize: 15,
-    lineHeight: 22,
-  },
-  stageCaptionMuted: {
-    color: '#786F63',
-  },
-  stageCaptionStrong: {
-    fontWeight: '700',
-    color: '#B45309',
-  },
-
   /* -------------------------------------------------------------------------- */
   /* Columna Narrativa y Tarjetas Clínicas                                      */
   /* -------------------------------------------------------------------------- */
   narrativeColumn: {
     maxWidth: 520,
     alignItems: 'flex-start',
+  },
+  narrativeColumnLandscape: {
+    flex: 1,
   },
   wordmarkRow: {
     flexDirection: 'row',
@@ -718,7 +803,7 @@ const styles = StyleSheet.create({
     letterSpacing: 0.3,
   },
   titleWrapper: {
-    marginBottom: 14,
+    marginBottom: 10,
   },
   titleEyebrow: {
     fontFamily: MONO,
@@ -769,7 +854,7 @@ const styles = StyleSheet.create({
     fontSize: 14.5,
     color: '#524B42',
     lineHeight: 22,
-    marginBottom: 18,
+    marginBottom: 14,
   },
   descriptionWide: {
     fontSize: 16,
@@ -778,9 +863,9 @@ const styles = StyleSheet.create({
 
   /* Tarjetas Clínicas */
   cardsContainer: {
-    gap: 10,
+    gap: 9,
     width: '100%',
-    marginBottom: 20,
+    marginBottom: 14,
   },
   clinicalCard: {
     flexDirection: 'row',
@@ -863,7 +948,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    marginTop: 16,
+    marginTop: 12,
   },
   regulatoryNote: {
     fontFamily: MONO,
