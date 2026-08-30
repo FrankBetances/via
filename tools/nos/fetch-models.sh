@@ -39,11 +39,15 @@ fetch() { # fetch <url> <destino>
   checksum "$dest"
 }
 
-# --- Voces Piper (es sharvard, referencia de Valeria+ · es-DO Quisqueya Habla) ---
+# --- Voces Piper (es sharvard, referencia de Valeria+ · es-DO Quisqueya Habla · ca · es-419 · en) ---
 fetch "$PIPER_BASE/es/es_ES/sharvard/medium/es_ES-sharvard-medium.onnx"      "$MODELS/piper/es_ES-sharvard-medium.onnx"
 fetch "$PIPER_BASE/es/es_ES/sharvard/medium/es_ES-sharvard-medium.onnx.json" "$MODELS/piper/es_ES-sharvard-medium.onnx.json"
 fetch "$PIPER_BASE/es/es_MX/claude/high/es_MX-claude-high.onnx"           "$MODELS/piper/es_MX-claude-high.onnx"
 fetch "$PIPER_BASE/es/es_MX/claude/high/es_MX-claude-high.onnx.json"      "$MODELS/piper/es_MX-claude-high.onnx.json"
+fetch "$PIPER_BASE/ca/ca_ES/upc_ona/medium/ca_ES-upc_ona-medium.onnx"      "$MODELS/piper/ca_ES-upc_ona-medium.onnx"
+fetch "$PIPER_BASE/ca/ca_ES/upc_ona/medium/ca_ES-upc_ona-medium.onnx.json" "$MODELS/piper/ca_ES-upc_ona-medium.onnx.json"
+fetch "$PIPER_BASE/en/en_US/lessac/medium/en_US-lessac-medium.onnx"        "$MODELS/piper/en_US-lessac-medium.onnx"
+fetch "$PIPER_BASE/en/en_US/lessac/medium/en_US-lessac-medium.onnx.json"   "$MODELS/piper/en_US-lessac-medium.onnx.json"
 
 # --- Voces VITS (Coqui) declaradas en voices.json ---------------------------
 # Se leen del REGISTRO en vez de estar a fuego: añadir una lengua es editar

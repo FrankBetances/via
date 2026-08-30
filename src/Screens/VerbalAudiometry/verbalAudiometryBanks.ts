@@ -13,10 +13,10 @@ import { GL_VERBAL_BANDS } from './verbalAudiometryLists.gl';
 /*  módulo para que listas y assets no diverjan.                               */
 /* -------------------------------------------------------------------------- */
 
-export type VerbalLang = 'es' | 'es-DO' | 'gl' | 'eu';
+export type VerbalLang = 'es' | 'es-DO' | 'gl' | 'eu' | 'ca' | 'es-419' | 'en';
 
 /** Idiomas/variantes con banco registrado. */
-export const VERBAL_BANK_LANGS: readonly VerbalLang[] = ['es', 'gl', 'eu', 'es-DO'];
+export const VERBAL_BANK_LANGS: readonly VerbalLang[] = ['es', 'gl', 'eu', 'ca', 'es-419', 'es-DO', 'en'];
 
 /**
  * Idioma base del que hereda cada variante (`null` = idioma completo).
@@ -24,55 +24,37 @@ export const VERBAL_BANK_LANGS: readonly VerbalLang[] = ['es', 'gl', 'eu', 'es-D
  * de su base salvo sustitución explícita; el AUDIO nunca se hereda (cada
  * idioma/variante se locuta con su propia voz — Q4.1/T4.1).
  *
- * `gl` es un idioma COMPLETO (banco propio, no una variante del castellano),
- * pero comparte ilustraciones con `es` en las palabras que coinciden: la
- * herencia de imágenes se resuelve por CLAVE de asset, no por idioma base.
+ * `gl`, `ca` y `en` son idiomas COMPLETOS, pero comparten ilustraciones con `es`
+ * en las palabras que coinciden: la herencia de imágenes se resuelve por CLAVE
+ * de asset, no por idioma base.
  */
 export const VERBAL_BANK_BASE: Record<VerbalLang, VerbalLang | null> = {
   es: null,
   gl: null,
   eu: null,
+  ca: null,
+  'es-419': 'es',
   'es-DO': 'es',
+  en: null,
 };
 
 /**
  * Idiomas cuyo BANCO DE ESTÍMULOS (listas A–D) aún no está firmado
  * clínicamente. La pantalla lo advierte al profesional.
  *
- * `es` está firmado en `docs/design/validacion-clinica-verbal.md`, `es-DO`
- * hereda el castellano sin sustituciones (Q3) y `gl` lo dio por bueno ACOPROS
- * (registro en `assets/verbal-approval.gl.json`, contenido en
- * `docs/design/audiometria-verbal-gl.md`).
+ * `es` está firmado en `docs/design/validacion-clinica-verbal.md`, `es-DO` y
+ * `es-419` heredan el castellano sin sustituciones (Q3), `gl` lo dio por bueno ACOPROS
+ * y `eu` lo firmó la logopeda euskaldun de Ulertuz (31/07/2026).
  *
- * `eu` lo firmó la logopeda euskaldun de Ulertuz (31/07/2026), que es la
- * revisión que la CI no puede hacer: familiaridad, imaginabilidad y adecuación
- * al euskara batua frente a los dialectos. Los invariantes estructurales
- * —unicidad de objetivos, distractores a ±1 sílaba, vecindad fonética en C/D—
- * ya los verificaba la CI. Registro en `assets/verbal-approval.eu.json`,
- * mismo camino que siguió el gallego.
- *
- * VACÍO: los cuatro bancos están firmados, así que la pantalla ya no advierte
- * de listas sin validar en ningún idioma. Un banco nuevo entra aquí hasta que
- * tenga su acta.
+ * `ca`, `es-419` y `en` entran como provisionales hasta que tengan su acta clínica correspondiente.
  */
-export const VERBAL_BANK_PROVISIONAL: readonly VerbalLang[] = [];
+export const VERBAL_BANK_PROVISIONAL: readonly VerbalLang[] = ['ca', 'es-419', 'en'];
 
 /**
  * Idiomas SIN locuciones propias empaquetadas: sus palabras se dictan con la
- * voz del sistema. Es una limitación distinta —y más acotada— que un banco sin
- * validar: las listas son las firmadas, pero el ESTÍMULO no es el definitivo,
- * así que el nivel es aún menos comparable y conviene advertirlo.
- *
- * VACÍO: los cuatro idiomas tienen ya su banco locutado con voz neural —`es` y
- * `es-DO` con Piper, `gl` con Celtia (Proxecto Nós) y `eu` con Maider
- * (AhoTTS · HiTZ/Aholab)—. Sigue siendo síntesis provisional: la producción
- * clínica final es locutor profesional, archivo a archivo con la misma clave.
- *
- * Esta lista la vigila `scripts/check-verbal-coverage.js --strict`, que bloquea
- * el empaquetado del APK si deja de coincidir con los recortes que hay en
- * disco, en los dos sentidos.
+ * voz del sistema.
  */
-export const VERBAL_AUDIO_PENDING: readonly VerbalLang[] = [];
+export const VERBAL_AUDIO_PENDING: readonly VerbalLang[] = ['ca', 'es-419', 'en'];
 
 /** Banco de estímulos del idioma/variante indicado. */
 export const getVerbalBands = (lang: string): VerbalBandDef[] => {
@@ -85,6 +67,12 @@ export const getVerbalBands = (lang: string): VerbalBandDef[] => {
       return EU_VERBAL_BANDS;
     case 'es-DO':
       return ES_DO_VERBAL_BANDS;
+    case 'es-419':
+      return VERBAL_BANDS; // hereda banco castellano base
+    case 'ca':
+      return VERBAL_BANDS; // provisional hasta diseño fonológico catalán
+    case 'en':
+      return VERBAL_BANDS; // provisional hasta diseño fonológico inglés
     default:
       throw new Error(
         `Banco verbal no registrado para '${lang}' (registrados: ${VERBAL_BANK_LANGS.join(', ')})`,

@@ -26,10 +26,14 @@ import Animated, {
 } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { ArrowLeft, ArrowRight, ShieldCheck, UserCheck } from 'lucide-react-native';
+import { ArrowLeft, ArrowRight, Globe, ShieldCheck, UserCheck } from 'lucide-react-native';
+import { useSelector } from 'react-redux';
 
 import { RootStackParamList } from '@/Navigators';
 import ViaIcon from '@/Components/Common/ViaIcon';
+import LanguagePickerModal from '@/Components/Common/LanguagePickerModal';
+import { RootState } from '@/Store';
+import { SESSION_LANG_LABEL, SessionLang } from '@/Store/slices/localeSlice';
 import {
   AcoprosMark,
   EarlifyMark,
@@ -74,12 +78,15 @@ const ORBIT_LABEL = `Los ${orbitCountWord(
 ).join(', ')}.`;
 
 const LANGUAGE_CREDITS = [
-  { flag: '🇩🇴', name: 'Quisqueya Habla (es-DO)', role: 'Variante dominicana: banco y locuciones propios (FONDOCYT)' },
   { flag: '🇪🇸', name: 'Español (España)', role: 'Idioma base de la batería de evaluación clínica' },
-  { flag: '🌐', name: 'Proxecto Nós · ILENIA', role: 'Voz neuronal Celtia (gallego), banco aprobado por ACOPROS' },
-  { flag: '🎙️', name: 'Piper · rhasspy/piper-voices', role: 'Voces neuronales VITS para español y variantes' },
-  { flag: '🔊', name: 'eSpeak NG', role: 'Síntesis de respaldo offline (español latinoamericano)' },
+  { flag: '🌐', name: 'Galego (Proxecto Nós · ILENIA)', role: 'Voz neuronal Celtia, banco aprobado por ACOPROS' },
+  { flag: '🌐', name: 'Euskara (HiTZ / AhoTTS)', role: 'Voz neuronal Maider, banco aprobado por Ulertuz' },
+  { flag: '🌐', name: 'Català', role: 'Infraestructura de localización e integración en curso' },
+  { flag: '🌎', name: 'Español (Latinoamérica)', role: 'Variante neutra latinoamericana' },
+  { flag: '🇩🇴', name: 'Quisqueya Habla (es-DO)', role: 'Variante dominicana: banco y locuciones propios (FONDOCYT)' },
+  { flag: '🇺🇸', name: 'English (US)', role: 'Interfaz de usuario en inglés americano' },
 ];
+
 
 /* ----------------------- Banda de partículas del autor ---------------------- */
 const BAND_H = 100;
@@ -215,6 +222,9 @@ export default function CreditosScreen({ navigation }: Props) {
   const { width: winW } = useWindowDimensions();
   const isTabletLandscape = winW >= 850;
   const [bandWidth, setBandWidth] = useState(0);
+  const [langModalVisible, setLangModalVisible] = useState(false);
+
+  const currentLang = useSelector((state: RootState) => state.locale?.language ?? 'es') as SessionLang;
 
   // Animaciones continuas de pulso y flotación
   const ring1 = useSharedValue(0);
@@ -316,11 +326,23 @@ export default function CreditosScreen({ navigation }: Props) {
 
         <Text style={styles.navTitle}>Créditos y Avales</Text>
 
-        <View style={styles.samdBadgeNav}>
-          <ShieldCheck size={13} color="#0D9488" strokeWidth={2.2} />
-          <Text style={styles.samdBadgeNavText}>Clase IIa</Text>
+        <View style={styles.navRightGroup}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={`Idioma actual: ${SESSION_LANG_LABEL[currentLang] ?? currentLang}. Toca para cambiar idioma.`}
+            style={({ pressed }) => [styles.langNavButton, pressed && styles.navButtonPressed]}
+            onPress={() => setLangModalVisible(true)}>
+            <Globe size={14} color="#FF7F00" strokeWidth={2.4} />
+            <Text style={styles.langNavButtonText}>{currentLang.toUpperCase()}</Text>
+          </Pressable>
+
+          <View style={styles.samdBadgeNav}>
+            <ShieldCheck size={13} color="#0D9488" strokeWidth={2.2} />
+            <Text style={styles.samdBadgeNavText}>Clase IIa</Text>
+          </View>
         </View>
       </View>
+
 
       <ScrollView
         style={{ flex: 1 }}
@@ -443,7 +465,17 @@ export default function CreditosScreen({ navigation }: Props) {
 
           {/* Tarjeta 2: Voces y Variantes */}
           <View style={styles.cardBlock}>
-            <Text style={styles.cardBlockTitle}>VOCES Y LOCALIZACIÓN</Text>
+            <View style={styles.cardBlockHeaderRow}>
+              <Text style={styles.cardBlockTitle}>VOCES Y LOCALIZACIÓN</Text>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Cambiar idioma de la aplicación"
+                style={({ pressed }) => [styles.changeLangButton, pressed && styles.navButtonPressed]}
+                onPress={() => setLangModalVisible(true)}>
+                <Globe size={13} color="#FF7F00" strokeWidth={2.2} />
+                <Text style={styles.changeLangButtonText}>Cambiar idioma ({currentLang})</Text>
+              </Pressable>
+            </View>
             
             <View style={styles.langList}>
               {LANGUAGE_CREDITS.map((item, idx) => (
@@ -507,6 +539,11 @@ export default function CreditosScreen({ navigation }: Props) {
           </Pressable>
         </Animated.View>
       </View>
+
+      <LanguagePickerModal
+        visible={langModalVisible}
+        onClose={() => setLangModalVisible(false)}
+      />
     </View>
   );
 }
@@ -572,6 +609,33 @@ const styles = StyleSheet.create({
     fontSize: 17,
     fontWeight: '700',
     color: '#2B2620',
+  },
+  navRightGroup: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  langNavButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#FFFFFF',
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#EDE7DC',
+    shadowColor: '#2B2620',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
+  },
+  langNavButtonText: {
+    fontFamily: MONO,
+    fontSize: 11,
+    fontWeight: '800',
+    color: '#FF7F00',
   },
   samdBadgeNav: {
     flexDirection: 'row',
@@ -789,6 +853,14 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 1.5,
   },
+  cardBlockHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 12,
+    flexWrap: 'wrap',
+    gap: 6,
+  },
   cardBlockTitle: {
     fontFamily: MONO,
     fontSize: 11,
@@ -797,6 +869,23 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     textTransform: 'uppercase',
     letterSpacing: 0.8,
+  },
+  changeLangButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    backgroundColor: 'rgba(255, 127, 0, 0.08)',
+    paddingVertical: 3,
+    paddingHorizontal: 8,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 127, 0, 0.22)',
+    marginBottom: 12,
+  },
+  changeLangButtonText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#D97706',
   },
   partnerList: {
     gap: 8,

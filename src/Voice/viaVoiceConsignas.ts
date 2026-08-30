@@ -68,28 +68,43 @@ export const EF_CONSIGNA_L10N: Partial<
 > = {
   attention: {
     'es-DO': 'Busca y encuentra. ¡Toca TODOS los gatitos que veas, lo más rápido que puedas!',
+    'es-419': 'Busca y encuentra. ¡Toca TODOS los gatitos que veas, lo más rápido que puedas!',
     gl: 'Busca e atopa. Toca TODOS os gatiños que vexas, o máis rápido que poidas!',
     eu: 'Bilatu eta aurkitu. Ukitu ikusten dituzun katu GUZTIAK, ahalik eta azkarren!',
+    ca: 'Cerca i troba. Toca TOTS els gatets que vegis, tan ràpid com puguis!',
+    en: 'Search and find. Touch ALL the kittens you see, as fast as you can!',
   },
   inhibition: {
     'es-DO': 'No despiertes al lobo. Toca cada animal que aparezca… ¡pero NUNCA toques al lobo, que está dormido!',
+    'es-419': 'No despiertes al lobo. Toca cada animal que aparezca… ¡pero NUNCA toques al lobo, que está dormido!',
     gl: 'Non espertes o lobo. Toca cada animal que apareza… pero NUNCA toques o lobo, que está durmido!',
     eu: 'Ez esnatu otsoa. Ukitu agertzen den animalia bakoitza… baina INOIZ ez ukitu otsoa, lo dago eta!',
+    ca: 'No despertis el llop. Toca cada animal que aparegui… però MAI toquis el llop, que està adormit!',
+    en: 'Don’t wake the wolf. Touch every animal that appears… but NEVER touch the wolf, he is asleep!',
   },
   flexibility: {
     'es-DO': 'El juego de las normas. Mira la tarjeta y tócala donde toque según la norma. ¡Atención, la norma cambia!',
+    'es-419': 'El juego de las reglas. Mira la tarjeta y tócala donde corresponda según la regla. ¡Atención, la regla cambia!',
     gl: 'O xogo das normas. Mira a tarxeta e tócaa onde corresponda segundo a norma. Atención, a norma cambia!',
     eu: 'Arauen jokoa. Begiratu txartela eta ukitu arauaren arabera dagokion lekuan. Kontuz, araua aldatu egiten da!',
+    ca: 'El joc de les normes. Mira la targeta i toca-la on correspongui segons la norma. Atenció, la norma canvia!',
+    en: 'The rules game. Look at the card and touch where it belongs according to the rule. Watch out, the rule changes!',
   },
   workingMemory: {
     'es-DO': 'El loro repetidor. Mira qué tarjetas se encienden y repite la secuencia tocándolas en el mismo orden.',
+    'es-419': 'El loro repetidor. Mira qué tarjetas se encienden y repite la secuencia tocándolas en el mismo orden.',
     gl: 'O papagaio repetidor. Mira que tarxetas se acenden e repite a secuencia tocándoas na mesma orde.',
     eu: 'Loro errepikatzailea. Begiratu zein txartel pizten diren eta errepikatu sekuentzia ordena berean ukituz.',
+    ca: 'El lloro repetidor. Mira quines targetes s’encenen i repeteix la seqüència tocant-les en el mateix ordre.',
+    en: 'The repeating parrot. Watch which cards light up and repeat the sequence by touching them in the same order.',
   },
   planning: {
     'es-DO': 'Ordena la historia. Estas tarjetas están desordenadas: tócalas en el orden correcto de la historia.',
+    'es-419': 'Ordena la historia. Estas tarjetas están desordenadas: tócalas en el orden correcto de la historia.',
     gl: 'Ordena a historia. Estas tarxetas están desordenadas: tócalas na orde correcta da historia.',
     eu: 'Ordenatu istorioa. Txartel hauek desordenatuta daude: ukitu istorioaren ordena egokian.',
+    ca: 'Ordena la història. Aquestes targetes estan desordenades: toca-les en l’ordre correcte de la història.',
+    en: 'Sort the story. These cards are mixed up: touch them in the correct order of the story.',
   },
 };
 
@@ -98,42 +113,56 @@ export const CONSIGNAS: ConsignaSpec[] = EF_DOMAIN_ORDER.map(domain => {
   const meta = EF_DOMAIN_META[domain];
   const l10n = EF_CONSIGNA_L10N[domain] ?? {};
   const es = efConsignaText(meta.game, meta.instruction);
-  const text: ConsignaText = { es, 'es-DO': l10n['es-DO'] ?? es };
+  const text: ConsignaText = { es, 'es-DO': l10n['es-DO'] ?? es, 'es-419': l10n['es-419'] ?? es };
   if (l10n.gl) text.gl = l10n.gl;
   if (l10n.eu) text.eu = l10n.eu;
+  if (l10n.ca) text.ca = l10n.ca;
+  if (l10n.en) text.en = l10n.en;
   return { key: `ef.${domain}`, source: 'executiveFunctions', style: 'tutor', text };
 });
 
 /**
- * Anuncios de norma del juego de flexibilidad (DCCS) en las 4 lenguas.
+ * Anuncios de norma del juego de flexibilidad (DCCS) en las 7 lenguas.
  */
 const EF_RULE_L10N: Record<EfRule, { change: Record<VoiceLang, string>; intro: Record<VoiceLang, string> }> = {
   color: {
     change: {
       es: efRuleChangeText('color'),
       'es-DO': efRuleChangeText('color'),
+      'es-419': '¡Atención! La regla cambió: ahora se juega por color.',
       gl: '¡Atención! A norma cambiou: agora xógase por cor.',
       eu: 'Kontuz! Araua aldatu da: orain kolorearen arabera jolasten da.',
+      ca: 'Atenció! La norma ha canviat: ara es juga per color.',
+      en: 'Attention! The rule changed: now we play by color.',
     },
     intro: {
       es: efRuleIntroText('color'),
       'es-DO': efRuleIntroText('color'),
+      'es-419': 'Se juega por color.',
       gl: 'Xógase por cor.',
       eu: 'Kolorearen arabera jolasten da.',
+      ca: 'Es juga per color.',
+      en: 'Play by color.',
     },
   },
   forma: {
     change: {
       es: efRuleChangeText('forma'),
       'es-DO': efRuleChangeText('forma'),
+      'es-419': '¡Atención! La regla cambió: ahora se juega por forma.',
       gl: '¡Atención! A norma cambiou: agora xógase por forma.',
       eu: 'Kontuz! Araua aldatu da: orain formaren arabera jolasten da.',
+      ca: 'Atenció! La norma ha canviat: ara es juga per forma.',
+      en: 'Attention! The rule changed: now we play by shape.',
     },
     intro: {
       es: efRuleIntroText('forma'),
       'es-DO': efRuleIntroText('forma'),
+      'es-419': 'Se juega por forma.',
       gl: 'Xógase por forma.',
       eu: 'Formaren arabera jolasten da.',
+      ca: 'Es juga per forma.',
+      en: 'Play by shape.',
     },
   },
 };
@@ -175,9 +204,15 @@ export const TAR_MODELS: ConsignaSpec[] = [
 export const PROSODY_CONSIGNAS: ConsignaSpec[] = PROSODY_AGE_BANDS.map(band => {
   const stimulus = prosodyStimulusFor(band);
   const es = stimulus.consigna.es;
-  const text: ConsignaText = { es, 'es-DO': stimulus.consigna['es-DO'] ?? es };
+  const text: ConsignaText = {
+    es,
+    'es-DO': stimulus.consigna['es-DO'] ?? es,
+    'es-419': stimulus.consigna['es-419'] ?? es,
+  };
   if (stimulus.consigna.gl) text.gl = stimulus.consigna.gl;
   if (stimulus.consigna.eu) text.eu = stimulus.consigna.eu;
+  if (stimulus.consigna.ca) text.ca = stimulus.consigna.ca;
+  if (stimulus.consigna.en) text.en = stimulus.consigna.en;
   return { key: `prosody.${band}`, source: 'prosodyAnalysis', style: 'tutor' as VoiceStyle, text };
 });
 

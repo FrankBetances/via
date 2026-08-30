@@ -116,7 +116,8 @@ describe('getVerbalBands · registro por idioma', () => {
     // la audiometría verbal «no funcionaba» sin más explicación.
     expect(resolveVerbalLang('gl')).toBe('gl');
     expect(resolveVerbalLang('es-DO')).toBe('es-DO');
-    expect(resolveVerbalLang('en')).toBe('es');
+    expect(resolveVerbalLang('en')).toBe('en');
+    expect(resolveVerbalLang('fr')).toBe('es');
     expect(resolveVerbalLang(null)).toBe('es');
     expect(resolveVerbalLang(undefined)).toBe('es');
     expect(() => getVerbalBands(resolveVerbalLang('cualquier-cosa'))).not.toThrow();
@@ -301,6 +302,7 @@ describe('aprobación clínica · el código no puede adelantarse al registro', 
     // qué se cambió de voz. La prueba contaba todas y llevaba roja desde que se
     // retiró davefx: lo que debe haber una y solo una es la firma VIGENTE.
     for (const lang of VERBAL_BANK_LANGS) {
+      if (VERBAL_AUDIO_PENDING.includes(lang)) continue;
       const audio = approvalsOf(lang).filter(a => scopeOf(a) === 'audio');
       const vigentes = audio.filter(a => a.status !== 'superseded');
       expect({ lang, firmas: vigentes.length }).toEqual({ lang, firmas: 1 });

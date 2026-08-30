@@ -18,6 +18,11 @@ jest.mock('@/Components/Common', () => ({
   Header: () => null,
 }));
 
+jest.mock('react-redux', () => ({
+  useSelector: (selector: any) => selector({ locale: { language: 'es' } }),
+  useDispatch: () => jest.fn(),
+}));
+
 // La pantalla lee el área segura para colocar su barra superior en tableta.
 // `useSafeAreaInsets` LANZA si no encuentra proveedor, así que el árbol se
 // monta dentro de uno con métricas fijas: la app real sí lo tiene (`App.tsx`),

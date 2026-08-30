@@ -38,18 +38,28 @@ export interface TtsVoice {
 const LANG_FALLBACKS: Record<string, string[]> = {
   es: ['es'],
   'es-DO': ['es'],
+  'es-419': ['es'],
   // Sin voz gallega instalada se dicta con la castellana (degradación
   // declarada); nunca con la voz por defecto del sistema, que suele ser en-US.
   gl: ['gl', 'es'],
-  // Euskera: igual que el gallego. La voz `eu-*` existe en Android desde hace
-  // años (Google la distribuye) pero no viene instalada de serie; sin ella se
-  // degrada a la castellana, cuyo inventario vocálico de cinco vocales es el
-  // más próximo al vasco de entre las voces habituales del sistema.
+  // Euskera: igual que el gallego.
   eu: ['eu', 'es'],
+  // Catalán: si no hay voz catalana instalada, degrada a castellano.
+  ca: ['ca', 'es'],
+  // Inglés: busca voz en inglés.
+  en: ['en'],
 };
 
 /** Dialecto preferido dentro de cada prefijo (bonus de puntuación). */
-const PREFERRED_DIALECT: Record<string, string> = { es: 'es-es', gl: 'gl-es', eu: 'eu-es' };
+const PREFERRED_DIALECT: Record<string, string> = {
+  es: 'es-es',
+  gl: 'gl-es',
+  eu: 'eu-es',
+  ca: 'ca-es',
+  'es-419': 'es-mx',
+  'es-DO': 'es-do',
+  en: 'en-us',
+};
 
 const NEURAL_MARKER = /(-x-|network|enhanced|neural|premium|wavenet|natural)/i;
 
@@ -204,5 +214,21 @@ export function pickVoiceForLang(
 }
 
 /** Código BCP-47 con el que fijar el idioma del motor si no hay lista de voces. */
-export const ttsLanguageTagFor = (lang: string): string =>
-  lang === 'gl' ? 'gl-ES' : lang === 'eu' ? 'eu-ES' : lang === 'es-DO' ? 'es-DO' : 'es-ES';
+export const ttsLanguageTagFor = (lang: string): string => {
+  switch (lang) {
+    case 'gl':
+      return 'gl-ES';
+    case 'eu':
+      return 'eu-ES';
+    case 'ca':
+      return 'ca-ES';
+    case 'es-DO':
+      return 'es-DO';
+    case 'es-419':
+      return 'es-419';
+    case 'en':
+      return 'en-US';
+    default:
+      return 'es-ES';
+  }
+};

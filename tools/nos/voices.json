@@ -112,6 +112,53 @@
         "scope": "audio",
         "record": "assets/verbal-approval.gl.json"
       }
+    },
+    "ca": {
+      "engine": "piper",
+      "model": "ca_ES-upc_ona-medium",
+      "origin": "VIA+ · Català (propuesta open-source Piper/UPC).",
+      "source": "https://huggingface.co/rhasspy/piper-voices/tree/main/ca/ca_ES/upc_ona/medium",
+      "license": "CC BY-SA 4.0",
+      "params": {
+        "lengthScale": 1.0
+      },
+      "notes": "Català: infraestructura declarada. Pendiente de validación clínica y síntesis de banco propio.",
+      "clinicalApproval": {
+        "status": "pendiente",
+        "scope": "audio"
+      }
+    },
+    "es-419": {
+      "engine": "piper",
+      "model": "es_MX-claude-high",
+      "origin": "VIA+ · Español latinoamericano neutro (Piper).",
+      "source": "https://huggingface.co/rhasspy/piper-voices/tree/main/es/es_MX/claude/high",
+      "license": "CC BY 4.0",
+      "params": {
+        "lengthScale": 1.1,
+        "noiseScale": 0.333,
+        "noiseW": 0.333
+      },
+      "notes": "Español Latinoamericano: voz neutra Piper LatAm.",
+      "clinicalApproval": {
+        "status": "pendiente",
+        "scope": "audio"
+      }
+    },
+    "en": {
+      "engine": "piper",
+      "model": "en_US-lessac-medium",
+      "origin": "VIA+ · English US (Piper).",
+      "source": "https://huggingface.co/rhasspy/piper-voices/tree/main/en/en_US/lessac/medium",
+      "license": "Public Domain",
+      "params": {
+        "lengthScale": 1.0
+      },
+      "notes": "English (US): voz Piper de referencia para consignas en inglés.",
+      "clinicalApproval": {
+        "status": "pendiente",
+        "scope": "audio"
+      }
     }
   }
 }

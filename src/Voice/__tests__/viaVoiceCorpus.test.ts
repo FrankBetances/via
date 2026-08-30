@@ -52,8 +52,12 @@ describe('toVoiceLang', () => {
   it('acepta las lenguas conocidas y cae a `es` ante cualquier otra', () => {
     expect(toVoiceLang('es')).toBe('es');
     expect(toVoiceLang('gl')).toBe('gl');
+    expect(toVoiceLang('eu')).toBe('eu');
+    expect(toVoiceLang('ca')).toBe('ca');
+    expect(toVoiceLang('es-419')).toBe('es-419');
     expect(toVoiceLang('es-DO')).toBe('es-DO');
-    expect(toVoiceLang('en')).toBe('es');
+    expect(toVoiceLang('en')).toBe('en');
+    expect(toVoiceLang('fr')).toBe('es');
     expect(toVoiceLang(undefined)).toBe('es');
     expect(toVoiceLang(null)).toBe('es');
   });

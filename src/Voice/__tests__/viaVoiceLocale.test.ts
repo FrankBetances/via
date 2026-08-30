@@ -99,32 +99,22 @@ describe('resolveSpokenText · la voz es la del texto, no la de la sesión', () 
 
 describe('bankLangs · un selector no puede ofrecer lo que el banco no tiene', () => {
   it('solo cuenta una lengua si TODAS las entradas la tienen', () => {
-    expect(bankLangs([{ es: 'a', gl: 'A' }, { es: 'b' }])).toEqual(['es', 'es-DO']);
-    expect(bankLangs([{ es: 'a', gl: 'A' }, { es: 'b', gl: 'B' }])).toEqual(['es', 'gl', 'es-DO']);
+    expect(bankLangs([{ es: 'a', gl: 'A' }, { es: 'b' }])).toEqual(['es', 'es-419', 'es-DO']);
+    expect(bankLangs([{ es: 'a', gl: 'A' }, { es: 'b', gl: 'B' }])).toEqual(['es', 'gl', 'es-419', 'es-DO']);
   });
 
   it('la variante cuenta como cubierta si lo está su base', () => {
-    expect(bankLangs([{ es: 'a' }])).toEqual(['es', 'es-DO']);
+    expect(bankLangs([{ es: 'a' }])).toEqual(['es', 'es-419', 'es-DO']);
   });
 
   it('un banco vacío no ofrece ninguna lengua', () => {
     expect(bankLangs([])).toEqual([]);
   });
 
-  it('los bancos reales de FE y T.A.R. ofrecen las cuatro variedades', () => {
-    // Cambio de política, deliberado: los deltas galego y vasco YA están
-    // escritos —las consignas de FE con redacción nativa y el T.A.R. con un
-    // inventario propio que conserva fonema y posición, ver
-    // `articulationLexicon`—, así que `bankLangs` los reconoce y el selector
-    // los ofrece. La salvaguarda sigue intacta: estas listas se DERIVAN del
-    // contenido, de modo que una entrada sin cubrir retira su lengua sola.
-    //
-    // El inventario de las cuatro variedades está firmado por el responsable
-    // clínico; sobre el alcance de la puntuación, ver el encabezado de
-    // `articulationLexicon`.
+  it('los bancos reales de FE y T.A.R. ofrecen sus variedades cubiertas', () => {
     // El orden es el de `bankLangs`: idiomas completos primero y las variantes
-    // al final, como fija la prueba de arriba con `['es', 'gl', 'es-DO']`.
-    expect(EF_CONSIGNA_LANGS).toEqual(['es', 'gl', 'eu', 'es-DO']);
-    expect(TAR_MODEL_LANGS).toEqual(['es', 'gl', 'eu', 'es-DO']);
+    // según el orden declarado en `VOICE_LANGS`.
+    expect(EF_CONSIGNA_LANGS).toEqual(['es', 'gl', 'eu', 'ca', 'es-419', 'es-DO', 'en']);
+    expect(TAR_MODEL_LANGS).toEqual(['es', 'gl', 'eu', 'es-419', 'es-DO']);
   });
 });
