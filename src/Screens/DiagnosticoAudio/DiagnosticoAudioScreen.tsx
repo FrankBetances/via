@@ -13,6 +13,7 @@ import { useNavigation } from '@react-navigation/native';
 import { ArrowLeft, Ear, RefreshCw, Volume2 } from 'lucide-react-native';
 
 import { retryVoiceEngine } from '@/Voice';
+import { useT } from '@/I18n';
 import {
   CAPTURE_PROBE_MS,
   TEST_TONE_HZ,
@@ -157,6 +158,7 @@ const STATUS_LABEL: Record<CheckStatus, string> = {
 };
 
 export default function DiagnosticoAudioScreen() {
+  const t = useT();
   const navigation = useNavigation();
   const [checks, setChecks] = useState<CheckResult[]>([]);
   const [running, setRunning] = useState(false);
@@ -266,15 +268,14 @@ export default function DiagnosticoAudioScreen() {
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <Pressable style={styles.back} onPress={() => navigation.goBack()}>
           <ArrowLeft size={18} color="#524B42" />
-          <Text style={styles.backText}>Volver</Text>
+          <Text style={styles.backText}>{t.diagnosticoAudio.volver}</Text>
         </Pressable>
 
-        <Text style={styles.eyebrow}>DIAGNÓSTICO DEL DISPOSITIVO</Text>
-        <Text style={styles.title}>Comprobación de audio</Text>
+        <Text style={styles.eyebrow}>{t.diagnosticoAudio.diagnosticoDispositivo}</Text>
+        <Text style={styles.title}>{t.diagnosticoAudio.comprobacionAudio}</Text>
         <Text style={styles.lead}>
-          Recorre la cadena completa —motor nativo, altavoz, banco de locuciones, sintetizador del
-          sistema y micrófono— y dice exactamente qué eslabón falla. Ejecútela en el mismo equipo y
-          la misma sala donde las pruebas no funcionan.
+          
+          {t.diagnosticoAudio.recorreCadenaCompletaMotorNativo}
         </Text>
 
         <Pressable
@@ -287,7 +288,7 @@ export default function DiagnosticoAudioScreen() {
             <RefreshCw size={18} color="#FFFFFF" strokeWidth={2.5} />
           )}
           <Text style={styles.ctaText}>
-            {running ? 'Comprobando…' : checks.length ? 'Repetir comprobación' : 'Iniciar comprobación'}
+            {running ? t.diagnosticoAudio.comprobando : checks.length ? t.diagnosticoAudio.repetirComprobacion : t.diagnosticoAudio.iniciarComprobacion}
           </Text>
         </Pressable>
 
@@ -297,14 +298,14 @@ export default function DiagnosticoAudioScreen() {
           <View style={[styles.verdict, { backgroundColor: STATUS_SOFT[overall] }]}>
             <Text style={[styles.verdictText, { color: STATUS_COLOR[overall] }]}>
               {overall === 'fail'
-                ? 'Hay al menos un eslabón roto: las pruebas de voz no pueden funcionar así.'
+                ? t.diagnosticoAudio.hayMenosEslabonRotoPruebas
                 : pendingListen.length
                   ? /* NUNCA «todo funciona» con emisiones sin escuchar: ése es
                        justo el falso positivo del que salió esta pantalla. */
-                    `Los motores responden, pero la SALIDA no está comprobada: falta escuchar ${pendingListen.length} de ${LISTEN_SPECS.length} emisiones.`
+                    t.diagnosticoAudio.motoresRespondenPeroSalidaEsta(pendingListen.length, LISTEN_SPECS.length)
                   : overall === 'warn'
-                    ? 'La cadena responde y se oye, pero hay avisos que degradan las pruebas.'
-                    : 'La cadena de audio responde Y SE OYE en este dispositivo.'}
+                    ? t.diagnosticoAudio.cadenaRespondeOyePeroHay
+                    : t.diagnosticoAudio.cadenaAudioRespondeOyeEste}
             </Text>
           </View>
         ) : null}
@@ -325,7 +326,7 @@ export default function DiagnosticoAudioScreen() {
               <Pressable style={styles.inlineBtn} disabled={retrying} onPress={onRetryVoice}>
                 <RefreshCw size={14} color="#0D9488" />
                 <Text style={styles.inlineBtnText}>
-                  {retrying ? 'Reintentando…' : 'Reintentar el motor de voz'}
+                  {retrying ? t.diagnosticoAudio.reintentando : t.diagnosticoAudio.reintentarMotorVoz}
                 </Text>
               </Pressable>
             ) : null}
@@ -338,14 +339,12 @@ export default function DiagnosticoAudioScreen() {
         {checks.length > 0 && !running ? (
           <View style={styles.card}>
             <View style={styles.cardHead}>
-              <Text style={styles.cardLabel}>Prueba de escucha</Text>
+              <Text style={styles.cardLabel}>{t.diagnosticoAudio.pruebaEscucha}</Text>
               <Ear size={18} color="#8C8275" />
             </View>
             <Text style={styles.cardDetail}>
-              Que el motor programe un sonido no prueba que el altavoz lo emita, y la app suena por
-              TRES vías distintas: si una falla, las otras siguen respondiendo. Reproduzca las
-              cuatro emisiones y conteste cuáles ha oído — hasta entonces, la salida NO está
-              comprobada.
+              
+              {t.diagnosticoAudio.motorProgrameSonidoPruebaAltavoz}
             </Text>
             {LISTEN_SPECS.map(spec => {
               const answered = checks.find(c => c.id === spec.id);
@@ -355,7 +354,7 @@ export default function DiagnosticoAudioScreen() {
                   <Text style={styles.listenWhat}>{spec.what}</Text>
                   {asking === spec.id ? (
                     <View style={styles.answerRow}>
-                      <Text style={styles.answerQ}>¿Lo ha oído?</Text>
+                      <Text style={styles.answerQ}>{t.diagnosticoAudio.haOido}</Text>
                       <Pressable
                         style={[styles.answerBtn, styles.answerYes]}
                         onPress={() => onAnswer(spec, true)}>
@@ -375,10 +374,10 @@ export default function DiagnosticoAudioScreen() {
                       <Volume2 size={14} color="#0D9488" />
                       <Text style={styles.inlineBtnText}>
                         {emitting === spec.id
-                          ? 'Emitiendo…'
+                          ? t.diagnosticoAudio.emitiendo
                           : answered
-                            ? 'Repetir emisión'
-                            : 'Reproducir'}
+                            ? t.diagnosticoAudio.repetirEmision
+                            : t.diagnosticoAudio.reproducir}
                       </Text>
                     </Pressable>
                   )}
@@ -390,9 +389,10 @@ export default function DiagnosticoAudioScreen() {
 
         {checks.length > 0 && !running ? (
           <View style={styles.summaryBox}>
-            <Text style={styles.summaryTitle}>Resumen para incidencia</Text>
+            <Text style={styles.summaryTitle}>{t.diagnosticoAudio.resumenIncidencia}</Text>
             <Text style={styles.summaryHint}>
-              Haga una captura de este bloque y adjúntela: nombra el eslabón roto sin ambigüedad.
+              
+              {t.diagnosticoAudio.hagaCapturaEsteBloqueAdjuntela}
             </Text>
             <Text selectable style={styles.summaryText}>
               {summaryText(checks)}
@@ -402,8 +402,8 @@ export default function DiagnosticoAudioScreen() {
 
         {!hasTts && !checks.length ? (
           <Text style={styles.footNote}>
-            Nada de lo que mide esta pantalla se guarda ni se envía: se ejecuta y se muestra en el
-            dispositivo.
+            
+            {t.diagnosticoAudio.nadaMideEstaPantallaGuarda}
           </Text>
         ) : null}
       </ScrollView>

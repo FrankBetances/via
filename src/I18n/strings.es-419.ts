@@ -96,4 +96,31 @@ export const ES_419: UiStrings = {
     pacienteMenorEdadFirmaPadre: 'Paciente menor de edad: firma su padre, madre o tutor legal',
     conyugeHijoTutor: 'Cónyuge, hijo/a, tutor/a…',
   },
+  roomNoise: {
+    ...ES.roomNoise,
+    saltarSonometroEIrPruebas: 'Omitir el sonómetro e ir a las pruebas',
+    mantengaSalaSilencioDuranteMedicion: 'Mantenga la sala en silencio durante la medición',
+  },
+
+  diagnosticoAudio: {
+    ...ES.diagnosticoAudio,
+    volver: 'Regresar',
+    recorreCadenaCompletaMotorNativo: 'Recorre la cadena completa —motor nativo, bocina, banco de locuciones, sintetizador del sistema y micrófono— y dice exactamente qué eslabón falla. Ejecútela en el mismo equipo y la misma sala donde las pruebas no funcionan.',
+    motorProgrameSonidoPruebaAltavoz: 'Que el motor programe un sonido no prueba que la bocina lo emita, y la app suena por TRES vías distintas: si una falla, las otras siguen respondiendo. Reproduzca las cuatro emisiones y conteste cuáles ha oído — hasta entonces, la salida NO está comprobada.',
+  },
+
+  resultadosPreliminares: {
+    ...ES.resultadosPreliminares,
+    volverPruebas: 'Regresar a pruebas',
+  },
+
+  resultadosFinal: {
+    ...ES.resultadosFinal,
+    volverResultadosPreliminares: 'Regresar a resultados preliminares',
+    pendienteFirmaFacultativoResponsable: 'Pendiente de firma del médico responsable',
+  },
+
+  startup: {
+    ...ES.startup,
+  },
 };

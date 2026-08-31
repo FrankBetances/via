@@ -84,4 +84,28 @@ export const ES_DO: UiStrings = {
     ...ES.consentimiento,
     pacienteMenorEdadFirmaPadre: 'Paciente menor de edad: firma su padre, madre o tutor legal',
   },
+  roomNoise: {
+    ...ES.roomNoise,
+    saltarSonometroEIrPruebas: 'Omitir el sonómetro e ir a las pruebas',
+  },
+
+  diagnosticoAudio: {
+    ...ES.diagnosticoAudio,
+    volver: 'Regresar',
+  },
+
+  resultadosPreliminares: {
+    ...ES.resultadosPreliminares,
+    volverPruebas: 'Regresar a pruebas',
+  },
+
+  resultadosFinal: {
+    ...ES.resultadosFinal,
+    volverResultadosPreliminares: 'Regresar a resultados preliminares',
+    pendienteFirmaFacultativoResponsable: 'Pendiente de firma del médico responsable',
+  },
+
+  startup: {
+    ...ES.startup,
+  },
 };

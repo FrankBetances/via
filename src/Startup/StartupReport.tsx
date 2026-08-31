@@ -3,6 +3,7 @@ import { View, ActivityIndicator, ScrollView, Text, StyleSheet } from 'react-nat
 
 import { describeError } from './describeError';
 
+import { useT } from '@/I18n';
 /* -------------------------------------------------------------------------- */
 /*  StartupReport — la pantalla de arranque que SÍ dice qué está pasando.      */
 /*                                                                            */
@@ -59,6 +60,7 @@ export default function StartupReport({
   error,
   stallSeconds = 8,
 }: StartupReportProps) {
+  const t = useT();
   const failed = error !== undefined && error !== null;
   const waitedSeconds = useSecondsSinceMount(!failed);
 
@@ -67,15 +69,15 @@ export default function StartupReport({
     return (
       <View style={styles.container}>
         <Text style={styles.brand}>VIA+</Text>
-        <Text style={styles.title}>La app no ha podido arrancar</Text>
-        <Text style={styles.stage}>Falló al preparar {stage}.</Text>
+        <Text style={styles.title}>{t.startup.appHaPodidoArrancar}</Text>
+        <Text style={styles.stage}>{t.startup.falloPreparar} {stage}.</Text>
         <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent}>
           <Text style={styles.message}>{message}</Text>
           {detail ? <Text style={styles.detail}>{detail}</Text> : null}
         </ScrollView>
         <Text style={styles.footer}>
-          Esta pantalla existe para que el fallo se pueda leer sin cable ni logcat.
-          Fotografíala y pásala tal cual.
+          
+          {t.startup.estaPantallaExisteFalloPueda}
         </Text>
       </View>
     );
@@ -88,13 +90,13 @@ export default function StartupReport({
       <Text style={styles.brand}>VIA+</Text>
       {stalled ? (
         <>
-          <Text style={styles.title}>Sigue esperando</Text>
+          <Text style={styles.title}>{t.startup.sigueEsperando}</Text>
           <Text style={styles.stage}>
-            {stage} lleva {waitedSeconds} s sin responder y no ha dado ningún error.
+            {stage}  {t.startup.lleva} {waitedSeconds}  {t.startup.sSinResponderHaDado}
           </Text>
           <Text style={styles.footer}>
-            El arranque sano tarda décimas de segundo. Si esto no cambia, el eslabón
-            atascado es este.
+            
+            {t.startup.arranqueSanoTardaDecimasSegundo}
           </Text>
         </>
       ) : null}

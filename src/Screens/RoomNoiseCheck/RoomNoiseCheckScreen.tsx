@@ -16,6 +16,7 @@ import { useClassSelector } from '@/Helpers/ClassTransformer';
 import { NoiseVerdict, NoiseZone, useNoiseMeter, zoneOf } from './useNoiseMeter';
 import { registerNoiseMicAdapter, unregisterNoiseMicAdapter } from './noiseMicAdapter';
 import { loadNoiseCalibration, saveNoiseCalibration } from './noiseCalibrationStore';
+import { useT } from '@/I18n';
 import {
   getNoiseCalibrationOffset,
   NOISE_OFFSET_LIMIT_DB,
@@ -82,6 +83,7 @@ interface ScreenConfig {
 type Props = NativeStackScreenProps<RootStackParamList, 'RoomNoiseCheck'>;
 
 export default function RoomNoiseCheckScreen({ navigation, route }: Props) {
+  const t = useT();
   const cfg = (route.params as ScreenConfig | undefined) ?? {};
   const threshold = cfg.threshold ?? 45;
   const testDurationSec = cfg.testDurationSec ?? 5;
@@ -224,18 +226,20 @@ export default function RoomNoiseCheckScreen({ navigation, route }: Props) {
           <VStack>
             <HStack alignItems="center" space="sm">
               <Text size="2xl" weight="bold" color="$textLight900">
-                Sonómetro Ambiental
+                
+                {t.roomNoise.sonometroAmbiental}
               </Text>
               <Box bg="$primary50" px="$2" py="$0.5" borderRadius="$full">
                 <Text size="2xs" weight="bold" color="$primary800" style={{ letterSpacing: 0.4 }}>
-                  PRERREQUISITO · SALA
+                  
+                  {t.roomNoise.prerrequisitoSala}
                 </Text>
               </Box>
             </HStack>
             <Text size="xs" color="$textLight500">
               {patientName
                 ? `${patientName}${patient?.nhc ? ` · NHC ${patient.nhc}` : ''}`
-                : 'Verificación de ruido ambiente antes de iniciar los ejercicios'}
+                : t.roomNoise.verificacionRuidoAmbienteAntesIniciar}
             </Text>
           </VStack>
 
@@ -244,10 +248,12 @@ export default function RoomNoiseCheckScreen({ navigation, route }: Props) {
             <HStack alignItems="center" justifyContent="space-between" mb="$2">
               <VStack style={{ flex: 1 }}>
                 <Text size="md" weight="bold" color="$textLight900">
-                  Nivel de ruido ambiente
+                  
+                  {t.roomNoise.nivelRuidoAmbiente}
                 </Text>
                 <Text size="2xs" color="$textLight500">
-                  Mantenga la sala en silencio durante la medición
+                  
+                  {t.roomNoise.mantengaSalaSilencioDuranteMedicion}
                 </Text>
               </VStack>
               <Box bg={KIND_TOKENS[sourceMeta.kind].bg} px="$2.5" py="$0.5" borderRadius="$full">
@@ -284,7 +290,7 @@ export default function RoomNoiseCheckScreen({ navigation, route }: Props) {
                     </Text>
                   </HStack>
                   <Text size="xs" weight="bold" style={{ letterSpacing: 0.6, color: liveDb == null ? '#B0A89C' : ZONE_HEX[zone] }}>
-                    {liveDb == null ? 'MICRÓFONO INACTIVO' : ZONE_LABEL[zone]}
+                    {liveDb == null ? t.roomNoise.microfonoInactivo : ZONE_LABEL[zone]}
                   </Text>
                 </VStack>
               </Box>
@@ -325,8 +331,8 @@ export default function RoomNoiseCheckScreen({ navigation, route }: Props) {
             <HStack space="sm" alignItems="flex-start" p="$3" borderRadius={14} bg="$warning50">
               <Icon as={AlertTriangle} size="xs" color="$warning700" style={{ marginTop: 2 }} />
               <Text size="2xs" color="$warning800" style={{ flex: 1, lineHeight: 15 }}>
-                Se descartaron {meter.clipped} tramo{meter.clipped === 1 ? '' : 's'} por saturación del micrófono
-                (golpes o roces del equipo). Deje el dispositivo apoyado y quieto durante la medición.
+                
+                {t.roomNoise.descartaron} {meter.clipped}  {t.roomNoise.tramo}{meter.clipped === 1 ? '' : 's'}  {t.roomNoise.saturacionMicrofonoGolpesRocesEquipo}
               </Text>
             </HStack>
           ) : null}
@@ -336,7 +342,8 @@ export default function RoomNoiseCheckScreen({ navigation, route }: Props) {
             <VStack>
               <HStack justifyContent="space-between" mb="$1.5">
                 <Text size="2xs" color="$textLight500">
-                  Midiendo ruido ambiente…
+                  
+                  {t.roomNoise.midiendoRuidoAmbiente}
                 </Text>
                 <Text size="2xs" color="$textLight500">
                   {meter.testRemaining} s
@@ -359,13 +366,13 @@ export default function RoomNoiseCheckScreen({ navigation, route }: Props) {
               <HStack space="sm" alignItems="center">
                 <Icon as={meter.source === 'mic' ? Square : Mic} size="sm" color={meter.source === 'mic' ? '$error500' : '$primary500'} />
                 <Text size="sm" weight="bold" color={meter.source === 'mic' ? '$error500' : '$primary500'}>
-                  {meter.source === 'mic' ? 'Detener' : 'Activar micrófono'}
+                  {meter.source === 'mic' ? t.roomNoise.detener : t.roomNoise.activarMicrofono}
                 </Text>
               </HStack>
             </Button>
             <Button action="primary" variant="solid" rounded="$full" style={{ flex: 1 }} isDisabled={meter.testing} onPress={meter.runTest}>
               <Text size="sm" weight="bold" color="$white">
-                {meter.testing ? 'Midiendo…' : meter.verdict !== 'pending' ? 'Repetir medición' : `Medir ${testDurationSec} s`}
+                {meter.testing ? t.roomNoise.midiendo : meter.verdict !== 'pending' ? t.roomNoise.repetirMedicion : t.roomNoise.medirS(testDurationSec)}
               </Text>
             </Button>
           </HStack>
@@ -375,11 +382,12 @@ export default function RoomNoiseCheckScreen({ navigation, route }: Props) {
             <HStack alignItems="center" justifyContent="space-between">
               <VStack style={{ flex: 1 }}>
                 <Text size="2xs" weight="bold" color="$textLight400" style={{ letterSpacing: 0.4 }}>
-                  CALIBRACIÓN DE CAMPO
+                  
+                  {t.roomNoise.calibracionCampo}
                 </Text>
                 <Text size="xs" color="$textLight500" mt="$0.5" style={{ lineHeight: 16 }}>
-                  Ajuste la lectura a un sonómetro de referencia en la misma sala. El ajuste se guarda en este
-                  dispositivo.
+                  
+                  {t.roomNoise.ajusteLecturaSonometroReferenciaMisma}
                 </Text>
               </VStack>
               <HStack space="xs" alignItems="center">
@@ -413,12 +421,13 @@ export default function RoomNoiseCheckScreen({ navigation, route }: Props) {
                 propenso a error que deducir el signo del offset y sumar dB a dB. */}
             <VStack space="xs" mt="$3" pt="$3" borderTopWidth={1} borderColor="$borderLight100">
               <Text size="2xs" color="$textLight500" style={{ lineHeight: 15 }}>
-                Con el micrófono activo, escriba lo que marca el sonómetro patrón y VIA+ calculará el ajuste.
+                
+                {t.roomNoise.microfonoActivoEscribaMarcaSonometro}
               </Text>
               <HStack space="sm" alignItems="center">
                 <Input variant="outline" borderRadius={12} bg="$white" style={{ flex: 1 }}>
                   <InputField
-                    placeholder="dB(A) del patrón"
+                    placeholder={t.roomNoise.dbPatron}
                     keyboardType="numeric"
                     value={referenceInput}
                     onChangeText={setReferenceInput}
@@ -431,7 +440,8 @@ export default function RoomNoiseCheckScreen({ navigation, route }: Props) {
                   isDisabled={meter.db == null || !referenceInput.trim()}
                   onPress={calibrateToReference}>
                   <Text size="xs" weight="bold" color="$primary500">
-                    Ajustar
+                    
+                    {t.roomNoise.ajustar}
                   </Text>
                 </Button>
               </HStack>
@@ -445,7 +455,8 @@ export default function RoomNoiseCheckScreen({ navigation, route }: Props) {
                 <Icon as={AlertTriangle} size="sm" color="$error600" style={{ marginTop: 2 }} />
                 <VStack style={{ flex: 1 }}>
                   <Text size="sm" weight="bold" color="$error700">
-                    No se pudo medir
+                    
+                    {t.roomNoise.pudoMedir}
                   </Text>
                   <Text size="xs" color="$error700" style={{ lineHeight: 17 }}>
                     {meter.error}
@@ -458,7 +469,8 @@ export default function RoomNoiseCheckScreen({ navigation, route }: Props) {
           {/* ===================== VERDICT ===================== */}
           <Card bgColor={KIND_TOKENS[verdict.kind].bg} borderRadius={20} p="$5">
             <Text size="2xs" weight="bold" color={KIND_TOKENS[verdict.kind].fg} style={{ letterSpacing: 0.4 }}>
-              CONDICIÓN ACÚSTICA
+              
+              {t.roomNoise.condicionAcustica}
             </Text>
             <Text size="xl" weight="bold" color={KIND_TOKENS[verdict.kind].fg} mt="$0.5">
               {verdict.title}
@@ -473,7 +485,8 @@ export default function RoomNoiseCheckScreen({ navigation, route }: Props) {
             <HStack space="sm" alignItems="center" mb="$3">
               <Icon as={Check} size="sm" color="$primary500" />
               <Text size="sm" weight="bold" color="$textLight800">
-                Condiciones de la sala
+                
+                {t.roomNoise.condicionesSala}
               </Text>
             </HStack>
             <VStack space="sm">
@@ -495,9 +508,8 @@ export default function RoomNoiseCheckScreen({ navigation, route }: Props) {
             </VStack>
             <HStack space="sm" alignItems="flex-start" mt="$3" p="$3" borderRadius={14} bg="$backgroundLight50">
               <Text size="2xs" color="$textLight500" style={{ flex: 1, lineHeight: 16 }}>
-                Las pruebas de discriminación auditiva requieren ≤ {threshold} dB(A) de ruido de fondo. Lectura con
-                ponderación A (IEC 61672) sobre el micrófono del dispositivo, sin calibración certificada: es
-                orientativa y no sustituye a un sonómetro patrón.
+                
+                {t.roomNoise.pruebasDiscriminacionAuditivaRequieren} {threshold}  {t.roomNoise.dbRuidoFondoLecturaPonderacion}
               </Text>
             </HStack>
           </Card>
@@ -506,7 +518,8 @@ export default function RoomNoiseCheckScreen({ navigation, route }: Props) {
           <Card bgColor="$white" borderRadius={22} p="$5">
             <HStack alignItems="center" justifyContent="space-between" mb="$3">
               <Text size="2xs" color="$textLight500">
-                Requisitos
+                
+                {t.roomNoise.requisitos}
               </Text>
               <Box bg={KIND_TOKENS[gate.kind].bg} px="$2.5" py="$0.5" borderRadius="$full">
                 <Text size="2xs" weight="bold" color={KIND_TOKENS[gate.kind].fg}>
@@ -517,7 +530,8 @@ export default function RoomNoiseCheckScreen({ navigation, route }: Props) {
             <Button action="primary" variant="solid" rounded="$full" isDisabled={!canContinue} onPress={handleContinue}>
               <HStack space="sm" alignItems="center">
                 <Text size="md" weight="bold" color="$white">
-                  Continuar a los ejercicios
+                  
+                  {t.roomNoise.continuarEjercicios}
                 </Text>
                 <Icon as={ArrowRight} size="sm" color="$white" />
               </HStack>
@@ -531,13 +545,14 @@ export default function RoomNoiseCheckScreen({ navigation, route }: Props) {
               <HStack space="xs" alignItems="center" justifyContent="center" mt="$3" py="$2.5" borderRadius={14} borderWidth={1.5} borderColor="$borderLight200" bg="$white">
                 <Icon as={SkipForward} size="xs" color="$textLight600" />
                 <Text size="xs" weight="bold" color="$textLight600">
-                  Saltar el sonómetro e ir a las pruebas
+                  
+                  {t.roomNoise.saltarSonometroEIrPruebas}
                 </Text>
               </HStack>
             </Pressable>
             <Text size="2xs" color="$textLight400" mt="$2" style={{ textAlign: 'center', lineHeight: 15 }}>
-              Sin verificar la sala, las pruebas de discriminación auditiva (audiometrías y verbal) pierden
-              comparabilidad. El resto de la batería no depende del ruido de fondo.
+              
+              {t.roomNoise.sinVerificarSalaPruebasDiscriminacion}
             </Text>
           </Card>
 
