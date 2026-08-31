@@ -510,6 +510,8 @@ export const EU: UiStrings = {
   },
 
   verbalAudiometry: {
+    bancoPrestado: (a: string | number, b: string | number) =>
+      `${a} hizkuntzan ez dago banku propiorik: probak ${b} hizkuntzako hitzak aurkezten ditu, bere ahotsarekin. Neurtzen dena ${b} hizkuntzako bereizketa da, ez ${a} hizkuntzakoa; horrela jaso txostenean.`,
     audiometriaVerbal: 'Hitzezko audiometria',
     campoLibreSinAudifonos: 'EREMU LIBREAN · AUDIFONORIK GABE',
     pacienteHacePrueba: 'Pazienteak proba egiten du',

@@ -35,6 +35,8 @@ import {
   VERBAL_AUDIO_PENDING,
   VERBAL_BANK_LANGS,
   VERBAL_BANK_PROVISIONAL,
+  usesBorrowedBank,
+  verbalStimulusLang,
   VerbalLang,
 } from './verbalAudiometryBanks';
 import { verbalGlyphForLang, verbalImageSourceForLang } from './verbalAssetsByLang';
@@ -348,21 +350,36 @@ export default function VerbalAudiometryScreen({ navigation }: Props) {
             );
           })}
         </HStack>
-        {v.lang !== 'es' ? (
+        {/* Un idioma con BANCO PRESTADO no tiene banco propio: la prueba le
+            presenta las palabras de otra lengua. Decirle «banco y locuciones
+            propios de la lengua» era falso, y encima aparecía junto a un aviso
+            de «listas validadas» y a otro de «banco provisional», que se
+            contradicen entre sí. Se sustituyen por lo que de verdad pasa. */}
+        {usesBorrowedBank(v.lang) ? (
+          <HStack space="xs" alignItems="flex-start" mt="$2" p="$2.5" borderRadius={12} bg="$warning50">
+            <Text size="2xs" color="$warning800" style={{ flex: 1, lineHeight: 15 }}>
+              {t.verbalAudiometry.bancoPrestado(
+                VERBAL_LANG_LABEL[v.lang] ?? v.lang,
+                VERBAL_LANG_LABEL[verbalStimulusLang(v.lang)] ?? verbalStimulusLang(v.lang),
+              )}
+            </Text>
+          </HStack>
+        ) : v.lang !== 'es' && !VERBAL_AUDIO_PENDING.includes(v.lang) ? (
+          /* «Banco y locuciones PROPIOS» solo donde las dos cosas son ciertas.
+             `es-419` no tiene locuciones propias, y afirmarlo aquí chocaba con
+             el aviso de tres líneas más abajo, que dice justo lo contrario. */
           <Text size="2xs" color="$textLight400" mt="$2">
-            
             {t.verbalAudiometry.bancoEstimulosLocucionesPropiosLengua}
           </Text>
         ) : null}
-        {VERBAL_BANK_PROVISIONAL.includes(v.lang) ? (
+        {VERBAL_BANK_PROVISIONAL.includes(v.lang) && !usesBorrowedBank(v.lang) ? (
           <HStack space="xs" alignItems="flex-start" mt="$2" p="$2.5" borderRadius={12} bg="$warning50">
             <Text size="2xs" color="$warning800" style={{ flex: 1, lineHeight: 15 }}>
-              
               {t.verbalAudiometry.bancoProvisionalPendienteValidacionClinica}
             </Text>
           </HStack>
         ) : null}
-        {VERBAL_AUDIO_PENDING.includes(v.lang) ? (
+        {VERBAL_AUDIO_PENDING.includes(v.lang) && !usesBorrowedBank(v.lang) ? (
           <HStack space="xs" alignItems="flex-start" mt="$2" p="$2.5" borderRadius={12} bg="$warning50">
             <Text size="2xs" color="$warning800" style={{ flex: 1, lineHeight: 15 }}>
               

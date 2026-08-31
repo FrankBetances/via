@@ -507,6 +507,8 @@ export const EN: UiStrings = {
   },
 
   verbalAudiometry: {
+    bancoPrestado: (a: string | number, b: string | number) =>
+      `No dedicated word bank in ${a}: the test presents ${b} words, in the ${b} voice. What is measured is discrimination in ${b}, not in ${a}; record it that way in the report.`,
     audiometriaVerbal: 'Speech audiometry',
     campoLibreSinAudifonos: 'SOUND FIELD · NO HEARING AIDS',
     pacienteHacePrueba: 'The patient takes the test',

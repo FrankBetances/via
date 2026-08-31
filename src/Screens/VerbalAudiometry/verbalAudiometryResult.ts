@@ -15,6 +15,7 @@
 /* -------------------------------------------------------------------------- */
 
 /** Franja de edad → lista de estímulos y modalidad de tarjeta. */
+
 export type AgeBand = 'A' | 'B' | 'C' | 'D';
 
 /** Modalidad de la tarjeta de selección (WordCard). */
@@ -95,10 +96,31 @@ export const MODALITY_LABEL: Record<CardModality, string> = {
  * `verbalAudiometryBanks.ts`; aquí como strings planos para no importar el
  * banco desde la lógica pura de resultado).
  */
+/**
+ * Etiqueta legible de cada lengua de la prueba.
+ *
+ * Tenía TRES de las siete —faltaban `eu`, `ca`, `es-419` y `en`—, así que el
+ * aviso de la pantalla y el bloque del PDF enseñaban el CÓDIGO en crudo («ca»)
+ * donde debía ir el nombre.
+ *
+ * Se escribe aquí, y no se deriva de `SESSION_LANG_LABEL`, porque este fichero
+ * lo COMPILA `scripts/check-verbal-coverage.js` con `tsc` suelto y lo ejecuta
+ * en Node: un import fuera de esta carpeta mueve el `rootDir` inferido y el
+ * gate deja de encontrar su propia salida. Es la lección que Valeria+ dejó
+ * escrita en su `i18n/catalog.ts` — lo que consume un gate de Node no puede
+ * depender de la resolución de módulos de la app.
+ *
+ * Que sea una lista aparte NO la deja derivar: `verbalBorrowedBank.test.ts`
+ * exige que coincida exactamente con `SESSION_LANG_LABEL`.
+ */
 export const VERBAL_LANG_LABEL: Record<string, string> = {
   es: 'Español (España)',
   gl: 'Galego',
+  eu: 'Euskara',
+  ca: 'Català',
+  'es-419': 'Español (Latinoamérica)',
   'es-DO': 'Español (Rep. Dominicana) · Quisqueya Habla',
+  en: 'English (US)',
 };
 
 /* ------------------------------- helpers --------------------------------- */

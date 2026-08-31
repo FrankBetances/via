@@ -507,6 +507,8 @@ export const GL: UiStrings = {
   },
 
   verbalAudiometry: {
+    bancoPrestado: (a: string | number, b: string | number) =>
+      `Sen banco propio en ${a}: a proba presenta as palabras de ${b}, coa súa voz. O que se mide é a discriminación en ${b}, non en ${a}; que quede así no informe.`,
     audiometriaVerbal: 'Audiometría verbal',
     campoLibreSinAudifonos: 'CAMPO LIBRE · SEN AUDÍFONOS',
     pacienteHacePrueba: 'O paciente fai a proba',

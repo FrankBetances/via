@@ -511,6 +511,8 @@ export const CA: UiStrings = {
   },
 
   verbalAudiometry: {
+    bancoPrestado: (a: string | number, b: string | number) =>
+      `Sense banc propi en ${a}: la prova presenta les paraules de ${b}, amb la seva veu. El que es mesura és la discriminació en ${b}, no en ${a}; que consti així a l’informe.`,
     audiometriaVerbal: 'Audiometria verbal',
     campoLibreSinAudifonos: 'CAMP LLIURE · SENSE AUDIÒFONS',
     pacienteHacePrueba: 'El pacient fa la prova',

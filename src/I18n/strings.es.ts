@@ -525,6 +525,8 @@ export const ES = {
     guardarEvaluacion: 'Guardar en la evaluación',
   },
   verbalAudiometry: {
+    bancoPrestado: (a: string | number, b: string | number) =>
+      `Sin banco propio en ${a}: la prueba presenta las palabras de ${b}, con su voz. Lo que se mide es la discriminación en ${b}, no en ${a}; quede así en el informe.`,
     audiometriaVerbal: 'Audiometría verbal',
     campoLibreSinAudifonos: 'CAMPO LIBRE · SIN AUDÍFONOS',
     pacienteHacePrueba: 'El paciente hace la prueba',
