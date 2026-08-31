@@ -153,4 +153,17 @@ export const ES_DO: UiStrings = {
     aconsejaDerivacionOrlAudiologiaAudiometria: '. Se aconseja derivación a otorrinolaringología / audiología para audiometría clínica con audífonos.',
     colegiado: 'Exequátur',
   },
+  sahs: {
+    ...ES.sahs,
+    cribadoSahsInfantil: 'Tamizaje de SAHS infantil',
+    preparacionCribado: 'Preparación del tamizaje',
+    comenzarCribado: 'Comenzar el tamizaje',
+    colegiado: 'Exequátur',
+  },
+
+  clinicalAssessment: {
+    ...ES.clinicalAssessment,
+    nColegiado: 'N.º DE EXEQUÁTUR',
+    nColegiado2: 'N.º de exequátur',
+  },
 };

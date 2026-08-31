@@ -174,4 +174,19 @@ export const ES_419: UiStrings = {
     aconsejaDerivacionOrlAudiologiaAudiometria: '. Se aconseja derivación a otorrinolaringología / audiología para audiometría clínica con audífonos.',
     colegiado: 'Registro profesional',
   },
+  sahs: {
+    ...ES.sahs,
+    cribadoSahsInfantil: 'Tamizaje de SAHS infantil',
+    preparacionCribado: 'Preparación del tamizaje',
+    comenzarCribado: 'Comenzar el tamizaje',
+    cribadoOrientativoTrastornosRespiratoriosSueno: 'Tamizaje orientativo de trastornos respiratorios del sueño: identifica el riesgo, no diagnostica SAHS. El diagnóstico requiere polisomnografía en Unidad de Sueño.',
+    colegiado: 'Registro profesional',
+  },
+
+  clinicalAssessment: {
+    ...ES.clinicalAssessment,
+    nColegiado: 'N.º DE REGISTRO PROFESIONAL',
+    nColegiado2: 'N.º de registro profesional',
+    criterioSeguridadAudiologicaCerumenOclusivo: 'Criterio de Seguridad Audiológica: cerumen oclusivo, OMA y perforación timpánica bloquean específicamente la audiometría tonal del oído afectado (Ref.: Guías CODEPEH / SNS).',
+  },
 };
