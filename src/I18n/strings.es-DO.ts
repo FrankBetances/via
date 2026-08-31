@@ -58,4 +58,30 @@ export const ES_DO: UiStrings = {
     ...ES.bienvenida,
     n100OnDeviceZeroPhi: '100% en el dispositivo · Zero-PHI',
   },
+  registroProfesional: {
+    ...ES.registroProfesional,
+    nombreCentro: 'nombre@centro.do',
+    nColegiadoOpcional: 'N.º de exequátur · opcional',
+    esteRegistroRealizaSolaVez: 'Este registro se realiza una sola vez y crea tu cuenta segura. Después bastará con tocar tu perfil e ingresar tu contraseña en la pantalla de acceso.',
+  },
+
+  registroPaciente: {
+    ...ES.registroPaciente,
+    lenguaMaterna: 'Lengua materna',
+  },
+
+  pacientes: {
+    ...ES.pacientes,
+    cerrarSesion: 'Cerrar la sesión',
+  },
+
+  historialPaciente: {
+    ...ES.historialPaciente,
+    estePacienteTodaviaTieneNinguna: 'Este paciente todavía no tiene ninguna evaluación. Ábralo desde la lista de pacientes para iniciar una.',
+  },
+
+  consentimiento: {
+    ...ES.consentimiento,
+    pacienteMenorEdadFirmaPadre: 'Paciente menor de edad: firma su padre, madre o tutor legal',
+  },
 };

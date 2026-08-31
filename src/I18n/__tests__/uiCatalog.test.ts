@@ -86,8 +86,9 @@ describe('catálogos de interfaz · sin contaminación entre lenguas', () => {
    * Lo que sí acusa: una PALABRA FUNCIÓN castellana dentro de una lengua que
    * no la tiene. Eso no aparece por parecido, aparece por copiar y pegar. */
   const SPANISH_ONLY_IN: Partial<Record<UiLang, RegExp>> = {
-    // O galego usa «e», «do», «a/as/os/o», «dende», «ata».
-    gl: /\b(y|del|de la|la|los|las|el|desde|hasta|voces y|calidad)\b/i,
+    // O galego usa «e», «do», «a/as/os/o», «ata». OLLO: «desde» É galego
+    // normativo (a RAG admíteo xunto a «dende»), así que non entra aquí.
+    gl: /\b(y|del|de la|la|los|las|el|hasta|calidad|hallazgos)\b/i,
     // El català fa servir «i», «els», «les», «amb», «per», «veu».
     ca: /\b(y|los|las|con|para|por|desde|hasta|voz|selección|calidad)\b/i,
     // English keeps none of these.

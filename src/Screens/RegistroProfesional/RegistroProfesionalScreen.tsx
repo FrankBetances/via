@@ -24,6 +24,7 @@ import { showErrorToast, showSuccessToast } from '@/Helpers/showToast';
 import { writeWithVerify } from '@/Helpers/dbWrite';
 import { describeAuthError, isFirebaseAvailable, registerWithEmail, saveProfessionalProfile } from '@/Services/firebase';
 
+import { useT } from '@/I18n';
 /* -------------------------------------------------------------------------- */
 /*  RegistroProfesionalScreen — alta del profesional responsable. Nombre,      */
 /*  rol, email y contraseña son obligatorios: la cuenta se crea en Firebase    */
@@ -61,6 +62,7 @@ function initials(name: string): string {
 }
 
 export default function RegistroProfesionalScreen({ navigation: _navigation }: Props) {
+  const t = useT();
   const dispatch = useDispatch<AppDispatch>();
 
   const [nombre, setNombre] = useState('');
@@ -213,15 +215,15 @@ export default function RegistroProfesionalScreen({ navigation: _navigation }: P
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}>
           {/* ----- título ----- */}
-          <Text style={styles.overline}>PERFIL PROFESIONAL · UNA SOLA VEZ</Text>
-          <Text style={styles.title}>Crea tu perfil</Text>
-          <Text style={styles.subtitle}>Responsable de las evaluaciones de este dispositivo</Text>
+          <Text style={styles.overline}>{t.registroProfesional.perfilProfesionalSolaVez}</Text>
+          <Text style={styles.title}>{t.registroProfesional.creaTuPerfil}</Text>
+          <Text style={styles.subtitle}>{t.registroProfesional.responsableEvaluacionesEsteDispositivo}</Text>
 
           {/* ----- vista previa en vivo ----- */}
           <View style={styles.previewCard}>
             <View style={styles.previewLabelRow}>
               <View style={styles.previewDot} />
-              <Text style={styles.previewLabel}>ASÍ SE VERÁ TU PERFIL</Text>
+              <Text style={styles.previewLabel}>{t.registroProfesional.asiVeraTuPerfil}</Text>
             </View>
             <View style={styles.previewBody}>
               <View style={styles.previewRing}>
@@ -231,15 +233,15 @@ export default function RegistroProfesionalScreen({ navigation: _navigation }: P
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={[styles.previewName, !nameOk && styles.previewPlaceholder]}>
-                  {nameOk ? nombre.trim() : 'Tu nombre y apellidos'}
+                  {nameOk ? nombre.trim() : t.registroProfesional.tuNombreApellidos}
                 </Text>
                 <View style={styles.previewMetaRow}>
                   <View style={[styles.previewRoleChip, roleOk && styles.previewRoleChipActive]}>
                     <Text style={[styles.previewRoleText, roleOk && styles.previewRoleTextActive]}>
-                      {selectedRole ? `${selectedRole.emoji} ${selectedRole.label}` : 'Elige tu rol'}
+                      {selectedRole ? `${selectedRole.emoji} ${selectedRole.label}` : t.registroProfesional.eligeTuRol}
                     </Text>
                   </View>
-                  {colegiado.trim() ? <Text style={styles.previewLicense}>Col. {colegiado.trim()}</Text> : null}
+                  {colegiado.trim() ? <Text style={styles.previewLicense}>{t.registroProfesional.col} {colegiado.trim()}</Text> : null}
                 </View>
               </View>
             </View>
@@ -248,18 +250,20 @@ export default function RegistroProfesionalScreen({ navigation: _navigation }: P
           {/* ----- formulario ----- */}
           <View style={styles.formCard}>
             <Text style={styles.fieldLabel}>
-              Nombre y apellidos <Text style={styles.fieldRequired}>*</Text>
+              
+              {t.registroProfesional.nombreApellidos} <Text style={styles.fieldRequired}>*</Text>
             </Text>
             <TextInput
               style={styles.input}
-              placeholder="Ej. Elena Ruiz Soto"
+              placeholder={t.registroProfesional.ejElenaRuizSoto}
               placeholderTextColor="#B8B2A7"
               value={nombre}
               onChangeText={setNombre}
             />
 
             <Text style={[styles.fieldLabel, { marginTop: 16 }]}>
-              Rol profesional <Text style={styles.fieldRequired}>*</Text>
+              
+              {t.registroProfesional.rolProfesional} <Text style={styles.fieldRequired}>*</Text>
             </Text>
             <View style={styles.rolesWrap}>
               {ROLES.map(r => {
@@ -276,11 +280,12 @@ export default function RegistroProfesionalScreen({ navigation: _navigation }: P
             </View>
 
             <Text style={[styles.fieldLabel, { marginTop: 16 }]}>
-              Email <Text style={styles.fieldRequired}>*</Text>
+              
+              {t.registroProfesional.email} <Text style={styles.fieldRequired}>*</Text>
             </Text>
             <TextInput
               style={styles.input}
-              placeholder="nombre@centro.es"
+              placeholder={t.registroProfesional.nombreCentro}
               placeholderTextColor="#B8B2A7"
               value={email}
               onChangeText={setEmail}
@@ -290,11 +295,12 @@ export default function RegistroProfesionalScreen({ navigation: _navigation }: P
             />
 
             <Text style={[styles.fieldLabel, { marginTop: 16 }]}>
-              Contraseña <Text style={styles.fieldRequired}>*</Text>
+              
+              {t.registroProfesional.contrasena} <Text style={styles.fieldRequired}>*</Text>
             </Text>
             <TextInput
               style={styles.input}
-              placeholder="Mínimo 6 caracteres"
+              placeholder={t.registroProfesional.minimo6Caracteres}
               placeholderTextColor="#B8B2A7"
               value={password}
               onChangeText={setPassword}
@@ -304,7 +310,7 @@ export default function RegistroProfesionalScreen({ navigation: _navigation }: P
 
             <View style={styles.row}>
               <View style={{ flex: 1 }}>
-                <Text style={styles.fieldLabel}>Nº colegiado · opcional</Text>
+                <Text style={styles.fieldLabel}>{t.registroProfesional.nColegiadoOpcional}</Text>
                 <TextInput
                   style={styles.input}
                   placeholder="28/1234"
@@ -315,10 +321,10 @@ export default function RegistroProfesionalScreen({ navigation: _navigation }: P
               </View>
             </View>
 
-            <Text style={[styles.fieldLabel, { marginTop: 16 }]}>Centro de trabajo · opcional</Text>
+            <Text style={[styles.fieldLabel, { marginTop: 16 }]}>{t.registroProfesional.centroTrabajoOpcional}</Text>
             <TextInput
               style={styles.input}
-              placeholder="Hospital / Centro de salud"
+              placeholder={t.registroProfesional.hospitalCentroSalud}
               placeholderTextColor="#B8B2A7"
               value={centro}
               onChangeText={setCentro}
@@ -327,8 +333,8 @@ export default function RegistroProfesionalScreen({ navigation: _navigation }: P
             <View style={styles.hint}>
               <Text style={styles.hintEmoji}>💡</Text>
               <Text style={styles.hintText}>
-                Este registro se realiza una sola vez y crea tu cuenta segura. Después bastará con tocar tu perfil e
-                introducir tu contraseña en la pantalla de acceso.
+                
+                {t.registroProfesional.esteRegistroRealizaSolaVez}
               </Text>
             </View>
           </View>
@@ -341,7 +347,7 @@ export default function RegistroProfesionalScreen({ navigation: _navigation }: P
             <View style={[styles.progressSeg, roleOk && styles.progressSegDone]} />
             <View style={[styles.progressSeg, emailOk && styles.progressSegDone]} />
             <View style={[styles.progressSeg, passwordOk && styles.progressSegDone]} />
-            <Text style={styles.progressText}>{requiredCount}/4 obligatorios</Text>
+            <Text style={styles.progressText}>{requiredCount}{t.registroProfesional.n4Obligatorios}</Text>
           </View>
           <Pressable
             disabled={!ready || isSaving}
@@ -355,7 +361,7 @@ export default function RegistroProfesionalScreen({ navigation: _navigation }: P
               <ActivityIndicator color="#FFFFFF" />
             ) : (
               <>
-                <Text style={styles.buttonText}>Guardar y continuar</Text>
+                <Text style={styles.buttonText}>{t.registroProfesional.guardarContinuar}</Text>
                 <Text style={styles.buttonArrow}>→</Text>
               </>
             )}

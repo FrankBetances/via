@@ -35,6 +35,7 @@ import { ClinicalAssessmentRepository } from '@/Repositories/ClinicalAssessmentR
 import { showErrorToast, showSuccessToast } from '@/Helpers/showToast';
 import { writeWithVerify } from '@/Helpers/dbWrite';
 
+import { useT } from '@/I18n';
 /* -------------------------------------------------------------------------- */
 /*  ConsentimientoScreen — consentimiento informado BLOQUEANTE.               */
 /*  Flujo: RegistroPaciente → AQUÍ → CAP (o exploración de disfagia).          */
@@ -90,6 +91,7 @@ function ageFromDob(isoDob: string | null | undefined): number | null {
 /* --------------------------------- Pantalla -------------------------------- */
 
 export default function ConsentimientoScreen({ navigation, route }: Props) {
+  const t = useT();
   const next = route.params?.next ?? 'cap';
   const activeEvaluation = useSelector((state: RootState) => state.activeEvaluation.evaluation);
 
@@ -310,16 +312,18 @@ export default function ConsentimientoScreen({ navigation, route }: Props) {
             <VStack>
               <HStack alignItems="center" space="sm">
                 <Text size="2xl" weight="bold" color="$textLight900">
-                  Consentimiento informado
+                  
+                  {t.consentimiento.consentimientoInformado}
                 </Text>
                 <Box bg="$primary50" px="$2" py="$0.5" borderRadius="$full">
                   <Text size="2xs" weight="bold" color="$primary800" style={{ letterSpacing: 0.4 }}>
-                    OBLIGATORIO
+                    
+                    {t.consentimiento.obligatorio}
                   </Text>
                 </Box>
               </HStack>
               <Text size="xs" color="$textLight500">
-                {patientName ? `Paciente: ${patientName}` : 'Debe firmarse antes de iniciar las pruebas'}
+                {patientName ? t.consentimiento.paciente(patientName) : t.consentimiento.debeFirmarseAntesIniciarPruebas}
               </Text>
             </VStack>
 
@@ -369,7 +373,8 @@ export default function ConsentimientoScreen({ navigation, route }: Props) {
                   </Center>
                   <VStack style={{ flex: 1 }}>
                     <Text size="md" weight="bold" color="$textLight900">
-                      Consentimiento ya firmado
+                      
+                      {t.consentimiento.consentimientoYaFirmado}
                     </Text>
                     <Text size="2xs" color="$textLight500">
                       {new Date(existingConsent.signedAt).toLocaleString('es-ES')}
@@ -377,14 +382,16 @@ export default function ConsentimientoScreen({ navigation, route }: Props) {
                   </VStack>
                 </HStack>
                 <Text size="sm" color="$textLight700" mb="$4" style={{ lineHeight: 20 }}>
-                  Firmado por <Text size="sm" weight="bold" color="$textLight900">{existingConsent.signerName}</Text>
+                  
+                  {t.consentimiento.firmado} <Text size="sm" weight="bold" color="$textLight900">{existingConsent.signerName}</Text>
                   {existingConsent.signerRelation ? ` (${existingConsent.signerRelation})` : ''} —{' '}
                   {signerTypeLabel(existingConsent.signerType)}.
                 </Text>
                 <Button action="primary" variant="solid" rounded="$full" onPress={() => goNext(activeEvaluation?.id ?? null)}>
                   <HStack space="sm" alignItems="center">
                     <Text size="md" weight="bold" color="$white">
-                      Continuar
+                      
+                      {t.consentimiento.continuar}
                     </Text>
                     <Icon as={ArrowRight} size="sm" color="$white" />
                   </HStack>
@@ -400,10 +407,12 @@ export default function ConsentimientoScreen({ navigation, route }: Props) {
                     </Center>
                     <VStack style={{ flex: 1 }}>
                       <Text size="md" weight="bold" color="$textLight900">
-                        Información de la evaluación
+                        
+                        {t.consentimiento.informacionEvaluacion}
                       </Text>
                       <Text size="2xs" color="$textLight500">
-                        Versión del documento {CONSENT_VERSION}
+                        
+                        {t.consentimiento.versionDocumento} {CONSENT_VERSION}
                       </Text>
                     </VStack>
                   </HStack>
@@ -424,16 +433,17 @@ export default function ConsentimientoScreen({ navigation, route }: Props) {
                     </Center>
                     <VStack style={{ flex: 1 }}>
                       <Text size="md" weight="bold" color="$textLight900">
-                        Persona que firma
+                        
+                        {t.consentimiento.personaFirma}
                       </Text>
                       <Text size="2xs" color="$textLight500">
                         {isLoading
-                          ? 'Comprobando la edad del paciente…'
+                          ? t.consentimiento.comprobandoEdadPaciente
                           : isMinor === true
-                            ? 'Paciente menor de edad: firma su padre/madre o tutor legal'
+                            ? t.consentimiento.pacienteMenorEdadFirmaPadre
                             : isMinor === false
-                              ? 'Paciente mayor de edad'
-                              : 'No se pudo determinar la edad del paciente'}
+                              ? t.consentimiento.pacienteMayorEdad
+                              : t.consentimiento.pudoDeterminarEdadPaciente}
                       </Text>
                     </VStack>
                   </HStack>
@@ -469,24 +479,25 @@ export default function ConsentimientoScreen({ navigation, route }: Props) {
                   {signerType === 'family' ? (
                     <HStack space="sm" alignItems="flex-start" p="$3" borderRadius={14} bg="$warning50" mb="$4">
                       <Text size="xs" color="$warning800" style={{ flex: 1, lineHeight: 17 }}>
-                        Firma en representación de un adulto que no puede hacerlo por sí mismo (p. ej.,
-                        trastorno neurodegenerativo o incapacidad para firmar). Indique el motivo: quedará
-                        registrado en el consentimiento.
+                        
+                        {t.consentimiento.firmaRepresentacionAdultoPuedeHacerlo}
                       </Text>
                     </HStack>
                   ) : null}
 
                   <Text size="xs" weight="semiBold" color="$textLight600" mb="$1.5">
-                    Nombre y apellidos de quien firma
+                    
+                    {t.consentimiento.nombreApellidosQuienFirma}
                   </Text>
                   <Input variant="outline" borderRadius={12} mb="$4">
-                    <InputField placeholder="Nombre completo" value={signerName} onChangeText={setSignerName} />
+                    <InputField placeholder={t.consentimiento.nombreCompleto} value={signerName} onChangeText={setSignerName} />
                   </Input>
 
                   {needsRelation ? (
                     <>
                       <Text size="xs" weight="semiBold" color="$textLight600" mb="$1.5">
-                        Relación con el paciente
+                        
+                        {t.consentimiento.relacionPaciente}
                       </Text>
                       {signerType === 'guardian' ? (
                         <HStack space="sm" mb="$4">
@@ -512,7 +523,7 @@ export default function ConsentimientoScreen({ navigation, route }: Props) {
                       ) : (
                         <Input variant="outline" borderRadius={12} mb="$4">
                           <InputField
-                            placeholder="Cónyuge, hijo/a, tutor/a…"
+                            placeholder={t.consentimiento.conyugeHijoTutor}
                             value={signerRelation}
                             onChangeText={setSignerRelation}
                           />
@@ -524,12 +535,13 @@ export default function ConsentimientoScreen({ navigation, route }: Props) {
                   {needsReason ? (
                     <>
                       <Text size="xs" weight="semiBold" color="$textLight600" mb="$1.5">
-                        Motivo por el que el paciente no firma
+                        
+                        {t.consentimiento.motivoPacienteFirma}
                       </Text>
                       <Input variant="outline" borderRadius={12} h={70} mb="$1">
                         <InputField
                           multiline
-                          placeholder="P. ej., enfermedad de Alzheimer en fase moderada; incapacidad motora para firmar…"
+                          placeholder={t.consentimiento.pEjEnfermedadAlzheimerFase}
                           value={incapacityReason}
                           onChangeText={setIncapacityReason}
                           style={{ textAlignVertical: 'top' }}
@@ -542,7 +554,8 @@ export default function ConsentimientoScreen({ navigation, route }: Props) {
                 {/* --------- declaraciones + firma --------- */}
                 <Card bgColor="$white" borderRadius={22} p="$5">
                   <Text size="md" weight="bold" color="$textLight900" mb="$3">
-                    Declaración y firma
+                    
+                    {t.consentimiento.declaracionFirma}
                   </Text>
 
                   <VStack space="sm" mb="$4">
@@ -575,7 +588,8 @@ export default function ConsentimientoScreen({ navigation, route }: Props) {
                   </VStack>
 
                   <Text size="xs" weight="semiBold" color="$textLight600" mb="$1.5">
-                    Firma
+                    
+                    {t.consentimiento.firma}
                   </Text>
                   <SignaturePad
                     paths={signaturePaths}
@@ -594,13 +608,14 @@ export default function ConsentimientoScreen({ navigation, route }: Props) {
                   onPress={handleSign}>
                   <HStack space="sm" alignItems="center">
                     <Text size="md" weight="bold" color="$white">
-                      {next === 'dysphagia' ? 'Firmar y continuar a disfagia' : 'Firmar y continuar al CAP'}
+                      {next === 'dysphagia' ? t.consentimiento.firmarContinuarDisfagia : t.consentimiento.firmarContinuarCap}
                     </Text>
                     <Icon as={ArrowRight} size="sm" color="$white" />
                   </HStack>
                 </Button>
                 <Text size="2xs" color="$textLight400" style={{ textAlign: 'center' }} mb="$6">
-                  Sin consentimiento firmado no es posible iniciar las pruebas
+                  
+                  {t.consentimiento.sinConsentimientoFirmadoPosibleIniciar}
                 </Text>
               </>
             )}

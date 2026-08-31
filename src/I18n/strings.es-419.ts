@@ -67,4 +67,33 @@ export const ES_419: UiStrings = {
     n100OnDeviceZeroPhi: '100% en el dispositivo · Zero-PHI',
     dspAcusticoLocalSinSubida: 'DSP acústico local sin subir audio a la nube. Privacidad total y cumplimiento normativo estricto.',
   },
+  registroProfesional: {
+    ...ES.registroProfesional,
+    nombreCentro: 'nombre@centro.com',
+    nColegiadoOpcional: 'N.º de registro profesional · opcional',
+    esteRegistroRealizaSolaVez: 'Este registro se realiza una sola vez y crea tu cuenta segura. Después bastará con tocar tu perfil e ingresar tu contraseña en la pantalla de acceso.',
+  },
+
+  registroPaciente: {
+    ...ES.registroPaciente,
+    numeroHistoriaClinicaNhc: 'Número de historia clínica (NHC)',
+    lenguaMaterna: 'Lengua materna',
+  },
+
+  pacientes: {
+    ...ES.pacientes,
+    cerrarSesion: 'Cerrar la sesión',
+    buscarNombreNhc: 'Buscar por nombre o NHC…',
+  },
+
+  historialPaciente: {
+    ...ES.historialPaciente,
+    estePacienteTodaviaTieneNinguna: 'Este paciente todavía no tiene ninguna evaluación. Ábralo desde la lista de pacientes para iniciar una.',
+  },
+
+  consentimiento: {
+    ...ES.consentimiento,
+    pacienteMenorEdadFirmaPadre: 'Paciente menor de edad: firma su padre, madre o tutor legal',
+    conyugeHijoTutor: 'Cónyuge, hijo/a, tutor/a…',
+  },
 };

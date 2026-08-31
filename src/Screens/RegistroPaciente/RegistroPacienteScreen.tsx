@@ -18,6 +18,7 @@ import { EvaluationRepository } from '@/Repositories/EvaluationRepository';
 import { showErrorToast, showSuccessToast } from '@/Helpers/showToast';
 import { writeWithVerify } from '@/Helpers/dbWrite';
 
+import { useT } from '@/I18n';
 /* -------------------------------------------------------------------------- */
 /*  RegistroPacienteScreen — alta sociodemográfica de un paciente nuevo       */
 /*  (mockup `Registro Paciente.dc.html`). Al confirmar: crea `Patient` +      */
@@ -72,6 +73,7 @@ function computeAgeLabel(isoDob: string): string {
 }
 
 export default function RegistroPacienteScreen({ navigation }: Props) {
+  const t = useT();
   const dispatch = useDispatch<AppDispatch>();
   const currentProfessional = useSelector((state: RootState) => state.auth.currentProfessional);
 
@@ -207,10 +209,12 @@ export default function RegistroPacienteScreen({ navigation }: Props) {
               {/* ----- title + stepper ----- */}
               <VStack>
                 <Text size="2xl" weight="bold" color="$textLight900">
-                  Nuevo paciente
+                  
+                  {t.registroPaciente.nuevoPaciente}
                 </Text>
                 <Text size="xs" color="$textLight500">
-                  Registro sociodemográfico para esta sesión
+                  
+                  {t.registroPaciente.registroSociodemograficoEstaSesion}
                 </Text>
               </VStack>
 
@@ -241,28 +245,30 @@ export default function RegistroPacienteScreen({ navigation }: Props) {
               {/* ----- form card ----- */}
               <Card bgColor="$white" borderRadius={22} p="$5">
                 <Text size="xs" weight="semiBold" color="$textLight600" mb="$1.5">
-                  Nombre y apellidos
+                  
+                  {t.registroPaciente.nombreApellidos}
                 </Text>
                 <HStack space="sm" mb="$4">
                   <Input variant="outline" borderRadius={12} style={{ flex: 1 }}>
-                    <InputField placeholder="Nombre" value={nombre} onChangeText={setNombre} />
+                    <InputField placeholder={t.registroPaciente.nombre} value={nombre} onChangeText={setNombre} />
                   </Input>
                   <Input variant="outline" borderRadius={12} style={{ flex: 1 }}>
-                    <InputField placeholder="Apellidos" value={lastName} onChangeText={setLastName} />
+                    <InputField placeholder={t.registroPaciente.apellidos} value={lastName} onChangeText={setLastName} />
                   </Input>
                 </HStack>
 
                 <HStack space="sm" mb={fnac.trim() && !fnacValid ? '$1.5' : '$4'}>
                   <VStack style={{ flex: 1 }}>
                     <Text size="xs" weight="semiBold" color="$textLight600" mb="$1.5">
-                      Fecha de nacimiento
+                      
+                      {t.registroPaciente.fechaNacimiento}
                     </Text>
                     <Input
                       variant="outline"
                       borderRadius={12}
                       borderColor={fnac.trim() && !fnacValid ? '$error600' : undefined}>
                       <InputField
-                        placeholder="AAAA-MM-DD"
+                        placeholder={t.registroPaciente.aaaaMmDd}
                         value={fnac}
                         onChangeText={setFnac}
                         keyboardType="numbers-and-punctuation"
@@ -272,7 +278,8 @@ export default function RegistroPacienteScreen({ navigation }: Props) {
                   </VStack>
                   <VStack style={{ flex: 1 }}>
                     <Text size="xs" weight="semiBold" color="$textLight600" mb="$1.5">
-                      Edad
+                      
+                      {t.registroPaciente.edad}
                     </Text>
                     <Box borderRadius={12} borderWidth={1} borderColor="$borderLight200" bg="$backgroundLight50" px="$3" py="$2.5">
                       <Text size="sm" color="$textLight600" style={{ fontVariant: ['tabular-nums'] }}>
@@ -283,12 +290,14 @@ export default function RegistroPacienteScreen({ navigation }: Props) {
                 </HStack>
                 {fnac.trim() && !fnacValid ? (
                   <Text size="2xs" color="$error600" mb="$4">
-                    Introduce una fecha válida con formato AAAA-MM-DD (no futura).
+                    
+                    {t.registroPaciente.introduceFechaValidaFormatoAaaa}
                   </Text>
                 ) : null}
 
                 <Text size="xs" weight="semiBold" color="$textLight600" mb="$1.5">
-                  Sexo
+                  
+                  {t.registroPaciente.sexo}
                 </Text>
                 <HStack space="sm" mb="$4">
                   {SEXOS.map(s => {
@@ -306,17 +315,19 @@ export default function RegistroPacienteScreen({ navigation }: Props) {
                 </HStack>
 
                 <Text size="xs" weight="semiBold" color="$textLight600" mb="$1.5">
-                  Número de historia clínica (NHC)
+                  
+                  {t.registroPaciente.numeroHistoriaClinicaNhc}
                 </Text>
                 <Input variant="outline" borderRadius={12} mb="$4">
                   <InputField placeholder="PT-0000" value={nhc} onChangeText={setNhc} style={{ fontVariant: ['tabular-nums'] }} />
                 </Input>
 
                 <Text size="xs" weight="semiBold" color="$textLight600" mb="$1.5">
-                  Lengua materna
+                  
+                  {t.registroPaciente.lenguaMaterna}
                 </Text>
                 <Input variant="outline" borderRadius={12}>
-                  <InputField placeholder="Español" value={lengua} onChangeText={setLengua} />
+                  <InputField placeholder={t.registroPaciente.espanol} value={lengua} onChangeText={setLengua} />
                 </Input>
               </Card>
 
@@ -325,12 +336,13 @@ export default function RegistroPacienteScreen({ navigation }: Props) {
               {/* ----- footer ----- */}
               <VStack space="xs" mb="$6" mt="$3">
                 <Text size="2xs" color="$textLight400" style={{ textAlign: 'center' }}>
-                  {requiredCount}/4 campos obligatorios completados
+                  {requiredCount}{t.registroPaciente.n4CamposObligatoriosCompletados}
                 </Text>
                 <Button action="primary" variant="solid" rounded="$full" isDisabled={!ready || isSaving} isLoading={isSaving} onPress={() => handleSubmit('cap')}>
                   <HStack space="sm" alignItems="center">
                     <Text size="md" weight="bold" color="$white">
-                      Continuar al consentimiento
+                      
+                      {t.registroPaciente.continuarConsentimiento}
                     </Text>
                     <Icon as={ArrowRight} size="sm" color="$white" />
                   </HStack>
@@ -351,12 +363,14 @@ export default function RegistroPacienteScreen({ navigation }: Props) {
                     style={{ opacity: ready && !isSaving ? 1 : 0.5 }}>
                     <Text size="lg">💧</Text>
                     <Text size="sm" weight="bold" color={ready && !isSaving ? '$info700' : '$textLight400'}>
-                      Ir directo a exploración de disfagia
+                      
+                      {t.registroPaciente.irDirectoExploracionDisfagia}
                     </Text>
                   </HStack>
                 </Pressable>
                 <Text size="2xs" color="$textLight400" style={{ textAlign: 'center' }}>
-                  La disfagia no requiere CAP ni sonómetro de sala (el consentimiento sí)
+                  
+                  {t.registroPaciente.disfagiaRequiereCapNiSonometro}
                 </Text>
               </VStack>
             </VStack>
