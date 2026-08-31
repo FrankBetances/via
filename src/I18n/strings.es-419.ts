@@ -157,4 +157,21 @@ export const ES_419: UiStrings = {
     nivelOrientativoPresentacionAltavozEsta: '⚠️ Nivel orientativo: la presentación por bocina no está calibrada clínicamente. La salida robusta es el % de discriminación a voz conversacional. Resultado binaural (mejor oído): no descarta pérdida unilateral.',
     colegiado: 'Registro profesional',
   },
+  voiceAnalysis: {
+    ...ES.voiceAnalysis,
+    grabando: 'GRABANDO',
+    medidasTomadasMicrofonoDispositivoSin: 'Medidas tomadas con el micrófono del dispositivo, sin calibración acústica certificada y sin baremo poblacional infantil: son descriptivas y no constituyen por sí solas un juicio de normalidad. La comparación válida es con tomas anteriores del mismo niño en las mismas condiciones. No sustituyen la valoración perceptiva del fonoaudiólogo.',
+    colegiado: 'Registro profesional',
+  },
+
+  audiometry: {
+    ...ES.audiometry,
+    colegiado: 'Registro profesional',
+  },
+
+  audiometryConditioned: {
+    ...ES.audiometryConditioned,
+    aconsejaDerivacionOrlAudiologiaAudiometria: '. Se aconseja derivación a otorrinolaringología / audiología para audiometría clínica con audífonos.',
+    colegiado: 'Registro profesional',
+  },
 };

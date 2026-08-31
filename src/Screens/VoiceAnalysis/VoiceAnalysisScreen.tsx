@@ -40,6 +40,7 @@ import { useVoiceAnalysis, VoiceTake } from './useVoiceAnalysis';
 import { registerVoiceMicAdapter, unregisterVoiceMicAdapter } from './voiceMicAdapter';
 import { LuaCompanionWidget } from '@/Components/Mascot/LuaCompanionWidget';
 import { useLuaCompanion, LuaEmotion } from '@/Lua';
+import { useT } from '@/I18n';
 import {
   buildInterpretation,
   GRBAS_DIMENSIONS,
@@ -106,6 +107,7 @@ const grbasComplete = (d: GrbasDraft): d is Record<keyof GrbasScores, number> =>
 /* --------------------------------- Pantalla -------------------------------- */
 
 export default function VoiceAnalysisScreen({ navigation }: Props) {
+  const t = useT();
   const activeEvaluation = useClassSelector(Evaluation, (state: RootState) => state.activeEvaluation.evaluation);
   const [createVoiceAnalysis, { isLoading: isSaving }] = useCreateVoiceAnalysisMutation();
   const voice = useVoiceAnalysis();
@@ -246,12 +248,14 @@ export default function VoiceAnalysisScreen({ navigation }: Props) {
           <VStack style={{ flex: 1 }}>
             <HStack alignItems="center" space="xs">
               <Text size="sm" weight="bold" color="$textLight900">
-                Toma {index + 1}
+                
+                {t.voiceAnalysis.toma} {index + 1}
               </Text>
               {isAnalyzed ? (
                 <Box bg="$success50" px="$1.5" py="$0.5" borderRadius="$full">
                   <Text size="2xs" weight="bold" color="$success600">
-                    ANALIZADA
+                    
+                    {t.voiceAnalysis.analizada}
                   </Text>
                 </Box>
               ) : null}
@@ -350,11 +354,13 @@ export default function VoiceAnalysisScreen({ navigation }: Props) {
             <VStack>
               <HStack alignItems="center" space="sm">
                 <Text size="2xl" weight="bold" color="$textLight900">
-                  Análisis acústico de voz
+                  
+                  {t.voiceAnalysis.analisisAcusticoVoz}
                 </Text>
                 <Box bg="$primary50" px="$2" py="$0.5" borderRadius="$full">
                   <Text size="2xs" weight="bold" color="$primary800" style={{ letterSpacing: 0.4 }}>
-                    ESPECTROGRAFÍA
+                    
+                    {t.voiceAnalysis.espectrografia}
                   </Text>
                 </Box>
               </HStack>
@@ -387,16 +393,18 @@ export default function VoiceAnalysisScreen({ navigation }: Props) {
                 </Center>
                 <VStack style={{ flex: 1 }}>
                   <Text size="md" weight="bold" color="$textLight900">
-                    Captura de voz
+                    
+                    {t.voiceAnalysis.capturaVoz}
                   </Text>
                   <Text size="2xs" color="$textLight500">
-                    {voice.hasMic ? 'Micrófono disponible' : 'Micrófono no disponible en este dispositivo'}
+                    {voice.hasMic ? t.voiceAnalysis.microfonoDisponible : t.voiceAnalysis.microfonoDisponibleEsteDispositivo}
                   </Text>
                 </VStack>
                 {voice.isRecording ? (
                   <Box bg="$error50" px="$2.5" py="$1" borderRadius="$full">
                     <Text size="2xs" weight="bold" color="$error600">
-                      GRABANDO
+                      
+                      {t.voiceAnalysis.grabando}
                     </Text>
                   </Box>
                 ) : null}
@@ -404,9 +412,8 @@ export default function VoiceAnalysisScreen({ navigation }: Props) {
 
               <HStack space="sm" alignItems="flex-start" p="$3" borderRadius={14} bg="$primary0" mb="$4">
                 <Text size="xs" color="$primary800" style={{ flex: 1, lineHeight: 18 }}>
-                  Pida al niño/a que emita la vocal <Text weight="bold" size="xs" color="$primary800">«A»</Text> sostenida a un
-                  tono e intensidad cómodos durante 5 segundos, con el micrófono a unos 10 cm. Puede grabar
-                  varias tomas y elegir después cuál analizar.
+                  
+                  {t.voiceAnalysis.pidaNinoEmitaVocal} <Text weight="bold" size="xs" color="$primary800">«A»</Text>  {t.voiceAnalysis.sostenidaTonoEIntensidadComodos}
                 </Text>
               </HStack>
 
@@ -414,7 +421,8 @@ export default function VoiceAnalysisScreen({ navigation }: Props) {
               <HStack space="md" mb="$4">
                 <VStack style={{ flex: 1 }}>
                   <Text size="2xs" color="$textLight500">
-                    PITCH EN VIVO
+                    
+                    {t.voiceAnalysis.pitchVivo}
                   </Text>
                   <Text size="xl" weight="bold" color="$primary600" style={{ fontVariant: ['tabular-nums'] }}>
                     {voice.liveF0 ? `${voice.liveF0} Hz` : '— Hz'}
@@ -422,7 +430,8 @@ export default function VoiceAnalysisScreen({ navigation }: Props) {
                 </VStack>
                 <VStack style={{ flex: 1, justifyContent: 'center' }}>
                   <Text size="2xs" color="$textLight500" mb="$1">
-                    NIVEL DE SEÑAL
+                    
+                    {t.voiceAnalysis.nivelSenal}
                   </Text>
                   <Box h={8} borderRadius="$full" bg="$backgroundLight100" style={{ overflow: 'hidden' }}>
                     <View
@@ -465,7 +474,7 @@ export default function VoiceAnalysisScreen({ navigation }: Props) {
                   <HStack space="sm" alignItems="center">
                     <Icon as={Mic} size="sm" color="$white" />
                     <Text size="sm" weight="bold" color="$white">
-                      {voice.takes.length ? 'Grabar otra toma' : 'Grabar voz'}
+                      {voice.takes.length ? t.voiceAnalysis.grabarOtraToma : t.voiceAnalysis.grabarVoz}
                     </Text>
                   </HStack>
                 </Button>
@@ -480,15 +489,16 @@ export default function VoiceAnalysisScreen({ navigation }: Props) {
               <Card bgColor="$white" borderRadius={22} p="$5">
                 <HStack alignItems="center" justifyContent="space-between" mb="$3">
                   <Text size="md" weight="bold" color="$textLight900">
-                    Grabaciones
+                    
+                    {t.voiceAnalysis.grabaciones}
                   </Text>
                   <Text size="2xs" color="$textLight500">
-                    {voice.takes.length} {voice.takes.length === 1 ? 'toma' : 'tomas'}
+                    {voice.takes.length} {voice.takes.length === 1 ? t.voiceAnalysis.toma2 : t.voiceAnalysis.tomas}
                   </Text>
                 </HStack>
                 <Text size="2xs" color="$textLight500" mb="$3">
-                  Reproduzca las tomas, seleccione la de mejor calidad y pulse «Analizar». La escucha
-                  también sirve para la valoración perceptual GRBAS.
+                  
+                  {t.voiceAnalysis.reproduzcaTomasSeleccioneMejorCalidad}
                 </Text>
 
                 <VStack space="sm" mb="$4">
@@ -510,10 +520,10 @@ export default function VoiceAnalysisScreen({ navigation }: Props) {
                     {voice.isAnalyzing ? <Spinner size="small" color="$white" /> : <Icon as={Activity} size="sm" color="$white" />}
                     <Text size="sm" weight="bold" color="$white">
                       {voice.isAnalyzing
-                        ? 'Analizando…'
+                        ? t.voiceAnalysis.analizando
                         : selectedTake
-                          ? `Analizar toma ${voice.takes.indexOf(selectedTake) + 1}`
-                          : 'Analizar toma'}
+                          ? t.voiceAnalysis.analizarToma(voice.takes.indexOf(selectedTake) + 1)
+                          : t.voiceAnalysis.analizarToma2}
                     </Text>
                   </HStack>
                 </Button>
@@ -527,26 +537,29 @@ export default function VoiceAnalysisScreen({ navigation }: Props) {
                   <Icon as={AlertTriangle} size="sm" color="$warning600" style={{ marginTop: 2 }} />
                   <VStack style={{ flex: 1 }}>
                     <Text size="sm" weight="bold" color="$warning800">
-                      Captura insuficiente
+                      
+                      {t.voiceAnalysis.capturaInsuficiente}
                     </Text>
                     <Text size="xs" color="$warning800" style={{ lineHeight: 17 }}>
-                      No se detectó suficiente voz sonora para calcular los parámetros. Acerque el micrófono
-                      (~10 cm), pida una «A» sostenida y firme, y grabe una nueva toma.
+                      
+                      {t.voiceAnalysis.detectoSuficienteVozSonoraCalcular}
                     </Text>
                     {voice.insufficientReason ? (
                       <Text size="xs" weight="bold" color="$warning800" mt="$1" style={{ lineHeight: 17 }}>
-                        Detalle: {voice.insufficientReason}
+                        
+                        {t.voiceAnalysis.detalle} {voice.insufficientReason}
                       </Text>
                     ) : null}
                     <Text size="xs" color="$warning800" mt="$1" style={{ lineHeight: 17 }}>
-                      Si el análisis sigue fallando, puede completar la valoración perceptual
-                      GRBAS escuchando las tomas y cerrar la prueba manualmente con su firma.
+                      
+                      {t.voiceAnalysis.analisisSigueFallandoPuedeCompletar}
                     </Text>
                     <Pressable onPress={voice.startRecording} style={{ marginTop: 8 }}>
                       <HStack space="xs" alignItems="center">
                         <Icon as={RotateCcw} size="xs" color="$warning700" />
                         <Text size="xs" weight="bold" color="$warning700">
-                          Repetir grabación
+                          
+                          {t.voiceAnalysis.repetirGrabacion}
                         </Text>
                       </HStack>
                     </Pressable>
@@ -560,7 +573,8 @@ export default function VoiceAnalysisScreen({ navigation }: Props) {
                   <Icon as={AlertTriangle} size="sm" color="$error600" style={{ marginTop: 2 }} />
                   <VStack style={{ flex: 1 }}>
                     <Text size="sm" weight="bold" color="$error700">
-                      No se pudo grabar
+                      
+                      {t.voiceAnalysis.pudoGrabar}
                     </Text>
                     <Text size="xs" color="$error700" style={{ lineHeight: 17 }}>
                       {voice.errorMsg ?? 'Error desconocido del motor de audio.'}
@@ -575,7 +589,8 @@ export default function VoiceAnalysisScreen({ navigation }: Props) {
               <Card bgColor="$white" borderRadius={20} p="$5">
                 <HStack alignItems="center" justifyContent="space-between" mb="$1">
                   <Text size="sm" weight="bold" color="$textLight700" style={{ letterSpacing: 0.3 }}>
-                    VALORACIÓN PERCEPTUAL · GRBAS
+                    
+                    {t.voiceAnalysis.valoracionPerceptualGrbas}
                   </Text>
                   {grbasScores ? (
                     <Box bg="$primary50" px="$2" py="$0.5" borderRadius="$full">
@@ -586,7 +601,8 @@ export default function VoiceAnalysisScreen({ navigation }: Props) {
                   ) : null}
                 </HStack>
                 <Text size="2xs" color="$textLight500" mb="$3">
-                  Escuche la toma y puntúe cada dimensión de 0 (normal) a 3 (severo).
+                  
+                  {t.voiceAnalysis.escucheTomaPuntueCadaDimension}
                 </Text>
 
                 <VStack space="md">
@@ -641,7 +657,8 @@ export default function VoiceAnalysisScreen({ navigation }: Props) {
                   </Box>
                 ) : (
                   <Text size="2xs" color="$textLight400" mt="$3">
-                    Puntúe las 5 dimensiones para incluir la escala en el informe (opcional).
+                    
+                    {t.voiceAnalysis.puntue5DimensionesIncluirEscala}
                   </Text>
                 )}
               </Card>
@@ -651,12 +668,12 @@ export default function VoiceAnalysisScreen({ navigation }: Props) {
             {r ? (
               <>
                 <HStack space="sm">
-                  <ParamCard label="F0 · PITCH MEDIO" value={`${r.f0} Hz`} norm="200–320 Hz" status={statusF0(r.f0)} />
-                  <ParamCard label="HNR" value={`${r.hnr} dB`} norm="> 20 dB" status={statusHnr(r.hnr)} />
+                  <ParamCard label={t.voiceAnalysis.f0PitchMedio} value={`${r.f0} Hz`} norm="200–320 Hz" status={statusF0(r.f0)} />
+                  <ParamCard label={t.voiceAnalysis.hnr} value={`${r.hnr} dB`} norm="> 20 dB" status={statusHnr(r.hnr)} />
                 </HStack>
                 <HStack space="sm">
-                  <ParamCard label="JITTER" value={`${r.jitter} %`} norm="< 1.0 %" status={statusJitter(r.jitter)} />
-                  <ParamCard label="SHIMMER" value={`${r.shimmer} %`} norm="< 3.0 %" status={statusShimmer(r.shimmer)} />
+                  <ParamCard label={t.voiceAnalysis.jitter} value={`${r.jitter} %`} norm="< 1.0 %" status={statusJitter(r.jitter)} />
+                  <ParamCard label={t.voiceAnalysis.shimmer} value={`${r.shimmer} %`} norm="< 3.0 %" status={statusShimmer(r.shimmer)} />
                 </HStack>
 
                 {/* Los límites de la medida constan en PANTALLA, no solo en el
@@ -666,18 +683,16 @@ export default function VoiceAnalysisScreen({ navigation }: Props) {
                     prosodia ya llevaba este aviso; el análisis acústico no. */}
                 <Box bg="$backgroundLight50" p="$3" borderRadius={12}>
                   <Text size="xs" color="$textLight600">
-                    Medidas tomadas con el micrófono del dispositivo, sin calibración acústica
-                    certificada y sin baremo poblacional infantil: son descriptivas y no
-                    constituyen por sí solas un juicio de normalidad. La comparación válida es con
-                    tomas anteriores del mismo niño en las mismas condiciones. No sustituyen la
-                    valoración perceptiva del logopeda.
+                    
+                    {t.voiceAnalysis.medidasTomadasMicrofonoDispositivoSin}
                   </Text>
                 </Box>
 
                 <Card bgColor="$white" borderRadius={20} p="$5">
                   <HStack justifyContent="space-between" alignItems="center" mb="$2">
                     <Text size="sm" weight="bold" color="$textLight700" style={{ letterSpacing: 0.3 }}>
-                      ESPACIO VOCÁLICO · F1 × F2
+                      
+                      {t.voiceAnalysis.espacioVocalicoF1F2}
                     </Text>
                   </HStack>
                   <VowelSpace f1={r.formants?.f1 ?? null} f2={r.formants?.f2 ?? null} />
@@ -695,16 +710,16 @@ export default function VoiceAnalysisScreen({ navigation }: Props) {
                     </HStack>
                   ) : (
                     <Text size="xs" color="$textLight500" mt="$3" style={{ lineHeight: 17 }}>
-                      Los formantes F1–F3 no pudieron estimarse en esta toma; el resto de
-                      parámetros (F0, jitter, shimmer, HNR) sí es válido. Puede grabar y
-                      analizar otra toma si necesita el espacio vocálico.
+                      
+                      {t.voiceAnalysis.formantesF1F3PudieronEstimarse}
                     </Text>
                   )}
                 </Card>
 
                 <Card bgColor="$white" borderRadius={20} p="$5">
                   <Text size="sm" weight="bold" color="$textLight700" mb="$2" style={{ letterSpacing: 0.3 }}>
-                    INTERPRETACIÓN CLÍNICA
+                    
+                    {t.voiceAnalysis.interpretacionClinica}
                   </Text>
                   <Text size="sm" color="$textLight700" style={{ lineHeight: 21 }}>
                     {interpretation}
@@ -717,12 +732,12 @@ export default function VoiceAnalysisScreen({ navigation }: Props) {
             {canCloseManually ? (
               <Card bgColor="$primary0" borderRadius={18} borderWidth={1} borderColor="$primary100" p="$4">
                 <Text size="sm" weight="bold" color="$primary800">
-                  Cierre manual de la prueba
+                  
+                  {t.voiceAnalysis.cierreManualPrueba}
                 </Text>
                 <Text size="xs" color="$primary800" mt="$1" style={{ lineHeight: 17 }}>
-                  El análisis acústico no está disponible, pero hay tomas grabadas y la
-                  valoración perceptual GRBAS está completa. Puede registrar la prueba
-                  igualmente: firme abajo para dejar constancia.
+                  
+                  {t.voiceAnalysis.analisisAcusticoEstaDisponiblePero}
                 </Text>
               </Card>
             ) : null}
@@ -731,12 +746,13 @@ export default function VoiceAnalysisScreen({ navigation }: Props) {
               <>
                 <Card bgColor="$white" borderRadius={20} p="$5">
                   <Text size="sm" weight="bold" color="$textLight700" mb="$2">
-                    Observaciones
+                    
+                    {t.voiceAnalysis.observaciones}
                   </Text>
                   <Input variant="outline" borderRadius={12} h={80}>
                     <InputField
                       multiline
-                      placeholder="Interpretación o notas sobre la calidad vocal…"
+                      placeholder={t.voiceAnalysis.interpretacionNotasSobreCalidadVocal}
                       value={notes}
                       onChangeText={setNotes}
                       style={{ textAlignVertical: 'top' }}
@@ -746,18 +762,20 @@ export default function VoiceAnalysisScreen({ navigation }: Props) {
 
                 <Card bgColor="$white" borderRadius={20} p="$5">
                   <Text size="sm" weight="bold" color="$textLight700" mb="$2">
-                    Evaluador responsable
+                    
+                    {t.voiceAnalysis.evaluadorResponsable}
                   </Text>
                   <HStack space="sm" mb="$3">
                     <Input variant="outline" borderRadius={12} style={{ flex: 2 }}>
-                      <InputField placeholder="Nombre" value={evaluatorName} onChangeText={setEvaluatorName} />
+                      <InputField placeholder={t.voiceAnalysis.nombre} value={evaluatorName} onChangeText={setEvaluatorName} />
                     </Input>
                     <Input variant="outline" borderRadius={12} style={{ flex: 1 }}>
-                      <InputField placeholder="Colegiado" value={evaluatorLicense} onChangeText={setEvaluatorLicense} />
+                      <InputField placeholder={t.voiceAnalysis.colegiado} value={evaluatorLicense} onChangeText={setEvaluatorLicense} />
                     </Input>
                   </HStack>
                   <Text size="xs" weight="bold" color="$textLight600" mb="$1">
-                    Firma del explorador{r ? ' (opcional)' : ''}
+                    
+                    {t.voiceAnalysis.firmaExplorador}{r ? t.voiceAnalysis.opcional : ''}
                   </Text>
                   <SignaturePad
                     paths={signaturePaths}
@@ -767,7 +785,8 @@ export default function VoiceAnalysisScreen({ navigation }: Props) {
                   />
                   {signatureMissing ? (
                     <Text size="2xs" color="$warning700" mt="$1">
-                      Para el cierre manual la firma es obligatoria: deja constancia de la prueba.
+                      
+                      {t.voiceAnalysis.cierreManualFirmaObligatoriaDeja}
                     </Text>
                   ) : null}
                 </Card>
@@ -782,7 +801,7 @@ export default function VoiceAnalysisScreen({ navigation }: Props) {
                   <HStack space="sm" alignItems="center">
                     <Icon as={Save} size="sm" color="$white" />
                     <Text size="sm" weight="bold" color="$white">
-                      {r ? 'Guardar análisis' : 'Registrar prueba con firma'}
+                      {r ? t.voiceAnalysis.guardarAnalisis : t.voiceAnalysis.registrarPruebaFirma}
                     </Text>
                   </HStack>
                 </Button>
@@ -793,8 +812,8 @@ export default function VoiceAnalysisScreen({ navigation }: Props) {
                   <Icon as={AudioWaveform} size="xl" color="$textLight300" />
                   <Text size="sm" color="$textLight400" mt="$2" style={{ textAlign: 'center' }}>
                     {voice.takes.length
-                      ? 'Seleccione una toma y pulse «Analizar» para obtener los parámetros acústicos. Si el análisis no funciona, complete la valoración GRBAS para poder cerrar la prueba manualmente con su firma.'
-                      : 'Grabe una o varias tomas de la vocal /a/ para empezar.'}
+                      ? t.voiceAnalysis.seleccioneTomaPulseAnalizarObtener
+                      : t.voiceAnalysis.grabeVariasTomasVocalEmpezar}
                   </Text>
                 </Center>
               </Card>

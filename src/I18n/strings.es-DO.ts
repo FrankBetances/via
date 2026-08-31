@@ -137,4 +137,20 @@ export const ES_DO: UiStrings = {
     tocaAltavozOirlaOtraVez: 'Toca la bocina para oírla otra vez (',
     colegiado: 'Exequátur',
   },
+  voiceAnalysis: {
+    ...ES.voiceAnalysis,
+    medidasTomadasMicrofonoDispositivoSin: 'Medidas tomadas con el micrófono del dispositivo, sin calibración acústica certificada y sin baremo poblacional infantil: son descriptivas y no constituyen por sí solas un juicio de normalidad. La comparación válida es con tomas anteriores del mismo niño en las mismas condiciones. No sustituyen la valoración perceptiva del terapeuta del habla.',
+    colegiado: 'Exequátur',
+  },
+
+  audiometry: {
+    ...ES.audiometry,
+    colegiado: 'Exequátur',
+  },
+
+  audiometryConditioned: {
+    ...ES.audiometryConditioned,
+    aconsejaDerivacionOrlAudiologiaAudiometria: '. Se aconseja derivación a otorrinolaringología / audiología para audiometría clínica con audífonos.',
+    colegiado: 'Exequátur',
+  },
 };

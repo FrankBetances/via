@@ -38,6 +38,7 @@ import WhistleButton from './components/WhistleButton';
 import { LuaCompanionWidget } from '@/Components/Mascot/LuaCompanionWidget';
 import { useLuaCompanion, LuaEmotion } from '@/Lua';
 
+import { useT } from '@/I18n';
 /* -------------------------------------------------------------------------- */
 /*  Audiometría condicionada AUTOMÁTICA en CAMPO LIBRE — «El Tren de Lúa»      */
 /*                                                                            */
@@ -67,6 +68,7 @@ const INTRO_STEPS: { emoji: string; title: string; text: string }[] = [
 ];
 
 export default function AudiometryConditionedScreen({ navigation }: Props) {
+  const t = useT();
   const activeEvaluation = useClassSelector(Evaluation, (state: RootState) => state.activeEvaluation.evaluation);
   const [createAudiometry, { isLoading: isSaving }] = useCreateAudiometryMutation();
   const a = useAudiometryTest({ soundfield: true });
@@ -362,16 +364,18 @@ export default function AudiometryConditionedScreen({ navigation }: Props) {
               <VStack style={{ flex: 1 }}>
                 <HStack alignItems="center" space="xs">
                   <Text size="xl" weight="bold" color="$textLight900">
-                    El Tren Mágico de Lúa
+                    
+                    {t.audiometryConditioned.trenMagicoLua}
                   </Text>
                   <Box bg="$primary50" px="$2" py="$0.5" borderRadius="$full">
                     <Text size="2xs" weight="bold" color="$primary800">
-                      CPA INFANTIL
+                      
+                      {t.audiometryConditioned.cpaInfantil}
                     </Text>
                   </Box>
                 </HStack>
                 <Text size="xs" color="$textLight500">
-                  {patientName ? `Viajero: ${patientName}` : 'Juego interactivo de audición en campo libre'}
+                  {patientName ? t.audiometryConditioned.viajero(patientName) : t.audiometryConditioned.juegoInteractivoAudicionCampoLibre}
                 </Text>
               </VStack>
 
@@ -379,7 +383,7 @@ export default function AudiometryConditionedScreen({ navigation }: Props) {
                 <HStack space="xs" alignItems="center" bg="$white" borderRadius="$full" px="$3" py="$1.5" borderWidth={1.5} borderColor="$emerald300" shadowColor="$black" shadowOpacity={0.05} elevation={2}>
                   <Text size="sm">⭐</Text>
                   <Text size="sm" weight="bold" color="$emerald700">
-                    {a.stars}/4 amigos
+                    {a.stars}{t.audiometryConditioned.n4Amigos}
                   </Text>
                 </HStack>
               ) : null}
@@ -415,10 +419,12 @@ export default function AudiometryConditionedScreen({ navigation }: Props) {
                     </Center>
                     <VStack style={{ flex: 1 }}>
                       <Text size="lg" weight="bold" color="$textLight900">
-                        ¿Cómo jugamos?
+                        
+                        {t.audiometryConditioned.comoJugamos}
                       </Text>
                       <Text size="xs" color="$textLight500">
-                        Cuatro pasos sencillos para el niño/a
+                        
+                        {t.audiometryConditioned.cuatroPasosSencillosNino}
                       </Text>
                     </VStack>
                   </HStack>
@@ -445,7 +451,8 @@ export default function AudiometryConditionedScreen({ navigation }: Props) {
                 {!a.hasTone ? (
                   <Card bgColor="$error50" borderRadius={18} borderWidth={1} borderColor="$error200" p="$4">
                     <Text size="xs" weight="bold" color="$error700">
-                      Motor de audio no disponible. Reinicie la aplicación antes de realizar la prueba.
+                      
+                      {t.audiometryConditioned.motorAudioDisponibleReinicieAplicacion}
                     </Text>
                   </Card>
                 ) : null}
@@ -454,7 +461,8 @@ export default function AudiometryConditionedScreen({ navigation }: Props) {
                   <HStack space="sm" alignItems="center">
                     <Icon as={Play} size="md" color="$white" />
                     <Text size="md" weight="bold" color="$white">
-                      ¡Empezar a jugar!
+                      
+                      {t.audiometryConditioned.empezarJugar}
                     </Text>
                   </HStack>
                 </Button>
@@ -467,11 +475,12 @@ export default function AudiometryConditionedScreen({ navigation }: Props) {
                 <Card bgColor="$white" borderRadius={24} p="$4" shadowColor="$black" shadowOpacity={0.04} elevation={3}>
                   <HStack justifyContent="space-between" alignItems="center" mb="$2">
                     <Text size="sm" weight="bold" color="$textLight900">
-                      Práctica — Aprende la magia
+                      
+                      {t.audiometryConditioned.practicaAprendeMagia}
                     </Text>
                     <Box bg={practiceHits >= PRACTICE_HITS_NEEDED ? '$success100' : '$primary50'} px="$3" py="$1" borderRadius="$full">
                       <Text size="xs" weight="bold" color={practiceHits >= PRACTICE_HITS_NEEDED ? '$success800' : '$primary700'}>
-                        {practiceHits}/{PRACTICE_HITS_NEEDED} aciertos
+                        {practiceHits}/{PRACTICE_HITS_NEEDED}  {t.audiometryConditioned.aciertos}
                       </Text>
                     </Box>
                   </HStack>
@@ -488,10 +497,10 @@ export default function AudiometryConditionedScreen({ navigation }: Props) {
                   <Center mt="$3">
                     <Text size="sm" weight="bold" color={whistleActive ? '$success600' : '$textLight600'} style={{ textAlign: 'center' }}>
                       {practiceHits >= PRACTICE_HITS_NEEDED
-                        ? '¡Genial! Ya estás listo para el gran viaje…'
+                        ? t.audiometryConditioned.genialYaEstasListoGran
                         : whistleActive
-                        ? '¡Está sonando la música! ¡Toca la pantalla!'
-                        : 'Espera en silencio… pronto sonará el tono.'}
+                        ? t.audiometryConditioned.estaSonandoMusicaTocaPantalla
+                        : t.audiometryConditioned.esperaSilencioProntoSonaraTono}
                     </Text>
                   </Center>
                 </Card>
@@ -500,7 +509,7 @@ export default function AudiometryConditionedScreen({ navigation }: Props) {
                 <WhistleButton
                   onPress={onWhistle}
                   highlight={whistleActive}
-                  label={whistleActive ? '¡HE OÍDO EL SONIDO!' : '¡TOCA LA PANTALLA!'}
+                  label={whistleActive ? t.audiometryConditioned.heOidoSonido : t.audiometryConditioned.tocaPantalla}
                   sublabel={whistleActive ? '¡Pulsa rápido para recoger al amigo!' : 'Espera a oír el sonido con las orejitas'}
                 />
 
@@ -508,7 +517,8 @@ export default function AudiometryConditionedScreen({ navigation }: Props) {
                   <Center>
                     <Box bg="$primary50" px="$4" py="$2" borderRadius={14} borderWidth={1} borderColor="$primary200">
                       <Text size="xs" weight="bold" color="$primary800">
-                        ¡Shh! Escucha con las orejitas atentas... pronto sonará 👂✨
+                        
+                        {t.audiometryConditioned.shhEscuchaOrejitasAtentasPronto}
                       </Text>
                     </Box>
                   </Center>
@@ -522,15 +532,16 @@ export default function AudiometryConditionedScreen({ navigation }: Props) {
                 <Card bgColor="$white" borderRadius={24} p="$4" shadowColor="$black" shadowOpacity={0.04} elevation={3}>
                   <HStack justifyContent="space-between" alignItems="center" mb="$2">
                     <Text size="sm" weight="bold" color="$textLight900">
-                      El Gran Viaje de las 4 Estaciones
+                      
+                      {t.audiometryConditioned.granViaje4Estaciones}
                     </Text>
                     {paused ? (
                       <Box bg="$warning50" px="$2.5" py="$1" borderRadius="$full">
-                        <Text size="2xs" weight="bold" color="$warning700">EN PAUSA</Text>
+                        <Text size="2xs" weight="bold" color="$warning700">{t.audiometryConditioned.pausa}</Text>
                       </Box>
                     ) : (
                       <Box bg="$emerald50" px="$2.5" py="$1" borderRadius="$full">
-                        <Text size="2xs" weight="bold" color="$emerald700">EN MARCHA</Text>
+                        <Text size="2xs" weight="bold" color="$emerald700">{t.audiometryConditioned.marcha}</Text>
                       </Box>
                     )}
                   </HStack>
@@ -549,7 +560,7 @@ export default function AudiometryConditionedScreen({ navigation }: Props) {
                 <WhistleButton
                   onPress={onWhistle}
                   disabled={paused}
-                  label="¡HE OÍDO EL SONIDO!"
+                  label={t.audiometryConditioned.heOidoSonido}
                   sublabel="Toca la pantalla cada vez que oigas el sonido"
                 />
 
@@ -557,7 +568,8 @@ export default function AudiometryConditionedScreen({ navigation }: Props) {
                   <Center>
                     <Box bg="$primary50" px="$4" py="$2" borderRadius={14} borderWidth={1} borderColor="$primary200">
                       <Text size="xs" weight="bold" color="$primary800">
-                        ¡Casi! Escuchemos un poquito más... 👂🚂
+                        
+                        {t.audiometryConditioned.casiEscuchemosPoquitoMas}
                       </Text>
                     </Box>
                   </Center>
@@ -570,7 +582,8 @@ export default function AudiometryConditionedScreen({ navigation }: Props) {
                       <HStack space="xs" alignItems="center">
                         <Icon as={Volume2} size="xs" color="$textLight500" />
                         <Text size="2xs" weight="bold" color="$textLight500" style={{ letterSpacing: 0.4 }}>
-                          PANEL CLÍNICO · {typeof a.freq === 'number' ? `${FREQ_LABEL[String(a.freq)]} Hz · ${a.db} dB HL` : '—'}
+                          
+                          {t.audiometryConditioned.panelClinico} {typeof a.freq === 'number' ? `${FREQ_LABEL[String(a.freq)]} Hz · ${a.db} dB HL` : '—'}
                         </Text>
                       </HStack>
                       <Icon as={showClinicianPanel ? ChevronUp : ChevronDown} size="xs" color="$textLight500" />
@@ -580,14 +593,15 @@ export default function AudiometryConditionedScreen({ navigation }: Props) {
                   {showClinicianPanel && (
                     <VStack space="sm" mt="$3" pt="$3" borderTopWidth={1} borderColor="$borderLight200">
                       <Text size="2xs" color="$textLight600">
-                        Hughson-Westlake (−10/+5 dB) en campo libre. Umbrales: {a.stars}/4 confirmados.
+                        
+                        {t.audiometryConditioned.hughsonWestlake105Db} {a.stars}{t.audiometryConditioned.n4Confirmados}
                       </Text>
                       <HStack space="sm" justifyContent="flex-end">
                         <Button size="xs" variant="outline" action="secondary" onPress={() => setPaused(p => !p)}>
                           <HStack space="xs" alignItems="center">
                             <Icon as={paused ? Play : Pause} size="2xs" color="$textLight600" />
                             <Text size="2xs" weight="bold" color="$textLight700">
-                              {paused ? 'Reanudar' : 'Pausar'}
+                              {paused ? t.audiometryConditioned.reanudar : t.audiometryConditioned.pausar}
                             </Text>
                           </HStack>
                         </Button>
@@ -595,7 +609,8 @@ export default function AudiometryConditionedScreen({ navigation }: Props) {
                           <HStack space="xs" alignItems="center">
                             <Icon as={RotateCcw} size="2xs" color="$textLight600" />
                             <Text size="2xs" weight="bold" color="$textLight700">
-                              Reiniciar
+                              
+                              {t.audiometryConditioned.reiniciar}
                             </Text>
                           </HStack>
                         </Button>
@@ -616,10 +631,11 @@ export default function AudiometryConditionedScreen({ navigation }: Props) {
                     </Center>
                     <VStack style={{ flex: 1 }}>
                       <Text size="lg" weight="bold" color="$success800">
-                        ¡Gran Viaje Completado!
+                        
+                        {t.audiometryConditioned.granViajeCompletado}
                       </Text>
                       <Text size="xs" color="$success700">
-                        {a.stars}/4 umbrales confirmados · Fiabilidad {a.reliability !== null ? `${a.reliability}%` : '—'}
+                        {a.stars}{t.audiometryConditioned.n4UmbralesConfirmadosFiabilidad} {a.reliability !== null ? `${a.reliability}%` : '—'}
                       </Text>
                     </VStack>
                   </HStack>
@@ -632,12 +648,13 @@ export default function AudiometryConditionedScreen({ navigation }: Props) {
                       <Icon as={AlertTriangle} size="sm" color="$warning600" style={{ marginTop: 2 }} />
                       <VStack style={{ flex: 1 }}>
                         <Text size="sm" weight="bold" color="$warning800">
-                          Indicios de hipoacusia — Derivación recomendada
+                          
+                          {t.audiometryConditioned.indiciosHipoacusiaDerivacionRecomendada}
                         </Text>
                         <Text size="xs" color="$warning800" style={{ lineHeight: 17 }}>
-                          El cribado en campo libre sugiere una audición por debajo de lo esperado
-                          {a.ptaCL !== null ? ` (PTA ${a.ptaCL} dB HL)` : ' (respuestas insuficientes)'}. Se aconseja
-                          derivación a ORL / audiología para audiometría clínica con auriculares.
+                          
+                          {t.audiometryConditioned.cribadoCampoLibreSugiereAudicion}
+                          {a.ptaCL !== null ? t.audiometryConditioned.ptaDbHl(a.ptaCL) : t.audiometryConditioned.respuestasInsuficientes}{t.audiometryConditioned.aconsejaDerivacionOrlAudiologiaAudiometria}
                         </Text>
                       </VStack>
                     </HStack>
@@ -645,8 +662,8 @@ export default function AudiometryConditionedScreen({ navigation }: Props) {
                 ) : (
                   <Card bgColor="$primary0" borderRadius={20} borderWidth={1} borderColor="$primary100" p="$4">
                     <Text size="xs" color="$primary800" style={{ lineHeight: 17 }}>
-                      Cribado dentro de la normalidad. El campo libre estima la audición del mejor oído y no descarta
-                      pérdida unilateral. Ante dudas clínicas, mantenga el seguimiento.
+                      
+                      {t.audiometryConditioned.cribadoDentroNormalidadCampoLibre}
                     </Text>
                   </Card>
                 )}
@@ -654,8 +671,8 @@ export default function AudiometryConditionedScreen({ navigation }: Props) {
                 {/* Audiograma */}
                 <Card bgColor="$white" borderRadius={22} p="$4">
                   <HStack justifyContent="space-between" alignItems="center" mb="$2">
-                    <Text size="sm" weight="bold" color="$textLight900">Audiograma de cribado</Text>
-                    <Text size="2xs" style={{ color: '#0066B3', fontWeight: 'bold' }}>Ⓢ Campo libre (binaural)</Text>
+                    <Text size="sm" weight="bold" color="$textLight900">{t.audiometryConditioned.audiogramaCribado}</Text>
+                    <Text size="2xs" style={{ color: '#0066B3', fontWeight: 'bold' }}>{t.audiometryConditioned.campoLibreBinaural}</Text>
                   </HStack>
                   <Box h={250} borderRadius={14} borderWidth={1} borderColor="$borderLight100" bg="$backgroundLight50">
                     <Audiogram thresholds={a.thresholds} cursor={null} cursorColor="#0066B3" />
@@ -664,16 +681,16 @@ export default function AudiometryConditionedScreen({ navigation }: Props) {
 
                 {/* Umbrales + PTA + Fiabilidad */}
                 <Card bgColor="$white" borderRadius={22} p="$4">
-                  <Text size="sm" weight="bold" color="$textLight900" mb="$2">Umbrales registrados · dB HL</Text>
+                  <Text size="sm" weight="bold" color="$textLight900" mb="$2">{t.audiometryConditioned.umbralesRegistradosDbHl}</Text>
                   <VStack space="xs">
                     <HStack>
-                      <Text size="xs" color="$textLight400" style={{ width: 90 }}>Canal</Text>
+                      <Text size="xs" color="$textLight400" style={{ width: 90 }}>{t.audiometryConditioned.canal}</Text>
                       {FREQS.map(f => (
                         <Text key={f} size="xs" color="$textLight400" style={{ flex: 1, textAlign: 'center' }}>{FREQ_LABEL[String(f)]}</Text>
                       ))}
                     </HStack>
                     <HStack alignItems="center">
-                      <Text size="sm" weight="bold" style={{ width: 90, color: '#0066B3' }}>Campo libre</Text>
+                      <Text size="sm" weight="bold" style={{ width: 90, color: '#0066B3' }}>{t.audiometryConditioned.campoLibre}</Text>
                       {FREQS.map(f => (
                         <Text key={f} size="sm" weight="semiBold" color="$textLight700" style={{ flex: 1, textAlign: 'center', fontVariant: ['tabular-nums'] }}>
                           {a.thresholds.CL?.[f] ?? '—'}
@@ -683,12 +700,12 @@ export default function AudiometryConditionedScreen({ navigation }: Props) {
                   </VStack>
                   <HStack space="sm" mt="$3">
                     <Box flex={1} bg="$backgroundLight50" borderRadius={12} p="$2.5" alignItems="center">
-                      <Text size="2xs" color="$textLight400">PTA CAMPO LIBRE</Text>
+                      <Text size="2xs" color="$textLight400">{t.audiometryConditioned.ptaCampoLibre}</Text>
                       <Text size="lg" weight="bold" style={{ color: '#0066B3' }}>{a.ptaCL ?? '—'}</Text>
                       {sevCL ? <Text size="2xs" color="$textLight500">{sevCL.label}</Text> : null}
                     </Box>
                     <Box flex={1} bg="$backgroundLight50" borderRadius={12} p="$2.5" alignItems="center">
-                      <Text size="2xs" color="$textLight400">FIABILIDAD</Text>
+                      <Text size="2xs" color="$textLight400">{t.audiometryConditioned.fiabilidad}</Text>
                       <Text size="lg" weight="bold" color={a.reliability === null ? '$textLight400' : a.reliability >= 80 ? '$success600' : '$warning600'}>
                         {a.reliability !== null ? `${a.reliability}%` : '—'}
                       </Text>
@@ -698,17 +715,17 @@ export default function AudiometryConditionedScreen({ navigation }: Props) {
 
                 {/* Formulario de Guardado */}
                 <Card bgColor="$white" borderRadius={22} p="$4">
-                  <Text size="sm" weight="bold" color="$textLight700" mb="$2">Evaluador responsable</Text>
+                  <Text size="sm" weight="bold" color="$textLight700" mb="$2">{t.audiometryConditioned.evaluadorResponsable}</Text>
                   <HStack space="sm" mb="$3">
                     <Input variant="outline" borderRadius={12} style={{ flex: 2 }}>
-                      <InputField placeholder="Nombre" value={evaluatorName} onChangeText={setEvaluatorName} />
+                      <InputField placeholder={t.audiometryConditioned.nombre} value={evaluatorName} onChangeText={setEvaluatorName} />
                     </Input>
                     <Input variant="outline" borderRadius={12} style={{ flex: 1 }}>
-                      <InputField placeholder="Colegiado" value={evaluatorLicense} onChangeText={setEvaluatorLicense} />
+                      <InputField placeholder={t.audiometryConditioned.colegiado} value={evaluatorLicense} onChangeText={setEvaluatorLicense} />
                     </Input>
                   </HStack>
                   <Input variant="outline" borderRadius={12} h={64} mb="$3">
-                    <InputField multiline placeholder="Observaciones clínicas…" value={notes} onChangeText={setNotes} style={{ textAlignVertical: 'top' }} />
+                    <InputField multiline placeholder={t.audiometryConditioned.observacionesClinicas} value={notes} onChangeText={setNotes} style={{ textAlignVertical: 'top' }} />
                   </Input>
                   <Button
                     action="primary"
@@ -720,14 +737,14 @@ export default function AudiometryConditionedScreen({ navigation }: Props) {
                     onPress={handleSave}>
                     <HStack space="sm" alignItems="center">
                       <Icon as={Save} size="sm" color="$white" />
-                      <Text size="md" weight="bold" color="$white">Guardar audiometría</Text>
+                      <Text size="md" weight="bold" color="$white">{t.audiometryConditioned.guardarAudiometria}</Text>
                     </HStack>
                   </Button>
                   <Pressable onPress={restartAll} style={{ marginTop: 10 }}>
                     <Center py="$2.5" borderRadius={12} borderWidth={1} borderColor="$borderLight200" bg="$white">
                       <HStack space="xs" alignItems="center">
                         <Icon as={RotateCcw} size="xs" color="$textLight500" />
-                        <Text size="sm" weight="bold" color="$textLight500">Repetir la prueba</Text>
+                        <Text size="sm" weight="bold" color="$textLight500">{t.audiometryConditioned.repetirPrueba}</Text>
                       </HStack>
                     </Center>
                   </Pressable>
