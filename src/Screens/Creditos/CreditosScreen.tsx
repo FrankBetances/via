@@ -299,7 +299,7 @@ export default function CreditosScreen({ navigation }: Props) {
   };
 
   const handleContinue = () => {
-    navigation.navigate('SeleccionProfesional');
+    navigation.navigate('PresentacionLua');
   };
 
   return (
@@ -527,12 +527,12 @@ export default function CreditosScreen({ navigation }: Props) {
         <Animated.View style={btnAnimatedStyle}>
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel="Comenzar Selección Profesional"
+            accessibilityLabel="Conocer a Lúa"
             style={({ pressed }) => [styles.dockButton, pressed && styles.dockButtonPressed]}
             onPressIn={() => (btnScale.value = withSpring(0.97, { damping: 15, stiffness: 300 }))}
             onPressOut={() => (btnScale.value = withSpring(1, { damping: 15, stiffness: 300 }))}
             onPress={handleContinue}>
-            <Text style={styles.dockButtonText}>Comenzar Selección Profesional</Text>
+            <Text style={styles.dockButtonText}>Conocer a Lúa</Text>
             <View style={styles.dockArrowCircle}>
               <ArrowRight size={18} color="#FF7F00" strokeWidth={2.6} />
             </View>
