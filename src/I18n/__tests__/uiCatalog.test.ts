@@ -96,7 +96,7 @@ describe('catálogos de interfaz · sin contaminación entre lenguas', () => {
 
   /* Que una cadena sea IDÉNTICA al castellano no basta para acusarla: el
    * gallego comparte con el castellano frases enteras («Variante neutra
-   * latinoamericana»), y un nombre propio («Piper Lessac», «Proxecto Nós») se
+   * latinoamericana»), y un nombre propio («Piper LJSpeech», «Proxecto Nós») se
    * escribe igual en las siete. Marcar eso sería ruido, y un test ruidoso deja
    * de leerse — que es como se cuela el error de verdad.
    *
@@ -112,11 +112,33 @@ describe('catálogos de interfaz · sin contaminación entre lenguas', () => {
     en: looseWord(['de', 'del', 'la', 'el', 'los', 'las', 'y', 'con', 'para', 'por', 'voz', 'banco', 'neuronal', 'calidad']),
   };
 
+  /* Nombres propios que se escriben IGUAL en las siete lenguas: instituciones,
+   * proyectos y modelos de voz. «projecte AINA (BSC · Generalitat de
+   * Catalunya)» es el nombre oficial del proyecto catalán y no se traduce al
+   * inglés; sin esta lista, su «de» y su «la» darían positivo de castellano.
+   * Es una lista CERRADA, como la del gate `check-ui-strings`: cualquier otra
+   * cosa se traduce. */
+  const PROPER_NOUNS = [
+    'projecte AINA (BSC · Generalitat de Catalunya)',
+    'Proxecto Nós',
+    'Quisqueya Habla',
+    'Piper LJSpeech',
+    'Matxa-TTS',
+    'AhoTTS',
+    'HiTZ',
+    'ACOPROS',
+    'Ulertuz',
+    'Celtia',
+    'Maider',
+  ];
+  const withoutNames = (s: string): string =>
+    PROPER_NOUNS.reduce((acc, name) => acc.split(name).join(' '), s);
+
   for (const [lang, foreign] of Object.entries(SPANISH_ONLY_IN) as [UiLang, RegExp][]) {
     it(`${lang}: ninguna cadena arrastra palabras función castellanas`, () => {
       const offenders: string[] = [];
       for (const [key, value] of flatten(CATALOGUES[lang])) {
-        if (typeof value === 'string' && foreign.test(value)) {
+        if (typeof value === 'string' && foreign.test(withoutNames(value))) {
           offenders.push(`${key} → «${value}»`);
         }
       }

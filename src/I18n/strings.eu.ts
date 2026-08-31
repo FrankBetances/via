@@ -44,10 +44,10 @@ export const EU: UiStrings = {
     hintEs: 'Bateria klinikoaren oinarrizko hizkuntza',
     hintGl: 'Proxecto Nós · Celtia ahotsa · ACOPROS bermea',
     hintEu: 'HiTZ · AhoTTS · Maider ahotsa · Ulertuz bermea',
-    hintCa: 'Piper ahotsa · UPC ona',
+    hintCa: 'Matxa-TTS ahotsa · AINA proiektua',
     hintEs419: 'Latinoamerikako aldaera neutroa · Piper ahotsa',
     hintEsDO: 'Quisqueya Habla · bere bankua eta ahoskatzeak · FONDOCYT',
-    hintEn: 'Ingeles amerikarra · Piper Lessac',
+    hintEn: 'Ingeles amerikarra · Piper LJSpeech',
   },
 
   credits: {
@@ -73,11 +73,11 @@ export const EU: UiStrings = {
     langEs: 'Ebaluazio klinikoaren baterien oinarrizko hizkuntza',
     langGl: 'Celtia ahots neuronala, ACOPROSek onartutako bankua',
     langEu: 'Maider ahots neuronala, Ulertuzek onartutako bankua',
-    langCa: 'Piper ahots neuronala · UPC ona (CC BY-SA 4.0)',
+    langCa: 'Matxa-TTS ahots neuronala · AINA proiektua (BSC · Kataluniako Generalitatea)',
     langEs419: 'Latinoamerikako aldaera neutroa · Piper (CC BY 4.0)',
     langEsDO: 'Dominikar aldaera: bere bankua eta ahoskatzeak (FONDOCYT)',
-    langEn: 'Interfazea eta ahotsa ingeles amerikarrez · Piper Lessac',
-    enginePiper: 'VITS ahots neuronalak gaztelaniarako, katalanerako, ingeleserako eta aldaeretarako',
+    langEn: 'Interfazea eta ahotsa ingeles amerikarrez · Piper LJSpeech (jabetza publikoa)',
+    enginePiper: 'VITS ahots neuronalak gaztelaniarako, ingeleserako eta aldaeretarako',
     engineEspeak: 'Lineaz kanpoko ordezko sintesia, pisu neuronalik gabe',
   },
 

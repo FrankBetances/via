@@ -39,15 +39,63 @@ fetch() { # fetch <url> <destino>
   checksum "$dest"
 }
 
-# --- Voces Piper (es sharvard, referencia de Valeria+ · es-DO Quisqueya Habla · ca · es-419 · en) ---
+# --- Voces Piper -----------------------------------------------------------
+# `es` sharvard y `es-DO`/`es-419` es_MX son las de VIA+; `en` es la de
+# Valeria+, elegida por AUDITORÍA DE LICENCIA voz por voz (ver la nota en
+# voices.json): lessac es licencia de investigación del Blizzard Challenge y
+# hfc_female es CC BY-NC-SA (no comercial); ljspeech son grabaciones de
+# LibriVox en dominio público con el modelo publicado bajo MIT.
+#
+# El CATALÁN ya no está aquí: su motor es Matxa-TTS del projecte AINA, no
+# Piper, y se descarga más abajo desde Hugging Face.
 fetch "$PIPER_BASE/es/es_ES/sharvard/medium/es_ES-sharvard-medium.onnx"      "$MODELS/piper/es_ES-sharvard-medium.onnx"
 fetch "$PIPER_BASE/es/es_ES/sharvard/medium/es_ES-sharvard-medium.onnx.json" "$MODELS/piper/es_ES-sharvard-medium.onnx.json"
 fetch "$PIPER_BASE/es/es_MX/claude/high/es_MX-claude-high.onnx"           "$MODELS/piper/es_MX-claude-high.onnx"
 fetch "$PIPER_BASE/es/es_MX/claude/high/es_MX-claude-high.onnx.json"      "$MODELS/piper/es_MX-claude-high.onnx.json"
-fetch "$PIPER_BASE/ca/ca_ES/upc_ona/medium/ca_ES-upc_ona-medium.onnx"      "$MODELS/piper/ca_ES-upc_ona-medium.onnx"
-fetch "$PIPER_BASE/ca/ca_ES/upc_ona/medium/ca_ES-upc_ona-medium.onnx.json" "$MODELS/piper/ca_ES-upc_ona-medium.onnx.json"
-fetch "$PIPER_BASE/en/en_US/lessac/medium/en_US-lessac-medium.onnx"        "$MODELS/piper/en_US-lessac-medium.onnx"
-fetch "$PIPER_BASE/en/en_US/lessac/medium/en_US-lessac-medium.onnx.json"   "$MODELS/piper/en_US-lessac-medium.onnx.json"
+fetch "$PIPER_BASE/en/en_US/ljspeech/high/en_US-ljspeech-high.onnx"        "$MODELS/piper/en_US-ljspeech-high.onnx"
+fetch "$PIPER_BASE/en/en_US/ljspeech/high/en_US-ljspeech-high.onnx.json"   "$MODELS/piper/en_US-ljspeech-high.onnx.json"
+
+# --- Matxa-TTS (projecte AINA · catalán) ------------------------------------
+# Export ONNX end-to-end (acústico + vocóder). Se prueban los repos declarados
+# en voices.json por orden: los espejos de HF no siempre resuelven la misma
+# capitalización del identificador.
+matxa_repos() {
+  python3 -c '
+import json, sys
+registry = json.load(open(sys.argv[1], encoding="utf-8"))
+for lang, cfg in registry["voices"].items():
+    if cfg.get("engine") != "matxa":
+        continue
+    print("\t".join([lang, " ".join(cfg.get("hfRepos") or []), cfg["files"]["dir"]]))
+' "$REGISTRY"
+}
+
+while IFS=$'\t' read -r LANG REPOS DIR; do
+  [[ -z "$LANG" ]] && continue
+  DEST="$MODELS/$DIR"
+  mkdir -p "$DEST"
+  if ls "$DEST"/*.onnx >/dev/null 2>&1; then
+    echo "✓ $LANG (matxa) ya descargado"
+    continue
+  fi
+  OK=0
+  for REPO in $REPOS; do
+    echo "↓ $LANG ($REPO)"
+    if command -v huggingface-cli >/dev/null 2>&1; then
+      huggingface-cli download "$REPO" --local-dir "$DEST" && OK=1 && break
+    else
+      python3 -c '
+import sys
+from huggingface_hub import snapshot_download
+snapshot_download(repo_id=sys.argv[1], local_dir=sys.argv[2])
+' "$REPO" "$DEST" && OK=1 && break
+    fi
+  done
+  if [[ "$OK" != "1" ]]; then
+    echo "✗ No se pudo descargar la voz '$LANG' de ninguno de: $REPOS"
+    exit 1
+  fi
+done < <(matxa_repos)
 
 # --- Voces VITS (Coqui) declaradas en voices.json ---------------------------
 # Se leen del REGISTRO en vez de estar a fuego: añadir una lengua es editar

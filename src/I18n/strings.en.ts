@@ -40,10 +40,10 @@ export const EN: UiStrings = {
     hintEs: 'Base language of the clinical battery',
     hintGl: 'Proxecto Nós · Celtia voice · ACOPROS endorsement',
     hintEu: 'HiTZ · AhoTTS · Maider voice · Ulertuz endorsement',
-    hintCa: 'Piper voice · UPC ona',
+    hintCa: 'Matxa-TTS voice · projecte AINA',
     hintEs419: 'Neutral Latin American variety · Piper voice',
     hintEsDO: 'Quisqueya Habla · dedicated word bank and recordings · FONDOCYT',
-    hintEn: 'American English · Piper Lessac',
+    hintEn: 'American English · Piper LJSpeech',
   },
 
   credits: {
@@ -69,11 +69,11 @@ export const EN: UiStrings = {
     langEs: 'Base language of the clinical assessment battery',
     langGl: 'Celtia neural voice, word bank endorsed by ACOPROS',
     langEu: 'Maider neural voice, word bank endorsed by Ulertuz',
-    langCa: 'Piper neural voice · UPC ona (CC BY-SA 4.0)',
+    langCa: 'Matxa-TTS neural voice · projecte AINA (BSC · Generalitat de Catalunya)',
     langEs419: 'Neutral Latin American variety · Piper (CC BY 4.0)',
     langEsDO: 'Dominican variety: dedicated word bank and recordings (FONDOCYT)',
-    langEn: 'American English interface and voice · Piper Lessac',
-    enginePiper: 'VITS neural voices for Spanish, Catalan, English and their varieties',
+    langEn: 'American English interface and voice · Piper LJSpeech (public domain)',
+    enginePiper: 'VITS neural voices for Spanish, English and their varieties',
     engineEspeak: 'Offline fallback synthesis, no neural weights',
   },
 

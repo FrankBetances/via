@@ -8,10 +8,17 @@
 # piper-tts   → voces Piper/VITS-ONNX (es provisional, es-DO Quisqueya Habla)
 # coqui-tts   → fork mantenido (idiap) de Coqui TTS: voz Celtia (gl, Proxecto Nós)
 # huggingface_hub → descarga versionada de pesos (fetch-models.sh)
+# phonemizer  → frontend FONÉMICO de Matxa-TTS (ca). Necesita ADEMÁS el binario
+#               espeak-ng del sistema: `apt-get install espeak-ng`. Sin él, la
+#               voz catalana no se puede sintetizar — Matxa no come grafemas.
+# onnxruntime → lo arrastra piper-tts, pero Matxa lo usa directamente, así que
+#               se declara: una dependencia implícita se rompe sin avisar.
 
 piper-tts==1.2.0
 coqui-tts>=0.24,<0.26
 huggingface_hub>=0.23,<1.0
+phonemizer>=3.2,<4.0
+onnxruntime>=1.17,<2.0
 
 # --- Fijaciones defensivas de dependencias TRANSITIVAS ----------------------
 # No son dependencias nuestras: corrigen resoluciones que rompen el entorno.

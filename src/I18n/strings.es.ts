@@ -52,10 +52,10 @@ export const ES = {
     hintEs: 'Idioma base de la batería clínica',
     hintGl: 'Proxecto Nós · voz Celtia · aval ACOPROS',
     hintEu: 'HiTZ · AhoTTS · voz Maider · aval Ulertuz',
-    hintCa: 'Veu Piper · UPC ona',
+    hintCa: 'Veu Matxa-TTS · projecte AINA',
     hintEs419: 'Variante neutra latinoamericana · voz Piper',
     hintEsDO: 'Quisqueya Habla · banco y locuciones propios · FONDOCYT',
-    hintEn: 'American English · Piper Lessac',
+    hintEn: 'American English · Piper LJSpeech',
   },
 
   credits: {
@@ -90,11 +90,11 @@ export const ES = {
     langEs: 'Idioma base de la batería de evaluación clínica',
     langGl: 'Voz neuronal Celtia, banco aprobado por ACOPROS',
     langEu: 'Voz neuronal Maider, banco aprobado por Ulertuz',
-    langCa: 'Voz neuronal Piper · UPC ona (CC BY-SA 4.0)',
+    langCa: 'Voz neuronal Matxa-TTS · projecte AINA (BSC · Generalitat de Catalunya)',
     langEs419: 'Variante neutra latinoamericana · Piper (CC BY 4.0)',
     langEsDO: 'Variante dominicana: banco y locuciones propios (FONDOCYT)',
-    langEn: 'Interfaz y voz en inglés americano · Piper Lessac',
-    enginePiper: 'Voces neuronales VITS para castellano, catalán, inglés y variantes',
+    langEn: 'Interfaz y voz en inglés americano · Piper LJSpeech (dominio público)',
+    enginePiper: 'Voces neuronales VITS para castellano, inglés y variantes',
     engineEspeak: 'Síntesis de respaldo offline sin pesos neuronales',
   },
 

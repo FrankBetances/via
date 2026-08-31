@@ -298,7 +298,229 @@ class AhoTtsEngine:
             raise RuntimeError(f"AhoTTS no generó audio para: {text!r}")
 
 
-ENGINES = {"piper": PiperEngine, "coqui-vits": CoquiVitsEngine, "ahotts": AhoTtsEngine}
+
+class MatxaEngine:
+    """Matxa-TTS del projecte AINA (BSC) — ONNX end-to-end (acústico + vocóder).
+
+    PORTE de `make_matxa_synth` de Valeria+ (`scripts/generate-voice-assets.py`),
+    incluido lo que allí se aprendió a base de fallar. Tres diferencias con los
+    motores que ya había aquí, y las tres importan:
+
+      1. Es Matcha-TTS, no VITS: `scales` son DOS valores —temperatura y
+         length_scale—, no los tres de VITS. Pasarle tres desplaza el vector y
+         el audio sale mal SIN DAR ERROR.
+      2. El frontend es FONÉMICO (espeak-ng vía phonemizer, idioma `ca`), no de
+         grafemas: meterle letras produce ruido, no acento.
+      3. El vocóder va DENTRO del export, así que la salida ya es forma de onda.
+
+    Esquema real del modelo, verificado en Valeria+ contra
+    `projecte-aina/matxa-tts-cat-multiaccent` (29/8/2026):
+
+        entradas : x(int64 [B,T]) · x_lengths(int64 [B]) · scales(float [2])
+                   · spks(int64 [B])
+        salidas  : mel_lengths[0] · hfwaveform[1]   ← el audio es la SEGUNDA
+        metadata : vacía (sin mapa de símbolos embebido)
+
+    Coger `run(...)[0]` devuelve `mel_lengths`, no la onda: es el fallo que allí
+    cazó el canario. Las salidas se resuelven por NOMBRE, nunca por índice.
+    """
+
+    SR = 22050
+
+    def __init__(self, voice_cfg: dict, base: Path, seed: int):
+        try:
+            import numpy as np  # noqa: PLC0415
+            import onnxruntime as ort  # noqa: PLC0415
+            from phonemizer.backend import EspeakBackend  # noqa: PLC0415
+        except ImportError as exc:  # pragma: no cover
+            raise SystemExit(
+                "Faltan dependencias del motor Matxa (onnxruntime, phonemizer): "
+                "pip install -r tools/nos/requirements.txt\n"
+                "phonemizer necesita ADEMÁS el binario espeak-ng del sistema."
+            ) from exc
+        self._np = np
+        self.params = voice_cfg.get("params", {})
+        self.speaker = int(os.environ.get("MATXA_SPEAKER", voice_cfg.get("speaker", 0)))
+
+        model_dir = base / voice_cfg["files"]["dir"]
+        # Se prefiere el export END-TO-END: si el repo solo publicara el
+        # acústico, encadenar un vocóder aparte a ciegas es justo lo que este
+        # motor evita, así que se aborta con el listado a la vista.
+        onnx_files = sorted(model_dir.glob("*.onnx"))
+        e2e = [f for f in onnx_files if "e2e" in f.name.lower()]
+        chosen = e2e[0] if e2e else (onnx_files[0] if len(onnx_files) == 1 else None)
+        if chosen is None:
+            raise SystemExit(
+                f"Modelo Matxa no utilizable en {model_dir}: {[f.name for f in onnx_files]}.\n"
+                "Descárguelo con tools/nos/fetch-models.sh; si el repo publica varios "
+                "ONNX sin uno end-to-end, hay que decidir a mano cuál, no adivinarlo."
+            )
+
+        self.sess = ort.InferenceSession(str(chosen), providers=["CPUExecutionProvider"])
+        self.inputs = [i.name for i in self.sess.get_inputs()]
+        self.out_names = [o.name for o in self.sess.get_outputs()]
+        self.symbol_map = self._resolve_symbols(model_dir)
+        self.backend = EspeakBackend("ca", preserve_punctuation=True, with_stress=True)
+        self._canary(model_dir)
+
+    # ---- CANARIO: una frase catalana real ANTES de tocar el corpus ---------
+    # Se comprueba al CONSTRUIR el motor, no al sintetizar, para que un modelo
+    # mal cargado muera con cero ficheros escritos. En Valeria+ este canario
+    # evitó 858 ficheros de ruido: la onda se estaba leyendo de la salida
+    # equivocada y nada más lo habría avisado.
+    #
+    # Además deja una muestra por índice de hablante. El modelo es MULTIACCENT
+    # y su metadata viene vacía: nada dice cuál es el central, que es el acento
+    # para el que se escribiría un banco clínico catalán. Eso no se deduce de un
+    # log, se decide OYÉNDOLO — por eso las muestras se escriben siempre.
+    def _canary(self, model_dir: Path) -> None:
+        frase = "Hola! Així sonarà la meva veu als exercicis."
+        try:
+            wav = self._run(frase)
+            words = len(frase.split())
+            dur = len(wav) / self.SR
+            np = self._np
+            if not np.isfinite(wav).all() or float(np.max(np.abs(wav))) < 1e-3:
+                raise RuntimeError("salida no válida (silencio/NaN)")
+            if not (0.12 * words <= dur <= 3.0 * words + 1.0):
+                raise RuntimeError(f"duración implausible {dur:.2f}s ({words} palabras)")
+        except Exception as exc:  # noqa: BLE001
+            raise SystemExit(
+                f"El canario de Matxa falló, así que NO se sintetiza nada: {exc}\n"
+                f"    entradas ONNX: {self.inputs}\n"
+                f"    salidas ONNX : {self.out_names}\n"
+                "    Con ese esquema se ajusta la fonemización o la firma de "
+                "entrada. Es deliberado morir aquí en vez de escribir un corpus "
+                "de ruido que nadie escucharía hasta el emulador."
+            ) from exc
+        print(f"[canario] OK · {dur:.2f}s para {len(frase.split())} palabras")
+
+        muestras = model_dir / "muestras"
+        muestras.mkdir(parents=True, exist_ok=True)
+        for cand in range(4):
+            try:
+                w = self._run(frase, speaker=cand)
+                pcm = (self._np.clip(w, -1.0, 1.0) * 32767.0).astype("<i2")
+                with wave.open(str(muestras / f"canario_spk{cand}.wav"), "wb") as f:
+                    f.setnchannels(1)
+                    f.setsampwidth(2)
+                    f.setframerate(self.SR)
+                    f.writeframes(pcm.tobytes())
+                print(f"[muestra] spk={cand} · {len(w) / self.SR:.2f}s")
+            except Exception as exc:  # noqa: BLE001
+                print(f"[muestra] spk={cand} no disponible: {exc}")
+
+    def _resolve_symbols(self, model_dir: Path) -> dict:
+        """Mapa de símbolos: metadata del export → fichero del repo → por defecto."""
+        meta = self.sess.get_modelmeta().custom_metadata_map or {}
+        for key in ("symbols", "symbol_to_id", "phoneme_id_map", "text_symbols"):
+            if key not in meta:
+                continue
+            try:
+                parsed = json.loads(meta[key])
+                return ({s: i for i, s in enumerate(parsed)}
+                        if isinstance(parsed, list) else parsed)
+            except Exception:  # noqa: BLE001 — se sigue buscando, no se adivina
+                pass
+        for cand in sorted(model_dir.glob("*.json")):
+            low = cand.name.lower()
+            if not any(k in low for k in ("symbol", "vocab", "token", "char")):
+                continue
+            try:
+                parsed = json.loads(cand.read_text(encoding="utf-8"))
+                return ({s: i for i, s in enumerate(parsed)}
+                        if isinstance(parsed, list) else parsed)
+            except Exception:  # noqa: BLE001
+                pass
+        # Conjunto de Matcha-TTS (text/symbols.py). Si el modelo tuviera otro, el
+        # CANARIO lo caza antes de escribir nada.
+        pad = "_"
+        punctuation = ';:,.!?¡¿—…"«»“” '
+        letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
+        letters_ipa = ("ɑɐɒæɓʙβɔɕçɗɖðʤəɘɚɛɜɝɞɟʄɡɠɢʛɦɧħɥʜɨɪʝɭɬɫɮʟɱɯɰŋɳɲɴøɵɸθœɶʘɹɺɾɻʀʁ"
+                       "ɽʂʃʈʧʉʊʋⱱʌɣɤʍχʎʏʑʐʒʔʡʕʢǀǁǂǃˈˌːˑʼʴʰʱʲʷˠˤ˞↓↑→↗↘\'̩\'ᵻ")
+        symbols = [pad] + list(punctuation) + list(letters) + list(letters_ipa)
+        return {s: i for i, s in enumerate(symbols)}
+
+    def _to_ids(self, text: str) -> list:
+        phon = self.backend.phonemize([text], strip=True)[0]
+        ids = [self.symbol_map[c] for c in phon if c in self.symbol_map]
+        # Matcha intercala el pad entre símbolos (add_blank del preprocesado).
+        out = [0]
+        for i in ids:
+            out += [i, 0]
+        return out
+
+    def _run(self, text: str, speaker: int | None = None):
+        np = self._np
+        ids = self._to_ids(text)
+        if len(ids) < 5:
+            raise RuntimeError(f"fonemización vacía para: {text!r}")
+        x = np.array([ids], dtype=np.int64)
+        xl = np.array([x.shape[1]], dtype=np.int64)
+        length_scale = float(self.params.get("lengthScale", 1.0))
+        # Temperatura baja: el corpus es INCREMENTAL, así que el mismo texto no
+        # puede cambiar de voz entre lotes.
+        temperature = float(self.params.get("temperature", 0.667))
+        scales = np.array([temperature, length_scale], dtype=np.float32)
+        spk = self.speaker if speaker is None else speaker
+
+        feeds = {}
+        for name in self.inputs:
+            if name in ("x", "input", "text"):
+                feeds[name] = x
+            elif name in ("x_lengths", "input_lengths", "text_lengths"):
+                feeds[name] = xl
+            elif name == "scales":
+                feeds[name] = scales
+            elif name == "temperature":
+                feeds[name] = np.array([temperature], dtype=np.float32)
+            elif name == "length_scale":
+                feeds[name] = np.array([length_scale], dtype=np.float32)
+            elif name in ("spks", "sid", "speaker_id", "spk"):
+                feeds[name] = np.array([spk], dtype=np.int64)
+            else:
+                print(f"aviso: entrada ONNX no reconocida, se omite: {name}")
+
+        outs = self.sess.run(None, feeds)
+        idx = next((i for i, n in enumerate(self.out_names)
+                    if any(k in n.lower() for k in ("waveform", "wav", "audio"))), None)
+        if idx is None:
+            idx = max(range(len(outs)), key=lambda i: np.asarray(outs[i]).size)
+            print(f"aviso: ninguna salida se llama waveform/audio; se usa "
+                  f"'{self.out_names[idx]}' por tamaño.")
+        return np.squeeze(np.asarray(outs[idx])).astype(np.float32)
+
+    def synthesize(self, text: str, out_wav: Path) -> None:
+        np = self._np
+        wav = self._run(text)
+        # Plausibilidad ANTES de escribir: silencio, NaN o una duración
+        # imposible son síntesis fallidas que el resto del pipeline daría por
+        # buenas (se codificarían a .m4a y la app «locutaría» ruido).
+        words = max(1, len(text.split()))
+        dur = len(wav) / self.SR
+        if not np.isfinite(wav).all() or float(np.max(np.abs(wav))) < 1e-3:
+            raise RuntimeError(f"síntesis no válida (silencio/NaN) para: {text!r}")
+        if not (0.12 * words <= dur <= 3.0 * words + 1.0):
+            raise RuntimeError(
+                f"duración implausible {dur:.2f}s ({words} palabras): {text!r}"
+            )
+        pcm = np.clip(wav, -1.0, 1.0)
+        pcm = (pcm * 32767.0).astype("<i2")
+        with wave.open(str(out_wav), "wb") as w:
+            w.setnchannels(1)
+            w.setsampwidth(2)
+            w.setframerate(self.SR)
+            w.writeframes(pcm.tobytes())
+        _reject_if_empty(out_wav, text)
+
+
+ENGINES = {
+    "piper": PiperEngine,
+    "coqui-vits": CoquiVitsEngine,
+    "ahotts": AhoTtsEngine,
+    "matxa": MatxaEngine,
+}
 
 
 def make_engine(lang: str, registry: dict, seed: int):
@@ -330,8 +552,11 @@ def cmd_check() -> int:
     Devuelve 0 si todo importa, 1 si falta algo (apto para CI).
     """
     checks: list[tuple[str, str, str]] = [
-        ("piper", "from piper import PiperVoice", "voces Piper (es, es-DO)"),
+        ("piper", "from piper import PiperVoice", "voces Piper (es, es-DO, es-419, en)"),
         ("coqui-tts", "from TTS.api import TTS", "voz Celtia (gl, Proxecto Nós)"),
+        ("onnxruntime", "import onnxruntime", "Matxa-TTS (ca, projecte AINA)"),
+        ("phonemizer", "from phonemizer.backend import EspeakBackend",
+         "frontend fonémico de Matxa (ca) — necesita el binario espeak-ng"),
         ("torch", "import torch", "backend de Coqui/VITS"),
         ("huggingface_hub", "from huggingface_hub import snapshot_download", "descarga de pesos"),
     ]

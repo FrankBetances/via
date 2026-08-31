@@ -201,7 +201,7 @@ describe('coherencia con el motor de voz neural (tools/nos/voices.json)', () => 
     for (const [lang, cfg] of Object.entries<any>(registry.voices)) {
       // `ahotts`: el euskera no se infiere como un VITS suelto — su ONNX espera
       // fonemas y los produce el frontend lingüístico vasco de AhoTTS.
-      expect({ lang, engine: ['piper', 'coqui-vits', 'ahotts'].includes(cfg.engine) })
+      expect({ lang, engine: ['piper', 'coqui-vits', 'ahotts', 'matxa'].includes(cfg.engine) })
         .toEqual({ lang, engine: true });
       expect(typeof cfg.model).toBe('string');
       expect(typeof cfg.source).toBe('string');
@@ -233,6 +233,44 @@ describe('coherencia con el motor de voz neural (tools/nos/voices.json)', () => 
     // Voz femenina Maider y respaldo masculino Antton, en ese orden.
     expect(eu.hfRepos).toEqual(['HiTZ/TTS-eu_maider', 'HiTZ/TTS-eu_antton']);
     expect(eu.license).toContain('CC BY 4.0');
+  });
+
+  /* ------------------------------------------------------------------ */
+  /*  LICENCIAS Y MOTORES: lo que Valeria+ ya auditó, y aquí se incumplió. */
+  /* ------------------------------------------------------------------ */
+
+  it('el inglés NO usa una voz descartada por licencia', () => {
+    // Valeria+ auditó rhasspy/piper-voices VOZ POR VOZ (no es uniforme):
+    //   · en_US-hfc_female-medium → Hi-Fi Captain, CC BY-NC-SA ⇒ NO comercial.
+    //   · en_US-lessac-medium     → Blizzard Challenge, licencia de investigación.
+    //   · en_US-ljspeech-high     → LibriVox dominio público + modelo MIT. ✅
+    // VIA+ declaraba `lessac` y lo etiquetaba «Public Domain»: las dos cosas
+    // eran falsas, en un producto Clase IIa. Este test es lo que impide que
+    // vuelva por descuido.
+    const prohibidas = ['lessac', 'hfc_female'];
+    for (const mala of prohibidas) {
+      expect({ mala, usada: registry.voices.en.model.includes(mala) })
+        .toEqual({ mala, usada: false });
+    }
+    expect(registry.voices.en.model).toBe('en_US-ljspeech-high');
+  });
+
+  it('el catalán usa Matxa-TTS de AINA, que es lo demostrado en Valeria+', () => {
+    // No es Piper: es Matcha-TTS con el vocóder dentro del export y frontend
+    // fonémico. Declararlo como piper no da error, da ruido.
+    const ca = registry.voices.ca;
+    expect(ca.engine).toBe('matxa');
+    expect(ca.hfRepos[0]).toContain('projecte-aina');
+  });
+
+  it('toda voz declara dónde están sus pesos: ni un `files` nulo', () => {
+    // `ca`, `es-419` y `en` entraron con `files: null`, así que el motor Piper
+    // reventaba al construirse (`base / cfg["files"]["onnx"]`). Estaban
+    // declaradas, no cableadas — y nada lo decía.
+    for (const [lang, cfg] of Object.entries<any>(registry.voices)) {
+      expect({ lang, files: !!cfg.files && Object.keys(cfg.files).length > 0 })
+        .toEqual({ lang, files: true });
+    }
   });
 
   it('toda voz VITS declara sus repositorios de pesos por orden de preferencia', () => {

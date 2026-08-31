@@ -89,7 +89,14 @@ jobs:
         run: |
           NEED=""
           command -v ffmpeg >/dev/null || NEED="$NEED ffmpeg"
-          if [ "${{ github.event.inputs.engine || 'neural' }}" = "espeak" ]; then
+          # espeak-ng hace DOS papeles y por eso se instala en dos casos:
+          #   · motor de degradación sin pesos (engine=espeak), y
+          #   · frontend FONÉMICO de Matxa-TTS para el catalán (phonemizer).
+          # Sin él, `ca` no se puede sintetizar: Matxa no come grafemas. Antes
+          # solo se miraba el primer caso, así que el catalán habría muerto en
+          # el import de phonemizer con los pesos ya descargados.
+          if [ "${{ github.event.inputs.engine || 'neural' }}" = "espeak" ] \
+             || printf '%s' "${{ steps.langs.outputs.langs }}" | grep -qw ca; then
             command -v espeak-ng >/dev/null || NEED="$NEED espeak-ng"
           fi
           if [ -z "$NEED" ]; then
@@ -139,8 +146,8 @@ jobs:
           #
           # espeak no cubre gl: se descarta con aviso (requiere motor neural).
           if [ "$ENGINE" = "espeak" ]; then
-            LANGS="$(echo "$LANGS" | tr ' ' '\n' | grep -v '^gl$' | tr '\n' ' ')"
-            echo "::warning::Motor espeak: 'gl' omitido (sin voz espeak-ng; requiere Celtia neural)."
+            LANGS="$(echo "$LANGS" | tr ' ' '\n' | grep -vE '^(gl|ca|eu)$' | tr '\n' ' ')"
+            echo "::warning::Motor espeak: 'gl', 'ca' y 'eu' omitidos — sus voces son neurales por diseño (Celtia, Matxa-TTS de AINA y AhoTTS Maider) y no tienen equivalente en espeak-ng."
           fi
           echo "engine=$ENGINE" >> "$GITHUB_OUTPUT"
           echo "langs=$LANGS" >> "$GITHUB_OUTPUT"
