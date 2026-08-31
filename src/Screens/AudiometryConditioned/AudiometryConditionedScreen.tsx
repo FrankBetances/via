@@ -206,15 +206,15 @@ export default function AudiometryConditionedScreen({ navigation }: Props) {
   useEffect(() => {
     if (phase !== 'practice' || paused) return;
     if (practiceHits >= PRACTICE_HITS_NEEDED) {
-      const t = setTimeout(startTest, 1500);
-      return () => clearTimeout(t);
+      const timer = setTimeout(startTest, 1500);
+      return () => clearTimeout(timer);
     }
     presentTimer.current = setTimeout(() => {
       a.playStimulus();
       windowOpen.current = true;
       windowTimer.current = setTimeout(() => {
         windowOpen.current = false;
-        setPracticeTick(t => t + 1);
+        setPracticeTick(n => n + 1);
       }, TONE_MS + RESPONSE_GRACE_MS);
     }, 1600 + Math.random() * 800);
     return () => {
@@ -251,7 +251,7 @@ export default function AudiometryConditionedScreen({ navigation }: Props) {
           }
         }
         a.noResponse();
-        setTrialTick(t => t + 1);
+        setTrialTick(n => n + 1);
       }, TONE_MS + RESPONSE_GRACE_MS);
     }, 1400 + Math.random() * 1600);
 
@@ -272,7 +272,7 @@ export default function AudiometryConditionedScreen({ navigation }: Props) {
         setPracticeHits(h => h + 1);
         flashCelebrate();
         lua.setVerdict(2);
-        setPracticeTick(t => t + 1);
+        setPracticeTick(n => n + 1);
       } else {
         flashGentlePrompt();
       }
@@ -286,7 +286,7 @@ export default function AudiometryConditionedScreen({ navigation }: Props) {
         flashCelebrate();
         lua.setVerdict(2);
         if (r.confirmed) advance();
-        else setTrialTick(t => t + 1);
+        else setTrialTick(n => n + 1);
       } else {
         flashGentlePrompt();
       }

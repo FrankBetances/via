@@ -1,6 +1,5 @@
 #!/usr/bin/env node
 /* eslint-env node */
-/* eslint-disable no-console */
 /* eslint-disable no-bitwise -- PNG se define a nivel de bit: CRC-32, filtros
  * por fila y empaquetado de canales. Escribir esto sin operadores de bits sería
  * traducir el formato a otra cosa. */

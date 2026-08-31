@@ -71,9 +71,9 @@ export default function FlexibilityGame({
     if (trial.ruleChanged) {
       setShowRuleChange(true);
       speakRuleConsigna(trial.rule, true, lang);
-      const t = setTimeout(() => setShowRuleChange(false), RULE_CHANGE_MS);
-      timers.current.push(t);
-      return () => clearTimeout(t);
+      const timer = setTimeout(() => setShowRuleChange(false), RULE_CHANGE_MS);
+      timers.current.push(timer);
+      return () => clearTimeout(timer);
     }
     if (trialIndex === 0) {
       // Anuncio de la norma inicial (la consigna de la antesala es genérica).

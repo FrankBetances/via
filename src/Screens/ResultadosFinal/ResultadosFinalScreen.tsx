@@ -781,7 +781,7 @@ export default function ResultadosFinalScreen({ navigation }: Props) {
     };
   }, [evaluationId]);
 
-  const active = useMemo(() => tests.find(t => t.id === activeId) ?? tests[0] ?? null, [tests, activeId]);
+  const active = useMemo(() => tests.find(item => item.id === activeId) ?? tests[0] ?? null, [tests, activeId]);
 
   const handleExportPdf = async () => {
     // Sin evaluación activa no hay informe que compilar: no se anuncia un PDF
@@ -873,21 +873,21 @@ export default function ResultadosFinalScreen({ navigation }: Props) {
             <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false}>
               <View style={styles.testsList}>
                 {isLoading ? <Text style={styles.testItemStatus}>{t.resultadosFinal.cargandoResultados}</Text> : null}
-                {tests.map(t => {
-                  const isActive = t.id === active?.id;
-                  const IconComp = t.icon;
-                  const tokens = STATUS_TOKENS[t.status];
+                {tests.map(item => {
+                  const isActive = item.id === active?.id;
+                  const IconComp = item.icon;
+                  const tokens = STATUS_TOKENS[item.status];
 
                   return (
                     <Pressable
-                      key={t.id}
+                      key={item.id}
                       style={[
                         styles.testSidebarItem,
                         isActive && styles.testSidebarItemActive,
                       ]}
-                      onPress={() => setActiveId(t.id)}>
+                      onPress={() => setActiveId(item.id)}>
                       <View style={[styles.testItemIconBox, { backgroundColor: isActive ? '#FFFFFF' : '#F1F5F9' }]}>
-                        <IconComp size={18} color={t.color} />
+                        <IconComp size={18} color={item.color} />
                       </View>
 
                       <View style={{ flex: 1 }}>
@@ -897,7 +897,7 @@ export default function ResultadosFinalScreen({ navigation }: Props) {
                             isActive && { color: '#0F172A', fontWeight: '800' },
                           ]}
                           numberOfLines={1}>
-                          {t.title}
+                          {item.title}
                         </Text>
                         <Text style={[styles.testItemStatus, { color: tokens.fg }]}>
                           ({tokens.label})

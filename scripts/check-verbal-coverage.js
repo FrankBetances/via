@@ -1,5 +1,4 @@
 #!/usr/bin/env node
-/* eslint-disable no-console */
 /**
  * Cobertura de locuciones del banco verbal, idioma a idioma.
  *

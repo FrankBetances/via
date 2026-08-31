@@ -621,7 +621,7 @@ export default function DysphagiaTestScreen() {
                       keyboardType="numeric"
                       textAlign="center"
                       value={String(basalSpO2)}
-                      onChangeText={t => { setSpo2Source('manual'); setBasalSpO2(parseInt(t, 10) || 98); }}
+                      onChangeText={text => { setSpo2Source('manual'); setBasalSpO2(parseInt(text, 10) || 98); }}
                     />
                   </Input>
                 </HStack>

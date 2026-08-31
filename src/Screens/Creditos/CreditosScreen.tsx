@@ -110,6 +110,7 @@ const CHAOS_COLORS = ['#C9BEA9', '#B3A791', '#D8CFC0', '#F0AE6C'];
 const ORDER_COLOR = '#FF7F00';
 
 const makeRand = (seed: number) => () => {
+  // eslint-disable-next-line no-bitwise -- el generador congruencial lineal necesita el módulo 2^31 del enmascarado; es lo que hace la señal REPRODUCIBLE entre ejecuciones.
   seed = (seed * 1103515245 + 12345) & 0x7fffffff;
   return seed / 0x7fffffff;
 };

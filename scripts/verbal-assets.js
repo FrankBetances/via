@@ -1,5 +1,4 @@
 #!/usr/bin/env node
-/* eslint-disable no-console */
 /**
  * Pipeline de assets de la Audiometría Verbal (herramienta de desarrollo).
  *
@@ -484,8 +483,7 @@ function cmdRegistryVariant({ bands, inventory, baseLang, glyphs }, lang) {
   const clipLines = audio
     .map(e => `  ${e.key}: '${fs.readFileSync(path.join(audioDir, `${e.key}.m4a`)).toString('base64')}',`)
     .join('\n');
-  const content = `/* eslint-disable */
-/* -------------------------------------------------------------------------- */
+  const content = `/* -------------------------------------------------------------------------- */
 /*  Recortes de audio de la Audiometría Verbal · variante ${lang} (base64).       */
 /*                                                                             */
 /*  GENERADO por \`node scripts/verbal-assets.js registry --lang ${lang}\` — NO    */
@@ -586,8 +584,7 @@ export const registeredVerbalAssets = () => ({
   const clipLines = audio
     .map(e => `  ${e.key}: '${fs.readFileSync(path.join(audioDir, `${e.key}.m4a`)).toString('base64')}',`)
     .join('\n');
-  const clips = `/* eslint-disable */
-/* -------------------------------------------------------------------------- */
+  const clips = `/* -------------------------------------------------------------------------- */
 /*  Recortes de audio de la Audiometría Verbal INCRUSTADOS en base64 (m4a).    */
 /*                                                                             */
 /*  GENERADO por \`node scripts/verbal-assets.js registry\` — NO editar a mano.  */

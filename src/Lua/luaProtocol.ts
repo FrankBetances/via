@@ -1,3 +1,5 @@
+/* eslint-disable no-bitwise -- el protocolo empaqueta dos campos de 8 bits
+ * en el parámetro de 16 de la trama; el desplazamiento ES la especificación. */
 // GENERADO por scripts/build-lua-protocol.js — no editar a mano.
 // Fuente: src/Lua/protocol.json, copia vendorizada byte a byte de
 //   FrankBetances/Valeria · firmware/lua/protocol.json

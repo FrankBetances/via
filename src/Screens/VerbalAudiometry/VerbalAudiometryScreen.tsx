@@ -134,16 +134,16 @@ export default function VerbalAudiometryScreen({ navigation }: Props) {
     } else {
       lua.setVerdict(0);
     }
-    const t = setTimeout(() => v.next(), v.wasCorrect ? ADVANCE_OK_MS : ADVANCE_FAIL_MS);
-    return () => clearTimeout(t);
+    const timer = setTimeout(() => v.next(), v.wasCorrect ? ADVANCE_OK_MS : ADVANCE_FAIL_MS);
+    return () => clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [phase, answered, v.wasCorrect]);
 
   // Lista completada → hoja de resultados (el clínico retoma el control).
   useEffect(() => {
     if (phase !== 'play' || !v.completedForLevel) return;
-    const t = setTimeout(() => setPhase('results'), 900);
-    return () => clearTimeout(t);
+    const timer = setTimeout(() => setPhase('results'), 900);
+    return () => clearTimeout(timer);
   }, [phase, v.completedForLevel]);
 
   // Al salir de la fase de juego, parar cualquier estímulo en curso.

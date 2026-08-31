@@ -54,7 +54,7 @@ export default function InhibitionGame({
   useEffect(() => {
     if (!trial) {
       const c = counts.current;
-      const nogoTrials = plan.trials.filter(t => t.isNogo).length;
+      const nogoTrials = plan.trials.filter(planTrial => planTrial.isNogo).length;
       onFinish({
         goTrials: plan.trials.length - nogoTrials,
         nogoTrials,
@@ -66,15 +66,15 @@ export default function InhibitionGame({
     }
     answered.current = false;
     setVisible(true);
-    const t = setTimeout(() => {
+    const timer = setTimeout(() => {
       if (answered.current) return;
       answered.current = true;
       // Sin respuesta: omisión si era go; rechazo correcto (silencioso) si no-go.
       if (!trial.isNogo) counts.current.omissions += 1;
       advance();
     }, plan.stimulusMs);
-    timers.current.push(t);
-    return () => clearTimeout(t);
+    timers.current.push(timer);
+    return () => clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [trialIndex]);
 

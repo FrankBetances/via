@@ -564,6 +564,7 @@ function lpcCoefficients(x: Float32Array, order: number): number[] | null {
     for (let i = 1; i < m; i++) k -= a[i] * r[m - i];
     k /= e;
     a[m] = k;
+    // eslint-disable-next-line no-bitwise -- división entera por dos, idioma habitual del DSP: la aritmética clínica no se reescribe para contentar a una regla de estilo.
     for (let i = 1; i <= m >> 1; i++) {
       const tmp = a[i] + k * a[m - i];
       a[m - i] += k * a[i];
@@ -605,6 +606,7 @@ const yieldToEventLoop = () => new Promise<void>(resolve => setTimeout(resolve, 
 
 function median(values: number[]): number {
   const s = [...values].sort((x, y) => x - y);
+  // eslint-disable-next-line no-bitwise -- división entera por dos, idioma habitual del DSP: la aritmética clínica no se reescribe para contentar a una regla de estilo.
   const mid = s.length >> 1;
   return s.length % 2 ? s[mid] : (s[mid - 1] + s[mid]) / 2;
 }

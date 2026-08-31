@@ -169,6 +169,7 @@ export default function SeleccionEjerciciosScreen({ navigation }: Props) {
 
   const handleStart = () => {
     if (selCount === 0) return;
+    // eslint-disable-next-line no-bitwise -- la selección de módulos viaja como máscara de bits en la telemetría Zero-PHI.
     const mask = MODULES.reduce((m, mod, i) => (selected.includes(mod.id) ? m | (1 << i) : m), 0);
     tracker.startSession(mask.toString(36));
     navigation.navigate(selected[0] as any);

@@ -1,5 +1,4 @@
 #!/usr/bin/env node
-/* eslint-disable no-console */
 /**
  * Concordancia del análisis prosódico con la anotación MANUAL de un logopeda
  * (herramienta de build-time · hito B6).

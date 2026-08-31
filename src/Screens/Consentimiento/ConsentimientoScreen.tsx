@@ -290,8 +290,8 @@ export default function ConsentimientoScreen({ navigation, route }: Props) {
 
   /* ------------------------------- render -------------------------------- */
 
-  const signerTypeLabel = (t: ConsentSignerType) =>
-    t === 'patient' ? 'el propio paciente' : t === 'guardian' ? 'padre/madre/tutor legal' : 'familiar/representante';
+  const signerTypeLabel = (signer: ConsentSignerType) =>
+    signer === 'patient' ? 'el propio paciente' : signer === 'guardian' ? 'padre/madre/tutor legal' : 'familiar/representante';
 
   return (
     <Content

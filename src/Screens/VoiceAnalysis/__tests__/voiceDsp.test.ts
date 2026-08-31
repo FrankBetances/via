@@ -36,6 +36,7 @@ function synthVowel({
   // Semilla determinista para reproducibilidad de la prueba.
   let seed = 12345;
   const rand = () => {
+    // eslint-disable-next-line no-bitwise -- el generador congruencial lineal necesita el módulo 2^31 del enmascarado; es lo que hace la señal REPRODUCIBLE entre ejecuciones.
     seed = (seed * 1103515245 + 12345) & 0x7fffffff;
     return seed / 0x7fffffff;
   };
@@ -102,6 +103,7 @@ describe('analyseFrame – F0 por autocorrelación', () => {
     const x = new Float32Array(FRAME);
     let seed = 7;
     for (let i = 0; i < FRAME; i++) {
+      // eslint-disable-next-line no-bitwise -- el generador congruencial lineal necesita el módulo 2^31 del enmascarado; es lo que hace la señal REPRODUCIBLE entre ejecuciones.
       seed = (seed * 1103515245 + 12345) & 0x7fffffff;
       x[i] = (seed / 0x7fffffff - 0.5) * 0.2;
     }
@@ -200,6 +202,7 @@ describe('analysePcm – análisis completo de una toma /a/ infantil', () => {
     const pcm = new Float32Array(n);
     let seed = 4242;
     for (let i = 0; i < n; i++) {
+      // eslint-disable-next-line no-bitwise -- el generador congruencial lineal necesita el módulo 2^31 del enmascarado; es lo que hace la señal REPRODUCIBLE entre ejecuciones.
       seed = (seed * 1103515245 + 12345) & 0x7fffffff;
       pcm[i] = (seed / 0x7fffffff - 0.5) * 0.002; // ~-60 dBFS
     }
@@ -213,6 +216,7 @@ describe('analysePcm – análisis completo de una toma /a/ infantil', () => {
     const pcm = new Float32Array(n);
     let seed = 99;
     for (let i = 0; i < n; i++) {
+      // eslint-disable-next-line no-bitwise -- el generador congruencial lineal necesita el módulo 2^31 del enmascarado; es lo que hace la señal REPRODUCIBLE entre ejecuciones.
       seed = (seed * 1103515245 + 12345) & 0x7fffffff;
       pcm[i] = (seed / 0x7fffffff - 0.5) * 0.1;
     }

@@ -68,12 +68,12 @@ export default function PlanningGame({
       // Corrección con crédito parcial: posición i correcta si se tocó la
       // tarjeta i de la secuencia en el i-ésimo lugar.
       const correct = next.filter((orderedIdx, position) => orderedIdx === position).length;
-      const t = totals.current;
-      t.correctPositions += correct;
-      t.totalPositions += length;
-      t.sequences += 1;
+      const tally = totals.current;
+      tally.correctPositions += correct;
+      tally.totalPositions += length;
+      tally.sequences += 1;
       const perfect = correct === length;
-      if (perfect) t.perfectSequences += 1;
+      if (perfect) tally.perfectSequences += 1;
       setGraded(perfect);
       after(FEEDBACK_MS, () => {
         setPicks([]);

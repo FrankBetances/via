@@ -1,5 +1,4 @@
 #!/usr/bin/env node
-/* eslint-disable no-console */
 /**
  * Generador del mapa id→asset de voz (herramienta de build-time).
  *

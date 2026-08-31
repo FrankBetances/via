@@ -106,6 +106,123 @@ const grbasComplete = (d: GrbasDraft): d is Record<keyof GrbasScores, number> =>
 
 /* --------------------------------- Pantalla -------------------------------- */
 
+/* ParamCard y TakeRow viven FUERA del componente a propósito: definidos
+ * dentro, React los ve como un tipo nuevo en cada render y desmonta la
+ * fila entera —con su estado— cada vez que cambia una toma. Lo que TakeRow
+ * necesitaba del ámbito de la pantalla (`voice` y el catálogo `t`) entra
+ * ahora por props. */
+const ParamCard = ({
+  label,
+  value,
+  norm,
+  status,
+}: {
+  label: string;
+  value: string;
+  norm: string;
+  status: 'normal' | 'borderline' | 'altered';
+}) => (
+  <Card bgColor="$backgroundLight50" borderRadius={16} borderWidth={1} borderColor="$borderLight100" p="$3" style={{ flex: 1 }}>
+    <HStack justifyContent="space-between" alignItems="flex-start">
+      <Text size="2xs" color="$textLight500" style={{ letterSpacing: 0.3 }}>
+        {label}
+      </Text>
+      <Box px="$2" py="$0.5" borderRadius="$full" bg={status === 'normal' ? '$success50' : status === 'borderline' ? '$warning50' : '$error50'}>
+        <Text size="2xs" weight="bold" color={statusColor(status)}>
+          {statusLabel(status)}
+        </Text>
+      </Box>
+    </HStack>
+    <Text size="2xl" weight="bold" color="$textLight900" mt="$1" style={{ fontVariant: ['tabular-nums'] }}>
+      {value}
+    </Text>
+    <Text size="2xs" color="$textLight400" mt="$0.5">
+      {norm}
+    </Text>
+  </Card>
+);
+
+const TakeRow = ({
+  take,
+  index,
+  voice,
+  t,
+}: {
+  take: VoiceTake;
+  index: number;
+  voice: ReturnType<typeof useVoiceAnalysis>;
+  t: ReturnType<typeof useT>;
+}) => {
+  const isSelected = take.id === voice.selectedTakeId;
+  const isPlaying = take.id === voice.playingTakeId;
+  const isAnalyzed = take.id === voice.analyzedTakeId;
+  const time = take.recordedAt.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+  return (
+    <Pressable onPress={() => voice.selectTake(take.id)} disabled={voice.isAnalyzing}>
+      <HStack
+        alignItems="center"
+        space="sm"
+        p="$3"
+        borderRadius={14}
+        borderWidth={1.5}
+        borderColor={isSelected ? '$primary400' : '$borderLight100'}
+        bg={isSelected ? '$primary0' : '$backgroundLight50'}>
+        {/* marcador de selección */}
+        <Box
+          w={18}
+          h={18}
+          borderRadius="$full"
+          borderWidth={2}
+          borderColor={isSelected ? '$primary600' : '$borderLight300'}
+          alignItems="center"
+          justifyContent="center">
+          {isSelected ? <Box w={9} h={9} borderRadius="$full" bg="$primary600" /> : null}
+        </Box>
+
+        <VStack style={{ flex: 1 }}>
+          <HStack alignItems="center" space="xs">
+            <Text size="sm" weight="bold" color="$textLight900">
+              
+              {t.voiceAnalysis.toma} {index + 1}
+            </Text>
+            {isAnalyzed ? (
+              <Box bg="$success50" px="$1.5" py="$0.5" borderRadius="$full">
+                <Text size="2xs" weight="bold" color="$success600">
+                  
+                  {t.voiceAnalysis.analizada}
+                </Text>
+              </Box>
+            ) : null}
+          </HStack>
+          <Text size="2xs" color="$textLight500">
+            {take.durationSec.toFixed(1)} s · {time}
+          </Text>
+        </VStack>
+
+        {/* reproducir / parar */}
+        <Pressable
+          onPress={() => voice.playTake(take.id)}
+          disabled={voice.isRecording || voice.isAnalyzing}
+          hitSlop={8}>
+          <Center w={36} h={36} borderRadius="$full" bg={isPlaying ? '$error50' : '$primary50'}>
+            <Icon as={isPlaying ? Square : Play} size="sm" color={isPlaying ? '$error600' : '$primary600'} />
+          </Center>
+        </Pressable>
+
+        {/* eliminar */}
+        <Pressable
+          onPress={() => voice.deleteTake(take.id)}
+          disabled={voice.isRecording || voice.isAnalyzing}
+          hitSlop={8}>
+          <Center w={36} h={36} borderRadius="$full" bg="$backgroundLight100">
+            <Icon as={Trash2} size="sm" color="$textLight400" />
+          </Center>
+        </Pressable>
+      </HStack>
+    </Pressable>
+  );
+};
+
 export default function VoiceAnalysisScreen({ navigation }: Props) {
   const t = useT();
   const activeEvaluation = useClassSelector(Evaluation, (state: RootState) => state.activeEvaluation.evaluation);
@@ -169,8 +286,8 @@ export default function VoiceAnalysisScreen({ navigation }: Props) {
 
   const interpretation = useMemo(() => (r ? buildInterpretation(r) : ''), [r]);
   const grbasScores: GrbasScores | null = grbasComplete(grbas) ? { ...grbas } : null;
-  const analyzedTake = voice.takes.find(t => t.id === voice.analyzedTakeId) ?? null;
-  const selectedTake = voice.takes.find(t => t.id === voice.selectedTakeId) ?? null;
+  const analyzedTake = voice.takes.find(take => take.id === voice.analyzedTakeId) ?? null;
+  const selectedTake = voice.takes.find(take => take.id === voice.selectedTakeId) ?? null;
 
   /** Cierre MANUAL: sin resultado acústico pero con tomas grabadas y la
    *  valoración perceptual GRBAS completa. La prueba queda registrada con la
@@ -185,108 +302,6 @@ export default function VoiceAnalysisScreen({ navigation }: Props) {
     // (incertidumbre perceptual del explorador).
     tracker.classifyReactivo(`voz-${key}`);
     setGrbas(prev => ({ ...prev, [key]: prev[key] === value ? null : value }));
-  };
-
-  const ParamCard = ({
-    label,
-    value,
-    norm,
-    status,
-  }: {
-    label: string;
-    value: string;
-    norm: string;
-    status: 'normal' | 'borderline' | 'altered';
-  }) => (
-    <Card bgColor="$backgroundLight50" borderRadius={16} borderWidth={1} borderColor="$borderLight100" p="$3" style={{ flex: 1 }}>
-      <HStack justifyContent="space-between" alignItems="flex-start">
-        <Text size="2xs" color="$textLight500" style={{ letterSpacing: 0.3 }}>
-          {label}
-        </Text>
-        <Box px="$2" py="$0.5" borderRadius="$full" bg={status === 'normal' ? '$success50' : status === 'borderline' ? '$warning50' : '$error50'}>
-          <Text size="2xs" weight="bold" color={statusColor(status)}>
-            {statusLabel(status)}
-          </Text>
-        </Box>
-      </HStack>
-      <Text size="2xl" weight="bold" color="$textLight900" mt="$1" style={{ fontVariant: ['tabular-nums'] }}>
-        {value}
-      </Text>
-      <Text size="2xs" color="$textLight400" mt="$0.5">
-        {norm}
-      </Text>
-    </Card>
-  );
-
-  const TakeRow = ({ take, index }: { take: VoiceTake; index: number }) => {
-    const isSelected = take.id === voice.selectedTakeId;
-    const isPlaying = take.id === voice.playingTakeId;
-    const isAnalyzed = take.id === voice.analyzedTakeId;
-    const time = take.recordedAt.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
-    return (
-      <Pressable onPress={() => voice.selectTake(take.id)} disabled={voice.isAnalyzing}>
-        <HStack
-          alignItems="center"
-          space="sm"
-          p="$3"
-          borderRadius={14}
-          borderWidth={1.5}
-          borderColor={isSelected ? '$primary400' : '$borderLight100'}
-          bg={isSelected ? '$primary0' : '$backgroundLight50'}>
-          {/* marcador de selección */}
-          <Box
-            w={18}
-            h={18}
-            borderRadius="$full"
-            borderWidth={2}
-            borderColor={isSelected ? '$primary600' : '$borderLight300'}
-            alignItems="center"
-            justifyContent="center">
-            {isSelected ? <Box w={9} h={9} borderRadius="$full" bg="$primary600" /> : null}
-          </Box>
-
-          <VStack style={{ flex: 1 }}>
-            <HStack alignItems="center" space="xs">
-              <Text size="sm" weight="bold" color="$textLight900">
-                
-                {t.voiceAnalysis.toma} {index + 1}
-              </Text>
-              {isAnalyzed ? (
-                <Box bg="$success50" px="$1.5" py="$0.5" borderRadius="$full">
-                  <Text size="2xs" weight="bold" color="$success600">
-                    
-                    {t.voiceAnalysis.analizada}
-                  </Text>
-                </Box>
-              ) : null}
-            </HStack>
-            <Text size="2xs" color="$textLight500">
-              {take.durationSec.toFixed(1)} s · {time}
-            </Text>
-          </VStack>
-
-          {/* reproducir / parar */}
-          <Pressable
-            onPress={() => voice.playTake(take.id)}
-            disabled={voice.isRecording || voice.isAnalyzing}
-            hitSlop={8}>
-            <Center w={36} h={36} borderRadius="$full" bg={isPlaying ? '$error50' : '$primary50'}>
-              <Icon as={isPlaying ? Square : Play} size="sm" color={isPlaying ? '$error600' : '$primary600'} />
-            </Center>
-          </Pressable>
-
-          {/* eliminar */}
-          <Pressable
-            onPress={() => voice.deleteTake(take.id)}
-            disabled={voice.isRecording || voice.isAnalyzing}
-            hitSlop={8}>
-            <Center w={36} h={36} borderRadius="$full" bg="$backgroundLight100">
-              <Icon as={Trash2} size="sm" color="$textLight400" />
-            </Center>
-          </Pressable>
-        </HStack>
-      </Pressable>
-    );
   };
 
   const handleSave = async () => {
@@ -503,7 +518,7 @@ export default function VoiceAnalysisScreen({ navigation }: Props) {
 
                 <VStack space="sm" mb="$4">
                   {voice.takes.map((take, index) => (
-                    <TakeRow key={take.id} take={take} index={index} />
+                    <TakeRow key={take.id} take={take} index={index} voice={voice} t={t} />
                   ))}
                 </VStack>
 

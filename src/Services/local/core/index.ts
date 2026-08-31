@@ -150,7 +150,6 @@ export function createLocalQuery<TResult, TArg = void>(
     // documenta el contrato de firmas de arriba.
     useEffect(() => {
       execute();
-      // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [execute, arg]);
 
     return { data, isLoading, isFetching, isSuccess, isError, error, refetch: execute };
@@ -181,6 +180,8 @@ export function createLocalLazyQuery<TResult, TArg = void>(
     const refetch = useCallback(async () => {
       if (lastArgRef.current === undefined) return undefined;
       return trigger(lastArgRef.current as TArg);
+      /* `trigger` se declara justo debajo: incluirlo aquí crea un ciclo de
+       * dependencias y vuelve a crear `refetch` en cada render. */
       // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 

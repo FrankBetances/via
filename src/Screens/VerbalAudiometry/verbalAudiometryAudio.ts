@@ -665,13 +665,13 @@ export function installVerbalAudioAdapter(opts: VerbalAudioAdapterOptions = {}):
     // «sin voz fijada» en cada diagnóstico lanzado nada más abrir la app —
     // justo el dato que hace falta para saber si se eligió una voz de red.
     const ready = await ensureTtsReady();
-    const opts = speechOptionsFor(lang);
+    const speechOpts = speechOptionsFor(lang);
     const pick = pickVoiceForLang(ttsVoices, lang);
     const base: SpeechProbe = {
       started: false,
       finished: false,
       voiceId: pick?.voice.id ?? null,
-      language: opts.language,
+      language: speechOpts.language,
       degraded: pick?.degraded ?? false,
       offline: pick ? isOfflineVoice(pick.voice) : false,
       error: null,
@@ -706,7 +706,7 @@ export function installVerbalAudioAdapter(opts: VerbalAudioAdapterOptions = {}):
       }
       try {
         ttsEngine.speak(text, {
-          ...opts,
+          ...speechOpts,
           onStart: () => {
             state.started = true;
           },

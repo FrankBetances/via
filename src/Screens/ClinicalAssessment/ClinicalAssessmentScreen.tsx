@@ -508,7 +508,7 @@ export default function ClinicalAssessmentScreen({ navigation }: Props) {
                 {DOMAINS.map(d => {
                   const active = activeDomain === d.id;
                   const k = kindByDomain[d.id];
-                  const t = KIND_THEME[k];
+                  const kindTheme = KIND_THEME[k];
                   const IconComp = d.icon;
                   return (
                     <Pressable
@@ -528,8 +528,8 @@ export default function ClinicalAssessmentScreen({ navigation }: Props) {
                           {d.short}
                         </Text>
                         <View style={styles.tabStatusRow}>
-                          <View style={[styles.statusMiniDot, { backgroundColor: t.dot }]} />
-                          <Text size="2xs" weight="semiBold" style={{ color: t.fg }}>
+                          <View style={[styles.statusMiniDot, { backgroundColor: kindTheme.dot }]} />
+                          <Text size="2xs" weight="semiBold" style={{ color: kindTheme.fg }}>
                             {DOMAIN_LABELS[k]}
                           </Text>
                         </View>
@@ -630,10 +630,10 @@ export default function ClinicalAssessmentScreen({ navigation }: Props) {
                             <InputField
                               placeholder={t.clinicalAssessment.anotacionesOtoscopiaTimpanoCae}
                               value={isRight ? s.odNotes : s.oiNotes}
-                              onChangeText={t =>
+                              onChangeText={text =>
                                 setS(prev => ({
                                   ...prev,
-                                  [isRight ? 'odNotes' : 'oiNotes']: t,
+                                  [isRight ? 'odNotes' : 'oiNotes']: text,
                                 }))
                               }
                             />

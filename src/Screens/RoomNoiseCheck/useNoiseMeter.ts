@@ -176,7 +176,7 @@ export function useNoiseMeter({
       // La estadística se hace sobre el nivel de CADA bloque de captura, no
       // sobre la muestra suavizada del gauge: así el LAeq es el de verdad y
       // los percentiles separan el fondo de sala de los picos.
-      for (const db of drainBlockLevels(smooth.current)) testSamples.current.push(db);
+      for (const level of drainBlockLevels(smooth.current)) testSamples.current.push(level);
 
       const elapsed = Date.now() - testStart.current;
       const durMs = testDurationSec * 1000;

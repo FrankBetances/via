@@ -209,7 +209,7 @@ export default function ArticulationTestScreen({ navigation }: Props) {
 
   const recordCode = (code: SodaCode) => {
     tracker.classifyReactivo(`art-${cur.id}`);
-    setResults(prev => ({ ...prev, [cur.id]: code }));
+    setResults(current => ({ ...current, [cur.id]: code }));
     audio.reset();
     if (code === 'C') {
       lua.setVerdict(2);
@@ -221,7 +221,7 @@ export default function ArticulationTestScreen({ navigation }: Props) {
     }
   };
 
-  const onSub = (text: string) => setSubs(prev => ({ ...prev, [cur.id]: text }));
+  const onSub = (text: string) => setSubs(current => ({ ...current, [cur.id]: text }));
 
   const handleStart = () => {
     if (!setupReady) return;
@@ -241,23 +241,23 @@ export default function ArticulationTestScreen({ navigation }: Props) {
     }
 
     try {
-      const t = new ArticulationTest();
-      t.instrument = 'T.A.R. (Articulación a la Repetición)';
-      t.results = results;
-      t.substitutions = subs;
-      t.evaluatedCount = score.evaluatedCount;
-      t.totalCount = score.totalCount;
-      t.correctPct = score.correctPct;
-      t.sodaCounts = score.sodaCounts;
-      t.affectedPhonemes = score.affectedPhonemes;
-      t.phonemeStatus = score.phonemeStatus;
-      t.notes = { obs: obs.trim() };
-      t.evaluatorName = evaluatorName.trim();
-      t.evaluatorLicense = evaluatorLicense.trim();
-      t.completedAt = new Date();
-      t.evaluation = { id: activeEvaluation.id } as Evaluation;
+      const record = new ArticulationTest();
+      record.instrument = 'T.A.R. (Articulación a la Repetición)';
+      record.results = results;
+      record.substitutions = subs;
+      record.evaluatedCount = score.evaluatedCount;
+      record.totalCount = score.totalCount;
+      record.correctPct = score.correctPct;
+      record.sodaCounts = score.sodaCounts;
+      record.affectedPhonemes = score.affectedPhonemes;
+      record.phonemeStatus = score.phonemeStatus;
+      record.notes = { obs: obs.trim() };
+      record.evaluatorName = evaluatorName.trim();
+      record.evaluatorLicense = evaluatorLicense.trim();
+      record.completedAt = new Date();
+      record.evaluation = { id: activeEvaluation.id } as Evaluation;
 
-      await createArticulation(t);
+      await createArticulation(record);
 
       showSuccessToast('Registro guardado', `T.A.R. · ${score.evaluatedCount} ítems · ${score.correctPct}% acierto.`);
       // Aterriza en los resultados, no de vuelta al hub (ver finishModule).

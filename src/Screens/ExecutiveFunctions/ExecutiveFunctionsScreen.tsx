@@ -137,9 +137,9 @@ export default function ExecutiveFunctionsScreen({ navigation }: Props) {
       return;
     }
     const currentDomain = EF_DOMAIN_ORDER[Math.min(gameIndex, EF_DOMAIN_ORDER.length - 1)];
-    const t = setTimeout(() => speakConsigna(currentDomain, sessionLanguage), 500);
+    const timer = setTimeout(() => speakConsigna(currentDomain, sessionLanguage), 500);
     return () => {
-      clearTimeout(t);
+      clearTimeout(timer);
       stopConsigna();
     };
   }, [phase, gameIndex, sessionLanguage]);

@@ -182,7 +182,6 @@ describe('agregación e interpretación', () => {
 /* -------------------------------------------------------------------------- */
 describe('índice global de funciones ejecutivas', () => {
   const {
-    EMPTY_EF_SCORES,
     efCompletedCount,
     efLabelFromTest,
     efOverallLabel,

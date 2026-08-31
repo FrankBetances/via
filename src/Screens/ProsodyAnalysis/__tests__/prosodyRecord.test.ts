@@ -32,6 +32,7 @@ function synthSpeech(): Float32Array {
   const out = new Float32Array(Math.floor(total * SAMPLE_RATE));
   let seed = 4242;
   const rand = () => {
+    // eslint-disable-next-line no-bitwise -- el generador congruencial lineal necesita el módulo 2^31 del enmascarado; es lo que hace la señal REPRODUCIBLE entre ejecuciones.
     seed = (seed * 1103515245 + 12345) & 0x7fffffff;
     return seed / 0x7fffffff;
   };

@@ -32,10 +32,13 @@ const OUT_TS = path.join(ROOT, 'src', 'Lua', 'luaProtocol.ts');
 const hx = n => `0x${n.toString(16).padStart(2, '0').toUpperCase()}`;
 // La máscara se deriva del bit: escribir el valor a mano en el .json sería
 // tener dos formas de decir lo mismo y que se separen.
+// eslint-disable-next-line no-bitwise -- las capacidades del firmware son banderas de bit; la máscara ES el contrato.
 const capMask = c => 1 << c.bit;
 
 /** Cabecera propia de VIA+: deja escrito de dónde viene la tabla. */
-const header = `// GENERADO por scripts/build-lua-protocol.js — no editar a mano.
+const header = `/* eslint-disable no-bitwise -- el protocolo empaqueta dos campos de 8 bits
+ * en el parámetro de 16 de la trama; el desplazamiento ES la especificación. */
+// GENERADO por scripts/build-lua-protocol.js — no editar a mano.
 // Fuente: src/Lua/protocol.json, copia vendorizada byte a byte de
 //   FrankBetances/Valeria · firmware/lua/protocol.json
 // que es la fuente ÚNICA del enlace y la comparten el firmware del ESP32,

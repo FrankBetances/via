@@ -164,6 +164,7 @@ export const luaPicto = (index: number): void =>
 export const luaAward = (glyph: number, rank = 0): void => {
   const g = Math.max(0, Math.min(8, Math.round(glyph)));
   const r = Math.max(0, Math.min(4, Math.round(rank)));
+  // eslint-disable-next-line no-bitwise -- insignia y rango viajan empaquetados en el parámetro de 16 bits de la trama.
   luaCtrl(LUA_OP.AWARD, (r << 8) | g);
 };
 

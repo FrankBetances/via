@@ -406,12 +406,12 @@ export default function ProsodyAnalysisScreen({ navigation }: Props) {
                     <Button
                       flex={1}
                       isDisabled={!prosody.available || analysing}
-                      onPress={() => void prosody.start()}>
+                      onPress={() => { prosody.start(); }}>
                       <Icon as={Mic} size="sm" color="$white" />
                       {done || prosody.phase === 'error' ? t.prosody.repetirToma : t.prosody.iniciarToma}
                     </Button>
                   ) : (
-                    <Button flex={1} action="secondary" onPress={() => void prosody.stop()}>
+                    <Button flex={1} action="secondary" onPress={() => { prosody.stop(); }}>
                       <Icon as={Square} size="sm" color="$white" />
                       {t.prosody.detener}
                     </Button>
@@ -527,7 +527,7 @@ export default function ProsodyAnalysisScreen({ navigation }: Props) {
                       onChangeText={setEvaluatorLicense}
                     />
                   </Input>
-                  <Button isDisabled={!canSave || isSaving} onPress={() => void handleSave()}>
+                  <Button isDisabled={!canSave || isSaving} onPress={() => { handleSave(); }}>
                     <Icon as={Save} size="sm" color="$white" />
                     {t.prosody.guardarMuestra}
                   </Button>

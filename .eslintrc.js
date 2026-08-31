@@ -1,7 +1,21 @@
 module.exports = {
   root: true,
+  /* Recortes de la audiometría verbal INCRUSTADOS en base64: ~2 MB de datos
+   * GENERADOS por `node scripts/verbal-assets.js registry`. Analizarlos no
+   * dice nada de nadie —no hay código que revisar— y obligaba a llevar en
+   * cabecera un silenciador en blanco (un «disable» sin reglas), que es
+   * justo la clase de mordaza que esconde el aviso siguiente. */
+  ignorePatterns: ['src/Screens/VerbalAudiometry/verbalAudioClips*.ts'],
   extends: '@react-native',
-  rules: {},
+  rules: {
+    /* `void promesa()` es el idioma DELIBERADO de este repositorio para el
+     * disparo sin espera: dice, en el propio sitio, «esta promesa no se
+     * aguarda a propósito», que es justo lo que un `catch {}` mudo no dice
+     * (regla 4). La opción `allowAsStatement` es la que la propia regla trae
+     * para este caso: sigue prohibiendo `void` como EXPRESIÓN —donde de
+     * verdad confunde— y lo permite como sentencia suelta. */
+    'no-void': ['warn', { allowAsStatement: true }],
+  },
   overrides: [
     {
       /* Scripts y herramientas que corren en NODE, no en el dispositivo.

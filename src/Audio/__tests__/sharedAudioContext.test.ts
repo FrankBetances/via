@@ -13,9 +13,7 @@
 
 /* `var` + prefijo `mock`: jest hoista `jest.mock(...)` por encima de las
  * declaraciones, y solo permite que la factoría capture variables así. */
-// eslint-disable-next-line no-var
 var mockCreated: any[] = [];
-// eslint-disable-next-line no-var
 var mockSessionOptions: any[] = [];
 
 // Sin `{ virtual: true }`: el paquete existe de verdad, y marcarlo virtual
