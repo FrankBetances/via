@@ -19,6 +19,7 @@ import { DB_STEPS, FREQ_LABEL, FREQS, interpretAudiometry, severityOf } from './
 import Audiogram from './components/Audiogram';
 
 import { useT } from '@/I18n';
+import { atoms } from '@/Theme/styleAtoms';
 type Props = NativeStackScreenProps<RootStackParamList, 'Audiometry'>;
 
 const INSTRUMENTS: { key: string; glyph: string; name: string; freq: ToneTarget; tag: string }[] = [
@@ -149,7 +150,7 @@ export default function AudiometryScreen({ navigation }: Props) {
                     {t.audiometry.audiometriaInfantil}
                   </Text>
                   <Box bg="$primary50" px="$2" py="$0.5" borderRadius="$full">
-                    <Text size="2xs" weight="bold" color="$primary800" style={{ letterSpacing: 0.4 }}>
+                    <Text size="2xs" weight="bold" color="$primary800" style={atoms.letterSpacing04}>
                       
                       {t.audiometry.juegoTonos}
                     </Text>
@@ -175,8 +176,8 @@ export default function AudiometryScreen({ navigation }: Props) {
                   {t.audiometry.audiogramaClinico}
                 </Text>
                 <HStack space="md">
-                  <Text size="2xs" style={{ color: '#E63535' }}>● OD</Text>
-                  <Text size="2xs" style={{ color: '#1E8049' }}>✕ OI</Text>
+                  <Text size="2xs" style={atoms.colorE63535}>● OD</Text>
+                  <Text size="2xs" style={atoms.color1E8049}>✕ OI</Text>
                 </HStack>
               </HStack>
               <Box h={250} borderRadius={12} borderWidth={1} borderColor="$borderLight100" bg="$backgroundLight50">
@@ -192,9 +193,9 @@ export default function AudiometryScreen({ navigation }: Props) {
               </Text>
               <VStack space="xs">
                 <HStack>
-                  <Text size="xs" color="$textLight400" style={{ width: 50 }}>{t.audiometry.oido}</Text>
+                  <Text size="xs" color="$textLight400" style={atoms.width50}>{t.audiometry.oido}</Text>
                   {FREQS.map(f => (
-                    <Text key={f} size="xs" color="$textLight400" style={{ flex: 1, textAlign: 'center' }}>
+                    <Text key={f} size="xs" color="$textLight400" style={atoms.flex1TextAlignCenter}>
                       {FREQ_LABEL[String(f)]}
                     </Text>
                   ))}
@@ -216,12 +217,12 @@ export default function AudiometryScreen({ navigation }: Props) {
               <HStack space="sm" mt="$3">
                 <Box flex={1} bg="$backgroundLight50" borderRadius={12} p="$2.5" alignItems="center">
                   <Text size="2xs" color="$textLight400">{t.audiometry.ptaOd}</Text>
-                  <Text size="lg" weight="bold" style={{ color: '#E63535' }}>{a.ptaOD ?? '—'}</Text>
+                  <Text size="lg" weight="bold" style={atoms.colorE63535}>{a.ptaOD ?? '—'}</Text>
                   {sevOD ? <Text size="2xs" color="$textLight500">{sevOD.label}</Text> : null}
                 </Box>
                 <Box flex={1} bg="$backgroundLight50" borderRadius={12} p="$2.5" alignItems="center">
                   <Text size="2xs" color="$textLight400">{t.audiometry.ptaOi}</Text>
-                  <Text size="lg" weight="bold" style={{ color: '#1E8049' }}>{a.ptaOI ?? '—'}</Text>
+                  <Text size="lg" weight="bold" style={atoms.color1E8049}>{a.ptaOI ?? '—'}</Text>
                   {sevOI ? <Text size="2xs" color="$textLight500">{sevOI.label}</Text> : null}
                 </Box>
                 <Box flex={1} bg="$backgroundLight50" borderRadius={12} p="$2.5" alignItems="center">
@@ -251,7 +252,7 @@ export default function AudiometryScreen({ navigation }: Props) {
                   const active = correctOf(inst.freq);
                   const success = celebrate === inst.key;
                   return (
-                    <Pressable key={inst.key} onPress={() => onInstrument(inst.key, inst.freq)} style={{ width: '31%', marginBottom: 12 }}>
+                    <Pressable key={inst.key} onPress={() => onInstrument(inst.key, inst.freq)} style={atoms.width31PctMarginBottom12}>
                       <Center
                         py="$3"
                         borderRadius={16}
@@ -278,7 +279,7 @@ export default function AudiometryScreen({ navigation }: Props) {
               <Text size="xs" weight="semiBold" color="$textLight600" mb="$1">{t.audiometry.oido}</Text>
               <HStack space="sm" mb="$3">
                 {(['OD', 'OI'] as const).map(e => (
-                  <Pressable key={e} style={{ flex: 1 }} onPress={() => a.setEar(e)}>
+                  <Pressable key={e} style={atoms.flex1} onPress={() => a.setEar(e)}>
                     <Center py="$2" borderRadius={10} bg={a.ear === e ? (e === 'OD' ? '$error500' : '$success600') : '$white'} borderWidth={1.5} borderColor={a.ear === e ? 'transparent' : '$borderLight200'}>
                       <Text size="sm" weight="bold" color={a.ear === e ? '$white' : '$textLight500'}>{e}</Text>
                     </Center>
@@ -290,7 +291,7 @@ export default function AudiometryScreen({ navigation }: Props) {
               <Text size="xs" weight="semiBold" color="$textLight600" mb="$1">{t.audiometry.intensidadDbHl}</Text>
               <HStack space="xs" mb="$3">
                 {DB_STEPS.map(d => (
-                  <Pressable key={d} style={{ flex: 1 }} onPress={() => a.setDb(d)}>
+                  <Pressable key={d} style={atoms.flex1} onPress={() => a.setDb(d)}>
                     <Center py="$1.5" borderRadius={8} bg={a.db === d ? '$primary500' : '$white'} borderWidth={1.5} borderColor={a.db === d ? 'transparent' : '$borderLight200'}>
                       <Text size="xs" weight="bold" color={a.db === d ? '$white' : '$textLight500'} style={{ fontVariant: ['tabular-nums'] }}>{d}</Text>
                     </Center>
@@ -313,10 +314,10 @@ export default function AudiometryScreen({ navigation }: Props) {
               {/* asistente HW + emitir */}
               <HStack space="sm" alignItems="stretch" mb="$3">
                 <Box flex={1} bg={assistant.bg} borderRadius={14} p="$3" justifyContent="center">
-                  <Text size="2xs" weight="bold" color="$warning700" style={{ letterSpacing: 0.4 }}>{assistant.tag}</Text>
-                  <Text size="xs" weight="semiBold" color="$textLight800" mt="$0.5" style={{ lineHeight: 17 }}>{assistant.text}</Text>
+                  <Text size="2xs" weight="bold" color="$warning700" style={atoms.letterSpacing04}>{assistant.tag}</Text>
+                  <Text size="xs" weight="semiBold" color="$textLight800" mt="$0.5" style={atoms.lineHeight17}>{assistant.text}</Text>
                 </Box>
-                <Button action="primary" variant="solid" rounded="$xl" onPress={a.playStimulus} style={{ width: 120 }}>
+                <Button action="primary" variant="solid" rounded="$xl" onPress={a.playStimulus} style={atoms.width120}>
                   <VStack alignItems="center">
                     <Icon as={Volume2} size="md" color="$white" />
                     <Text size="2xs" weight="bold" color="$white" mt="$0.5">{t.audiometry.emitir}</Text>
@@ -326,7 +327,7 @@ export default function AudiometryScreen({ navigation }: Props) {
 
               {/* registro */}
               <HStack space="sm">
-                <Pressable style={{ flex: 1 }} onPress={() => a.responded()}>
+                <Pressable style={atoms.flex1} onPress={() => a.responded()}>
                   <Center py="$2.5" borderRadius={12} bg="$success50">
                     <HStack space="xs" alignItems="center">
                       <Icon as={Check} size="sm" color="$success700" />
@@ -334,7 +335,7 @@ export default function AudiometryScreen({ navigation }: Props) {
                     </HStack>
                   </Center>
                 </Pressable>
-                <Pressable style={{ flex: 1 }} onPress={() => a.noResponse()}>
+                <Pressable style={atoms.flex1} onPress={() => a.noResponse()}>
                   <Center py="$2.5" borderRadius={12} bg="$error50">
                     <HStack space="xs" alignItems="center">
                       <Icon as={X} size="sm" color="$error600" />
@@ -354,15 +355,15 @@ export default function AudiometryScreen({ navigation }: Props) {
             <Card bgColor="$white" borderRadius={20} p="$4">
               <Text size="sm" weight="bold" color="$textLight700" mb="$2">{t.audiometry.evaluadorResponsable}</Text>
               <HStack space="sm" mb="$3">
-                <Input variant="outline" borderRadius={12} style={{ flex: 2 }}>
+                <Input variant="outline" borderRadius={12} style={atoms.flex2}>
                   <InputField placeholder={t.audiometry.nombre} value={evaluatorName} onChangeText={setEvaluatorName} />
                 </Input>
-                <Input variant="outline" borderRadius={12} style={{ flex: 1 }}>
+                <Input variant="outline" borderRadius={12} style={atoms.flex1}>
                   <InputField placeholder={t.audiometry.colegiado} value={evaluatorLicense} onChangeText={setEvaluatorLicense} />
                 </Input>
               </HStack>
               <Input variant="outline" borderRadius={12} h={64} mb="$3">
-                <InputField multiline placeholder={t.audiometry.observacionesClinicas} value={notes} onChangeText={setNotes} style={{ textAlignVertical: 'top' }} />
+                <InputField multiline placeholder={t.audiometry.observacionesClinicas} value={notes} onChangeText={setNotes} style={atoms.textAlignVerticalTop} />
               </Input>
               <Button
                 action="primary"

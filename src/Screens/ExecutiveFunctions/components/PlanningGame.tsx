@@ -8,6 +8,7 @@ import GameCard from './GameCard';
 import { PlanningPlan, PlanningResult } from '../executiveFunctionsGame';
 
 import { useT } from '@/I18n';
+import { atoms } from '@/Theme/styleAtoms';
 /* -------------------------------------------------------------------------- */
 /*  «Ordena la historia» — planificación (secuenciación de tarjetas).          */
 /*  Las tarjetas aparecen desordenadas; el niño las toca en el orden que cree  */
@@ -96,7 +97,7 @@ export default function PlanningGame({
         </Text>
       </Center>
 
-      <HStack flexWrap="wrap" justifyContent="center" style={{ gap: 12, maxWidth: 360 }}>
+      <HStack flexWrap="wrap" justifyContent="center" style={atoms.gap12MaxWidth360}>
         {trial.displayOrder.map(orderedIndex => {
           const pickPosition = picks.indexOf(orderedIndex);
           const isPicked = pickPosition !== -1;

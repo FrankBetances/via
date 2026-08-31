@@ -10,6 +10,7 @@ import {
   MemoryPlan,
   MemoryResult,
 } from '../executiveFunctionsGame';
+import { atoms } from '@/Theme/styleAtoms';
 
 /* -------------------------------------------------------------------------- */
 /*  «El loro repetidor» — memoria de trabajo (span de tarjetas).               */
@@ -140,7 +141,7 @@ export default function MemoryGame({
         </Text>
       </Center>
 
-      <HStack flexWrap="wrap" justifyContent="center" style={{ gap: 12, maxWidth: 340 }}>
+      <HStack flexWrap="wrap" justifyContent="center" style={atoms.gap12MaxWidth340}>
         {plan.board.map((glyph, index) => (
           <GameCard
             key={index}

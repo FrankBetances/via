@@ -3,6 +3,7 @@ import { Animated, Easing, LayoutChangeEvent, View } from 'react-native';
 import { Box, HStack, Text } from '@gluestack-ui/themed';
 
 import { useT } from '@/I18n';
+import { atoms } from '@/Theme/styleAtoms';
 interface Props {
   /** Estaciones alcanzadas para el oído activo (0..4). */
   progress: number;
@@ -374,7 +375,7 @@ export default function TrainScene({
   const steamActive = stimulusVisual || chugging;
 
   return (
-    <Box h={225} borderRadius={22} borderWidth={2} borderColor="#BEE3F8" style={{ overflow: 'hidden' }} onLayout={onLayout}>
+    <Box h={225} borderRadius={22} borderWidth={2} borderColor="#BEE3F8" style={atoms.overflowHidden} onLayout={onLayout}>
       {/* cielo + suelo */}
       <View style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '54%', backgroundColor: '#E0F2FE' }} />
       <View style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: '46%', backgroundColor: '#DCFCE7' }} />
@@ -394,7 +395,7 @@ export default function TrainScene({
         return (
           <View key={i} style={{ position: 'absolute', bottom: 38, left: `${pct * 100}%`, alignItems: 'center', marginLeft: -18, zIndex: 2 }}>
             {/* Animal amigo esperando en la parada o ya recogido */}
-            <View style={{ alignItems: 'center', marginBottom: 2 }}>
+            <View style={atoms.alignItemsCenterMarginBottom2}>
               <Text style={{ fontSize: isDone ? 14 : 22, opacity: isDone ? 0.35 : 1 }}>
                 {ANIMAL_FRIENDS[i]}
               </Text>
@@ -440,7 +441,7 @@ export default function TrainScene({
       <Animated.View style={{ position: 'absolute', bottom: 30, left: 0, zIndex: 5, transform: [{ translateX: trainX }, { translateY: bobY }] }}>
         <HStack alignItems="flex-end">
           {/* coche de pasajeros (recoge a los amigos completados) */}
-          <View style={{ marginRight: 3 }}>
+          <View style={atoms.marginRight3}>
             <View style={{ position: 'absolute', left: -2, right: -2, top: -6, height: 7, borderRadius: 4, backgroundColor: '#047857' }} />
             <HStack
               style={{
@@ -480,7 +481,7 @@ export default function TrainScene({
           <View style={{ width: 7, height: 5, backgroundColor: '#334155', marginBottom: 15 }} />
 
           {/* locomotora */}
-          <View style={{ position: 'relative' }}>
+          <View style={atoms.positionRelative}>
             {/* caldera */}
             <View
               style={{
@@ -581,7 +582,7 @@ export default function TrainScene({
             <HStack style={{ width: 104, alignItems: 'flex-end', marginTop: 3, paddingLeft: 32 }} space="xs">
               <Wheel size={24} spin={spin} />
               <Wheel size={24} spin={spin} />
-              <View style={{ marginBottom: 3 }}>
+              <View style={atoms.marginBottom3}>
                 <Wheel size={16} spin={spin} />
               </View>
             </HStack>

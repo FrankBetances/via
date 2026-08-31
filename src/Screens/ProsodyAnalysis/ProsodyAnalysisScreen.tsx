@@ -44,6 +44,7 @@ import { LuaCompanionWidget } from '@/Components/Mascot/LuaCompanionWidget';
 import { useLuaCompanion, LuaEmotion } from '@/Lua';
 
 import { useT } from '@/I18n';
+import { atoms } from '@/Theme/styleAtoms';
 type Props = NativeStackScreenProps<RootStackParamList, 'ProsodyAnalysis'>;
 
 /* -------------------------------------------------------------------------- */
@@ -242,7 +243,7 @@ export default function ProsodyAnalysisScreen({ navigation }: Props) {
                   {t.prosody.analisisProsodico}
                 </Text>
                 <Box bg="$primary50" px="$2" py="$0.5" borderRadius="$full">
-                  <Text size="2xs" weight="bold" color="$primary800" style={{ letterSpacing: 0.4 }}>
+                  <Text size="2xs" weight="bold" color="$primary800" style={atoms.letterSpacing04}>
                     
                     {t.prosody.hablaConectada}
                   </Text>

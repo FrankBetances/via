@@ -4,6 +4,7 @@ import { Center } from '@gluestack-ui/themed';
 
 import { Text } from '@/Components/Common';
 import type { CardModality } from '../verbalAudiometryResult';
+import { atoms } from '@/Theme/styleAtoms';
 
 /* -------------------------------------------------------------------------- */
 /*  WordCard — tarjeta de selección de la Audiometría Verbal.                  */
@@ -101,7 +102,7 @@ export default function WordCard({
         borderWidth={1.5}
         borderColor="$borderLight200"
         bg="$backgroundLight50"
-        style={{ borderStyle: 'dashed' }}>
+        style={atoms.borderStyleDashed}>
         <Text size={lg ? 'xl' : 'lg'} weight="bold" color="$textLight400">
           {word.charAt(0).toUpperCase()}
         </Text>
@@ -138,7 +139,7 @@ export default function WordCard({
             weight="bold"
             color="$textLight900"
             mt={showImage ? '$1.5' : undefined}
-            style={{ textAlign: 'center' }}>
+            style={atoms.textAlignCenter}>
             {word}
           </Text>
         ) : null}
@@ -151,7 +152,7 @@ export default function WordCard({
             borderRadius="$full"
             bg={t.badgeBg}
             position="absolute"
-            style={{ top: 8, right: 8 }}>
+            style={atoms.top8Right8}>
             <Text size="xs" weight="bold" color="$white">
               {t.badge}
             </Text>

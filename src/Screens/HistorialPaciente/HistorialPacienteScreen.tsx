@@ -15,6 +15,7 @@ import {
   type ResultCard,
   type ResultStatus,
 } from '@/Screens/ResultadosPreliminares/evaluationResults';
+import { atoms } from '@/Theme/styleAtoms';
 
 /* -------------------------------------------------------------------------- */
 /*  HistorialPacienteScreen — pruebas realizadas a un paciente, sesión a       */
@@ -103,7 +104,7 @@ export default function HistorialPacienteScreen({ navigation, route }: Props) {
         <Header animationType="expand" />
 
         <ScrollView
-          style={{ flex: 1 }}
+          style={atoms.flex1}
           contentContainerStyle={{ paddingHorizontal: 24, paddingTop: 8, paddingBottom: 32 }}
           showsVerticalScrollIndicator={false}>
           <VStack space="md">
@@ -123,13 +124,13 @@ export default function HistorialPacienteScreen({ navigation, route }: Props) {
             </VStack>
 
             {isLoading ? (
-              <Text size="xs" color="$textLight400" style={{ textAlign: 'center' }} mt="$6">
+              <Text size="xs" color="$textLight400" style={atoms.textAlignCenter} mt="$6">
                 
                 {t.historialPaciente.cargandoHistorial}
               </Text>
             ) : error ? (
               <Card bgColor="$error50" borderRadius={18} p="$4">
-                <Text size="xs" color="$error700" style={{ lineHeight: 17 }}>
+                <Text size="xs" color="$error700" style={atoms.lineHeight17}>
                   {error}
                 </Text>
               </Card>
@@ -139,7 +140,7 @@ export default function HistorialPacienteScreen({ navigation, route }: Props) {
                   
                   {t.historialPaciente.sinSesionesRegistradas}
                 </Text>
-                <Text size="xs" color="$textLight500" mt="$1" style={{ lineHeight: 17 }}>
+                <Text size="xs" color="$textLight500" mt="$1" style={atoms.lineHeight17}>
                   
                   {t.historialPaciente.estePacienteTodaviaTieneNinguna}
                 </Text>
@@ -164,7 +165,7 @@ export default function HistorialPacienteScreen({ navigation, route }: Props) {
                   return (
                     <Card key={session.evaluationId} bgColor="$white" borderRadius={20} p="$4">
                       <HStack alignItems="flex-start" justifyContent="space-between">
-                        <VStack style={{ flex: 1 }}>
+                        <VStack style={atoms.flex1}>
                           <Text size="sm" weight="bold" color="$textLight900">
                             {formatDate(session.startedAt)}
                           </Text>
@@ -188,7 +189,7 @@ export default function HistorialPacienteScreen({ navigation, route }: Props) {
                       </HStack>
 
                       {session.cards.length === 0 ? (
-                        <Text size="2xs" color="$textLight400" mt="$3" style={{ lineHeight: 15 }}>
+                        <Text size="2xs" color="$textLight400" mt="$3" style={atoms.lineHeight15}>
                           
                           {t.historialPaciente.estaSesionLlegoRegistrarNinguna}
                         </Text>
@@ -199,7 +200,7 @@ export default function HistorialPacienteScreen({ navigation, route }: Props) {
                             return (
                               <VStack key={c.key} p="$3" borderRadius={14} bg="$backgroundLight50">
                                 <HStack alignItems="center" justifyContent="space-between">
-                                  <Text size="xs" weight="bold" color="$textLight900" style={{ flex: 1 }}>
+                                  <Text size="xs" weight="bold" color="$textLight900" style={atoms.flex1}>
                                     {c.title}
                                   </Text>
                                   <Box bg={tokens.bg} px="$2" py="$0.5" borderRadius="$full">
@@ -208,7 +209,7 @@ export default function HistorialPacienteScreen({ navigation, route }: Props) {
                                     </Text>
                                   </Box>
                                 </HStack>
-                                <Text size="2xs" color="$textLight600" mt="$1" style={{ lineHeight: 14 }}>
+                                <Text size="2xs" color="$textLight600" mt="$1" style={atoms.lineHeight14}>
                                   {c.headline}
                                 </Text>
                                 <Text
@@ -229,7 +230,7 @@ export default function HistorialPacienteScreen({ navigation, route }: Props) {
               </>
             )}
 
-            <Text size="2xs" color="$textLight400" mt="$2" style={{ lineHeight: 15 }}>
+            <Text size="2xs" color="$textLight400" mt="$2" style={atoms.lineHeight15}>
               
               {t.historialPaciente.resumenOrientativoPruebasYaRegistradas}
             </Text>

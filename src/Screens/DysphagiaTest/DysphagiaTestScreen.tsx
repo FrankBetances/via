@@ -38,6 +38,7 @@ import { showErrorToast, showSuccessToast } from '@/Helpers/showToast';
 import { usePulseOximeter, PulseOximeterState } from './pulseOximeter';
 
 import { useT } from '@/I18n';
+import { atoms } from '@/Theme/styleAtoms';
 /* -------------------------------------------------------------------------- */
 /*  Configuración clínica MECV-V                                               */
 /* -------------------------------------------------------------------------- */
@@ -128,7 +129,7 @@ const ViscChip = ({ visc, label }: { visc: Viscosity; label: string }) => {
   const c = VISC_CHIP[visc];
   return (
     <Box bg={c.bg} px="$2" py="$0.5" borderRadius="$full">
-      <Text size="2xs" weight="bold" color={c.color} style={{ textTransform: 'uppercase', letterSpacing: 0.4 }}>
+      <Text size="2xs" weight="bold" color={c.color} style={atoms.textTransformUppercaseLetterSpacing04}>
         {label}
       </Text>
     </Box>
@@ -159,7 +160,7 @@ const AlterationRow = ({
         borderWidth={1.5}
         borderColor={active ? accent : '$borderLight100'}
         bg={active ? softBg : '$white'}>
-        <Text size="md" weight="semiBold" color="$textLight900" style={{ flex: 1, marginRight: 10 }}>
+        <Text size="md" weight="semiBold" color="$textLight900" style={atoms.flex1MarginRight10}>
           {label}
         </Text>
         <Center
@@ -227,7 +228,7 @@ const OximeterRow = ({ ox, onCapture }: { ox: PulseOximeterState; onCapture: () 
   const t = useT();
   return (
   <HStack alignItems="center" justifyContent="space-between" mt="$3" p="$2.5" borderRadius={12} bg={ox.connected ? '$success50' : '$backgroundLight100'}>
-    <HStack space="sm" alignItems="center" style={{ flex: 1 }}>
+    <HStack space="sm" alignItems="center" style={atoms.flex1}>
       <Icon as={ox.connected ? BluetoothConnected : Bluetooth} size="sm" color={ox.connected ? '$success600' : '$textLight400'} />
       <VStack>
         <Text size="2xs" weight="semiBold" color="$textLight700">
@@ -548,7 +549,7 @@ export default function DysphagiaTestScreen() {
                 {t.dysphagia.disfagiaMecvV}
               </Text>
               <Box bg="$primary50" px="$2" py="$0.5" borderRadius="$full">
-                <Text size="2xs" weight="bold" color="$primary800" style={{ letterSpacing: 0.4 }}>
+                <Text size="2xs" weight="bold" color="$primary800" style={atoms.letterSpacing04}>
                   
                   {t.dysphagia.metodoClinico}
                 </Text>
@@ -575,7 +576,7 @@ export default function DysphagiaTestScreen() {
 
                 <HStack alignItems="center" space="sm" mt="$5" mb="$3">
                   <Icon as={ShieldCheck} size="sm" color="$primary500" />
-                  <Text size="sm" weight="bold" color="$textLight800" style={{ textTransform: 'uppercase', letterSpacing: 0.4 }}>
+                  <Text size="sm" weight="bold" color="$textLight800" style={atoms.textTransformUppercaseLetterSpacing04}>
                     
                     {t.dysphagia.requisitosPreviosSeguridad}
                   </Text>
@@ -595,7 +596,7 @@ export default function DysphagiaTestScreen() {
                           bg={setup[i] ? '$primary500' : '$white'}>
                           {setup[i] ? <Icon as={Check} size="2xs" color="$white" /> : null}
                         </Center>
-                        <Text size="sm" color="$textLight700" style={{ flex: 1 }}>
+                        <Text size="sm" color="$textLight700" style={atoms.flex1}>
                           {label}
                         </Text>
                       </HStack>
@@ -606,7 +607,7 @@ export default function DysphagiaTestScreen() {
 
               <Card bgColor="$white" borderRadius={22} p="$5">
                 <HStack alignItems="center" justifyContent="space-between">
-                  <VStack style={{ flex: 1 }}>
+                  <VStack style={atoms.flex1}>
                     <Text size="sm" weight="semiBold" color="$textLight800">
                       
                       {t.dysphagia.saturacionBasalSpo}
@@ -652,11 +653,11 @@ export default function DysphagiaTestScreen() {
                 <MapStepper states={boloStates} currentId={activeBolo.id} view={view} basalSpO2={basalSpO2} />
 
                 <HStack alignItems="center" justifyContent="space-between" mt="$4">
-                  <HStack space="sm" alignItems="center" style={{ flex: 1 }}>
+                  <HStack space="sm" alignItems="center" style={atoms.flex1}>
                     <Center w={48} h={48} borderRadius={14} bg={VISC_CHIP[activeBolo.viscosity].bg}>
                       <Icon as={Droplet} size="lg" color={VISC_CHIP[activeBolo.viscosity].color} />
                     </Center>
-                    <VStack style={{ flex: 1 }}>
+                    <VStack style={atoms.flex1}>
                       <Text size="lg" weight="bold" color="$textLight900">
                         
                         {t.dysphagia.bolo} {activeBolo.id} · {activeBolo.viscosityLabel} {activeBolo.volume}
@@ -674,8 +675,8 @@ export default function DysphagiaTestScreen() {
                 </HStack>
 
                 <HStack space="sm" alignItems="flex-start" mt="$4" p="$3" borderRadius={14} bg="$primary0">
-                  <Icon as={Info} size="sm" color="$primary600" style={{ marginTop: 1 }} />
-                  <Text size="xs" color="$primary800" style={{ flex: 1, lineHeight: 18 }}>
+                  <Icon as={Info} size="sm" color="$primary600" style={atoms.marginTop1} />
+                  <Text size="xs" color="$primary800" style={atoms.flex1LineHeight18}>
                     
                     {t.dysphagia.pidaPacienteRetengaBoloAntes}
                   </Text>
@@ -685,7 +686,7 @@ export default function DysphagiaTestScreen() {
               {/* Seguridad */}
               <Card bgColor="$white" borderRadius={22} p="$5">
                 <HStack alignItems="center" justifyContent="space-between" mb="$3">
-                  <Text size="sm" weight="bold" color="$error500" style={{ textTransform: 'uppercase', letterSpacing: 0.4 }}>
+                  <Text size="sm" weight="bold" color="$error500" style={atoms.textTransformUppercaseLetterSpacing04}>
                     
                     {t.dysphagia.seguridad}
                   </Text>
@@ -726,11 +727,11 @@ export default function DysphagiaTestScreen() {
 
                 {/* SpO2 post-deglución */}
                 <HStack alignItems="center" justifyContent="space-between" mt="$4" p="$3" borderRadius={14} bg="$backgroundLight50">
-                  <HStack space="sm" alignItems="center" style={{ flex: 1 }}>
+                  <HStack space="sm" alignItems="center" style={atoms.flex1}>
                     <Center w={40} h={40} borderRadius={12} bg="$error50">
                       <Icon as={Activity} size="md" color="$error500" />
                     </Center>
-                    <VStack style={{ flex: 1 }}>
+                    <VStack style={atoms.flex1}>
                       <Text size="sm" weight="semiBold" color="$textLight800">
                         
                         {t.dysphagia.spoTrasDeglucion}
@@ -756,7 +757,7 @@ export default function DysphagiaTestScreen() {
               {/* Eficacia */}
               <Card bgColor="$white" borderRadius={22} p="$5">
                 <HStack alignItems="center" justifyContent="space-between" mb="$3">
-                  <Text size="sm" weight="bold" color="$warning700" style={{ textTransform: 'uppercase', letterSpacing: 0.4 }}>
+                  <Text size="sm" weight="bold" color="$warning700" style={atoms.textTransformUppercaseLetterSpacing04}>
                     
                     {t.dysphagia.eficacia}
                   </Text>
@@ -788,7 +789,7 @@ export default function DysphagiaTestScreen() {
                     </Text>
                   </HStack>
                 </Button>
-                <Button action="primary" variant="solid" rounded="$full" style={{ flex: 1 }} onPress={handleNext}>
+                <Button action="primary" variant="solid" rounded="$full" style={atoms.flex1} onPress={handleNext}>
                   <HStack space="sm" alignItems="center">
                     <Text size="sm" weight="bold" color="$white">
                       {activeBolo.nextSafe === null && activeBolo.nextUnsafe === null ? t.dysphagia.finalizar : t.dysphagia.registrarContinuar}
@@ -818,7 +819,7 @@ export default function DysphagiaTestScreen() {
               </Card>
 
               <Card bgColor="$white" borderRadius={20} p="$5">
-                <Text size="sm" weight="bold" color="$textLight700" mb="$3" style={{ textTransform: 'uppercase', letterSpacing: 0.4 }}>
+                <Text size="sm" weight="bold" color="$textLight700" mb="$3" style={atoms.textTransformUppercaseLetterSpacing04}>
                   
                   {t.dysphagia.detalleBolo}
                 </Text>
@@ -838,7 +839,7 @@ export default function DysphagiaTestScreen() {
                     const dot = NODE_COLOR[dotKind];
                     return (
                       <HStack key={b.id} alignItems="center" justifyContent="space-between" py="$2" borderBottomWidth={1} borderColor="$borderLight50">
-                        <HStack space="sm" alignItems="center" style={{ flex: 1 }}>
+                        <HStack space="sm" alignItems="center" style={atoms.flex1}>
                           <Center w={26} h={26} borderRadius="$full" bg={dot.bg}>
                             <Text size="2xs" weight="bold" color={dot.fg}>
                               {b.id}
@@ -864,10 +865,10 @@ export default function DysphagiaTestScreen() {
                   {t.dysphagia.evaluadorResponsable}
                 </Text>
                 <HStack space="sm">
-                  <Input variant="outline" borderRadius={12} style={{ flex: 2 }}>
+                  <Input variant="outline" borderRadius={12} style={atoms.flex2}>
                     <InputField placeholder={t.dysphagia.nombre} value={evaluatorName} onChangeText={setEvaluatorName} />
                   </Input>
-                  <Input variant="outline" borderRadius={12} style={{ flex: 1 }}>
+                  <Input variant="outline" borderRadius={12} style={atoms.flex1}>
                     <InputField placeholder={t.dysphagia.colegiado} value={evaluatorLicense} onChangeText={setEvaluatorLicense} />
                   </Input>
                 </HStack>
@@ -887,7 +888,7 @@ export default function DysphagiaTestScreen() {
                   action="primary"
                   variant="solid"
                   rounded="$full"
-                  style={{ flex: 1 }}
+                  style={atoms.flex1}
                   isDisabled={!evaluatorName.trim() || !evaluatorLicense.trim() || isSaving}
                   onPress={handleSave}>
                   <HStack space="sm" alignItems="center">

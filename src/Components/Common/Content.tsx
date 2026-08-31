@@ -1,6 +1,7 @@
 import React, { ReactNode } from 'react';
 import { Box } from '@gluestack-ui/themed';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { atoms } from '@/Theme/styleAtoms';
 
 /* -------------------------------------------------------------------------- */
 /*  Content — contenedor raíz compartido por las 9 pantallas de módulo.       */
@@ -20,7 +21,7 @@ export interface ContentProps {
 
 export default function Content({ children, radialBackgrounds, padding = true, insetTop = true }: ContentProps) {
   return (
-    <SafeAreaView style={{ flex: 1 }} edges={insetTop ? ['top', 'bottom'] : ['bottom']}>
+    <SafeAreaView style={atoms.flex1} edges={insetTop ? ['top', 'bottom'] : ['bottom']}>
       <Box flex={1} bg="$backgroundLight0" position="relative" overflow="hidden" p={padding ? '$4' : 0}>
         {radialBackgrounds}
         {children}

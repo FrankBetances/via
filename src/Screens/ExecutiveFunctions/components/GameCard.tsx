@@ -3,6 +3,7 @@ import { Pressable } from 'react-native';
 import { Center } from '@gluestack-ui/themed';
 
 import { Text } from '@/Components/Common';
+import { atoms } from '@/Theme/styleAtoms';
 
 /* -------------------------------------------------------------------------- */
 /*  GameCard — tarjeta de los mini-juegos de funciones ejecutivas.             */
@@ -65,7 +66,7 @@ export default function GameCard({
             borderRadius="$full"
             bg="$primary600"
             position="absolute"
-            style={{ top: -8, right: -8 }}>
+            style={atoms.topNeg8RightNeg8}>
             <Text size="xs" weight="bold" color="$white">
               {badge}
             </Text>

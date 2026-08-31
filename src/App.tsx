@@ -15,6 +15,7 @@ import { StartupErrorBoundary, StartupReport } from '@/Startup';
 import { installAudiometryToneAdapter } from '@/Screens/Audiometry';
 import { installVerbalAudioAdapter, verbalAudioBase64ForLang, verbalAudioSourceForLang } from '@/Screens/VerbalAudiometry';
 import '@/Navigators/screenTypeNavigator';
+import { atoms } from '@/Theme/styleAtoms';
 
 /* -------------------------------------------------------------------------- */
 /*  Punto de entrada de la app — VIA+.                                      */
@@ -103,7 +104,7 @@ export default function App() {
      * Redux, Gluestack o la navegación, el árbol se desmonta entero y sin ella
      * el APK se queda en blanco sin decir nada. */
     <StartupErrorBoundary stage="la interfaz">
-      <GestureHandlerRootView style={{ flex: 1 }}>
+      <GestureHandlerRootView style={atoms.flex1}>
         <ReduxProvider store={store}>
           <PersistGate
             loading={<StartupReport stage="las preferencias guardadas" />}

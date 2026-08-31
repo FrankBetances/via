@@ -17,6 +17,7 @@ import ModuleIllustration from './ModuleIllustration';
 import { CategoryType } from './CategoryBadgeIcon';
 
 import { useT } from '@/I18n';
+import { atoms } from '@/Theme/styleAtoms';
 /* -------------------------------------------------------------------------- */
 /*  ModuleCardItem — Tarjeta clínica vertical en rejilla según el render       */
 /*  aprobado para tableta (azulejo superior, micro-gráfica central, metadatos) */
@@ -166,16 +167,12 @@ export default function ModuleCardItem({
           </HStack>
 
           {/* Título y Subtítulo / Descripción */}
-          <VStack space="xs" style={{ minHeight: 64 }}>
+          <VStack space="xs" style={atoms.minHeight64}>
             <Text
               size="sm"
               weight="bold"
               color="$textLight900"
-              style={{
-                fontSize: 15,
-                lineHeight: 19,
-                letterSpacing: -0.2,
-              }}
+              style={atoms.fontSize15LineHeight19LetterSpacingNeg02}
               numberOfLines={2}>
               {m.title}
             </Text>
@@ -190,7 +187,7 @@ export default function ModuleCardItem({
             <Text
               size="2xs"
               color="$textLight600"
-              style={{ fontSize: 11, lineHeight: 15 }}
+              style={atoms.fontSize11LineHeight15}
               numberOfLines={2}>
               {m.description}
             </Text>
@@ -219,7 +216,7 @@ export default function ModuleCardItem({
                 <Text
                   size="2xs"
                   weight="medium"
-                  style={{ color: '#475569', fontSize: 11 }}>
+                  style={atoms.color475569FontSize11}>
                   {m.ages}
                 </Text>
               </HStack>
@@ -253,7 +250,7 @@ export default function ModuleCardItem({
                   <Text
                     size="2xs"
                     weight="semiBold"
-                    style={{ color: '#0D9488', fontSize: 11 }}>
+                    style={atoms.color0D9488FontSize11}>
                     
                     {t.components.calibracionOk}
                   </Text>

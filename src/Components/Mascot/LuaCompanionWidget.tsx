@@ -19,6 +19,7 @@ import { CatPixel } from './LuaPixel';
 import { LuaEmotion, LuaBadgeInfo } from '@/Lua';
 
 import { useT } from '@/I18n';
+import { atoms } from '@/Theme/styleAtoms';
 export interface LuaCompanionWidgetProps {
   emotion?: LuaEmotion;
   isBreathing?: boolean;
@@ -193,7 +194,7 @@ export const LuaCompanionWidget: React.FC<LuaCompanionWidgetProps> = ({
           <HStack alignItems="center" justifyContent="space-between">
             <HStack alignItems="center" space="xs">
               <Icon as={meta.icon} size="xs" color={meta.color} />
-              <Text size="2xs" weight="bold" color={meta.color} style={{ textTransform: 'uppercase', letterSpacing: 0.5 }}>
+              <Text size="2xs" weight="bold" color={meta.color} style={atoms.textTransformUppercaseLetterSpacing05}>
                 
                 {t.components.lua} {isBreathing ? t.components.respiracionGuiada : meta.label}
               </Text>
@@ -217,7 +218,7 @@ export const LuaCompanionWidget: React.FC<LuaCompanionWidgetProps> = ({
             ) : null}
           </HStack>
 
-          <Text size="xs" weight="medium" color="$textLight800" style={{ lineHeight: 16 }}>
+          <Text size="xs" weight="medium" color="$textLight800" style={atoms.lineHeight16}>
             {message || meta.cue}
           </Text>
 

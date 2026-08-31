@@ -9,6 +9,7 @@ import { setFontScale } from '@/Store/slices/themeSlice';
 import { MAX_FONT_SCALE, MIN_FONT_SCALE, nextFontScale } from './fontScaleScope';
 
 import { useT } from '@/I18n';
+import { atoms } from '@/Theme/styleAtoms';
 /* -------------------------------------------------------------------------- */
 /*  FontSizeControl — control A− / A+ del tamaño de letra de los               */
 /*  cuestionarios. Ajusta `theme.fontScale` (persistido: se recuerda entre     */
@@ -57,10 +58,10 @@ export default function FontSizeControl() {
       borderColor="$borderLight100"
       bg="$white">
       <HStack space="xs" alignItems="center">
-        <GSText size="xs" style={{ fontWeight: '700', color: '#5B554C' }}>
+        <GSText size="xs" style={atoms.fontWeight700Color5B554C}>
           Aa
         </GSText>
-        <GSText size="2xs" style={{ color: '#A89F93' }}>
+        <GSText size="2xs" style={atoms.colorA89F93}>
           
           {t.components.tamanoLetra}
         </GSText>

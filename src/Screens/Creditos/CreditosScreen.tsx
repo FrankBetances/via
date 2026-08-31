@@ -41,6 +41,7 @@ import {
   QuisqueyaHablaMark,
 } from './BrandMarks';
 import { ORBIT_MODULES, OrbitModule } from './orbitModules';
+import { atoms } from '@/Theme/styleAtoms';
 
 /* -------------------------------------------------------------------------- */
 /*  CreditosScreen — Quién hay detrás de VIA+ en formato Tableta 4:3 y Móvil   */
@@ -342,7 +343,7 @@ export default function CreditosScreen({ navigation }: Props) {
           <View style={styles.navLogoRow}>
             <ViaIcon size={24} variant="color" />
             <Text style={styles.navLogoText}>
-              VIA<Text style={{ color: '#FF7F00' }}>+</Text>
+              VIA<Text style={atoms.colorFF7F00}>+</Text>
             </Text>
           </View>
         </Pressable>
@@ -368,7 +369,7 @@ export default function CreditosScreen({ navigation }: Props) {
 
 
       <ScrollView
-        style={{ flex: 1 }}
+        style={atoms.flex1}
         contentContainerStyle={[
           styles.scroll,
           { paddingBottom: 100 + Math.max(insets.bottom, 16) },
@@ -421,7 +422,7 @@ export default function CreditosScreen({ navigation }: Props) {
                   resizeMode="cover"
                 />
               </View>
-              <View style={{ flex: 1 }}>
+              <View style={atoms.flex1}>
                 <View style={styles.authorBadgeRow}>
                   <UserCheck size={14} color="#EA580C" strokeWidth={2.4} />
                   <Text style={styles.authorBadgeText}>{t.credits.authorBadge}</Text>
@@ -454,7 +455,7 @@ export default function CreditosScreen({ navigation }: Props) {
                 <View style={styles.partnerIconBox}>
                   <QuisqueyaHablaMark size={34} />
                 </View>
-                <View style={{ flex: 1 }}>
+                <View style={atoms.flex1}>
                   <Text style={styles.partnerName}>Quisqueya Habla (FONDOCYT)</Text>
                   <Text style={styles.partnerSubtitle}>{t.credits.quisqueyaDesc}</Text>
                 </View>
@@ -466,7 +467,7 @@ export default function CreditosScreen({ navigation }: Props) {
                 <View style={styles.partnerIconBox}>
                   <AcoprosMark size={34} />
                 </View>
-                <View style={{ flex: 1 }}>
+                <View style={atoms.flex1}>
                   <Text style={styles.partnerName}>ACOPROS</Text>
                   <Text style={styles.partnerSubtitle}>{t.credits.acoprosDesc}</Text>
                 </View>
@@ -478,7 +479,7 @@ export default function CreditosScreen({ navigation }: Props) {
                 <View style={styles.partnerIconBox}>
                   <EarlifyMark size={34} />
                 </View>
-                <View style={{ flex: 1 }}>
+                <View style={atoms.flex1}>
                   <Text style={styles.partnerName}>Earlify Health</Text>
                   <Text style={styles.partnerSubtitle}>{t.credits.earlifyDesc}</Text>
                 </View>
@@ -502,9 +503,9 @@ export default function CreditosScreen({ navigation }: Props) {
             
             <View style={styles.langList}>
               {languageCredits(t).map((item, idx) => (
-                <View key={idx} style={[styles.langItem, idx > 0 && { marginTop: 10 }]}>
+                <View key={idx} style={[styles.langItem, idx > 0 && atoms.marginTop10]}>
                   <Text style={styles.langFlag}>{item.flag}</Text>
-                  <View style={{ flex: 1 }}>
+                  <View style={atoms.flex1}>
                     <Text style={styles.langName}>{item.name}</Text>
                     <Text style={styles.langRole}>{item.role}</Text>
                   </View>
@@ -519,7 +520,7 @@ export default function CreditosScreen({ navigation }: Props) {
             
             <View style={styles.sealRow}>
               <ItemasSealMark size={40} />
-              <View style={{ flex: 1, marginLeft: 14 }}>
+              <View style={atoms.flex1MarginLeft14}>
                 <Text style={styles.sealTitle}>{t.credits.sealTitle}</Text>
                 {/* El rediseño proponía «Innovación sanitaria avalada por el
                     ISCIII». Es una afirmación sobre una acreditación, más

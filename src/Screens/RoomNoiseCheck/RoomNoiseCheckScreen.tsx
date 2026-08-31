@@ -23,6 +23,7 @@ import {
   offsetForReference,
   splFraction,
 } from './noiseDsp';
+import { atoms } from '@/Theme/styleAtoms';
 
 /* -------------------------------------------------------------------------- */
 /*  Constantes                                                                 */
@@ -220,7 +221,7 @@ export default function RoomNoiseCheckScreen({ navigation, route }: Props) {
 
         {/* El gauge + stats + checklist superan la altura de pantalla: sin
             scroll el botón de continuar queda inaccesible. */}
-        <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false}>
+        <ScrollView style={atoms.flex1} showsVerticalScrollIndicator={false}>
         <VStack flex={1} px="$6" mt="$2" space="md">
           {/* ----- title ----- */}
           <VStack>
@@ -230,7 +231,7 @@ export default function RoomNoiseCheckScreen({ navigation, route }: Props) {
                 {t.roomNoise.sonometroAmbiental}
               </Text>
               <Box bg="$primary50" px="$2" py="$0.5" borderRadius="$full">
-                <Text size="2xs" weight="bold" color="$primary800" style={{ letterSpacing: 0.4 }}>
+                <Text size="2xs" weight="bold" color="$primary800" style={atoms.letterSpacing04}>
                   
                   {t.roomNoise.prerrequisitoSala}
                 </Text>
@@ -246,7 +247,7 @@ export default function RoomNoiseCheckScreen({ navigation, route }: Props) {
           {/* ===================== GAUGE ===================== */}
           <Card bgColor="$white" borderRadius={22} p="$5">
             <HStack alignItems="center" justifyContent="space-between" mb="$2">
-              <VStack style={{ flex: 1 }}>
+              <VStack style={atoms.flex1}>
                 <Text size="md" weight="bold" color="$textLight900">
                   
                   {t.roomNoise.nivelRuidoAmbiente}
@@ -297,7 +298,7 @@ export default function RoomNoiseCheckScreen({ navigation, route }: Props) {
             </Center>
 
             {/* spectrum */}
-            <HStack alignItems="flex-end" justifyContent="center" style={{ height: 56, gap: 4 }}>
+            <HStack alignItems="flex-end" justifyContent="center" style={atoms.height56Gap4}>
               {meter.levels.map((lv, i) => (
                 <Box key={i} style={{ flex: 1, height: Math.max(3, lv * 56), borderRadius: 3, backgroundColor: meter.running ? BRAND : '#E7E0D4' }} />
               ))}
@@ -316,8 +317,8 @@ export default function RoomNoiseCheckScreen({ navigation, route }: Props) {
               { label: 'PICOS L10', value: fmt(meter.peak), color: '$textLight900' },
               { label: 'UMBRAL APTO', value: `≤ ${threshold}`, color: '$primary600' },
             ].map((stat, i) => (
-              <Card key={i} bgColor="$white" borderRadius={14} p="$3" style={{ flex: 1 }}>
-                <Text size="2xs" color="$textLight400" style={{ letterSpacing: 0.4, textAlign: 'center' }}>
+              <Card key={i} bgColor="$white" borderRadius={14} p="$3" style={atoms.flex1}>
+                <Text size="2xs" color="$textLight400" style={atoms.letterSpacing04TextAlignCenter}>
                   {stat.label}
                 </Text>
                 <Text size="lg" weight="bold" color={stat.color} mt="$0.5" style={{ textAlign: 'center', fontVariant: ['tabular-nums'] }}>
@@ -329,8 +330,8 @@ export default function RoomNoiseCheckScreen({ navigation, route }: Props) {
 
           {meter.clipped > 0 ? (
             <HStack space="sm" alignItems="flex-start" p="$3" borderRadius={14} bg="$warning50">
-              <Icon as={AlertTriangle} size="xs" color="$warning700" style={{ marginTop: 2 }} />
-              <Text size="2xs" color="$warning800" style={{ flex: 1, lineHeight: 15 }}>
+              <Icon as={AlertTriangle} size="xs" color="$warning700" style={atoms.marginTop2} />
+              <Text size="2xs" color="$warning800" style={atoms.flex1LineHeight15}>
                 
                 {t.roomNoise.descartaron} {meter.clipped}  {t.roomNoise.tramo}{meter.clipped === 1 ? '' : 's'}  {t.roomNoise.saturacionMicrofonoGolpesRocesEquipo}
               </Text>
@@ -361,7 +362,7 @@ export default function RoomNoiseCheckScreen({ navigation, route }: Props) {
               action="secondary"
               variant="outline"
               rounded="$full"
-              style={{ flex: 1 }}
+              style={atoms.flex1}
               onPress={() => (meter.source === 'mic' ? meter.stop() : meter.start())}>
               <HStack space="sm" alignItems="center">
                 <Icon as={meter.source === 'mic' ? Square : Mic} size="sm" color={meter.source === 'mic' ? '$error500' : '$primary500'} />
@@ -370,7 +371,7 @@ export default function RoomNoiseCheckScreen({ navigation, route }: Props) {
                 </Text>
               </HStack>
             </Button>
-            <Button action="primary" variant="solid" rounded="$full" style={{ flex: 1 }} isDisabled={meter.testing} onPress={meter.runTest}>
+            <Button action="primary" variant="solid" rounded="$full" style={atoms.flex1} isDisabled={meter.testing} onPress={meter.runTest}>
               <Text size="sm" weight="bold" color="$white">
                 {meter.testing ? t.roomNoise.midiendo : meter.verdict !== 'pending' ? t.roomNoise.repetirMedicion : t.roomNoise.medirS(testDurationSec)}
               </Text>
@@ -380,12 +381,12 @@ export default function RoomNoiseCheckScreen({ navigation, route }: Props) {
           {/* ================= CALIBRACIÓN DE CAMPO ================= */}
           <Card bgColor="$white" borderRadius={18} borderWidth={1} borderColor="$borderLight100" p="$4">
             <HStack alignItems="center" justifyContent="space-between">
-              <VStack style={{ flex: 1 }}>
-                <Text size="2xs" weight="bold" color="$textLight400" style={{ letterSpacing: 0.4 }}>
+              <VStack style={atoms.flex1}>
+                <Text size="2xs" weight="bold" color="$textLight400" style={atoms.letterSpacing04}>
                   
                   {t.roomNoise.calibracionCampo}
                 </Text>
-                <Text size="xs" color="$textLight500" mt="$0.5" style={{ lineHeight: 16 }}>
+                <Text size="xs" color="$textLight500" mt="$0.5" style={atoms.lineHeight16}>
                   
                   {t.roomNoise.ajusteLecturaSonometroReferenciaMisma}
                 </Text>
@@ -420,12 +421,12 @@ export default function RoomNoiseCheckScreen({ navigation, route }: Props) {
             {/* Calibración GUIADA: teclear la lectura del patrón es mucho menos
                 propenso a error que deducir el signo del offset y sumar dB a dB. */}
             <VStack space="xs" mt="$3" pt="$3" borderTopWidth={1} borderColor="$borderLight100">
-              <Text size="2xs" color="$textLight500" style={{ lineHeight: 15 }}>
+              <Text size="2xs" color="$textLight500" style={atoms.lineHeight15}>
                 
                 {t.roomNoise.microfonoActivoEscribaMarcaSonometro}
               </Text>
               <HStack space="sm" alignItems="center">
-                <Input variant="outline" borderRadius={12} bg="$white" style={{ flex: 1 }}>
+                <Input variant="outline" borderRadius={12} bg="$white" style={atoms.flex1}>
                   <InputField
                     placeholder={t.roomNoise.dbPatron}
                     keyboardType="numeric"
@@ -452,13 +453,13 @@ export default function RoomNoiseCheckScreen({ navigation, route }: Props) {
           {meter.error ? (
             <Card bgColor="$error50" borderRadius={18} borderWidth={1} borderColor="$error200" p="$4">
               <HStack space="sm" alignItems="flex-start">
-                <Icon as={AlertTriangle} size="sm" color="$error600" style={{ marginTop: 2 }} />
-                <VStack style={{ flex: 1 }}>
+                <Icon as={AlertTriangle} size="sm" color="$error600" style={atoms.marginTop2} />
+                <VStack style={atoms.flex1}>
                   <Text size="sm" weight="bold" color="$error700">
                     
                     {t.roomNoise.pudoMedir}
                   </Text>
-                  <Text size="xs" color="$error700" style={{ lineHeight: 17 }}>
+                  <Text size="xs" color="$error700" style={atoms.lineHeight17}>
                     {meter.error}
                   </Text>
                 </VStack>
@@ -468,14 +469,14 @@ export default function RoomNoiseCheckScreen({ navigation, route }: Props) {
 
           {/* ===================== VERDICT ===================== */}
           <Card bgColor={KIND_TOKENS[verdict.kind].bg} borderRadius={20} p="$5">
-            <Text size="2xs" weight="bold" color={KIND_TOKENS[verdict.kind].fg} style={{ letterSpacing: 0.4 }}>
+            <Text size="2xs" weight="bold" color={KIND_TOKENS[verdict.kind].fg} style={atoms.letterSpacing04}>
               
               {t.roomNoise.condicionAcustica}
             </Text>
             <Text size="xl" weight="bold" color={KIND_TOKENS[verdict.kind].fg} mt="$0.5">
               {verdict.title}
             </Text>
-            <Text size="xs" color={KIND_TOKENS[verdict.kind].fg} mt="$1" style={{ lineHeight: 17, opacity: 0.95 }}>
+            <Text size="xs" color={KIND_TOKENS[verdict.kind].fg} mt="$1" style={atoms.lineHeight17Opacity095}>
               {verdict.desc}
             </Text>
           </Card>
@@ -498,7 +499,7 @@ export default function RoomNoiseCheckScreen({ navigation, route }: Props) {
                       <Center w={22} h={22} borderRadius={7} bg={checked ? '$success600' : '$white'} borderWidth={checked ? 0 : 1.5} borderColor="$borderLight300">
                         {checked ? <Icon as={Check} size="2xs" color="$white" /> : null}
                       </Center>
-                      <Text size="sm" color={checked ? '$textLight800' : '$textLight600'} weight={checked ? 'semiBold' : 'normal'} style={{ flex: 1, lineHeight: 18 }}>
+                      <Text size="sm" color={checked ? '$textLight800' : '$textLight600'} weight={checked ? 'semiBold' : 'normal'} style={atoms.flex1LineHeight18}>
                         {c.label}
                       </Text>
                     </HStack>
@@ -507,7 +508,7 @@ export default function RoomNoiseCheckScreen({ navigation, route }: Props) {
               })}
             </VStack>
             <HStack space="sm" alignItems="flex-start" mt="$3" p="$3" borderRadius={14} bg="$backgroundLight50">
-              <Text size="2xs" color="$textLight500" style={{ flex: 1, lineHeight: 16 }}>
+              <Text size="2xs" color="$textLight500" style={atoms.flex1LineHeight16}>
                 
                 {t.roomNoise.pruebasDiscriminacionAuditivaRequieren} {threshold}  {t.roomNoise.dbRuidoFondoLecturaPonderacion}
               </Text>
@@ -550,7 +551,7 @@ export default function RoomNoiseCheckScreen({ navigation, route }: Props) {
                 </Text>
               </HStack>
             </Pressable>
-            <Text size="2xs" color="$textLight400" mt="$2" style={{ textAlign: 'center', lineHeight: 15 }}>
+            <Text size="2xs" color="$textLight400" mt="$2" style={atoms.textAlignCenterLineHeight15}>
               
               {t.roomNoise.sinVerificarSalaPruebasDiscriminacion}
             </Text>

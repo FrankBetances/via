@@ -33,6 +33,7 @@ import { LuaCompanionWidget } from '@/Components/Mascot/LuaCompanionWidget';
 import { LuaEmotion, LUA_CLINICAL_BADGES } from '@/Lua';
 
 import { useT } from '@/I18n';
+import { atoms } from '@/Theme/styleAtoms';
 /* -------------------------------------------------------------------------- */
 /*  ResultadosPreliminaresScreen — Vista rápida en tableta (4:3) con medidor   */
 /*  circular de normalidad global a la izquierda y cuadrícula de tarjetas a    */
@@ -240,7 +241,7 @@ export default function ResultadosPreliminaresScreen({ navigation }: Props) {
             <View style={styles.navLogoRow}>
               <ViaIcon size={28} variant="color" />
               <Text style={styles.navLogoText}>
-                VIA<Text style={{ color: '#FF7F00' }}>+</Text>
+                VIA<Text style={atoms.colorFF7F00}>+</Text>
               </Text>
             </View>
 
@@ -264,7 +265,7 @@ export default function ResultadosPreliminaresScreen({ navigation }: Props) {
         {/* Contenedor Principal: 2 Columnas (Medidor Izq + Tarjetas Der)       */}
         {/* ==================================================================== */}
         <ScrollView
-          style={{ flex: 1 }}
+          style={atoms.flex1}
           contentContainerStyle={[
             styles.scrollContent,
             isTablet && styles.scrollContentTablet,
@@ -272,7 +273,7 @@ export default function ResultadosPreliminaresScreen({ navigation }: Props) {
           showsVerticalScrollIndicator={false}>
           
           {/* ----- COLUMNA IZQUIERDA: Medidor de Salud Global (Score Card) ----- */}
-          <View style={[styles.gaugeCard, isTablet && { width: '42%' }]}>
+          <View style={[styles.gaugeCard, isTablet && atoms.width42Pct]}>
             <Text style={styles.gaugeTitle}>{t.resultadosPreliminares.indiceGlobalNormalidad}</Text>
 
             {/* Medidor Circular SVG */}
@@ -324,23 +325,23 @@ export default function ResultadosPreliminaresScreen({ navigation }: Props) {
 
             {/* Semáforo Diagnóstico (Chips 3 estados) */}
             <View style={styles.chipsRow}>
-              <View style={[styles.chip, { backgroundColor: '#D1FAE5' }]}>
-                <View style={[styles.chipDot, { backgroundColor: '#10B981' }]} />
-                <Text style={[styles.chipText, { color: '#065F46' }]}>
+              <View style={[styles.chip, atoms.backgroundColorD1FAE5]}>
+                <View style={[styles.chipDot, atoms.backgroundColor10B981]} />
+                <Text style={[styles.chipText, atoms.color065F46]}>
                   {counts.ok}  {t.resultadosPreliminares.normales}
                 </Text>
               </View>
 
-              <View style={[styles.chip, { backgroundColor: '#FEF3C7' }]}>
-                <View style={[styles.chipDot, { backgroundColor: '#F59E0B' }]} />
-                <Text style={[styles.chipText, { color: '#92400E' }]}>
+              <View style={[styles.chip, atoms.backgroundColorFEF3C7]}>
+                <View style={[styles.chipDot, atoms.backgroundColorF59E0B]} />
+                <Text style={[styles.chipText, atoms.color92400E]}>
                   {counts.warn}  {t.resultadosPreliminares.observacion}
                 </Text>
               </View>
 
-              <View style={[styles.chip, { backgroundColor: '#FEE2E2' }]}>
-                <View style={[styles.chipDot, { backgroundColor: '#EF4444' }]} />
-                <Text style={[styles.chipText, { color: '#991B1B' }]}>
+              <View style={[styles.chip, atoms.backgroundColorFEE2E2]}>
+                <View style={[styles.chipDot, atoms.backgroundColorEF4444]} />
+                <Text style={[styles.chipText, atoms.color991B1B]}>
                   {counts.alt}  {t.resultadosPreliminares.alterados}
                 </Text>
               </View>
@@ -356,8 +357,8 @@ export default function ResultadosPreliminaresScreen({ navigation }: Props) {
           </View>
 
           {/* ----- COLUMNA DERECHA: Lista de Tarjetas Clínicas ----- */}
-          <View style={[styles.cardsColumn, isTablet && { flex: 1 }]}>
-            <View style={{ marginBottom: 12 }}>
+          <View style={[styles.cardsColumn, isTablet && atoms.flex1]}>
+            <View style={atoms.marginBottom12}>
               <LuaCompanionWidget
                 emotion={hasResults ? LuaEmotion.Pride : LuaEmotion.Tranquility}
                 activeBadge={hasResults ? LUA_CLINICAL_BADGES.final_champion : null}
@@ -393,7 +394,7 @@ export default function ResultadosPreliminaresScreen({ navigation }: Props) {
                       styles.resultCard,
                       { borderTopColor: railColor, borderTopWidth: 3 },
                     ]}>
-                    <View style={{ flex: 1 }}>
+                    <View style={atoms.flex1}>
                       <Text style={styles.resultCardTitle}>{c.title}</Text>
                       
                       <View style={styles.headlineRow}>

@@ -50,6 +50,7 @@ import {
 import { evaluateAshaScreening } from './ashaCdssEngine';
 
 import { useT } from '@/I18n';
+import { atoms } from '@/Theme/styleAtoms';
 type Props = NativeStackScreenProps<RootStackParamList, 'AshaScreening'>;
 
 interface FormValues {
@@ -194,7 +195,7 @@ export default function AshaScreeningScreen({ navigation }: Props) {
           </Text>
         </VStack>
 
-        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 40 }}>
+        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={atoms.paddingBottom40}>
           {/* Tarjeta de Identificación y Banda de Edad */}
           <Card bgColor="$white" borderRadius={20} p="$4" mb="$4" borderWidth={1} borderColor="$borderLight100">
             <HStack justifyContent="space-between" alignItems="center" mb="$3">
@@ -230,7 +231,7 @@ export default function AshaScreeningScreen({ navigation }: Props) {
             </HStack>
 
             {/* Selector de Bandas de Edad */}
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 12 }}>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={atoms.marginBottom12}>
               <HStack space="xs">
                 {ASHA_AGE_BANDS.map(band => {
                   const isSelected = selectedAgeBand === band.id;
@@ -253,7 +254,7 @@ export default function AshaScreeningScreen({ navigation }: Props) {
               </HStack>
             </ScrollView>
 
-            <Text size="2xs" color="$textLight500" style={{ lineHeight: 16 }}>
+            <Text size="2xs" color="$textLight500" style={atoms.lineHeight16}>
               {ASHA_AGE_BANDS.find(b => b.id === selectedAgeBand)?.description}
             </Text>
           </Card>
@@ -286,7 +287,7 @@ export default function AshaScreeningScreen({ navigation }: Props) {
                         }>
                         {/* Cabecera del Hito */}
                         <HStack justifyContent="space-between" alignItems="flex-start" mb="$2">
-                          <HStack space="xs" alignItems="center" style={{ flex: 1 }}>
+                          <HStack space="xs" alignItems="center" style={atoms.flex1}>
                             <Box
                               px="$2"
                               py="$0.5"
@@ -314,12 +315,12 @@ export default function AshaScreeningScreen({ navigation }: Props) {
                         </HStack>
 
                         {/* Texto del Hito */}
-                        <Text size="sm" weight="medium" color="$textLight900" mb="$1" style={{ lineHeight: 20 }}>
+                        <Text size="sm" weight="medium" color="$textLight900" mb="$1" style={atoms.lineHeight20}>
                           {milestone.text}
                         </Text>
 
                         {milestone.description ? (
-                          <Text size="2xs" color="$textLight500" mb="$3" style={{ lineHeight: 15 }}>
+                          <Text size="2xs" color="$textLight500" mb="$3" style={atoms.lineHeight15}>
                             {milestone.description}
                           </Text>
                         ) : (
@@ -330,7 +331,7 @@ export default function AshaScreeningScreen({ navigation }: Props) {
                         <HStack space="sm" mt="$1">
                           {/* Cumple (Sí) */}
                           <Pressable
-                            style={{ flex: 1 }}
+                            style={atoms.flex1}
                             onPress={() => {
                               const updated = { ...value, [milestone.id]: true };
                               onChange(updated);
@@ -357,7 +358,7 @@ export default function AshaScreeningScreen({ navigation }: Props) {
 
                           {/* No Cumple (No) */}
                           <Pressable
-                            style={{ flex: 1 }}
+                            style={atoms.flex1}
                             onPress={() => {
                               const updated = { ...value, [milestone.id]: false };
                               onChange(updated);
@@ -407,20 +408,20 @@ export default function AshaScreeningScreen({ navigation }: Props) {
               </Box>
             </HStack>
 
-            <Text size="xs" color="$textLight700" mb="$3" style={{ lineHeight: 18 }}>
+            <Text size="xs" color="$textLight700" mb="$3" style={atoms.lineHeight18}>
               {cdssResult.clinicalSummary}
             </Text>
 
             {/* Rutas de derivación recomendadas */}
             <VStack space="xs" mb="$3">
-              <Text size="2xs" weight="bold" color="$textLight500" style={{ textTransform: 'uppercase' }}>
+              <Text size="2xs" weight="bold" color="$textLight500" style={atoms.textTransformUppercase}>
                 
                 {t.ashaScreening.rutasDerivacionRecomendadas}
               </Text>
               {cdssResult.recommendedReferrals.map((ref, idx) => (
                 <HStack key={idx} space="xs" alignItems="flex-start">
-                  <Icon as={ChevronRight} size="2xs" color="$primary600" style={{ marginTop: 3 }} />
-                  <Text size="xs" color="$textLight800" style={{ flex: 1, lineHeight: 18 }}>
+                  <Icon as={ChevronRight} size="2xs" color="$primary600" style={atoms.marginTop3} />
+                  <Text size="xs" color="$textLight800" style={atoms.flex1LineHeight18}>
                     {ref}
                   </Text>
                 </HStack>
@@ -438,7 +439,7 @@ export default function AshaScreeningScreen({ navigation }: Props) {
                   </Text>
                 </HStack>
                 {cdssResult.redFlagsDetected.map(rf => (
-                  <Text key={rf.id} size="2xs" color="$error700" style={{ lineHeight: 15 }}>
+                  <Text key={rf.id} size="2xs" color="$error700" style={atoms.lineHeight15}>
                     • {rf.text}
                   </Text>
                 ))}
@@ -472,7 +473,7 @@ export default function AshaScreeningScreen({ navigation }: Props) {
                 name="evaluatorName"
                 control={control}
                 render={({ field: { value, onChange } }) => (
-                  <Input size="sm" style={{ flex: 1 }} borderRadius={12} borderWidth={1} borderColor="$borderLight200">
+                  <Input size="sm" style={atoms.flex1} borderRadius={12} borderWidth={1} borderColor="$borderLight200">
                     <InputField placeholder={t.ashaScreening.nombreEvaluador} value={value} onChangeText={onChange} />
                   </Input>
                 )}
@@ -481,7 +482,7 @@ export default function AshaScreeningScreen({ navigation }: Props) {
                 name="evaluatorLicense"
                 control={control}
                 render={({ field: { value, onChange } }) => (
-                  <Input size="sm" style={{ flex: 1 }} borderRadius={12} borderWidth={1} borderColor="$borderLight200">
+                  <Input size="sm" style={atoms.flex1} borderRadius={12} borderWidth={1} borderColor="$borderLight200">
                     <InputField placeholder={t.ashaScreening.nColegiadoLicencia} value={value} onChangeText={onChange} />
                   </Input>
                 )}
@@ -514,7 +515,7 @@ export default function AshaScreeningScreen({ navigation }: Props) {
             // Modal bloqueante: no se cierra pulsando atrás sin aceptar
           }}>
           <Box flex={1} bg="rgba(0,0,0,0.65)" justifyContent="center" alignItems="center" p="$4">
-            <Card bgColor="$white" borderRadius={24} p="$6" borderWidth={1} borderColor="$borderLight100" style={{ maxWidth: 420, width: '100%' }}>
+            <Card bgColor="$white" borderRadius={24} p="$6" borderWidth={1} borderColor="$borderLight100" style={atoms.maxWidth420Width100Pct}>
               <Center mb="$4">
                 <Box p="$4" borderRadius="$full" bg="$warning50">
                   <Icon as={ShieldAlert} size="xl" color="$warning600" />
@@ -532,7 +533,7 @@ export default function AshaScreeningScreen({ navigation }: Props) {
               </Text>
 
               <Box p="$4" borderRadius={14} bg="$backgroundLight50" mb="$5" borderWidth={1} borderColor="$borderLight200">
-                <Text size="sm" color="$textLight800" textAlign="center" weight="medium" style={{ lineHeight: 22 }}>
+                <Text size="sm" color="$textLight800" textAlign="center" weight="medium" style={atoms.lineHeight22}>
                   
                   {t.ashaScreening.confirmoEstaEvaluacionRealizaraMediante}
                 </Text>

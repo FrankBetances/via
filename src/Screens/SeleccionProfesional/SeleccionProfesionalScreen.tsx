@@ -27,6 +27,7 @@ import { showErrorToast } from '@/Helpers/showToast';
 import { describeAuthError, isFirebaseAvailable, signInWithEmail } from '@/Services/firebase';
 
 import { useT } from '@/I18n';
+import { atoms } from '@/Theme/styleAtoms';
 /* -------------------------------------------------------------------------- */
 /*  SeleccionProfesionalScreen — acceso del profesional: se elige el perfil    */
 /*  del dispositivo y, si tiene cuenta (email), se pide la contraseña y se     */
@@ -88,7 +89,7 @@ const ProfessionalItem = React.memo(function ProfessionalItem({ professional, co
             </View>
           </View>
 
-          <View style={{ flex: 1 }}>
+          <View style={atoms.flex1}>
             <Text style={styles.cardName}>{professional.fullName}</Text>
             <View style={styles.cardMetaRow}>
               <View style={styles.roleChip}>
@@ -111,7 +112,7 @@ const ProfessionalItem = React.memo(function ProfessionalItem({ professional, co
   );
 });
 
-const ItemSeparator = () => <View style={{ height: 10 }} />;
+const ItemSeparator = () => <View style={atoms.height10} />;
 
 /* --------------------------------- pantalla -------------------------------- */
 
@@ -252,7 +253,7 @@ export default function SeleccionProfesionalScreen({ navigation }: Props) {
                   <View style={styles.newBadge}>
                     <Text style={styles.newBadgeText}>+</Text>
                   </View>
-                  <View style={{ flex: 1 }}>
+                  <View style={atoms.flex1}>
                     <Text style={styles.newTitle}>{t.seleccionProfesional.registrarNuevoProfesional}</Text>
                     <Text style={styles.newSubtitle}>{t.seleccionProfesional.creaTuPerfilSolaVez}</Text>
                   </View>

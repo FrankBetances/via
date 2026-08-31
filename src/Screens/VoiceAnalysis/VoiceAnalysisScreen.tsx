@@ -54,6 +54,7 @@ import {
   statusLabel,
   statusShimmer,
 } from './voiceAnalysisResult';
+import { atoms } from '@/Theme/styleAtoms';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'VoiceAnalysis'>;
 
@@ -122,9 +123,9 @@ const ParamCard = ({
   norm: string;
   status: 'normal' | 'borderline' | 'altered';
 }) => (
-  <Card bgColor="$backgroundLight50" borderRadius={16} borderWidth={1} borderColor="$borderLight100" p="$3" style={{ flex: 1 }}>
+  <Card bgColor="$backgroundLight50" borderRadius={16} borderWidth={1} borderColor="$borderLight100" p="$3" style={atoms.flex1}>
     <HStack justifyContent="space-between" alignItems="flex-start">
-      <Text size="2xs" color="$textLight500" style={{ letterSpacing: 0.3 }}>
+      <Text size="2xs" color="$textLight500" style={atoms.letterSpacing03}>
         {label}
       </Text>
       <Box px="$2" py="$0.5" borderRadius="$full" bg={status === 'normal' ? '$success50' : status === 'borderline' ? '$warning50' : '$error50'}>
@@ -179,7 +180,7 @@ const TakeRow = ({
           {isSelected ? <Box w={9} h={9} borderRadius="$full" bg="$primary600" /> : null}
         </Box>
 
-        <VStack style={{ flex: 1 }}>
+        <VStack style={atoms.flex1}>
           <HStack alignItems="center" space="xs">
             <Text size="sm" weight="bold" color="$textLight900">
               
@@ -373,7 +374,7 @@ export default function VoiceAnalysisScreen({ navigation }: Props) {
                   {t.voiceAnalysis.analisisAcusticoVoz}
                 </Text>
                 <Box bg="$primary50" px="$2" py="$0.5" borderRadius="$full">
-                  <Text size="2xs" weight="bold" color="$primary800" style={{ letterSpacing: 0.4 }}>
+                  <Text size="2xs" weight="bold" color="$primary800" style={atoms.letterSpacing04}>
                     
                     {t.voiceAnalysis.espectrografia}
                   </Text>
@@ -406,7 +407,7 @@ export default function VoiceAnalysisScreen({ navigation }: Props) {
                 <Center w={40} h={40} borderRadius={12} bg="$primary50">
                   <Icon as={AudioWaveform} size="lg" color="$primary600" />
                 </Center>
-                <VStack style={{ flex: 1 }}>
+                <VStack style={atoms.flex1}>
                   <Text size="md" weight="bold" color="$textLight900">
                     
                     {t.voiceAnalysis.capturaVoz}
@@ -426,7 +427,7 @@ export default function VoiceAnalysisScreen({ navigation }: Props) {
               </HStack>
 
               <HStack space="sm" alignItems="flex-start" p="$3" borderRadius={14} bg="$primary0" mb="$4">
-                <Text size="xs" color="$primary800" style={{ flex: 1, lineHeight: 18 }}>
+                <Text size="xs" color="$primary800" style={atoms.flex1LineHeight18}>
                   
                   {t.voiceAnalysis.pidaNinoEmitaVocal} <Text weight="bold" size="xs" color="$primary800">«A»</Text>  {t.voiceAnalysis.sostenidaTonoEIntensidadComodos}
                 </Text>
@@ -434,7 +435,7 @@ export default function VoiceAnalysisScreen({ navigation }: Props) {
 
               {/* nivel + F0 en vivo */}
               <HStack space="md" mb="$4">
-                <VStack style={{ flex: 1 }}>
+                <VStack style={atoms.flex1}>
                   <Text size="2xs" color="$textLight500">
                     
                     {t.voiceAnalysis.pitchVivo}
@@ -443,12 +444,12 @@ export default function VoiceAnalysisScreen({ navigation }: Props) {
                     {voice.liveF0 ? `${voice.liveF0} Hz` : '— Hz'}
                   </Text>
                 </VStack>
-                <VStack style={{ flex: 1, justifyContent: 'center' }}>
+                <VStack style={atoms.flex1JustifyContentCenter}>
                   <Text size="2xs" color="$textLight500" mb="$1">
                     
                     {t.voiceAnalysis.nivelSenal}
                   </Text>
-                  <Box h={8} borderRadius="$full" bg="$backgroundLight100" style={{ overflow: 'hidden' }}>
+                  <Box h={8} borderRadius="$full" bg="$backgroundLight100" style={atoms.overflowHidden}>
                     <View
                       style={{
                         height: '100%',
@@ -473,7 +474,7 @@ export default function VoiceAnalysisScreen({ navigation }: Props) {
               </HStack>
 
               {/* progreso */}
-              <Box h={8} borderRadius="$full" bg="$backgroundLight100" mb="$4" style={{ overflow: 'hidden' }}>
+              <Box h={8} borderRadius="$full" bg="$backgroundLight100" mb="$4" style={atoms.overflowHidden}>
                 <View style={{ height: '100%', width: `${Math.round(voice.progress * 100)}%`, backgroundColor: '#FF7F00', borderRadius: 999 }} />
               </Box>
 
@@ -483,7 +484,7 @@ export default function VoiceAnalysisScreen({ navigation }: Props) {
                   action="primary"
                   variant="solid"
                   rounded="$xl"
-                  style={{ flex: 1 }}
+                  style={atoms.flex1}
                   isDisabled={voice.isRecording || voice.isAnalyzing || !voice.hasMic}
                   onPress={voice.startRecording}>
                   <HStack space="sm" alignItems="center">
@@ -549,27 +550,27 @@ export default function VoiceAnalysisScreen({ navigation }: Props) {
             {voice.phase === 'insufficient' ? (
               <Card bgColor="$warning50" borderRadius={18} borderWidth={1} borderColor="$warning200" p="$4">
                 <HStack space="sm" alignItems="flex-start">
-                  <Icon as={AlertTriangle} size="sm" color="$warning600" style={{ marginTop: 2 }} />
-                  <VStack style={{ flex: 1 }}>
+                  <Icon as={AlertTriangle} size="sm" color="$warning600" style={atoms.marginTop2} />
+                  <VStack style={atoms.flex1}>
                     <Text size="sm" weight="bold" color="$warning800">
                       
                       {t.voiceAnalysis.capturaInsuficiente}
                     </Text>
-                    <Text size="xs" color="$warning800" style={{ lineHeight: 17 }}>
+                    <Text size="xs" color="$warning800" style={atoms.lineHeight17}>
                       
                       {t.voiceAnalysis.detectoSuficienteVozSonoraCalcular}
                     </Text>
                     {voice.insufficientReason ? (
-                      <Text size="xs" weight="bold" color="$warning800" mt="$1" style={{ lineHeight: 17 }}>
+                      <Text size="xs" weight="bold" color="$warning800" mt="$1" style={atoms.lineHeight17}>
                         
                         {t.voiceAnalysis.detalle} {voice.insufficientReason}
                       </Text>
                     ) : null}
-                    <Text size="xs" color="$warning800" mt="$1" style={{ lineHeight: 17 }}>
+                    <Text size="xs" color="$warning800" mt="$1" style={atoms.lineHeight17}>
                       
                       {t.voiceAnalysis.analisisSigueFallandoPuedeCompletar}
                     </Text>
-                    <Pressable onPress={voice.startRecording} style={{ marginTop: 8 }}>
+                    <Pressable onPress={voice.startRecording} style={atoms.marginTop8}>
                       <HStack space="xs" alignItems="center">
                         <Icon as={RotateCcw} size="xs" color="$warning700" />
                         <Text size="xs" weight="bold" color="$warning700">
@@ -585,13 +586,13 @@ export default function VoiceAnalysisScreen({ navigation }: Props) {
             {voice.phase === 'error' ? (
               <Card bgColor="$error50" borderRadius={18} borderWidth={1} borderColor="$error200" p="$4">
                 <HStack space="sm" alignItems="flex-start">
-                  <Icon as={AlertTriangle} size="sm" color="$error600" style={{ marginTop: 2 }} />
-                  <VStack style={{ flex: 1 }}>
+                  <Icon as={AlertTriangle} size="sm" color="$error600" style={atoms.marginTop2} />
+                  <VStack style={atoms.flex1}>
                     <Text size="sm" weight="bold" color="$error700">
                       
                       {t.voiceAnalysis.pudoGrabar}
                     </Text>
-                    <Text size="xs" color="$error700" style={{ lineHeight: 17 }}>
+                    <Text size="xs" color="$error700" style={atoms.lineHeight17}>
                       {voice.errorMsg ?? 'Error desconocido del motor de audio.'}
                     </Text>
                   </VStack>
@@ -603,7 +604,7 @@ export default function VoiceAnalysisScreen({ navigation }: Props) {
             {voice.takes.length ? (
               <Card bgColor="$white" borderRadius={20} p="$5">
                 <HStack alignItems="center" justifyContent="space-between" mb="$1">
-                  <Text size="sm" weight="bold" color="$textLight700" style={{ letterSpacing: 0.3 }}>
+                  <Text size="sm" weight="bold" color="$textLight700" style={atoms.letterSpacing03}>
                     
                     {t.voiceAnalysis.valoracionPerceptualGrbas}
                   </Text>
@@ -624,7 +625,7 @@ export default function VoiceAnalysisScreen({ navigation }: Props) {
                   {GRBAS_DIMENSIONS.map(dim => (
                     <VStack key={dim.key}>
                       <HStack alignItems="center" justifyContent="space-between" mb="$1.5">
-                        <HStack alignItems="center" space="xs" style={{ flex: 1 }}>
+                        <HStack alignItems="center" space="xs" style={atoms.flex1}>
                           <Center w={22} h={22} borderRadius={7} bg="$primary50">
                             <Text size="2xs" weight="bold" color="$primary800">
                               {dim.letter}
@@ -634,7 +635,7 @@ export default function VoiceAnalysisScreen({ navigation }: Props) {
                             {dim.label}
                           </Text>
                         </HStack>
-                        <Text size="2xs" color="$textLight400" style={{ flex: 1, textAlign: 'right' }}>
+                        <Text size="2xs" color="$textLight400" style={atoms.flex1TextAlignRight}>
                           {dim.description}
                         </Text>
                       </HStack>
@@ -642,7 +643,7 @@ export default function VoiceAnalysisScreen({ navigation }: Props) {
                         {[0, 1, 2, 3].map(score => {
                           const active = grbas[dim.key] === score;
                           return (
-                            <Pressable key={score} onPress={() => setGrbasScore(dim.key, score)} style={{ flex: 1 }}>
+                            <Pressable key={score} onPress={() => setGrbasScore(dim.key, score)} style={atoms.flex1}>
                               <Center
                                 py="$1.5"
                                 borderRadius={10}
@@ -705,7 +706,7 @@ export default function VoiceAnalysisScreen({ navigation }: Props) {
 
                 <Card bgColor="$white" borderRadius={20} p="$5">
                   <HStack justifyContent="space-between" alignItems="center" mb="$2">
-                    <Text size="sm" weight="bold" color="$textLight700" style={{ letterSpacing: 0.3 }}>
+                    <Text size="sm" weight="bold" color="$textLight700" style={atoms.letterSpacing03}>
                       
                       {t.voiceAnalysis.espacioVocalicoF1F2}
                     </Text>
@@ -713,18 +714,18 @@ export default function VoiceAnalysisScreen({ navigation }: Props) {
                   <VowelSpace f1={r.formants?.f1 ?? null} f2={r.formants?.f2 ?? null} />
                   {r.formants ? (
                     <HStack justifyContent="space-between" mt="$3">
-                      <Text size="sm" weight="bold" style={{ color: '#FF7F00' }}>
+                      <Text size="sm" weight="bold" style={atoms.colorFF7F00}>
                         F1 {r.formants.f1} Hz
                       </Text>
-                      <Text size="sm" weight="bold" style={{ color: '#0EA5E9' }}>
+                      <Text size="sm" weight="bold" style={atoms.color0EA5E9}>
                         F2 {r.formants.f2} Hz
                       </Text>
-                      <Text size="sm" weight="bold" style={{ color: '#A855F7' }}>
+                      <Text size="sm" weight="bold" style={atoms.colorA855F7}>
                         F3 {r.formants.f3} Hz
                       </Text>
                     </HStack>
                   ) : (
-                    <Text size="xs" color="$textLight500" mt="$3" style={{ lineHeight: 17 }}>
+                    <Text size="xs" color="$textLight500" mt="$3" style={atoms.lineHeight17}>
                       
                       {t.voiceAnalysis.formantesF1F3PudieronEstimarse}
                     </Text>
@@ -732,11 +733,11 @@ export default function VoiceAnalysisScreen({ navigation }: Props) {
                 </Card>
 
                 <Card bgColor="$white" borderRadius={20} p="$5">
-                  <Text size="sm" weight="bold" color="$textLight700" mb="$2" style={{ letterSpacing: 0.3 }}>
+                  <Text size="sm" weight="bold" color="$textLight700" mb="$2" style={atoms.letterSpacing03}>
                     
                     {t.voiceAnalysis.interpretacionClinica}
                   </Text>
-                  <Text size="sm" color="$textLight700" style={{ lineHeight: 21 }}>
+                  <Text size="sm" color="$textLight700" style={atoms.lineHeight21}>
                     {interpretation}
                   </Text>
                 </Card>
@@ -750,7 +751,7 @@ export default function VoiceAnalysisScreen({ navigation }: Props) {
                   
                   {t.voiceAnalysis.cierreManualPrueba}
                 </Text>
-                <Text size="xs" color="$primary800" mt="$1" style={{ lineHeight: 17 }}>
+                <Text size="xs" color="$primary800" mt="$1" style={atoms.lineHeight17}>
                   
                   {t.voiceAnalysis.analisisAcusticoEstaDisponiblePero}
                 </Text>
@@ -770,7 +771,7 @@ export default function VoiceAnalysisScreen({ navigation }: Props) {
                       placeholder={t.voiceAnalysis.interpretacionNotasSobreCalidadVocal}
                       value={notes}
                       onChangeText={setNotes}
-                      style={{ textAlignVertical: 'top' }}
+                      style={atoms.textAlignVerticalTop}
                     />
                   </Input>
                 </Card>
@@ -781,10 +782,10 @@ export default function VoiceAnalysisScreen({ navigation }: Props) {
                     {t.voiceAnalysis.evaluadorResponsable}
                   </Text>
                   <HStack space="sm" mb="$3">
-                    <Input variant="outline" borderRadius={12} style={{ flex: 2 }}>
+                    <Input variant="outline" borderRadius={12} style={atoms.flex2}>
                       <InputField placeholder={t.voiceAnalysis.nombre} value={evaluatorName} onChangeText={setEvaluatorName} />
                     </Input>
-                    <Input variant="outline" borderRadius={12} style={{ flex: 1 }}>
+                    <Input variant="outline" borderRadius={12} style={atoms.flex1}>
                       <InputField placeholder={t.voiceAnalysis.colegiado} value={evaluatorLicense} onChangeText={setEvaluatorLicense} />
                     </Input>
                   </HStack>
@@ -825,7 +826,7 @@ export default function VoiceAnalysisScreen({ navigation }: Props) {
               <Card bgColor="$white" borderRadius={20} p="$6">
                 <Center>
                   <Icon as={AudioWaveform} size="xl" color="$textLight300" />
-                  <Text size="sm" color="$textLight400" mt="$2" style={{ textAlign: 'center' }}>
+                  <Text size="sm" color="$textLight400" mt="$2" style={atoms.textAlignCenter}>
                     {voice.takes.length
                       ? t.voiceAnalysis.seleccioneTomaPulseAnalizarObtener
                       : t.voiceAnalysis.grabeVariasTomasVocalEmpezar}

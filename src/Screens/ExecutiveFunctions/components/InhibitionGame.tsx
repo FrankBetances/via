@@ -6,6 +6,7 @@ import GameCard from './GameCard';
 import { InhibitionPlan, InhibitionResult } from '../executiveFunctionsGame';
 
 import { useT } from '@/I18n';
+import { atoms } from '@/Theme/styleAtoms';
 /* -------------------------------------------------------------------------- */
 /*  «No despiertes al lobo» — inhibición (go/no-go).                           */
 /*  Las tarjetas aparecen UNA A UNA con ventana de respuesta cronometrada:     */
@@ -100,7 +101,7 @@ export default function InhibitionGame({
         </Text>
       </Center>
 
-      <Center style={{ height: 180 }}>
+      <Center style={atoms.height180}>
         {trial && visible ? (
           <GameCard
             glyph={trial.glyph}
