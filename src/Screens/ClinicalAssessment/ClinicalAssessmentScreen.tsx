@@ -162,7 +162,7 @@ const StatusChip = ({ kind }: { kind: DomainKind }) => {
   return (
     <View style={[styles.statusChip, { backgroundColor: t.bg, borderColor: t.border }]}>
       <View style={[styles.statusDot, { backgroundColor: t.dot }]} />
-      <Text size="2xs" weight="bold" style={{ color: t.fg, letterSpacing: 0.4 }}>
+      <Text size="2xs" weight="bold" style={[atoms.letterSpacing04, { color: t.fg }]}>
         {DOMAIN_LABELS[kind]}
       </Text>
     </View>
@@ -192,7 +192,7 @@ const YesNoToggle = ({
       <Text
         size="sm"
         weight="bold"
-        style={{ color: value === true ? '#FFFFFF' : '#64748B', marginLeft: 4 }}>
+        style={[atoms.marginLeft4, value === true ? atoms.colorFFFFFF : atoms.color64748B]}>
         Sí
       </Text>
     </Pressable>
@@ -210,7 +210,7 @@ const YesNoToggle = ({
       <Text
         size="sm"
         weight="bold"
-        style={{ color: value === false ? '#FFFFFF' : '#64748B', marginLeft: 4 }}>
+        style={[atoms.marginLeft4, value === false ? atoms.colorFFFFFF : atoms.color64748B]}>
         No
       </Text>
     </Pressable>
@@ -521,7 +521,7 @@ export default function ClinicalAssessmentScreen({ navigation }: Props) {
                         pressed && { opacity: 0.88 },
                       ]}
                       onPress={() => setActiveDomain(d.id)}>
-                      <View style={[styles.tabIconBox, { backgroundColor: active ? d.bgLight : '#F8FAFC' }]}>
+                      <View style={[styles.tabIconBox, active ? { backgroundColor: d.bgLight } : atoms.backgroundColorF8FAFC]}>
                         <IconComp size={20} color={active ? d.accent : '#64748B'} strokeWidth={2.2} />
                       </View>
                       <View style={atoms.flex1}>
@@ -580,14 +580,14 @@ export default function ClinicalAssessmentScreen({ navigation }: Props) {
                           key={ear}
                           style={[
                             styles.earBox,
-                            { borderLeftColor: isRight ? '#EF4444' : '#0284C7' },
+                            isRight ? styles.earBoxRight : styles.earBoxLeft,
                           ]}>
                           <View style={styles.earHeader}>
                             <View style={styles.earLabelBadge}>
                               <View
                                 style={[
                                   styles.earIndicatorCircle,
-                                  { backgroundColor: isRight ? '#EF4444' : '#0284C7' },
+                                  isRight ? atoms.backgroundColorEF4444 : atoms.backgroundColor0284C7,
                                 ]}
                               />
                               <Text size="sm" weight="bold" color="$textLight900">
@@ -619,7 +619,7 @@ export default function ClinicalAssessmentScreen({ navigation }: Props) {
                                   <Text
                                     size="xs"
                                     weight="bold"
-                                    style={{ color: selected ? '#FFFFFF' : '#475569' }}>
+                                    style={selected ? atoms.colorFFFFFF : atoms.color475569}>
                                     {f}
                                   </Text>
                                 </Pressable>
@@ -747,7 +747,7 @@ export default function ClinicalAssessmentScreen({ navigation }: Props) {
                               <Text
                                 size="xs"
                                 weight="bold"
-                                style={{ color: active ? '#FFFFFF' : '#475569' }}>
+                                style={active ? atoms.colorFFFFFF : atoms.color475569}>
                                 {gLabel}
                               </Text>
                             </Pressable>
@@ -858,14 +858,14 @@ export default function ClinicalAssessmentScreen({ navigation }: Props) {
                       <Text
                         size="2xs"
                         weight="bold"
-                        style={{ color: KIND_THEME[a.globalKind].fg, letterSpacing: 0.6 }}>
+                        style={[atoms.letterSpacing06, { color: KIND_THEME[a.globalKind].fg }]}>
                         
                         {t.clinicalAssessment.veredictoClinicoGlobal}
                       </Text>
                       <Text
                         size="xl"
                         weight="bold"
-                        style={{ color: KIND_THEME[a.globalKind].fg, marginTop: 2 }}>
+                        style={[atoms.marginTop2, { color: KIND_THEME[a.globalKind].fg }]}>
                         {a.globalLabel}
                       </Text>
                     </View>
@@ -881,7 +881,7 @@ export default function ClinicalAssessmentScreen({ navigation }: Props) {
                   </View>
                   <Text
                     size="xs"
-                    style={{ color: KIND_THEME[a.globalKind].fg, marginTop: 6, lineHeight: 18 }}>
+                    style={[atoms.marginTop6LineHeight18, { color: KIND_THEME[a.globalKind].fg }]}>
                     {a.globalDesc}
                   </Text>
                 </View>
@@ -897,12 +897,12 @@ export default function ClinicalAssessmentScreen({ navigation }: Props) {
                       key={g.code}
                       style={[
                         styles.gameGateItem,
-                        { backgroundColor: g.active ? '#F8FAFC' : '#FEF2F2' },
+                        g.active ? atoms.backgroundColorF8FAFC : atoms.backgroundColorFEF2F2,
                       ]}>
                       <View
                         style={[
                           styles.gameStatusIcon,
-                          { backgroundColor: g.active ? '#DCFCE7' : '#FEE2E2' },
+                          g.active ? atoms.backgroundColorDCFCE7 : atoms.backgroundColorFEE2E2,
                         ]}>
                         {g.active ? (
                           <Check size={14} color="#16A34A" strokeWidth={2.8} />
@@ -917,7 +917,7 @@ export default function ClinicalAssessmentScreen({ navigation }: Props) {
                         <Text
                           size="2xs"
                           weight="medium"
-                          style={{ color: g.active ? '#15803D' : '#DC2626' }}>
+                          style={g.active ? atoms.color15803D : atoms.colorDC2626}>
                           {g.reason}
                         </Text>
                       </View>
@@ -1149,6 +1149,8 @@ const styles = StyleSheet.create({
   },
 
   /* Otoscopia */
+  earBoxRight: { borderLeftColor: '#EF4444' },
+  earBoxLeft: { borderLeftColor: '#0284C7' },
   earBox: {
     backgroundColor: '#FAFAF9',
     borderRadius: 16,

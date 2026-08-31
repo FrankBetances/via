@@ -20,6 +20,10 @@ import { StyleSheet } from 'react-native';
 /* -------------------------------------------------------------------------- */
 
 export const atoms = StyleSheet.create({
+  alignItemsCenterJustifyContentCenter: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   alignItemsCenterMarginBottom2: {
     alignItems: 'center',
     marginBottom: 2,
@@ -28,8 +32,17 @@ export const atoms = StyleSheet.create({
     alignSelf: 'center',
     marginLeft: 4,
   },
+  backgroundColor0284C7: {
+    backgroundColor: '#0284C7',
+  },
   backgroundColor10B981: {
     backgroundColor: '#10B981',
+  },
+  backgroundColor2A7948: {
+    backgroundColor: '#2A7948',
+  },
+  backgroundColorCBD5E1: {
+    backgroundColor: '#CBD5E1',
   },
   backgroundColorCCFBF1: {
     backgroundColor: '#CCFBF1',
@@ -37,11 +50,23 @@ export const atoms = StyleSheet.create({
   backgroundColorD1FAE5: {
     backgroundColor: '#D1FAE5',
   },
+  backgroundColorD8CFC0: {
+    backgroundColor: '#D8CFC0',
+  },
+  backgroundColorDC2626: {
+    backgroundColor: '#DC2626',
+  },
+  backgroundColorDCFCE7: {
+    backgroundColor: '#DCFCE7',
+  },
   backgroundColorE0F2FE: {
     backgroundColor: '#E0F2FE',
   },
   backgroundColorEF4444: {
     backgroundColor: '#EF4444',
+  },
+  backgroundColorF1F5F9: {
+    backgroundColor: '#F1F5F9',
   },
   backgroundColorF59E0B: {
     backgroundColor: '#F59E0B',
@@ -49,17 +74,36 @@ export const atoms = StyleSheet.create({
   backgroundColorF6F3EE: {
     backgroundColor: '#F6F3EE',
   },
+  backgroundColorF8FAFC: {
+    backgroundColor: '#F8FAFC',
+  },
   backgroundColorFEE2E2: {
     backgroundColor: '#FEE2E2',
+  },
+  backgroundColorFEF2F2: {
+    backgroundColor: '#FEF2F2',
   },
   backgroundColorFEF3C7: {
     backgroundColor: '#FEF3C7',
   },
+  backgroundColorFF7F00: {
+    backgroundColor: '#FF7F00',
+  },
+  backgroundColorFFFFFF: {
+    backgroundColor: '#FFFFFF',
+  },
   borderColorDC2626: {
     borderColor: '#DC2626',
   },
+  borderRadius18BorderWidth25: {
+    borderRadius: 18,
+    borderWidth: 2.5,
+  },
   borderStyleDashed: {
     borderStyle: 'dashed',
+  },
+  borderTopWidth3: {
+    borderTopWidth: 3,
   },
   color0066B3: {
     color: '#0066B3',
@@ -67,6 +111,9 @@ export const atoms = StyleSheet.create({
   color0066B3FontWeightBold: {
     color: '#0066B3',
     fontWeight: 'bold',
+  },
+  color0284C7: {
+    color: '#0284C7',
   },
   color065F46: {
     color: '#065F46',
@@ -87,6 +134,9 @@ export const atoms = StyleSheet.create({
     color: '#0F172A',
     fontWeight: '800',
   },
+  color15803D: {
+    color: '#15803D',
+  },
   color1E293BFontSize14: {
     color: '#1E293B',
     fontSize: 14,
@@ -106,6 +156,9 @@ export const atoms = StyleSheet.create({
     color: '#2B2620',
     letterSpacing: -0.5,
   },
+  color475569: {
+    color: '#475569',
+  },
   color475569FontSize11: {
     color: '#475569',
     fontSize: 11,
@@ -117,6 +170,9 @@ export const atoms = StyleSheet.create({
   color475569FontWeight500: {
     color: '#475569',
     fontWeight: '500',
+  },
+  color64748B: {
+    color: '#64748B',
   },
   color64748BTextDecorationLineUnderline: {
     color: '#64748B',
@@ -137,18 +193,34 @@ export const atoms = StyleSheet.create({
   colorA89F93: {
     color: '#A89F93',
   },
+  colorB8B2A7: {
+    color: '#B8B2A7',
+  },
+  colorC2410C: {
+    color: '#C2410C',
+  },
   colorDC2626: {
     color: '#DC2626',
   },
   colorE63535: {
     color: '#E63535',
   },
+  colorEF4444: {
+    color: '#EF4444',
+  },
   colorFF7F00: {
     color: '#FF7F00',
+  },
+  colorFFFFFF: {
+    color: '#FFFFFF',
   },
   colorFFFFFFFontSize14: {
     color: '#FFFFFF',
     fontSize: 14,
+  },
+  fillBar: {
+    height: '100%',
+    borderRadius: 999,
   },
   flex1: {
     flex: 1,
@@ -210,9 +282,19 @@ export const atoms = StyleSheet.create({
     paddingHorizontal: 24,
     paddingTop: 8,
   },
+  fontSize10: {
+    fontSize: 10,
+  },
+  fontSize11LineHeight14: {
+    fontSize: 11,
+    lineHeight: 14,
+  },
   fontSize11LineHeight15: {
     fontSize: 11,
     lineHeight: 15,
+  },
+  fontSize13: {
+    fontSize: 13,
   },
   fontSize15LineHeight19LetterSpacingNeg02: {
     fontSize: 15,
@@ -223,6 +305,10 @@ export const atoms = StyleSheet.create({
     fontSize: 15,
     lineHeight: 20,
   },
+  fontSize22LineHeight28: {
+    fontSize: 22,
+    lineHeight: 28,
+  },
   fontSize24: {
     fontSize: 24,
   },
@@ -232,6 +318,18 @@ export const atoms = StyleSheet.create({
   },
   fontSize32: {
     fontSize: 32,
+  },
+  fontSize40LineHeight44: {
+    fontSize: 40,
+    lineHeight: 44,
+  },
+  fontSize42LineHeight50: {
+    fontSize: 42,
+    lineHeight: 50,
+  },
+  fontSize54LineHeight64: {
+    fontSize: 54,
+    lineHeight: 64,
   },
   fontSize56LineHeight66: {
     fontSize: 56,
@@ -248,6 +346,9 @@ export const atoms = StyleSheet.create({
   fontStyleItalicTextAlignCenter: {
     fontStyle: 'italic',
     textAlign: 'center',
+  },
+  fontWeight700: {
+    fontWeight: '700',
   },
   fontWeight700Color5B554C: {
     fontWeight: '700',
@@ -294,8 +395,14 @@ export const atoms = StyleSheet.create({
   letterSpacing05: {
     letterSpacing: 0.5,
   },
+  letterSpacing06: {
+    letterSpacing: 0.6,
+  },
   letterSpacing1: {
     letterSpacing: 1,
+  },
+  lineHeight13: {
+    lineHeight: 13,
   },
   lineHeight14: {
     lineHeight: 14,
@@ -334,11 +441,17 @@ export const atoms = StyleSheet.create({
   marginBottom16: {
     marginBottom: 16,
   },
+  marginBottom2: {
+    marginBottom: 2,
+  },
   marginBottom3: {
     marginBottom: 3,
   },
   marginHorizontal8: {
     marginHorizontal: 8,
+  },
+  marginLeft4: {
+    marginLeft: 4,
   },
   marginLeft8: {
     marginLeft: 8,
@@ -364,6 +477,10 @@ export const atoms = StyleSheet.create({
   marginTop3: {
     marginTop: 3,
   },
+  marginTop6LineHeight18: {
+    marginTop: 6,
+    lineHeight: 18,
+  },
   marginTop8: {
     marginTop: 8,
   },
@@ -373,6 +490,12 @@ export const atoms = StyleSheet.create({
   },
   minHeight64: {
     minHeight: 64,
+  },
+  opacity04: {
+    opacity: 0.4,
+  },
+  opacity05: {
+    opacity: 0.5,
   },
   opacity08: {
     opacity: 0.8,
@@ -384,11 +507,31 @@ export const atoms = StyleSheet.create({
     opacity: 0.95,
     lineHeight: 18,
   },
+  opacity1: {
+    opacity: 1,
+  },
   overflowHidden: {
     overflow: 'hidden',
   },
   paddingBottom40: {
     paddingBottom: 40,
+  },
+  paddingHorizontal24PaddingTop8PaddingBottom32: {
+    paddingHorizontal: 24,
+    paddingTop: 8,
+    paddingBottom: 32,
+  },
+  paddingHorizontal24PaddingTop8PaddingBottom40: {
+    paddingHorizontal: 24,
+    paddingTop: 8,
+    paddingBottom: 40,
+  },
+  paddingTop10PaddingBottom110: {
+    paddingTop: 10,
+    paddingBottom: 110,
+  },
+  positionAbsolute: {
+    position: 'absolute',
   },
   positionRelative: {
     position: 'relative',
@@ -401,6 +544,9 @@ export const atoms = StyleSheet.create({
   },
   rowGap8: {
     rowGap: 8,
+  },
+  tabularNums: {
+    fontVariant: ['tabular-nums'],
   },
   textAlignCenter: {
     textAlign: 'center',

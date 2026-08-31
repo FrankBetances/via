@@ -31,7 +31,7 @@ const StepButton = ({ label, enabled, onPress, big }: { label: string; enabled: 
       bg={enabled ? '$primary50' : '$white'}>
       <GSText
         size={big ? 'md' : 'xs'}
-        style={{ fontWeight: '700', color: enabled ? '#C2410C' : '#B8B2A7' }}>
+        style={[atoms.fontWeight700, enabled ? atoms.colorC2410C : atoms.colorB8B2A7]}>
         {label}
       </GSText>
     </Center>
@@ -69,7 +69,7 @@ export default function FontSizeControl() {
       <HStack space="sm" alignItems="center">
         <StepButton label="A−" enabled={canShrink} onPress={() => dispatch(setFontScale(nextFontScale(fontScale, -1)))} />
         <Box minWidth={44} alignItems="center">
-          <GSText size="xs" style={{ fontWeight: '700', color: '#5B554C', fontVariant: ['tabular-nums'] }}>
+          <GSText size="xs" style={[atoms.fontWeight700Color5B554C, atoms.tabularNums]}>
             {pct}%
           </GSText>
         </Box>

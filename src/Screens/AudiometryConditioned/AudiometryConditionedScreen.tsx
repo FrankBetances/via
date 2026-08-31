@@ -693,7 +693,7 @@ export default function AudiometryConditionedScreen({ navigation }: Props) {
                     <HStack alignItems="center">
                       <Text size="sm" weight="bold" style={atoms.width90Color0066B3}>{t.audiometryConditioned.campoLibre}</Text>
                       {FREQS.map(f => (
-                        <Text key={f} size="sm" weight="semiBold" color="$textLight700" style={{ flex: 1, textAlign: 'center', fontVariant: ['tabular-nums'] }}>
+                        <Text key={f} size="sm" weight="semiBold" color="$textLight700" style={[atoms.flex1TextAlignCenter, atoms.tabularNums]}>
                           {a.thresholds.CL?.[f] ?? '—'}
                         </Text>
                       ))}

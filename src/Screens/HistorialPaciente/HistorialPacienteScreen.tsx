@@ -105,7 +105,7 @@ export default function HistorialPacienteScreen({ navigation, route }: Props) {
 
         <ScrollView
           style={atoms.flex1}
-          contentContainerStyle={{ paddingHorizontal: 24, paddingTop: 8, paddingBottom: 32 }}
+          contentContainerStyle={atoms.paddingHorizontal24PaddingTop8PaddingBottom32}
           showsVerticalScrollIndicator={false}>
           <VStack space="md">
             {/* ----- title ----- */}
@@ -216,7 +216,7 @@ export default function HistorialPacienteScreen({ navigation, route }: Props) {
                                   size="2xs"
                                   color="$textLight400"
                                   mt="$0.5"
-                                  style={{ fontVariant: ['tabular-nums'], lineHeight: 13 }}>
+                                  style={[atoms.tabularNums, atoms.lineHeight13]}>
                                   {c.metric}
                                 </Text>
                               </VStack>

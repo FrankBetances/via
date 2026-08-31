@@ -538,7 +538,7 @@ export default function VerbalAudiometryScreen({ navigation }: Props) {
         {/* tarjetas */}
         <HStack flexWrap="wrap" justifyContent="space-between" style={atoms.rowGap10}>
           {v.options.map(opt => (
-            <Box key={opt.word} style={{ width: cardWidth, marginBottom: 2 }}>
+            <Box key={opt.word} style={[atoms.marginBottom2, { width: cardWidth }]}>
               <WordCard
                 word={opt.word}
                 imageSource={opt.image ? verbalImageSourceForLang(opt.image, v.lang) : undefined}

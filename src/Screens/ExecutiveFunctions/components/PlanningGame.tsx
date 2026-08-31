@@ -129,7 +129,7 @@ export default function PlanningGame({
         </Text>
       ) : (
         <Pressable onPress={clear} disabled={!picks.length}>
-          <HStack space="xs" alignItems="center" style={{ opacity: picks.length ? 1 : 0.4 }}>
+          <HStack space="xs" alignItems="center" style={picks.length ? atoms.opacity1 : atoms.opacity04}>
             <Icon as={RotateCcw} size="xs" color="$textLight500" />
             <Text size="xs" weight="bold" color="$textLight500">
               

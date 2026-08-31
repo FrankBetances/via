@@ -361,7 +361,7 @@ export default function RegistroPacienteScreen({ navigation }: Props) {
                     borderWidth={1.5}
                     borderColor={ready && !isSaving ? '$info300' : '$borderLight200'}
                     bg={ready && !isSaving ? '$info50' : '$white'}
-                    style={{ opacity: ready && !isSaving ? 1 : 0.5 }}>
+                    style={ready && !isSaving ? atoms.opacity1 : atoms.opacity05}>
                     <Text size="lg">💧</Text>
                     <Text size="sm" weight="bold" color={ready && !isSaving ? '$info700' : '$textLight400'}>
                       

@@ -1,5 +1,6 @@
 import React from 'react';
 import { useWindowDimensions, View } from 'react-native';
+import { atoms } from '@/Theme/styleAtoms';
 
 /* -------------------------------------------------------------------------- */
 /*  RadialBackground — mancha decorativa difusa usada como fondo de las 9     */
@@ -48,16 +49,18 @@ export default function RadialBackground({
   return (
     <View
       pointerEvents="none"
-      style={{
-        position: 'absolute',
-        top: screenHeight * topMultiplier,
-        left: screenWidth * leftMultiplier,
-        width: w,
-        height: h,
-        borderRadius: Math.max(w, h) * radiusMultiplier,
-        backgroundColor: color.startsWith('$') ? undefined : color,
-        opacity,
-      }}
+      style={[
+        atoms.positionAbsolute,
+        {
+          top: screenHeight * topMultiplier,
+          left: screenWidth * leftMultiplier,
+          width: w,
+          height: h,
+          borderRadius: Math.max(w, h) * radiusMultiplier,
+          backgroundColor: color.startsWith('$') ? undefined : color,
+          opacity,
+        },
+      ]}
     />
   );
 }

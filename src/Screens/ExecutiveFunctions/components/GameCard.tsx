@@ -49,15 +49,16 @@ export default function GameCard({
   return (
     <Pressable onPress={interactive ? onPress : undefined} disabled={!interactive} accessibilityRole="button">
       <Center
-        style={{
-          width: size,
-          height: size,
-          borderRadius: 18,
-          borderWidth: 2.5,
-          borderColor: borderColor ?? s.border,
-          backgroundColor: bg ?? s.bg,
-          opacity: s.opacity,
-        }}>
+        style={[
+          atoms.borderRadius18BorderWidth25,
+          {
+            width: size,
+            height: size,
+            borderColor: borderColor ?? s.border,
+            backgroundColor: bg ?? s.bg,
+            opacity: s.opacity,
+          },
+        ]}>
         <Text style={{ fontSize: size * 0.5, lineHeight: size * 0.62 }}>{glyph}</Text>
         {badge !== null ? (
           <Center

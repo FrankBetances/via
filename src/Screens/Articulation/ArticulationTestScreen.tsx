@@ -562,7 +562,7 @@ export default function ArticulationTestScreen({ navigation }: Props) {
                 <Text
                   weight="bold"
                   color="$textLight900"
-                  style={{ fontSize: cur.section === 'frases' ? 22 : 40, lineHeight: cur.section === 'frases' ? 28 : 44 }}>
+                  style={cur.section === 'frases' ? atoms.fontSize22LineHeight28 : atoms.fontSize40LineHeight44}>
                   {shownWord}
                 </Text>
 

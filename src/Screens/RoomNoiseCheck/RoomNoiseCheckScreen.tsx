@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useDispatch } from 'react-redux';
-import { Pressable, ScrollView } from 'react-native';
+import { Pressable, ScrollView, StyleSheet } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import Svg, { Circle } from 'react-native-svg';
 import { Box, Card, Center, HStack, Icon, Input, InputField, VStack } from '@gluestack-ui/themed';
@@ -82,6 +82,19 @@ interface ScreenConfig {
 }
 
 type Props = NativeStackScreenProps<RootStackParamList, 'RoomNoiseCheck'>;
+
+const styles = StyleSheet.create({
+  /* El anillo del sonómetro se dibuja girado −90° para que el arco empiece
+   * arriba, no a las tres en punto. */
+  ringSvg: { position: 'absolute', transform: [{ rotate: '-90deg' }] },
+  dbReadout: { fontSize: 64, fontWeight: '800', lineHeight: 64 },
+  /* Sin micrófono no hay medida: la cifra y la etiqueta se apagan en gris en
+   * vez de heredar el color de una zona que nadie ha medido (regla 4). */
+  dbReadoutIdle: { color: '#C9C2B6' },
+  zoneLabelIdle: { color: '#B0A89C' },
+  spectrumBar: { flex: 1, borderRadius: 3 },
+  spectrumBarIdle: { backgroundColor: '#E7E0D4' },
+});
 
 export default function RoomNoiseCheckScreen({ navigation, route }: Props) {
   const t = useT();
@@ -267,7 +280,7 @@ export default function RoomNoiseCheckScreen({ navigation, route }: Props) {
             {/* ring */}
             <Center my="$3">
               <Box width={RING_SIZE} height={RING_SIZE} alignItems="center" justifyContent="center">
-                <Svg width={RING_SIZE} height={RING_SIZE} style={{ position: 'absolute', transform: [{ rotate: '-90deg' }] }}>
+                <Svg width={RING_SIZE} height={RING_SIZE} style={styles.ringSvg}>
                   <Circle cx={RING_SIZE / 2} cy={RING_SIZE / 2} r={RING_R} stroke="#F0EBE2" strokeWidth={16} fill="none" />
                   <Circle
                     cx={RING_SIZE / 2}
@@ -283,14 +296,14 @@ export default function RoomNoiseCheckScreen({ navigation, route }: Props) {
                 </Svg>
                 <VStack alignItems="center">
                   <HStack alignItems="flex-end" space="xs">
-                    <Text style={{ fontSize: 64, fontWeight: '800', lineHeight: 64, color: liveDb == null ? '#C9C2B6' : ZONE_HEX[zone] }}>
+                    <Text style={[styles.dbReadout, liveDb == null ? styles.dbReadoutIdle : { color: ZONE_HEX[zone] }]}>
                       {liveDb == null ? '--' : Math.round(liveDb)}
                     </Text>
                     <Text size="lg" weight="semiBold" color="$textLight400" mb="$2">
                       dB(A)
                     </Text>
                   </HStack>
-                  <Text size="xs" weight="bold" style={{ letterSpacing: 0.6, color: liveDb == null ? '#B0A89C' : ZONE_HEX[zone] }}>
+                  <Text size="xs" weight="bold" style={[atoms.letterSpacing06, liveDb == null ? styles.zoneLabelIdle : { color: ZONE_HEX[zone] }]}>
                     {liveDb == null ? t.roomNoise.microfonoInactivo : ZONE_LABEL[zone]}
                   </Text>
                 </VStack>
@@ -300,7 +313,14 @@ export default function RoomNoiseCheckScreen({ navigation, route }: Props) {
             {/* spectrum */}
             <HStack alignItems="flex-end" justifyContent="center" style={atoms.height56Gap4}>
               {meter.levels.map((lv, i) => (
-                <Box key={i} style={{ flex: 1, height: Math.max(3, lv * 56), borderRadius: 3, backgroundColor: meter.running ? BRAND : '#E7E0D4' }} />
+                <Box
+                  key={i}
+                  style={[
+                    styles.spectrumBar,
+                    meter.running ? { backgroundColor: BRAND } : styles.spectrumBarIdle,
+                    { height: Math.max(3, lv * 56) },
+                  ]}
+                />
               ))}
             </HStack>
           </Card>
@@ -321,7 +341,7 @@ export default function RoomNoiseCheckScreen({ navigation, route }: Props) {
                 <Text size="2xs" color="$textLight400" style={atoms.letterSpacing04TextAlignCenter}>
                   {stat.label}
                 </Text>
-                <Text size="lg" weight="bold" color={stat.color} mt="$0.5" style={{ textAlign: 'center', fontVariant: ['tabular-nums'] }}>
+                <Text size="lg" weight="bold" color={stat.color} mt="$0.5" style={[atoms.textAlignCenter, atoms.tabularNums]}>
                   {stat.value}
                 </Text>
               </Card>
@@ -404,7 +424,7 @@ export default function RoomNoiseCheckScreen({ navigation, route }: Props) {
                     size="md"
                     weight="bold"
                     color={calibration === 0 ? '$textLight400' : '$primary600'}
-                    style={{ textAlign: 'center', fontVariant: ['tabular-nums'] }}>
+                    style={[atoms.textAlignCenter, atoms.tabularNums]}>
                     {calibration > 0 ? `+${calibration}` : calibration} dB
                   </Text>
                 </Box>

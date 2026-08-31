@@ -887,7 +887,7 @@ export default function ResultadosFinalScreen({ navigation }: Props) {
                         isActive && styles.testSidebarItemActive,
                       ]}
                       onPress={() => setActiveId(item.id)}>
-                      <View style={[styles.testItemIconBox, { backgroundColor: isActive ? '#FFFFFF' : '#F1F5F9' }]}>
+                      <View style={[styles.testItemIconBox, isActive ? atoms.backgroundColorFFFFFF : atoms.backgroundColorF1F5F9]}>
                         <IconComp size={18} color={item.color} />
                       </View>
 

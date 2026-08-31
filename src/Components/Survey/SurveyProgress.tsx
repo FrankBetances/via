@@ -39,18 +39,17 @@ export default function SurveyProgress({ answered, total, label }: Props) {
         <Text size="2xs" weight="bold" color="$textLight500" style={atoms.letterSpacing04TextTransformUppercase}>
           {label}
         </Text>
-        <Text size="2xs" weight="bold" color={complete ? '$success700' : '$primary700'} style={{ fontVariant: ['tabular-nums'] }}>
+        <Text size="2xs" weight="bold" color={complete ? '$success700' : '$primary700'} style={atoms.tabularNums}>
           {answered}/{total} · {pct}%
         </Text>
       </HStack>
       <Box h={8} borderRadius="$full" bg="$backgroundLight100" style={atoms.overflowHidden}>
         <Animated.View
-          style={{
-            height: '100%',
-            borderRadius: 999,
-            backgroundColor: complete ? '#2A7948' : '#FF7F00',
-            width: anim.interpolate({ inputRange: [0, 1], outputRange: ['0%', '100%'] }),
-          }}
+          style={[
+            atoms.fillBar,
+            complete ? atoms.backgroundColor2A7948 : atoms.backgroundColorFF7F00,
+            { width: anim.interpolate({ inputRange: [0, 1], outputRange: ['0%', '100%'] }) },
+          ]}
         />
       </Box>
     </Box>

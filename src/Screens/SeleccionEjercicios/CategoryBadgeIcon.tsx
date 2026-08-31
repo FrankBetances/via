@@ -1,6 +1,7 @@
 import React from 'react';
 import { View } from 'react-native';
 import Svg, { Path, Rect, Text as SvgText } from 'react-native-svg';
+import { atoms } from '@/Theme/styleAtoms';
 
 export type CategoryType = 'all' | 'hearing' | 'voice' | 'neuro' | 'sleep' | 'dysphagia';
 
@@ -130,7 +131,7 @@ function Line(props: any) {
 
 export default function CategoryBadgeIcon({ category, size = 20, isActive = false }: Props) {
   return (
-    <View style={{ width: size, height: size, justifyContent: 'center', alignItems: 'center' }}>
+    <View style={[atoms.alignItemsCenterJustifyContentCenter, { width: size, height: size }]}>
       {category === 'all' && <AllBadge size={size} isActive={isActive} />}
       {category === 'hearing' && <HearingBadge size={size} isActive={isActive} />}
       {category === 'voice' && <VoiceBadge size={size} isActive={isActive} />}

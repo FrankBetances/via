@@ -91,7 +91,7 @@ export default function WordCard({
       );
     }
     if (glyph) {
-      return <Text style={{ fontSize: lg ? 54 : 42, lineHeight: lg ? 64 : 50 }}>{glyph}</Text>;
+      return <Text style={lg ? atoms.fontSize54LineHeight64 : atoms.fontSize42LineHeight50}>{glyph}</Text>;
     }
     // Asset pendiente: tile crema con borde discontinuo + inicial (Iteración 2).
     return (

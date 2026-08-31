@@ -288,7 +288,7 @@ export default function PacientesScreen({ navigation }: Props) {
           data={filteredRows}
           keyExtractor={row => String(row.patient.id)}
           renderItem={renderItem}
-          contentContainerStyle={{ paddingHorizontal: 24, paddingTop: 8, paddingBottom: 40 }}
+          contentContainerStyle={atoms.paddingHorizontal24PaddingTop8PaddingBottom40}
           ItemSeparatorComponent={ItemSeparator}
           ListHeaderComponent={
             <VStack space="md" mb="$3">

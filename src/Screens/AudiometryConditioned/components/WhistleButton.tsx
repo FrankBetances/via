@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-import { Animated, Easing, Pressable, View } from 'react-native';
+import { Animated, Easing, Pressable, StyleSheet, View } from 'react-native';
 import { Center, HStack, Icon, VStack } from '@gluestack-ui/themed';
 import { Bell, Sparkles } from 'lucide-react-native';
 import { Text } from '@/Components/Common';
@@ -49,21 +49,22 @@ const SonarRing = ({ active, delay }: { active: boolean; delay: number }) => {
   return (
     <Animated.View
       pointerEvents="none"
-      style={{
-        position: 'absolute',
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        borderRadius: 32,
-        borderWidth: 3.5,
-        borderColor: '#10B981',
-        opacity,
-        transform: [{ scale }],
-      }}
+      style={[
+        StyleSheet.absoluteFill,
+        styles.pulseRing,
+        {
+          opacity,
+          transform: [{ scale }],
+        },
+      ]}
     />
   );
 };
+
+const styles = StyleSheet.create({
+  /* El aro que late alrededor del pulsador mientras suena el estímulo. */
+  pulseRing: { borderRadius: 32, borderWidth: 3.5, borderColor: '#10B981' },
+});
 
 export default function WhistleButton({
   onPress,

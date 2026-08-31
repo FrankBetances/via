@@ -352,11 +352,7 @@ export default function SeleccionEjerciciosScreen({ navigation }: Props) {
         {/* ==================================================================== */}
         <ScrollView
           style={atoms.flex1}
-          contentContainerStyle={{
-            paddingHorizontal: horizontalPadding,
-            paddingTop: 10,
-            paddingBottom: 110,
-          }}
+          contentContainerStyle={[atoms.paddingTop10PaddingBottom110, { paddingHorizontal: horizontalPadding }]}
           showsVerticalScrollIndicator={false}>
           
           {/* Rejilla de Tarjetas (Grid Multi-Columna) */}
@@ -468,7 +464,7 @@ export default function SeleccionEjerciciosScreen({ navigation }: Props) {
                 onPress={handleStart}
                 style={[
                   styles.ctaButton,
-                  { backgroundColor: selCount > 0 ? '#FF7F00' : '#CBD5E1' },
+                  selCount > 0 ? atoms.backgroundColorFF7F00 : atoms.backgroundColorCBD5E1,
                 ]}>
                 <HStack alignItems="center" space="xs">
                   <Text size="sm" weight="bold" style={atoms.colorFFFFFFFontSize14}>

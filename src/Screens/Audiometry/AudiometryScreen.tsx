@@ -202,11 +202,11 @@ export default function AudiometryScreen({ navigation }: Props) {
                 </HStack>
                 {(['OD', 'OI'] as const).map(e => (
                   <HStack key={e} alignItems="center">
-                    <Text size="sm" weight="bold" style={{ width: 50, color: e === 'OD' ? '#E63535' : '#1E8049' }}>
+                    <Text size="sm" weight="bold" style={[atoms.width50, e === 'OD' ? atoms.colorE63535 : atoms.color1E8049]}>
                       {e}
                     </Text>
                     {FREQS.map(f => (
-                      <Text key={f} size="sm" weight="semiBold" color="$textLight700" style={{ flex: 1, textAlign: 'center', fontVariant: ['tabular-nums'] }}>
+                      <Text key={f} size="sm" weight="semiBold" color="$textLight700" style={[atoms.flex1TextAlignCenter, atoms.tabularNums]}>
                         {a.thresholds[e][f] ?? '—'}
                       </Text>
                     ))}

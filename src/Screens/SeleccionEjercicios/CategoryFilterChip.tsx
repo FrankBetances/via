@@ -10,6 +10,7 @@ import { Text } from '@/Components/Common';
 import CategoryBadgeIcon, { CategoryType } from './CategoryBadgeIcon';
 
 import { useT } from '@/I18n';
+import { atoms } from '@/Theme/styleAtoms';
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
 /* El color del dominio lo pinta `CategoryBadgeIcon` a partir de la categoría:
@@ -69,13 +70,13 @@ export default function CategoryFilterChip({
           weight={isActive ? 'bold' : 'semiBold'}
           style={[
             styles.label,
-            { color: isActive ? '#2B2620' : '#475569' },
+            isActive ? atoms.color2B2620 : atoms.color475569,
           ]}>
           {label}{' '}
           <Text
             size="sm"
             weight={isActive ? 'bold' : 'medium'}
-            style={{ color: isActive ? '#FF7F00' : '#64748B' }}>
+            style={isActive ? atoms.colorFF7F00 : atoms.color64748B}>
             ({count})
           </Text>
         </Text>

@@ -569,7 +569,7 @@ export default function ExecutiveFunctionsScreen({ navigation }: Props) {
                   </Text>
                 </HStack>
                 <Box h={8} borderRadius="$full" bg="$backgroundLight100" style={atoms.overflowHidden}>
-                  <Box style={{ height: '100%', width: `${s ?? 0}%`, backgroundColor: barColor, borderRadius: 999 }} />
+                  <Box style={[atoms.fillBar, { width: `${s ?? 0}%`, backgroundColor: barColor }]} />
                 </Box>
               </VStack>
             );

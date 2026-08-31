@@ -392,7 +392,8 @@ export default function ResultadosPreliminaresScreen({ navigation }: Props) {
                     key={c.key}
                     style={[
                       styles.resultCard,
-                      { borderTopColor: railColor, borderTopWidth: 3 },
+                      atoms.borderTopWidth3,
+                      { borderTopColor: railColor },
                     ]}>
                     <View style={atoms.flex1}>
                       <Text style={styles.resultCardTitle}>{c.title}</Text>
