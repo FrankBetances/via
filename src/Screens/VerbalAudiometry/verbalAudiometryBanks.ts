@@ -60,13 +60,21 @@ export const VERBAL_BANK_PROVISIONAL: readonly VerbalLang[] = ['ca', 'es-419', '
 /**
  * Idiomas SIN locuciones propias empaquetadas en disco.
  *
+ * `es-419` está aquí AUNQUE ya tenga sus 37 locuciones en disco: las generó el
+ * workflow de voz el 31/8/2026 y NADIE las ha firmado. Lo que hace definitivo a
+ * un estímulo no son los bytes, es la firma del expediente clínico, y mientras
+ * no exista la pantalla debe seguir advirtiéndolo.
+ *
+ * `ca` y `en` no entran aquí porque su banco es PRESTADO — no es que les falten
+ * locuciones, es que no les tocan (ver `VERBAL_BANK_BORROWED`).
+ *
  * Es un registro de COBERTURA DE ASSETS, y lo vigila
  * `scripts/check-verbal-coverage.js --strict` en los dos sentidos. No dice por
  * sí solo qué se oye: un idioma con banco prestado (`VERBAL_BANK_BORROWED`)
  * suena con las locuciones de la lengua que le presta las palabras, que sí
  * existen. Quien decide qué se oye es `verbalStimulusLang`.
  */
-export const VERBAL_AUDIO_PENDING: readonly VerbalLang[] = ['ca', 'es-419', 'en'];
+export const VERBAL_AUDIO_PENDING: readonly VerbalLang[] = ['es-419'];
 
 /* -------------------------------------------------------------------------- */
 /*  BANCO PRESTADO — la distinción que faltaba, y que la pantalla mentía.      */

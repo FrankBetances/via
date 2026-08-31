@@ -83,6 +83,37 @@ jobs:
       # aquí porque `unattended-upgrades` tenía el lock tomado y `apt-get` se
       # queda esperando indefinidamente, sin salida ni aviso. Con `timeout` el
       # paso falla rápido y con un mensaje, en vez de agotar el job entero.
+      - name: Resolve target languages
+        id: langs
+        run: |
+          ENGINE="${{ github.event.inputs.engine || 'neural' }}"
+          LANG_IN="${{ github.event.inputs.lang || 'all' }}"
+          if [ "$LANG_IN" = "all" ]; then
+            LANGS="es gl eu ca es-419 es-DO en"
+          else
+            LANGS="$LANG_IN"
+          fi
+          # `ca`, `es-419` y `en` entraron en tools/nos/voices.json con su voz
+          # Piper, pero esta lista se quedó sin ellos: ni el desplegable ni
+          # «all» los alcanzaban, así que su síntesis era inalcanzable por
+          # mucho que el registro la declarase. Añadir una lengua es tocar los
+          # DOS sitios.
+          #
+          # espeak no cubre gl: se descarta con aviso (requiere motor neural).
+          if [ "$ENGINE" = "espeak" ]; then
+            LANGS="$(echo "$LANGS" | tr ' ' '\n' | grep -vE '^(gl|ca|eu)$' | tr '\n' ' ')"
+            echo "::warning::Motor espeak: 'gl', 'ca' y 'eu' omitidos — sus voces son neurales por diseño (Celtia, Matxa-TTS de AINA y AhoTTS Maider) y no tienen equivalente en espeak-ng."
+          fi
+          echo "engine=$ENGINE" >> "$GITHUB_OUTPUT"
+          echo "langs=$LANGS" >> "$GITHUB_OUTPUT"
+          echo "target=${{ github.event.inputs.target || 'ambos' }}" >> "$GITHUB_OUTPUT"
+
+      # ORDEN IMPORTANTE: este paso va DESPUÉS de «Resolve target languages»
+      # porque consulta `steps.langs.outputs.langs` para saber si hay que
+      # instalar espeak-ng (frontend fonémico del catalán). Estaba antes, así
+      # que la expresión se evaluaba VACÍA, no se instalaba espeak-ng y el
+      # catalán moría con «espeak not installed on your system» tras haberse
+      # descargado los pesos de Matxa — run 25, el único idioma que falló.
       - name: Install audio tooling (ffmpeg, y espeak-ng si se usa)
         env:
           DEBIAN_FRONTEND: noninteractive
@@ -127,31 +158,6 @@ jobs:
             fi
             echo "  descarga lenta o interrumpida (intento $i/3), reintentando…"; sleep $((i * 15))
           done
-
-      - name: Resolve target languages
-        id: langs
-        run: |
-          ENGINE="${{ github.event.inputs.engine || 'neural' }}"
-          LANG_IN="${{ github.event.inputs.lang || 'all' }}"
-          if [ "$LANG_IN" = "all" ]; then
-            LANGS="es gl eu ca es-419 es-DO en"
-          else
-            LANGS="$LANG_IN"
-          fi
-          # `ca`, `es-419` y `en` entraron en tools/nos/voices.json con su voz
-          # Piper, pero esta lista se quedó sin ellos: ni el desplegable ni
-          # «all» los alcanzaban, así que su síntesis era inalcanzable por
-          # mucho que el registro la declarase. Añadir una lengua es tocar los
-          # DOS sitios.
-          #
-          # espeak no cubre gl: se descarta con aviso (requiere motor neural).
-          if [ "$ENGINE" = "espeak" ]; then
-            LANGS="$(echo "$LANGS" | tr ' ' '\n' | grep -vE '^(gl|ca|eu)$' | tr '\n' ' ')"
-            echo "::warning::Motor espeak: 'gl', 'ca' y 'eu' omitidos — sus voces son neurales por diseño (Celtia, Matxa-TTS de AINA y AhoTTS Maider) y no tienen equivalente en espeak-ng."
-          fi
-          echo "engine=$ENGINE" >> "$GITHUB_OUTPUT"
-          echo "langs=$LANGS" >> "$GITHUB_OUTPUT"
-          echo "target=${{ github.event.inputs.target || 'ambos' }}" >> "$GITHUB_OUTPUT"
 
       - name: Install neural engine + fetch models
         if: ${{ steps.langs.outputs.engine == 'neural' }}
@@ -224,9 +230,24 @@ jobs:
           FAILED=""
           for L in ${{ steps.langs.outputs.langs }}; do
             echo "── recortes verbales · $L ──"
+            # Código 2 = BANCO PRESTADO: ese idioma presenta las palabras de
+            # otra lengua y suena con su voz, así que no le tocan recortes
+            # propios. No es un fallo y no debe contarse como tal — si se
+            # contara, el resumen pediría «revisar el error» de algo que está
+            # bien, y alguien acabaría generando una voz inglesa diciendo
+            # «caballo». Que es exactamente lo que pasó en el run 25.
+            # `|| RC=$?` y no `cmd; RC=$?`: los `run:` corren con `bash -e` y
+            # un `exit 2` abortaría el paso ANTES de poder leer el código. Un
+            # comando a la izquierda de `||` queda fuera de errexit.
+            RC=0
+            node scripts/verbal-assets.js audio --lang "$L" || RC=$?
+            if [ "$RC" = "2" ]; then
+              echo "   · $L: banco prestado, sin recortes propios (por diseño)"
+              continue
+            fi
             # Los tres pasos van juntos: sin `registry` los .m4a no llegan a la
             # app, así que un idioma cuenta como hecho solo si completa los tres.
-            if node scripts/verbal-assets.js audio    --lang "$L" \
+            if [ "$RC" = "0" ] \
             && node scripts/verbal-assets.js registry --lang "$L" \
             && node scripts/verbal-assets.js manifest --lang "$L"; then
               echo "   ✓ $L"

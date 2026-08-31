@@ -4,6 +4,7 @@ import {
   resolveVerbalLang,
   VERBAL_BANK_BASE,
   VERBAL_AUDIO_PENDING,
+  VERBAL_BANK_BORROWED,
   VERBAL_BANK_LANGS,
   VERBAL_BANK_PROVISIONAL,
 } from '../verbalAudiometryBanks';
@@ -93,6 +94,9 @@ describe('getVerbalBands · registro por idioma', () => {
     // que se dicta con la voz del sistema y el profesional no se entera.
     for (const lang of VERBAL_BANK_LANGS) {
       if (VERBAL_AUDIO_PENDING.includes(lang)) continue;
+      // Un banco PRESTADO no tiene recortes propios ni debe tenerlos: sus
+      // palabras son de otra lengua y suenan con la voz de esa lengua.
+      if (VERBAL_BANK_BORROWED[lang]) continue;
       const dir = path.join(
         ROOT, 'assets', 'audio', 'verbal', ...(lang === 'es' ? [] : [lang]),
       );
@@ -341,6 +345,10 @@ describe('aprobación clínica · el código no puede adelantarse al registro', 
     // retiró davefx: lo que debe haber una y solo una es la firma VIGENTE.
     for (const lang of VERBAL_BANK_LANGS) {
       if (VERBAL_AUDIO_PENDING.includes(lang)) continue;
+      // Un banco PRESTADO no firma audio propio: no lo tiene. Lo que suena es
+      // la locución de la lengua que le presta las palabras, y esa ya está
+      // firmada en SU expediente.
+      if (VERBAL_BANK_BORROWED[lang]) continue;
       const audio = approvalsOf(lang).filter(a => scopeOf(a) === 'audio');
       const vigentes = audio.filter(a => a.status !== 'superseded');
       expect({ lang, firmas: vigentes.length }).toEqual({ lang, firmas: 1 });
