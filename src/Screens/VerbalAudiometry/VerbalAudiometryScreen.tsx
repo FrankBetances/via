@@ -42,6 +42,7 @@ import WordCard, { WordCardState } from './components/WordCard';
 import { LuaCompanionWidget } from '@/Components/Mascot/LuaCompanionWidget';
 import { useLuaCompanion, LuaEmotion } from '@/Lua';
 
+import { useT } from '@/I18n';
 type Props = NativeStackScreenProps<RootStackParamList, 'VerbalAudiometry'>;
 
 /* -------------------------------------------------------------------------- */
@@ -77,6 +78,7 @@ const ADVANCE_FAIL_MS = 2300;
 const BAND_EMOJI: Record<AgeBand, string> = { A: '🧸', B: '🎈', C: '✏️', D: '📖' };
 
 export default function VerbalAudiometryScreen({ navigation }: Props) {
+  const t = useT();
   const activeEvaluation = useClassSelector(Evaluation, (state: RootState) => state.activeEvaluation.evaluation);
   const [createVerbalAudiometry, { isLoading: isSaving }] = useCreateVerbalAudiometryMutation();
   const dispatch = useDispatch<AppDispatch>();
@@ -237,11 +239,13 @@ export default function VerbalAudiometryScreen({ navigation }: Props) {
       <VStack>
         <HStack alignItems="center" space="sm">
           <Text size="2xl" weight="bold" color="$textLight900">
-            Audiometría verbal
+            
+            {t.verbalAudiometry.audiometriaVerbal}
           </Text>
           <Box bg="$primary50" px="$2" py="$0.5" borderRadius="$full">
             <Text size="2xs" weight="bold" color="$primary800" style={{ letterSpacing: 0.4 }}>
-              CAMPO LIBRE · SIN AUDÍFONOS
+              
+              {t.verbalAudiometry.campoLibreSinAudifonos}
             </Text>
           </Box>
         </HStack>
@@ -260,16 +264,16 @@ export default function VerbalAudiometryScreen({ navigation }: Props) {
 
       <Card bgColor="$white" borderRadius={20} p="$4">
         <Text size="sm" color="$textLight700" style={{ lineHeight: 20 }}>
-          El paciente hace la prueba <Text size="sm" weight="bold" color="$textLight900">solo, como un juego</Text>:
-          suena una palabra por el altavoz y toca la tarjeta correspondiente. La palabra suena
-          sola en cada lámina y la pantalla avanza sola tras cada respuesta.
+          
+          {t.verbalAudiometry.pacienteHacePrueba} <Text size="sm" weight="bold" color="$textLight900">{t.verbalAudiometry.soloComoJuego}</Text>{t.verbalAudiometry.suenaPalabraAltavozTocaTarjeta}
         </Text>
       </Card>
 
       {/* selección de banda de edad */}
       <Card bgColor="$white" borderRadius={20} p="$4">
         <Text size="md" weight="bold" color="$textLight900" mb="$3">
-          ¿Qué edad tiene el paciente?
+          
+          {t.verbalAudiometry.edadTienePaciente}
         </Text>
         <VStack space="sm">
           {VERBAL_BANDS.map(b => {
@@ -292,7 +296,7 @@ export default function VerbalAudiometryScreen({ navigation }: Props) {
                       {b.ages}
                     </Text>
                     <Text size="xs" color="$textLight500">
-                      {b.label} · {MODALITY_LABEL[b.modality]} · {b.optionsPerCard} tarjetas
+                      {b.label} · {MODALITY_LABEL[b.modality]} · {b.optionsPerCard}  {t.verbalAudiometry.tarjetas}
                     </Text>
                   </VStack>
                   <Box
@@ -315,7 +319,8 @@ export default function VerbalAudiometryScreen({ navigation }: Props) {
       {/* idioma/variante de la sesión (banco de estímulos + voz) */}
       <Card bgColor="$white" borderRadius={20} p="$4">
         <Text size="md" weight="bold" color="$textLight900" mb="$3">
-          Lengua de la prueba
+          
+          {t.verbalAudiometry.lenguaPrueba}
         </Text>
         <HStack space="sm">
           {VERBAL_BANK_LANGS.map(l => {
@@ -345,22 +350,23 @@ export default function VerbalAudiometryScreen({ navigation }: Props) {
         </HStack>
         {v.lang !== 'es' ? (
           <Text size="2xs" color="$textLight400" mt="$2">
-            Banco de estímulos y locuciones propios de la lengua; queda registrado en el informe.
+            
+            {t.verbalAudiometry.bancoEstimulosLocucionesPropiosLengua}
           </Text>
         ) : null}
         {VERBAL_BANK_PROVISIONAL.includes(v.lang) ? (
           <HStack space="xs" alignItems="flex-start" mt="$2" p="$2.5" borderRadius={12} bg="$warning50">
             <Text size="2xs" color="$warning800" style={{ flex: 1, lineHeight: 15 }}>
-              Banco PROVISIONAL, pendiente de validación clínica. Uso en pilotos técnicos, no diagnóstico.
+              
+              {t.verbalAudiometry.bancoProvisionalPendienteValidacionClinica}
             </Text>
           </HStack>
         ) : null}
         {VERBAL_AUDIO_PENDING.includes(v.lang) ? (
           <HStack space="xs" alignItems="flex-start" mt="$2" p="$2.5" borderRadius={12} bg="$warning50">
             <Text size="2xs" color="$warning800" style={{ flex: 1, lineHeight: 15 }}>
-              Listas validadas, pero todavía SIN locuciones propias: las palabras se dictan con la voz del
-              dispositivo, así que el estímulo no es el definitivo y el nivel es aún menos comparable que en
-              castellano.
+              
+              {t.verbalAudiometry.listasValidadasPeroTodaviaSin}
             </Text>
           </HStack>
         ) : null}
@@ -371,17 +377,19 @@ export default function VerbalAudiometryScreen({ navigation }: Props) {
         <Pressable onPress={() => setShowAdvanced(s => !s)}>
           <HStack alignItems="center" justifyContent="space-between">
             <Text size="sm" weight="bold" color="$textLight700">
-              Opciones avanzadas
+              
+              {t.verbalAudiometry.opcionesAvanzadas}
             </Text>
             <Text size="xs" color="$textLight400">
-              {showAdvanced ? 'ocultar' : `${MODE_META.find(m => m.key === v.mode)?.label} · ${v.level} dB`}
+              {showAdvanced ? t.verbalAudiometry.ocultar : `${MODE_META.find(m => m.key === v.mode)?.label} · ${v.level} dB`}
             </Text>
           </HStack>
         </Pressable>
         {showAdvanced ? (
           <VStack mt="$3">
             <Text size="xs" weight="semiBold" color="$textLight600" mb="$1">
-              Modo
+              
+              {t.verbalAudiometry.modo}
             </Text>
             <HStack space="sm" mb="$3">
               {MODE_META.map(m => {
@@ -397,7 +405,8 @@ export default function VerbalAudiometryScreen({ navigation }: Props) {
               })}
             </HStack>
             <Text size="xs" weight="semiBold" color="$textLight600" mb="$1">
-              Nivel de presentación
+              
+              {t.verbalAudiometry.nivelPresentacion}
             </Text>
             <HStack space="sm">
               {PRESENTATION_LEVELS.map(l => {
@@ -420,10 +429,9 @@ export default function VerbalAudiometryScreen({ navigation }: Props) {
 
       <Box bg="$warning50" borderRadius={12} p="$2.5">
         <Text size="2xs" color="$warning800" style={{ lineHeight: 15 }}>
-          ⚠️ Nivel orientativo: la presentación por altavoz no está calibrada clínicamente. La salida
-          robusta es el % de discriminación a voz conversacional. Resultado binaural (mejor oído): no
-          descarta pérdida unilateral.
-          {!v.hasAudio ? ' Motor de audio no disponible: modo demostración (presente el modelo con su voz).' : ''}
+          
+          {t.verbalAudiometry.nivelOrientativoPresentacionAltavozEsta}
+          {!v.hasAudio ? t.verbalAudiometry.motorAudioDisponibleModoDemostracion : ''}
         </Text>
       </Box>
 
@@ -431,14 +439,16 @@ export default function VerbalAudiometryScreen({ navigation }: Props) {
         <HStack space="sm" alignItems="center">
           <Icon as={Play} size="sm" color="$white" />
           <Text size="md" weight="bold" color="$white">
-            Empezar la prueba
+            
+            {t.verbalAudiometry.empezarPrueba}
           </Text>
         </HStack>
       </Button>
       {v.score.presentedCount > 0 ? (
         <Button action="secondary" variant="outline" rounded="$full" onPress={() => setPhase('results')}>
           <Text size="sm" weight="bold" color="$primary500">
-            Ver resultados
+            
+            {t.verbalAudiometry.verResultados}
           </Text>
         </Button>
       ) : null}
@@ -477,7 +487,8 @@ export default function VerbalAudiometryScreen({ navigation }: Props) {
         {v.isPractice ? (
           <Center bg="$primary0" borderRadius={14} py="$2">
             <Text size="sm" weight="bold" color="$primary800">
-              🎈 Vamos a practicar
+              
+              {t.verbalAudiometry.vamosPracticar}
             </Text>
           </Center>
         ) : null}
@@ -495,11 +506,12 @@ export default function VerbalAudiometryScreen({ navigation }: Props) {
               </Center>
             </Pressable>
             <Text size="md" weight="bold" color="$textLight900" mt="$3">
-              {v.playing ? 'Escucha…' : !v.played ? 'Atento, va a sonar una palabra' : answered ? '' : '¿Cuál has oído? Toca su tarjeta'}
+              {v.playing ? t.verbalAudiometry.escucha : !v.played ? t.verbalAudiometry.atentoVaSonarPalabra : answered ? '' : t.verbalAudiometry.cualHasOidoTocaTarjeta}
             </Text>
             {v.played && !answered ? (
               <Text size="2xs" color="$textLight400" mt="$1">
-                Toca el altavoz para oírla otra vez ({MAX_REPEATS - v.repeats} restantes)
+                
+                {t.verbalAudiometry.tocaAltavozOirlaOtraVez}{MAX_REPEATS - v.repeats}  {t.verbalAudiometry.restantes}
               </Text>
             ) : null}
           </Center>
@@ -538,7 +550,8 @@ export default function VerbalAudiometryScreen({ navigation }: Props) {
         {v.completedForLevel ? (
           <Center bg="$success50" borderRadius={16} py="$4">
             <Text size="lg" weight="bold" color="$success700">
-              🏁 ¡Juego terminado, muy bien!
+              
+              {t.verbalAudiometry.juegoTerminadoMuyBien}
             </Text>
           </Center>
         ) : null}
@@ -558,10 +571,11 @@ export default function VerbalAudiometryScreen({ navigation }: Props) {
         </Pressable>
         <VStack style={{ flex: 1 }}>
           <Text size="2xl" weight="bold" color="$textLight900">
-            Resultados
+            
+            {t.verbalAudiometry.resultados}
           </Text>
           <Text size="xs" color="$textLight500">
-            {patientName ?? 'Audiometría verbal'} · Banda {v.band}
+            {patientName ?? 'Audiometría verbal'}  {t.verbalAudiometry.banda} {v.band}
           </Text>
         </VStack>
         <HStack space="xs" alignItems="center" bg="$white" borderRadius="$full" px="$3" py="$1.5" borderWidth={1} borderColor="$borderLight100">
@@ -575,29 +589,30 @@ export default function VerbalAudiometryScreen({ navigation }: Props) {
       {/* marcador */}
       <Card bgColor="$white" borderRadius={20} p="$4">
         <Text size="sm" weight="bold" color="$textLight900" mb="$2">
-          Marcador de la prueba
+          
+          {t.verbalAudiometry.marcadorPrueba}
         </Text>
         <HStack space="sm">
           <Box flex={1} bg="$backgroundLight50" borderRadius={12} p="$2.5" alignItems="center">
-            <Text size="2xs" color="$textLight400">DISCRIMINACIÓN</Text>
+            <Text size="2xs" color="$textLight400">{t.verbalAudiometry.discriminacion}</Text>
             <Text size="lg" weight="bold" color={v.score.presentedCount ? pctColor : '$textLight400'}>
               {v.score.presentedCount ? `${v.score.discriminationPct}%` : '—'}
             </Text>
             <Text size="2xs" color="$textLight500">{v.level} dB · {LEVEL_LABEL[v.level] ?? ''}</Text>
           </Box>
           <Box flex={1} bg="$backgroundLight50" borderRadius={12} p="$2.5" alignItems="center">
-            <Text size="2xs" color="$textLight400">ACIERTOS</Text>
+            <Text size="2xs" color="$textLight400">{t.verbalAudiometry.aciertos}</Text>
             <Text size="lg" weight="bold" color="$textLight700" style={{ fontVariant: ['tabular-nums'] }}>
               {v.score.correctCount}/{v.score.presentedCount}
             </Text>
-            <Text size="2xs" color="$textLight500">láminas respondidas</Text>
+            <Text size="2xs" color="$textLight500">{t.verbalAudiometry.laminasRespondidas}</Text>
           </Box>
           <Box flex={1} bg="$backgroundLight50" borderRadius={12} p="$2.5" alignItems="center">
-            <Text size="2xs" color="$textLight400">FIABILIDAD</Text>
+            <Text size="2xs" color="$textLight400">{t.verbalAudiometry.fiabilidad}</Text>
             <Text size="lg" weight="bold" color={v.reliability === null ? '$textLight400' : v.reliability >= 80 ? '$success600' : '$warning600'}>
               {v.reliability !== null ? `${v.reliability}%` : '—'}
             </Text>
-            <Text size="2xs" color="$textLight500">repeticiones de ayuda</Text>
+            <Text size="2xs" color="$textLight500">{t.verbalAudiometry.repeticionesAyuda}</Text>
           </Box>
         </HStack>
 
@@ -619,7 +634,7 @@ export default function VerbalAudiometryScreen({ navigation }: Props) {
             })}
             {v.srtDb !== null ? (
               <HStack alignItems="center" justifyContent="space-between">
-                <Text size="xs" color="$textLight500">URV estimado</Text>
+                <Text size="xs" color="$textLight500">{t.verbalAudiometry.urvEstimado}</Text>
                 <Text size="xs" weight="bold" color="$textLight700" style={{ fontVariant: ['tabular-nums'] }}>
                   ≈ {v.srtDb} dB
                 </Text>
@@ -632,17 +647,19 @@ export default function VerbalAudiometryScreen({ navigation }: Props) {
       {/* otra pasada / reiniciar */}
       <Card bgColor="$white" borderRadius={20} p="$4">
         <Text size="sm" weight="bold" color="$textLight900" mb="$2">
-          Más pasadas
+          
+          {t.verbalAudiometry.masPasadas}
         </Text>
         <Text size="2xs" color="$textLight500" mb="$3">
-          Los resultados por nivel se conservan: puede repetir la lista a otro nivel (p. ej. voz baja)
-          para el modo umbral.
+          
+          {t.verbalAudiometry.resultadosNivelConservanPuedeRepetir}
         </Text>
         <HStack space="sm" flexWrap="wrap" style={{ gap: 6 }}>
           {PRESENTATION_LEVELS.map(l => (
             <Button key={l} action="secondary" variant="outline" rounded="$full" onPress={() => startRun(l)}>
               <Text size="sm" weight="bold" color="$primary500">
-                ▶ Pasada a {l} dB
+                
+                {t.verbalAudiometry.pasada} {l} dB
               </Text>
             </Button>
           ))}
@@ -650,7 +667,8 @@ export default function VerbalAudiometryScreen({ navigation }: Props) {
             <HStack space="xs" alignItems="center">
               <Icon as={RotateCcw} size="xs" color="$textLight500" />
               <Text size="sm" weight="bold" color="$textLight500">
-                Nueva prueba
+                
+                {t.verbalAudiometry.nuevaPrueba}
               </Text>
             </HStack>
           </Button>
@@ -659,17 +677,17 @@ export default function VerbalAudiometryScreen({ navigation }: Props) {
 
       {/* evaluador + guardar */}
       <Card bgColor="$white" borderRadius={20} p="$4">
-        <Text size="sm" weight="bold" color="$textLight700" mb="$2">Evaluador responsable</Text>
+        <Text size="sm" weight="bold" color="$textLight700" mb="$2">{t.verbalAudiometry.evaluadorResponsable}</Text>
         <HStack space="sm" mb="$3">
           <Input variant="outline" borderRadius={12} style={{ flex: 2 }}>
-            <InputField placeholder="Nombre" value={evaluatorName} onChangeText={setEvaluatorName} />
+            <InputField placeholder={t.verbalAudiometry.nombre} value={evaluatorName} onChangeText={setEvaluatorName} />
           </Input>
           <Input variant="outline" borderRadius={12} style={{ flex: 1 }}>
-            <InputField placeholder="Colegiado" value={evaluatorLicense} onChangeText={setEvaluatorLicense} />
+            <InputField placeholder={t.verbalAudiometry.colegiado} value={evaluatorLicense} onChangeText={setEvaluatorLicense} />
           </Input>
         </HStack>
         <Input variant="outline" borderRadius={12} h={64} mb="$3">
-          <InputField multiline placeholder="Observaciones clínicas…" value={notes} onChangeText={setNotes} style={{ textAlignVertical: 'top' }} />
+          <InputField multiline placeholder={t.verbalAudiometry.observacionesClinicas} value={notes} onChangeText={setNotes} style={{ textAlignVertical: 'top' }} />
         </Input>
         <Button
           action="primary"
@@ -680,13 +698,14 @@ export default function VerbalAudiometryScreen({ navigation }: Props) {
           onPress={handleSave}>
           <HStack space="sm" alignItems="center">
             <Icon as={Save} size="sm" color="$white" />
-            <Text size="sm" weight="bold" color="$white">Guardar audiometría verbal</Text>
+            <Text size="sm" weight="bold" color="$white">{t.verbalAudiometry.guardarAudiometriaVerbal}</Text>
           </HStack>
         </Button>
         <HStack space="xs" alignItems="center" justifyContent="center" mt="$2">
           <Icon as={Check} size="2xs" color="$textLight400" />
           <Text size="2xs" color="$textLight400" style={{ textAlign: 'center' }}>
-            Medida orientativa sobre el dispositivo. No sustituye equipo certificado ni constituye diagnóstico.
+            
+            {t.verbalAudiometry.medidaOrientativaSobreDispositivoSustituye}
           </Text>
         </HStack>
       </Card>

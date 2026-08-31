@@ -142,4 +142,19 @@ export const ES_419: UiStrings = {
     valoresDescriptivosSinBaremoPoblacional: 'Valores descriptivos, sin baremo poblacional: no se emite juicio de normalidad. La comparación válida es con tomas anteriores del mismo niño en la misma tarea. Las medidas acústicas no sustituyen la valoración perceptiva del fonoaudiólogo.',
     nColegiado: 'N.º de registro profesional',
   },
+  articulation: {
+    ...ES.articulation,
+    registroDescriptivoProduccionRepeticionSustituye: 'Registro descriptivo de la producción a la repetición. No sustituye el juicio clínico del fonoaudiólogo.',
+    grabar: 'Grabar',
+    colegiado: 'Registro profesional',
+    inventarioFoneticoEspanolTR: 'El inventario fonético es del español (T.A.R.), así que la variante dominicana cambia el acento de la voz pero no las palabras.',
+  },
+
+  verbalAudiometry: {
+    ...ES.verbalAudiometry,
+    suenaPalabraAltavozTocaTarjeta: ': suena una palabra por la bocina y toca la tarjeta correspondiente. La palabra suena sola en cada lámina y la pantalla avanza sola tras cada respuesta.',
+    tocaAltavozOirlaOtraVez: 'Toca la bocina para oírla otra vez (',
+    nivelOrientativoPresentacionAltavozEsta: '⚠️ Nivel orientativo: la presentación por bocina no está calibrada clínicamente. La salida robusta es el % de discriminación a voz conversacional. Resultado binaural (mejor oído): no descarta pérdida unilateral.',
+    colegiado: 'Registro profesional',
+  },
 };

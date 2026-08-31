@@ -15,6 +15,17 @@ import { ES } from '../strings.es';
 
 type Flat = Map<string, string | number>;
 
+/**
+ * Detector de palabra suelta con fronteras UNICODE.
+ *
+ * `\b` de JavaScript es ASCII: para él «í» no es letra, así que abre una
+ * frontera de palabra en mitad de «oíla» y «la» daba positivo dentro de una
+ * palabra gallega correcta. Con lenguas llenas de acentos y de enclíticos
+ * («Traduir-los», «oíla», «cámbiao») eso convierte el test en ruido.
+ */
+const looseWord = (words: string[]): RegExp =>
+  new RegExp(`(?<![\\p{L}\\p{N}_-])(${words.join('|')})(?![\\p{L}\\p{N}_])`, 'iu');
+
 /** Aplana un catálogo: las cadenas por su texto, las funciones por su aridad. */
 const flatten = (cat: unknown, prefix = ''): Flat => {
   const out: Flat = new Map();
@@ -68,8 +79,10 @@ describe('catálogos de interfaz · sin contaminación entre lenguas', () => {
    * OJO con dos que estuvieron aquí y NO deben estar: «non» es euskera («non
    * doa» = adónde va) y «banda» es préstamo asentado («adin-banda»). Una lista
    * que marca euskera correcto se acaba desactivando, y entonces no caza nada. */
-  const ROMANCE_IN_EU =
-    /\b(de|del|la|el|los|las|que|para|con|una|por|se|ata|nivel|voz|palabra|descende|però|amb|dels|nivell)\b/i;
+  const ROMANCE_IN_EU = looseWord([
+    'de', 'del', 'la', 'el', 'los', 'las', 'que', 'para', 'con', 'una', 'por',
+    'se', 'ata', 'nivel', 'voz', 'palabra', 'descende', 'però', 'amb', 'dels', 'nivell',
+  ]);
 
   it('el catálogo euskera no arrastra palabras romances (el fallo de mejora2)', () => {
     const offenders: string[] = [];
@@ -92,13 +105,11 @@ describe('catálogos de interfaz · sin contaminación entre lenguas', () => {
   const SPANISH_ONLY_IN: Partial<Record<UiLang, RegExp>> = {
     // O galego usa «e», «do», «a/as/os/o», «ata». OLLO: «desde» É galego
     // normativo (a RAG admíteo xunto a «dende»), así que non entra aquí.
-    gl: /\b(y|del|de la|la|los|las|el|hasta|calidad|hallazgos)\b/i,
+    gl: looseWord(['y', 'del', 'los', 'las', 'hasta', 'calidad', 'hallazgos']),
     // El català fa servir «i», «els», «les», «amb», «per», «veu».
-    // El lookbehind evita els pronoms enclítics: «Traduir-los» és català
-    // correcte i el límit de paraula el partia just abans del «los».
-    ca: /(?<![-'’])\b(y|los|las|con|para|por|desde|hasta|voz|selección|calidad)\b/i,
+    ca: looseWord(['y', 'los', 'las', 'con', 'para', 'por', 'desde', 'hasta', 'voz', 'selección', 'calidad']),
     // English keeps none of these.
-    en: /\b(de|del|la|el|los|las|y|con|para|por|voz|banco|neuronal|calidad)\b/i,
+    en: looseWord(['de', 'del', 'la', 'el', 'los', 'las', 'y', 'con', 'para', 'por', 'voz', 'banco', 'neuronal', 'calidad']),
   };
 
   for (const [lang, foreign] of Object.entries(SPANISH_ONLY_IN) as [UiLang, RegExp][]) {

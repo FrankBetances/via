@@ -125,4 +125,16 @@ export const ES_DO: UiStrings = {
     valoresDescriptivosSinBaremoPoblacional: 'Valores descriptivos, sin baremo poblacional: no se emite juicio de normalidad. La comparación válida es con tomas anteriores del mismo niño en la misma tarea. Las medidas acústicas no sustituyen la valoración perceptiva del terapeuta del habla.',
     nColegiado: 'N.º de exequátur',
   },
+  articulation: {
+    ...ES.articulation,
+    registroDescriptivoProduccionRepeticionSustituye: 'Registro descriptivo de la producción a la repetición. No sustituye el juicio clínico del terapeuta del habla.',
+    colegiado: 'Exequátur',
+  },
+
+  verbalAudiometry: {
+    ...ES.verbalAudiometry,
+    suenaPalabraAltavozTocaTarjeta: ': suena una palabra por la bocina y toca la tarjeta correspondiente. La palabra suena sola en cada lámina y la pantalla avanza sola tras cada respuesta.',
+    tocaAltavozOirlaOtraVez: 'Toca la bocina para oírla otra vez (',
+    colegiado: 'Exequátur',
+  },
 };
