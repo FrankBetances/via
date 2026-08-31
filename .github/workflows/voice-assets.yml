@@ -26,6 +26,10 @@ on:
         type: choice
         options: ["neural", "espeak"]
         default: "neural"
+      matxa_speaker:
+        description: "Catalán · índice de acento de Matxa (vacío = el de voices.json). Escuche antes el artefacto 'matxa-muestras-acento'."
+        type: string
+        default: ""
   push:
     branches:
       - "claude/**"
@@ -203,6 +207,8 @@ jobs:
         if: ${{ steps.langs.outputs.target != 'verbal' }}
         env:
           VOICE_TTS: ${{ steps.langs.outputs.engine == 'espeak' && 'espeak' || '' }}
+          # Acento catalán elegido a mano tras oír las muestras del canario.
+          MATXA_SPEAKER: ${{ github.event.inputs.matxa_speaker }}
         run: |
           FAILED=""
           for L in ${{ steps.langs.outputs.langs }}; do
@@ -213,6 +219,49 @@ jobs:
             fi
           done
           echo "failed=${FAILED# }" >> "$GITHUB_OUTPUT"
+
+      # CANARIO DEL CATALÁN, explícito y en TODOS los runs.
+      #
+      # El canario y las muestras se producen al CONSTRUIR el motor Matxa, y el
+      # paso de consignas es incremental: en cuanto el corpus catalán está
+      # completo, no construye nada y por tanto no hay ni canario ni muestras.
+      # El run 27 lo enseñó — el paso tardó 0 s y el artefacto salió vacío.
+      #
+      # Así que se fuerza una síntesis de usar y tirar. Dos cosas a cambio:
+      # las muestras de acento existen SIEMPRE (que es lo que permite
+      # elegirlo), y el canario se convierte en guardia de regresión: si AINA
+      # republica el modelo con otro esquema, se ve aquí y no meses después,
+      # al tocar el corpus.
+      #
+      # `continue-on-error`: un fallo aquí se VE en rojo pero no tumba la
+      # síntesis de las otras seis lenguas, que no dependen del catalán.
+      - name: Canario del catalán + muestras de acento
+        if: ${{ contains(steps.langs.outputs.langs, 'ca') && steps.langs.outputs.engine != 'espeak' }}
+        continue-on-error: true
+        env:
+          MATXA_SPEAKER: ${{ github.event.inputs.matxa_speaker }}
+        run: |
+          python3 tools/nos/tts.py --lang ca \
+            --text "Hola! Així sonarà la meva veu als exercicis." \
+            --out "$RUNNER_TEMP/canario-ca.wav"
+          echo "Muestras generadas:"
+          ls -la tools/nos/models/matxa/muestras/ || echo "(ninguna)"
+
+      # El canario de Matxa deja una muestra por índice de acento en el
+      # directorio de modelos, que está en .gitignore — o sea, se pierde al
+      # destruirse el runner. Se suben como artefacto porque son EL MECANISMO
+      # por el que se decide el acento: el modelo es multiaccent (central,
+      # balear, nord-occidental, valencià), su metadata viene vacía y cuál es
+      # cuál no se deduce de un log. Se escuchan, se elige, y se vuelve a
+      # lanzar el workflow con `matxa_speaker`.
+      - name: Muestras de acento catalán (para elegir de oído)
+        if: ${{ always() && contains(steps.langs.outputs.langs, 'ca') }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: matxa-muestras-acento
+          path: tools/nos/models/matxa/muestras/*.wav
+          if-no-files-found: warn
+          retention-days: 30
 
       # Recortes de la AUDIOMETRÍA VERBAL. Son un banco distinto del corpus de
       # consignas: `gl` y `eu` no tienen locuciones propias, así que la prueba
