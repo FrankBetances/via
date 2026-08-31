@@ -26,6 +26,10 @@ on:
         type: choice
         options: ["neural", "espeak"]
         default: "neural"
+      matxa_speaker:
+        description: "Catalán · índice de acento de Matxa (vacío = el de voices.json). Escuche antes el artefacto 'matxa-muestras-acento'."
+        type: string
+        default: ""
   push:
     branches:
       - "claude/**"
@@ -203,6 +207,8 @@ jobs:
         if: ${{ steps.langs.outputs.target != 'verbal' }}
         env:
           VOICE_TTS: ${{ steps.langs.outputs.engine == 'espeak' && 'espeak' || '' }}
+          # Acento catalán elegido a mano tras oír las muestras del canario.
+          MATXA_SPEAKER: ${{ github.event.inputs.matxa_speaker }}
         run: |
           FAILED=""
           for L in ${{ steps.langs.outputs.langs }}; do
@@ -213,6 +219,22 @@ jobs:
             fi
           done
           echo "failed=${FAILED# }" >> "$GITHUB_OUTPUT"
+
+      # El canario de Matxa deja una muestra por índice de acento en el
+      # directorio de modelos, que está en .gitignore — o sea, se pierde al
+      # destruirse el runner. Se suben como artefacto porque son EL MECANISMO
+      # por el que se decide el acento: el modelo es multiaccent (central,
+      # balear, nord-occidental, valencià), su metadata viene vacía y cuál es
+      # cuál no se deduce de un log. Se escuchan, se elige, y se vuelve a
+      # lanzar el workflow con `matxa_speaker`.
+      - name: Muestras de acento catalán (para elegir de oído)
+        if: ${{ always() && contains(steps.langs.outputs.langs, 'ca') }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: matxa-muestras-acento
+          path: tools/nos/models/matxa/muestras/*.wav
+          if-no-files-found: warn
+          retention-days: 30
 
       # Recortes de la AUDIOMETRÍA VERBAL. Son un banco distinto del corpus de
       # consignas: `gl` y `eu` no tienen locuciones propias, así que la prueba

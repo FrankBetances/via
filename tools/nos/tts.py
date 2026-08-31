@@ -340,7 +340,11 @@ class MatxaEngine:
             ) from exc
         self._np = np
         self.params = voice_cfg.get("params", {})
-        self.speaker = int(os.environ.get("MATXA_SPEAKER", voice_cfg.get("speaker", 0)))
+        # MATXA_SPEAKER llega VACÍA en los push (la entrada del workflow solo
+        # existe en workflow_dispatch), y `int("")` revienta. Vacío = usar el
+        # índice declarado en voices.json.
+        env_spk = (os.environ.get("MATXA_SPEAKER") or "").strip()
+        self.speaker = int(env_spk) if env_spk else int(voice_cfg.get("speaker", 0))
 
         model_dir = base / voice_cfg["files"]["dir"]
         # Se prefiere el export END-TO-END: si el repo solo publicara el

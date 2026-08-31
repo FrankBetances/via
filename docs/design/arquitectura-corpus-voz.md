@@ -221,6 +221,29 @@ el central no se deduce de un log, se decide oyéndolo.
 `en` entraron con `files: null`, así que `PiperEngine.__init__` habría reventado
 al construirse. Estaban declaradas, no conectadas, y nada lo decía.
 
+**EJECUTADO Y VERIFICADO (31/8/2026, run 26 de `voice-assets`).** El canario
+pasó contra el modelo real de AINA:
+
+```
+[canario] OK · 3.16s para 8 palabras
+[muestra] spk=0 · 3.16s   [muestra] spk=1 · 3.16s
+[muestra] spk=2 · 3.82s   [muestra] spk=3 · 3.40s
+✓ ca: 11 locuciones (voz neural) → assets/voice
+```
+
+O sea: la fonemización, los DOS valores de `scales` y la resolución de la
+salida por nombre son correctos contra el ONNX de verdad. El run 25, anterior,
+había muerto en `espeak not installed` porque el paso que instala espeak-ng
+consultaba `steps.langs` ANTES de que ese paso existiera — el orden de los
+pasos ahora está fijado con su motivo en el propio workflow.
+
+**QUEDA UNA DECISIÓN QUE NO ES TÉCNICA: el acento.** El modelo trae central,
+balear, nord-occidental y valencià, su metadata viene vacía y cuál es cuál no
+se deduce del log. El canario deja una muestra por índice y el workflow las
+sube como artefacto `matxa-muestras-acento`. Se escuchan, se elige, y se
+vuelve a lanzar el workflow con la entrada `matxa_speaker`. Hasta entonces
+rige el índice 0 de `voices.json`, que es una suposición, no una elección.
+
 **Lo que sigue sin resolver:** `es-419` es una variedad PROPIA de VIA+ —Valeria+
 no la tiene—, así que ahí no hay camino demostrado que copiar. Su licencia se
 declaraba «CC BY 4.0» sin que nadie lo hubiera comprobado; ahora dice lo que se
