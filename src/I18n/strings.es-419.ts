@@ -189,4 +189,25 @@ export const ES_419: UiStrings = {
     nColegiado2: 'N.º de registro profesional',
     criterioSeguridadAudiologicaCerumenOclusivo: 'Criterio de Seguridad Audiológica: cerumen oclusivo, OMA y perforación timpánica bloquean específicamente la audiometría tonal del oído afectado (Ref.: Guías CODEPEH / SNS).',
   },
+  dysphagia: {
+    ...ES.dysphagia,
+    pidaPacienteRetengaBoloAntes: 'Pida al paciente que retenga el bolo antes de deglutir; tras la deglución, que abra la boca para verificar residuos y que repita su nombre para detectar fonación húmeda.',
+    colegiado: 'Registro profesional',
+  },
+
+  autismScreening: {
+    ...ES.autismScreening,
+    cribadoAutismo: 'Tamizaje de autismo',
+    preparacionCribado: 'Preparación del tamizaje',
+    cribadoAutismoInstrumentoCribadoValidado: 'El tamizaje de autismo es un instrumento de tamizaje validado: identifica riesgo, no proporciona un diagnóstico formal de TEA.',
+    respuestaRiesgoSuma1Punto: 'Respuesta de riesgo: suma 1 punto en el tamizaje.',
+    colegiado: 'Registro profesional',
+  },
+
+  ashaScreening: {
+    ...ES.ashaScreening,
+    cribadoHitosAsha: 'Tamizaje de Hitos ASHA',
+    guardarFinalizarCribado: 'Guardar y Finalizar el Tamizaje',
+    nColegiadoLicencia: 'N.º de registro profesional / Licencia',
+  },
 };

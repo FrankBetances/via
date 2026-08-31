@@ -166,4 +166,23 @@ export const ES_DO: UiStrings = {
     nColegiado: 'N.º DE EXEQUÁTUR',
     nColegiado2: 'N.º de exequátur',
   },
+  dysphagia: {
+    ...ES.dysphagia,
+    colegiado: 'Exequátur',
+  },
+
+  autismScreening: {
+    ...ES.autismScreening,
+    cribadoAutismo: 'Tamizaje de autismo',
+    preparacionCribado: 'Preparación del tamizaje',
+    respuestaRiesgoSuma1Punto: 'Respuesta de riesgo: suma 1 punto en el tamizaje.',
+    colegiado: 'Exequátur',
+  },
+
+  ashaScreening: {
+    ...ES.ashaScreening,
+    cribadoHitosAsha: 'Tamizaje de Hitos ASHA',
+    guardarFinalizarCribado: 'Guardar y Finalizar el Tamizaje',
+    nColegiadoLicencia: 'N.º de exequátur / Licencia',
+  },
 };

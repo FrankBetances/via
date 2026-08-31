@@ -43,6 +43,7 @@ import { useCreateScreeningMutation } from '@/Services/local/modules/screenings'
 import { showErrorToast, showSuccessToast } from '@/Helpers/showToast';
 import { isRiskAns } from './autismScreeningResult';
 
+import { useT } from '@/I18n';
 /* -------------------------------------------------------------------------- */
 /*  Configuración clínica del cribado de autismo                                           */
 /* -------------------------------------------------------------------------- */
@@ -132,6 +133,7 @@ const AUTO_ADVANCE_MS = 450;
 type Props = NativeStackScreenProps<RootStackParamList, 'Mchat'>;
 
 export default function AutismScreeningScreen({ navigation }: Props) {
+  const t = useT();
   // Evaluación activa (paciente + profesional) desde Redux, como en ResultScreen.
   const activeEvaluation = useClassSelector(Evaluation, (state: RootState) => state.activeEvaluation.evaluation);
   const [createScreening, { isLoading: isSaving }] = useCreateScreeningMutation();
@@ -376,18 +378,20 @@ export default function AutismScreeningScreen({ navigation }: Props) {
           <VStack>
             <HStack alignItems="center" space="sm">
               <Text size="2xl" weight="bold" color="$textLight900">
-                Cribado de autismo
+                
+                {t.autismScreening.cribadoAutismo}
               </Text>
               <Box bg="$primary50" px="$2" py="$0.5" borderRadius="$full">
                 <Text size="2xs" weight="bold" color="$primary800" style={{ letterSpacing: 0.4 }}>
-                  AUTISMO
+                  
+                  {t.autismScreening.autismo}
                 </Text>
               </Box>
             </HStack>
             <Text size="xs" color="$textLight500">
               {patientName
                 ? `${patientName}${patient?.nhc ? ` · NHC ${patient.nhc}` : ''}`
-                : 'Modified Checklist for Autism in Toddlers · cribado 16–30 meses'}
+                : t.autismScreening.modifiedChecklistForAutismIn}
             </Text>
           </VStack>
 
@@ -396,17 +400,19 @@ export default function AutismScreeningScreen({ navigation }: Props) {
             <VStack space="md">
               <Card bgColor="$white" borderRadius={22} p="$5">
                 <Text size="lg" weight="bold" color="$textLight900">
-                  Preparación del cribado
+                  
+                  {t.autismScreening.preparacionCribado}
                 </Text>
                 <Text size="sm" color="$textLight600" mt="$1">
-                  20 preguntas de respuesta Sí / No sobre la conducta habitual del niño/a, agrupadas en 4 bloques. El
-                  sistema calcula la puntuación de riesgo y la recomendación de derivación de forma automática.
+                  
+                  {t.autismScreening.n20PreguntasRespuestaSobreConducta}
                 </Text>
 
                 <HStack alignItems="center" space="sm" mt="$5" mb="$3">
                   <Icon as={ShieldCheck} size="sm" color="$primary500" />
                   <Text size="sm" weight="bold" color="$textLight800" style={{ textTransform: 'uppercase', letterSpacing: 0.4 }}>
-                    Condiciones de aplicación
+                    
+                    {t.autismScreening.condicionesAplicacion}
                   </Text>
                 </HStack>
 
@@ -436,15 +442,16 @@ export default function AutismScreeningScreen({ navigation }: Props) {
               <HStack space="sm" alignItems="flex-start" p="$3.5" borderRadius={16} bg="$primary0" borderWidth={1} borderColor="$primary100">
                 <Icon as={Info} size="sm" color="$primary600" style={{ marginTop: 1 }} />
                 <Text size="xs" color="$primary800" style={{ flex: 1, lineHeight: 18 }}>
-                  El cribado de autismo es un instrumento de cribado validado: identifica riesgo, no proporciona un diagnóstico
-                  formal de TEA.
+                  
+                  {t.autismScreening.cribadoAutismoInstrumentoCribadoValidado}
                 </Text>
               </HStack>
 
               <Button action="primary" variant="solid" rounded="$full" isDisabled={!setupReady} onPress={handleStart}>
                 <HStack space="sm" alignItems="center">
                   <Text size="md" weight="bold" color="$white">
-                    Comenzar cuestionario
+                    
+                    {t.autismScreening.comenzarCuestionario}
                   </Text>
                   <Icon as={ArrowRight} size="sm" color="$white" />
                 </HStack>
@@ -457,7 +464,7 @@ export default function AutismScreeningScreen({ navigation }: Props) {
             <VStack space="md">
               {/* progreso + mapa del cuestionario */}
               <Card bgColor="$white" borderRadius={22} p="$4">
-                <SurveyProgress answered={answered} total={20} label={`Pregunta ${qIndex + 1} de 20`} />
+                <SurveyProgress answered={answered} total={20} label={t.autismScreening.pregunta20(qIndex + 1)} />
                 <Box mt="$3">
                   <QuestionDots states={dotStates} current={qIndex} onJump={goTo} />
                 </Box>
@@ -477,11 +484,13 @@ export default function AutismScreeningScreen({ navigation }: Props) {
                     </Center>
                     <VStack style={{ flex: 1 }}>
                       <Text size="2xs" weight="bold" color="$primary700" style={{ textTransform: 'uppercase', letterSpacing: 0.4 }}>
-                        Bloque {blockIdx + 1} de 4 · {block.short}
+                        
+                        {t.autismScreening.bloque} {blockIdx + 1} de 4 · {block.short}
                       </Text>
                       {isBlockStart ? (
                         <Text size="2xs" color="$textLight500">
-                          Empieza un bloque nuevo
+                          
+                          {t.autismScreening.empiezaBloqueNuevo}
                         </Text>
                       ) : null}
                     </VStack>
@@ -511,7 +520,8 @@ export default function AutismScreeningScreen({ navigation }: Props) {
                     <HStack space="sm" alignItems="center" mt="$3" p="$2.5" borderRadius={12} bg="$warning50">
                       <Icon as={AlertTriangle} size="xs" color="$warning700" />
                       <Text size="xs" weight="semiBold" color="$warning800" style={{ flex: 1 }}>
-                        Respuesta de riesgo: suma 1 punto en el cribado.
+                        
+                        {t.autismScreening.respuestaRiesgoSuma1Punto}
                       </Text>
                     </HStack>
                   ) : null}
@@ -521,7 +531,8 @@ export default function AutismScreeningScreen({ navigation }: Props) {
                     <HStack space="xs" alignItems="center">
                       <Icon as={Info} size="xs" color="$primary600" />
                       <Text size="xs" weight="bold" color="$primary700" style={{ flex: 1 }}>
-                        Pauta de observación del bloque
+                        
+                        {t.autismScreening.pautaObservacionBloque}
                       </Text>
                       <Icon as={showGuide ? ChevronUp : ChevronDown} size="xs" color="$primary600" />
                     </HStack>
@@ -542,10 +553,12 @@ export default function AutismScreeningScreen({ navigation }: Props) {
                   <HStack space="sm" alignItems="center" p="$3.5" borderRadius={16} bg="$success50" borderWidth={1} borderColor="$success200">
                     <Icon as={CheckCircle2} size="sm" color="$success600" />
                     <Text size="sm" weight="bold" color="$success800" style={{ flex: 1 }}>
-                      Las 20 preguntas están respondidas
+                      
+                      {t.autismScreening.n20PreguntasEstanRespondidas}
                     </Text>
                     <Text size="sm" weight="bold" color="$success700">
-                      Ver resultado →
+                      
+                      {t.autismScreening.verResultado}
                     </Text>
                   </HStack>
                 </Pressable>
@@ -556,14 +569,14 @@ export default function AutismScreeningScreen({ navigation }: Props) {
                   <HStack space="sm" alignItems="center">
                     <Icon as={ArrowLeft} size="sm" color="$primary500" />
                     <Text size="sm" weight="bold" color="$primary500">
-                      {qIndex <= 0 ? 'Preparación' : 'Anterior'}
+                      {qIndex <= 0 ? t.autismScreening.preparacion : t.autismScreening.anterior}
                     </Text>
                   </HStack>
                 </Button>
                 <Button action="primary" variant="solid" rounded="$full" style={{ flex: 1 }} onPress={handleNext}>
                   <HStack space="sm" alignItems="center">
                     <Text size="sm" weight="bold" color="$white">
-                      {qIndex >= 19 ? (all ? 'Ver resultado' : 'Ir a pendientes') : 'Siguiente'}
+                      {qIndex >= 19 ? (all ? t.autismScreening.verResultado2 : t.autismScreening.irPendientes) : t.autismScreening.siguiente}
                     </Text>
                     <Icon as={ArrowRight} size="sm" color="$white" />
                   </HStack>
@@ -608,7 +621,8 @@ export default function AutismScreeningScreen({ navigation }: Props) {
               {/* recomendación */}
               <Card bgColor="$white" borderRadius={20} p="$5">
                 <Text size="sm" weight="bold" color="$textLight700" mb="$2" style={{ textTransform: 'uppercase', letterSpacing: 0.4 }}>
-                  Recomendación clínica
+                  
+                  {t.autismScreening.recomendacionClinica}
                 </Text>
                 <Text size="sm" color="$textLight700" style={{ lineHeight: 21 }}>
                   {report.recommendation}
@@ -618,7 +632,8 @@ export default function AutismScreeningScreen({ navigation }: Props) {
               {/* distribución por bloque */}
               <Card bgColor="$white" borderRadius={20} p="$5">
                 <Text size="sm" weight="bold" color="$textLight700" mb="$3" style={{ textTransform: 'uppercase', letterSpacing: 0.4 }}>
-                  Respuestas de riesgo por bloque
+                  
+                  {t.autismScreening.respuestasRiesgoBloque}
                 </Text>
                 <VStack space="sm">
                   {BLOCKS.map((b, idx) => {
@@ -647,7 +662,8 @@ export default function AutismScreeningScreen({ navigation }: Props) {
               {/* ítems de riesgo */}
               <Card bgColor="$white" borderRadius={20} p="$5">
                 <Text size="sm" weight="bold" color="$textLight700" mb="$3" style={{ textTransform: 'uppercase', letterSpacing: 0.4 }}>
-                  Ítems de riesgo marcados
+                  
+                  {t.autismScreening.itemsRiesgoMarcados}
                 </Text>
                 {flagRows.length > 0 ? (
                   <VStack space="xs">
@@ -670,7 +686,8 @@ export default function AutismScreeningScreen({ navigation }: Props) {
                 ) : (
                   <Center py="$4">
                     <Text size="sm" color="$success700" style={{ fontStyle: 'italic', textAlign: 'center' }}>
-                      Ninguna respuesta de riesgo. Desarrollo dentro de lo esperado para la edad.
+                      
+                      {t.autismScreening.ningunaRespuestaRiesgoDesarrolloDentro}
                     </Text>
                   </Center>
                 )}
@@ -679,14 +696,15 @@ export default function AutismScreeningScreen({ navigation }: Props) {
               {/* evaluador */}
               <Card bgColor="$white" borderRadius={20} p="$5">
                 <Text size="sm" weight="bold" color="$textLight700" mb="$2">
-                  Evaluador responsable
+                  
+                  {t.autismScreening.evaluadorResponsable}
                 </Text>
                 <HStack space="sm">
                   <Input variant="outline" borderRadius={12} style={{ flex: 2 }}>
-                    <InputField placeholder="Nombre" value={evaluatorName} onChangeText={setEvaluatorName} />
+                    <InputField placeholder={t.autismScreening.nombre} value={evaluatorName} onChangeText={setEvaluatorName} />
                   </Input>
                   <Input variant="outline" borderRadius={12} style={{ flex: 1 }}>
-                    <InputField placeholder="Colegiado" value={evaluatorLicense} onChangeText={setEvaluatorLicense} />
+                    <InputField placeholder={t.autismScreening.colegiado} value={evaluatorLicense} onChangeText={setEvaluatorLicense} />
                   </Input>
                 </HStack>
               </Card>
@@ -696,7 +714,8 @@ export default function AutismScreeningScreen({ navigation }: Props) {
                   <HStack space="sm" alignItems="center">
                     <Icon as={ArrowLeft} size="sm" color="$primary500" />
                     <Text size="sm" weight="bold" color="$primary500">
-                      Modificar
+                      
+                      {t.autismScreening.modificar}
                     </Text>
                   </HStack>
                 </Button>
@@ -711,7 +730,8 @@ export default function AutismScreeningScreen({ navigation }: Props) {
                   <HStack space="sm" alignItems="center">
                     <Icon as={ClipboardCheck} size="sm" color="$white" />
                     <Text size="sm" weight="bold" color="$white">
-                      Confirmar y guardar
+                      
+                      {t.autismScreening.confirmarGuardar}
                     </Text>
                   </HStack>
                 </Button>
@@ -721,8 +741,8 @@ export default function AutismScreeningScreen({ navigation }: Props) {
                 <HStack space="sm" alignItems="flex-start" p="$3" borderRadius={14} bg="$warning50">
                   <Icon as={AlertTriangle} size="sm" color="$warning700" style={{ marginTop: 1 }} />
                   <Text size="xs" color="$warning800" style={{ flex: 1, lineHeight: 18 }}>
-                    Quedan {20 - answered} preguntas por responder. Complete el cuestionario para poder guardar el
-                    resultado.
+                    
+                    {t.autismScreening.quedan} {20 - answered}  {t.autismScreening.preguntasResponderCompleteCuestionarioPoder}
                   </Text>
                 </HStack>
               ) : null}

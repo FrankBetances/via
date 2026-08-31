@@ -14,7 +14,7 @@ on:
       lang:
         description: "Idioma a sintetizar"
         type: choice
-        options: ["all", "es", "gl", "eu", "es-DO"]
+        options: ["all", "es", "gl", "eu", "ca", "es-419", "es-DO", "en"]
         default: "all"
       target:
         description: "Qué sintetizar: consignas (corpus general), recortes de la audiometría verbal, o ambos"
@@ -127,10 +127,16 @@ jobs:
           ENGINE="${{ github.event.inputs.engine || 'neural' }}"
           LANG_IN="${{ github.event.inputs.lang || 'all' }}"
           if [ "$LANG_IN" = "all" ]; then
-            LANGS="es gl eu es-DO"
+            LANGS="es gl eu ca es-419 es-DO en"
           else
             LANGS="$LANG_IN"
           fi
+          # `ca`, `es-419` y `en` entraron en tools/nos/voices.json con su voz
+          # Piper, pero esta lista se quedó sin ellos: ni el desplegable ni
+          # «all» los alcanzaban, así que su síntesis era inalcanzable por
+          # mucho que el registro la declarase. Añadir una lengua es tocar los
+          # DOS sitios.
+          #
           # espeak no cubre gl: se descarta con aviso (requiere motor neural).
           if [ "$ENGINE" = "espeak" ]; then
             LANGS="$(echo "$LANGS" | tr ' ' '\n' | grep -v '^gl$' | tr '\n' ' ')"

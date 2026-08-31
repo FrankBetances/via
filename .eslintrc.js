@@ -28,5 +28,13 @@ module.exports = {
       ],
       env: { node: true },
     },
+    {
+      /* La preparación común de las suites corre DENTRO de jest, así que usa
+       * `jest.mock` en el ámbito del módulo. Sin declarar el entorno salía
+       * `'jest' is not defined` — el error número 1 desde que la cuenta está
+       * a cero, y por eso se arregla aquí y no se documenta como conocido. */
+      files: ['jest/setup.js'],
+      env: { node: true, jest: true },
+    },
   ],
 };

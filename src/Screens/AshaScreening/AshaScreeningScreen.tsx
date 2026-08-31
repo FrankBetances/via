@@ -49,6 +49,7 @@ import {
 } from './ashaMilestones';
 import { evaluateAshaScreening } from './ashaCdssEngine';
 
+import { useT } from '@/I18n';
 type Props = NativeStackScreenProps<RootStackParamList, 'AshaScreening'>;
 
 interface FormValues {
@@ -60,6 +61,7 @@ interface FormValues {
 }
 
 export default function AshaScreeningScreen({ navigation }: Props) {
+  const t = useT();
   const activeEvaluation = useClassSelector(Evaluation, (state: RootState) => state.activeEvaluation.evaluation);
   const tracker = useTelemetryTracker();
 
@@ -183,10 +185,12 @@ export default function AshaScreeningScreen({ navigation }: Props) {
 
         <VStack mb="$2">
           <Text size="2xl" weight="bold" color="$textLight900">
-            Cribado de Hitos ASHA
+            
+            {t.ashaScreening.cribadoHitosAsha}
           </Text>
           <Text size="sm" color="$textLight600">
-            Apoyo a la Decisión Clínica (Percentil 75)
+            
+            {t.ashaScreening.apoyoDecisionClinicaPercentil75}
           </Text>
         </VStack>
 
@@ -197,12 +201,14 @@ export default function AshaScreeningScreen({ navigation }: Props) {
               <HStack space="xs" alignItems="center">
                 <Icon as={Layers} size="sm" color="$primary600" />
                 <Text size="sm" weight="bold" color="$textLight900">
-                  Banda de Edad Normativa
+                  
+                  {t.ashaScreening.bandaEdadNormativa}
                 </Text>
               </HStack>
               <Box px="$2.5" py="$1" borderRadius="$full" bg="$primary50">
                 <Text size="2xs" weight="bold" color="$primary700">
-                  ASHA 75th %ile
+                  
+                  {t.ashaScreening.asha75thIle}
                 </Text>
               </Box>
             </HStack>
@@ -218,8 +224,8 @@ export default function AshaScreeningScreen({ navigation }: Props) {
               />
               <Text size="2xs" color={ageBandIsDerived ? '$textLight600' : '$warning700'}>
                 {ageBandIsDerived
-                  ? `Deducida de la fecha de nacimiento de la ficha (${patientMonths} meses). Cámbiela si procede.`
-                  : 'La ficha no trae una fecha de nacimiento utilizable: ELIJA la banda a mano.'}
+                  ? t.ashaScreening.deducidaFechaNacimientoFichaMeses(patientMonths)
+                  : t.ashaScreening.fichaTraeFechaNacimientoUtilizable}
               </Text>
             </HStack>
 
@@ -295,7 +301,8 @@ export default function AshaScreeningScreen({ navigation }: Props) {
                               <HStack space="xs" alignItems="center" bg="$error50" px="$2" py="$0.5" borderRadius={6}>
                                 <Icon as={Flag} size="xs" color="$error600" />
                                 <Text size="2xs" weight="bold" color="$error700">
-                                  Bandera Roja
+                                  
+                                  {t.ashaScreening.banderaRoja}
                                 </Text>
                               </HStack>
                             ) : null}
@@ -341,7 +348,8 @@ export default function AshaScreeningScreen({ navigation }: Props) {
                                   size="xs"
                                   weight="bold"
                                   color={currentVal === true ? '$success700' : '$textLight700'}>
-                                  Cumple
+                                  
+                                  {t.ashaScreening.cumple}
                                 </Text>
                               </HStack>
                             </Center>
@@ -367,7 +375,8 @@ export default function AshaScreeningScreen({ navigation }: Props) {
                                   size="xs"
                                   weight="bold"
                                   color={currentVal === false ? '$error700' : '$textLight700'}>
-                                  No Cumple
+                                  
+                                  {t.ashaScreening.cumple2}
                                 </Text>
                               </HStack>
                             </Center>
@@ -387,7 +396,8 @@ export default function AshaScreeningScreen({ navigation }: Props) {
               <HStack space="xs" alignItems="center">
                 <Icon as={ShieldCheck} size="sm" color="$primary600" />
                 <Text size="sm" weight="bold" color="$textLight900">
-                  Dictamen CDSS Preliminar
+                  
+                  {t.ashaScreening.dictamenCdssPreliminar}
                 </Text>
               </HStack>
               <Box px="$3" py="$1" borderRadius="$full" style={{ backgroundColor: `${cdssResult.riskColor}20` }}>
@@ -404,7 +414,8 @@ export default function AshaScreeningScreen({ navigation }: Props) {
             {/* Rutas de derivación recomendadas */}
             <VStack space="xs" mb="$3">
               <Text size="2xs" weight="bold" color="$textLight500" style={{ textTransform: 'uppercase' }}>
-                Rutas de Derivación Recomendadas:
+                
+                {t.ashaScreening.rutasDerivacionRecomendadas}
               </Text>
               {cdssResult.recommendedReferrals.map((ref, idx) => (
                 <HStack key={idx} space="xs" alignItems="flex-start">
@@ -422,7 +433,8 @@ export default function AshaScreeningScreen({ navigation }: Props) {
                 <HStack space="xs" alignItems="center" mb="$1">
                   <Icon as={AlertTriangle} size="xs" color="$error600" />
                   <Text size="xs" weight="bold" color="$error800">
-                    Banderas Rojas Detectadas ({cdssResult.redFlagsDetected.length}):
+                    
+                    {t.ashaScreening.banderasRojasDetectadas}{cdssResult.redFlagsDetected.length}):
                   </Text>
                 </HStack>
                 {cdssResult.redFlagsDetected.map(rf => (
@@ -437,7 +449,8 @@ export default function AshaScreeningScreen({ navigation }: Props) {
           {/* Observaciones y Firma */}
           <Card bgColor="$white" borderRadius={20} p="$4" mb="$5" borderWidth={1} borderColor="$borderLight100">
             <Text size="sm" weight="bold" color="$textLight900" mb="$3">
-              Observaciones Clínicas y Firma
+              
+              {t.ashaScreening.observacionesClinicasFirma}
             </Text>
 
             <Controller
@@ -446,7 +459,7 @@ export default function AshaScreeningScreen({ navigation }: Props) {
               render={({ field: { value, onChange } }) => (
                 <Textarea size="md" mb="$3" borderRadius={12} borderWidth={1} borderColor="$borderLight200">
                   <TextareaInput
-                    placeholder="Observaciones de la interacción, contexto comunicativo o conducta observada..."
+                    placeholder={t.ashaScreening.observacionesInteraccionContextoComunicativoConducta}
                     value={value}
                     onChangeText={onChange}
                   />
@@ -460,7 +473,7 @@ export default function AshaScreeningScreen({ navigation }: Props) {
                 control={control}
                 render={({ field: { value, onChange } }) => (
                   <Input size="sm" style={{ flex: 1 }} borderRadius={12} borderWidth={1} borderColor="$borderLight200">
-                    <InputField placeholder="Nombre del Evaluador" value={value} onChangeText={onChange} />
+                    <InputField placeholder={t.ashaScreening.nombreEvaluador} value={value} onChangeText={onChange} />
                   </Input>
                 )}
               />
@@ -469,7 +482,7 @@ export default function AshaScreeningScreen({ navigation }: Props) {
                 control={control}
                 render={({ field: { value, onChange } }) => (
                   <Input size="sm" style={{ flex: 1 }} borderRadius={12} borderWidth={1} borderColor="$borderLight200">
-                    <InputField placeholder="Nº Colegiado / Licencia" value={value} onChangeText={onChange} />
+                    <InputField placeholder={t.ashaScreening.nColegiadoLicencia} value={value} onChangeText={onChange} />
                   </Input>
                 )}
               />
@@ -486,7 +499,7 @@ export default function AshaScreeningScreen({ navigation }: Props) {
             <HStack space="sm" alignItems="center">
               <Icon as={Save} size="sm" color="$white" />
               <Text size="sm" weight="bold" color="$white">
-                {isSaving ? 'Guardando...' : 'Guardar y Finalizar Cribado'}
+                {isSaving ? t.ashaScreening.guardando : t.ashaScreening.guardarFinalizarCribado}
               </Text>
             </HStack>
           </Button>
@@ -509,16 +522,19 @@ export default function AshaScreeningScreen({ navigation }: Props) {
               </Center>
 
               <Text size="lg" weight="bold" color="$textLight900" textAlign="center" mb="$2">
-                Control de Riesgo Crítico (ISO 14971)
+                
+                {t.ashaScreening.controlRiesgoCriticoIso14971}
               </Text>
 
               <Text size="xs" color="$textLight500" textAlign="center" mb="$4">
-                Módulo de Apoyo a la Decisión Clínica (SaMD Clase IIa)
+                
+                {t.ashaScreening.moduloApoyoDecisionClinicaSamd}
               </Text>
 
               <Box p="$4" borderRadius={14} bg="$backgroundLight50" mb="$5" borderWidth={1} borderColor="$borderLight200">
                 <Text size="sm" color="$textLight800" textAlign="center" weight="medium" style={{ lineHeight: 22 }}>
-                  «Confirmo que esta evaluación se realizará mediante observación clínica directa y entrevista profesional, no como autoinforme familiar.»
+                  
+                  {t.ashaScreening.confirmoEstaEvaluacionRealizaraMediante}
                 </Text>
               </Box>
 
@@ -530,7 +546,8 @@ export default function AshaScreeningScreen({ navigation }: Props) {
                 <HStack space="xs" alignItems="center">
                   <Icon as={CheckCircle2} size="sm" color="$white" />
                   <Text size="sm" weight="bold" color="$white">
-                    Aceptar y continuar
+                    
+                    {t.ashaScreening.aceptarContinuar}
                   </Text>
                 </HStack>
               </Button>
