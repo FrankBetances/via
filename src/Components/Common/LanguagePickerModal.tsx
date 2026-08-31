@@ -1,75 +1,52 @@
+/* -------------------------------------------------------------------------- */
+/*  VIA+ · Selector de idioma de la INTERFAZ                                    */
+/*                                                                             */
+/*  Sigue a `src/ValeriaUiLangPicker.tsx` de Valeria+ (regla 1), incluida su    */
+/*  decisión central: elegir un idioma cambia la APP ENTERA —textos Y           */
+/*  locuciones—, no solo los textos. Frank lo dejó dicho allí con estas         */
+/*  palabras: «si estamos trabajando en una versión en inglés, es en inglés     */
+/*  para toda la app».                                                          */
+/*                                                                             */
+/*  QUÉ HACÍA ANTES ESTE FICHERO, para que no vuelva a pasar: despachaba        */
+/*  `setSessionLanguage` (la variedad clínica) y llamaba a                      */
+/*  `i18n.changeLanguage` dentro de un `if (i18n.isInitialized)` que en el      */
+/*  dispositivo era SIEMPRE falso, porque `initI18n()` no lo llamaba nadie.     */
+/*  Resultado: elegir «English» dejaba la app entera en castellano y movía en   */
+/*  silencio el banco de estímulos. La mitad visible no hacía nada; la          */
+/*  invisible, sí.                                                              */
+/*                                                                             */
+/*  Ahora las dos mitades van juntas y por el mismo camino: `setAppLanguage`    */
+/*  fija el idioma de interfaz (módulo con suscripción → repinta) y aplica la   */
+/*  variedad (redux → banco, voz y ASR).                                        */
+/*                                                                             */
+/*  A diferencia de Valeria+ no hay opción «Automático»: allí existe porque el  */
+/*  idioma de interfaz (3) es un subconjunto de las variedades (6) y hay que    */
+/*  poder volver al acoplamiento por defecto. Aquí la correspondencia es 1:1,   */
+/*  así que «Automático» no tendría nada distinto que hacer.                    */
+/* -------------------------------------------------------------------------- */
 import React from 'react';
-import {
-  Modal,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-} from 'react-native';
+import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Check, Globe, X } from 'lucide-react-native';
-import { useDispatch, useSelector } from 'react-redux';
-import { RootState } from '@/Store';
+import { useDispatch } from 'react-redux';
+
 import { setSessionLanguage } from '@/Store/slices/localeSlice';
-import { SessionLang } from '@/Store/slices/sessionLangs';
-import i18n from '@/I18n';
+import { SESSION_LANG_LABEL, SessionLang } from '@/Store/slices/sessionLangs';
+import { useT } from '@/I18n';
+import { UiLang, ALL_UI_LANGS, getUiLang, setAppLanguage, subscribeUiLang } from '@/I18n/uiLang';
 
-/* -------------------------------------------------------------------------- */
-/*  LanguagePickerModal — Selector de idioma accesible y visual para VIA+     */
-/*  Permite seleccionar entre los 7 idiomas/variantes soportados.             */
-/* -------------------------------------------------------------------------- */
+/** Bandera de cada variedad. El nombre y el pie salen del catálogo activo. */
+const FLAG: Record<UiLang, string> = {
+  es: '🇪🇸',
+  gl: '🌐',
+  eu: '🌐',
+  ca: '🌐',
+  'es-419': '🌎',
+  'es-DO': '🇩🇴',
+  en: '🇺🇸',
+};
 
-interface LanguageOption {
-  code: SessionLang;
-  flag: string;
-  name: string;
-  subtitle: string;
-}
-
-export const LANGUAGE_OPTIONS: LanguageOption[] = [
-  {
-    code: 'es',
-    flag: '🇪🇸',
-    name: 'Español (España)',
-    subtitle: 'Idioma base de la batería clínica',
-  },
-  {
-    code: 'gl',
-    flag: '🌐',
-    name: 'Galego',
-    subtitle: 'Proxecto Nós · Celtia · ACOPROS',
-  },
-  {
-    code: 'eu',
-    flag: '🌐',
-    name: 'Euskara',
-    subtitle: 'HiTZ / AhoTTS · Maider · Ulertuz',
-  },
-  {
-    code: 'ca',
-    flag: '🌐',
-    name: 'Català',
-    subtitle: 'Localització en curs',
-  },
-  {
-    code: 'es-419',
-    flag: '🌎',
-    name: 'Español (Latinoamérica)',
-    subtitle: 'Variante neutra latinoamericana',
-  },
-  {
-    code: 'es-DO',
-    flag: '🇩🇴',
-    name: 'Español (Rep. Dominicana)',
-    subtitle: 'Quisqueya Habla · FONDOCYT',
-  },
-  {
-    code: 'en',
-    flag: '🇺🇸',
-    name: 'English (US)',
-    subtitle: 'American English user interface',
-  },
-];
+/** Códigos ofrecidos, en el orden estable de `SESSION_LANGS`. */
+export const LANGUAGE_OPTIONS: readonly UiLang[] = ALL_UI_LANGS;
 
 interface Props {
   visible: boolean;
@@ -77,78 +54,98 @@ interface Props {
 }
 
 export default function LanguagePickerModal({ visible, onClose }: Props) {
+  const t = useT();
   const dispatch = useDispatch();
-  const currentLang = useSelector((state: RootState) => state.locale.language) as SessionLang;
 
-  const handleSelect = (code: SessionLang) => {
-    dispatch(setSessionLanguage(code));
-    if (i18n.isInitialized) {
-      i18n.changeLanguage(code).catch(() => {});
-    }
+  // El idioma de interfaz no es un store de redux (ver `I18n/uiLang.ts`), así
+  // que la suscripción es la del módulo. `useT()` ya se resuscribe por su
+  // cuenta; esto repinta la marca de selección.
+  const [, force] = React.useReducer((n: number) => n + 1, 0);
+  React.useEffect(() => subscribeUiLang(force), []);
+  const current = getUiLang();
+
+  // Pie de cada opción, en el idioma activo del catálogo.
+  const hintOf = (code: UiLang): string =>
+    ({
+      es: t.langPicker.hintEs,
+      gl: t.langPicker.hintGl,
+      eu: t.langPicker.hintEu,
+      ca: t.langPicker.hintCa,
+      'es-419': t.langPicker.hintEs419,
+      'es-DO': t.langPicker.hintEsDO,
+      en: t.langPicker.hintEn,
+    })[code];
+
+  const choose = (code: UiLang): void => {
+    // Cambia la app ENTERA: textos (idioma de interfaz) y locuciones
+    // (variedad de sesión). Ver `setAppLanguage`.
+    void setAppLanguage(code, lang => {
+      dispatch(setSessionLanguage(lang as SessionLang));
+    });
     onClose();
   };
 
   return (
-    <Modal
-      visible={visible}
-      transparent
-      animationType="fade"
-      onRequestClose={onClose}>
+    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <View style={styles.backdrop}>
-        <Pressable style={StyleSheet.absoluteFill} onPress={onClose} accessibilityLabel="Cerrar selector" />
-        
+        <Pressable
+          style={StyleSheet.absoluteFill}
+          onPress={onClose}
+          accessibilityLabel={t.langPicker.closeA11y}
+        />
+
         <View style={styles.sheetContainer}>
-          {/* Header del Modal */}
           <View style={styles.modalHeader}>
             <View style={styles.modalHeaderLeft}>
               <View style={styles.globeCircle}>
                 <Globe size={20} color="#FF7F00" strokeWidth={2.4} />
               </View>
-              <View>
-                <Text style={styles.modalTitle}>Idioma de la aplicación</Text>
-                <Text style={styles.modalSubtitle}>Selecciona la lengua o variante de sesión</Text>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.modalTitle}>{t.langPicker.title}</Text>
+                <Text style={styles.modalSubtitle}>{t.langPicker.subtitle}</Text>
               </View>
             </View>
 
             <Pressable
               accessibilityRole="button"
-              accessibilityLabel="Cerrar"
+              accessibilityLabel={t.langPicker.closeA11y}
               style={({ pressed }) => [styles.closeBtn, pressed && styles.pressed]}
               onPress={onClose}>
               <X size={20} color="#64748B" strokeWidth={2.4} />
             </Pressable>
           </View>
 
-          {/* Lista de idiomas */}
           <ScrollView
             style={styles.langListScroll}
             contentContainerStyle={styles.langListContent}
             showsVerticalScrollIndicator={false}>
-            {LANGUAGE_OPTIONS.map(opt => {
-              const isSelected = currentLang === opt.code;
+            {LANGUAGE_OPTIONS.map(code => {
+              const name = SESSION_LANG_LABEL[code];
+              const hint = hintOf(code);
+              const isSelected = current === code;
               return (
                 <Pressable
-                  key={opt.code}
-                  accessibilityRole="button"
-                  accessibilityLabel={`${opt.name}: ${opt.subtitle}`}
+                  key={code}
+                  accessibilityRole="radio"
+                  accessibilityLabel={t.langPicker.optionA11y(name, hint)}
                   accessibilityState={{ selected: isSelected }}
                   style={({ pressed }) => [
                     styles.langCard,
                     isSelected && styles.langCardSelected,
                     pressed && styles.pressed,
                   ]}
-                  onPress={() => handleSelect(opt.code)}>
-                  <Text style={styles.flagEmoji}>{opt.flag}</Text>
-                  
+                  onPress={() => choose(code)}>
+                  <Text style={styles.flagEmoji}>{FLAG[code]}</Text>
+
                   <View style={styles.langTextContainer}>
                     <Text style={[styles.langName, isSelected && styles.langNameSelected]}>
-                      {opt.name}
+                      {name}
                     </Text>
-                    <Text style={styles.langSubtitle}>{opt.subtitle}</Text>
+                    <Text style={styles.langSubtitle}>{hint}</Text>
                   </View>
 
                   <View style={[styles.checkCircle, isSelected && styles.checkCircleSelected]}>
-                    {isSelected && <Check size={14} color="#FFFFFF" strokeWidth={3} />}
+                    {isSelected ? <Check size={14} color="#FFFFFF" strokeWidth={3} /> : null}
                   </View>
                 </Pressable>
               );

@@ -1,57 +1,50 @@
-import i18n from 'i18next';
-import { initReactI18next } from 'react-i18next';
-
-import esVerbalAudiometry from './locales/es/verbalAudiometry.json';
-import enVerbalAudiometry from './locales/en/verbalAudiometry.json';
-import glVerbalAudiometry from './locales/gl/verbalAudiometry.json';
-import euVerbalAudiometry from './locales/eu/verbalAudiometry.json';
-import caVerbalAudiometry from './locales/ca/verbalAudiometry.json';
-import es419VerbalAudiometry from './locales/es-419/verbalAudiometry.json';
-import esDoVerbalAudiometry from './locales/es-DO/verbalAudiometry.json';
-
 /* -------------------------------------------------------------------------- */
-/*  i18next — VIA+ (internacionalización multi-idioma).                        */
+/*  VIA+ · Acceso al catálogo de interfaz                                       */
+/*                                                                             */
+/*  PORTE de `src/i18n/index.ts` de Valeria+ (regla 1). Dos formas de leer las  */
+/*  cadenas, según quién pregunte:                                              */
+/*                                                                             */
+/*    useT()  — pantallas React. Se suscribe al idioma activo, así que          */
+/*              cambiarlo en Créditos repinta la app entera sin reiniciar ni    */
+/*              volver atrás.                                                   */
+/*    tNow()  — módulos que NO son componentes (bloques del PDF, exportación    */
+/*              de informes). Vive en `./catalog`, que es un módulo puro sin    */
+/*              React: los gates de CI compilan esos módulos y los ejecutan en  */
+/*              Node. Importar `tNow` desde aquí también funciona en la app,    */
+/*              pero un script debe importarlo de `./catalog` para no arrastrar */
+/*              React.                                                          */
+/*                                                                             */
+/*  Uso en pantalla:                                                            */
+/*    const t = useT();                                                         */
+/*    <Text>{t.credits.navTitle}</Text>                                         */
+/*    <Text>{t.langPicker.change(lang)}</Text>                                  */
+/*                                                                             */
+/*  El acceso es por PROPIEDAD, no por clave de texto (`t('credits.navTitle')`):*/
+/*  así una clave inexistente o mal escrita la caza el compilador, no el QA.    */
+/*                                                                             */
+/*  QUÉ SUSTITUYE A QUÉ (agosto 2026). Antes de esto, `I18n/` era una capa      */
+/*  i18next «preparada, NO cableada»: siete catálogos JSON, `i18next` y         */
+/*  `react-i18next` en el `package.json` y un `initI18n()` que NO llamaba       */
+/*  nadie. Ni un solo componente usaba `useTranslation`, así que la app se      */
+/*  pintaba entera con literales castellanos y el selector no podía cambiar     */
+/*  nada. Se retira por la regla 1 —Valeria+ no usa i18next, y su patrón está   */
+/*  demostrado en el emulador de Frank— y porque una dependencia que nadie      */
+/*  importa no es inofensiva: se autolinka y se compila en cada build.          */
 /* -------------------------------------------------------------------------- */
+import { useSyncExternalStore } from 'react';
 
-export const I18N_RESOURCES = {
-  es: { verbalAudiometry: esVerbalAudiometry },
-  en: { verbalAudiometry: enVerbalAudiometry },
-  gl: { verbalAudiometry: glVerbalAudiometry },
-  eu: { verbalAudiometry: euVerbalAudiometry },
-  ca: { verbalAudiometry: caVerbalAudiometry },
-  'es-419': { verbalAudiometry: es419VerbalAudiometry },
-  'es-DO': { verbalAudiometry: esDoVerbalAudiometry },
-} as const;
-
-export const DEFAULT_LANGUAGE = 'es';
+import { getUiLang, subscribeUiLang } from './uiLang';
+import { CATALOGUES, tNow, UiStrings } from './catalog';
 
 /**
- * Variantes regionales y su idioma base (Q1.1 · Quisqueya Habla / LatAm): el catálogo
- * de una variante es un DELTA — solo contiene las claves localizadas y el
- * resto resuelve en cascada `es-DO / es-419 → es` (i18next lo soporta nativamente).
- * El test de catálogo exige que toda clave de la variante exista en su base
- * (subconjunto estricto, sin claves huérfanas).
+ * Catálogo activo, reactivo. `getUiLang` como snapshot es estable (devuelve un
+ * literal, no un objeto nuevo), así que `useSyncExternalStore` no entra en
+ * bucle de renders.
  */
-export const LANGUAGE_VARIANTS: Record<string, keyof typeof I18N_RESOURCES> = {
-  'es-DO': 'es',
-  'es-419': 'es',
-};
-
-/**
- * Inicializa i18next (idempotente). No se llama en el arranque todavía:
- * activar cuando se decida internacionalizar la app.
- */
-export async function initI18n(language: string = DEFAULT_LANGUAGE): Promise<typeof i18n> {
-  if (i18n.isInitialized) return i18n;
-  await i18n.use(initReactI18next).init({
-    resources: I18N_RESOURCES,
-    lng: language,
-    fallbackLng: DEFAULT_LANGUAGE,
-    defaultNS: 'verbalAudiometry',
-    interpolation: { escapeValue: false }, // React ya escapa
-    returnNull: false,
-  });
-  return i18n;
+export function useT(): UiStrings {
+  const lang = useSyncExternalStore(subscribeUiLang, getUiLang, getUiLang);
+  return CATALOGUES[lang];
 }
 
-export default i18n;
+export { tNow, CATALOGUES };
+export type { UiStrings };

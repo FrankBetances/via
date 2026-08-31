@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useReducer, useState } from 'react';
 import {
   Image,
   Platform,
@@ -27,13 +27,13 @@ import Animated, {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { ArrowLeft, ArrowRight, Globe, ShieldCheck, UserCheck } from 'lucide-react-native';
-import { useSelector } from 'react-redux';
 
 import { RootStackParamList } from '@/Navigators';
 import ViaIcon from '@/Components/Common/ViaIcon';
 import LanguagePickerModal from '@/Components/Common/LanguagePickerModal';
-import { RootState } from '@/Store';
-import { SESSION_LANG_LABEL, SessionLang } from '@/Store/slices/localeSlice';
+import { SESSION_LANG_LABEL } from '@/Store/slices/sessionLangs';
+import { useT, UiStrings } from '@/I18n';
+import { getUiLang, subscribeUiLang, UiLang } from '@/I18n/uiLang';
 import {
   AcoprosMark,
   EarlifyMark,
@@ -77,14 +77,28 @@ const ORBIT_LABEL = `Los ${orbitCountWord(
   m => m.label,
 ).join(', ')}.`;
 
-const LANGUAGE_CREDITS = [
-  { flag: '🇪🇸', name: 'Español (España)', role: 'Idioma base de la batería de evaluación clínica' },
-  { flag: '🌐', name: 'Galego (Proxecto Nós · ILENIA)', role: 'Voz neuronal Celtia, banco aprobado por ACOPROS' },
-  { flag: '🌐', name: 'Euskara (HiTZ / AhoTTS)', role: 'Voz neuronal Maider, banco aprobado por Ulertuz' },
-  { flag: '🌐', name: 'Català', role: 'Infraestructura de localización e integración en curso' },
-  { flag: '🌎', name: 'Español (Latinoamérica)', role: 'Variante neutra latinoamericana' },
-  { flag: '🇩🇴', name: 'Quisqueya Habla (es-DO)', role: 'Variante dominicana: banco y locuciones propios (FONDOCYT)' },
-  { flag: '🇺🇸', name: 'English (US)', role: 'Interfaz de usuario en inglés americano' },
+/**
+ * Créditos de voz y localización. Se DERIVAN del catálogo activo, no son una
+ * lista de datos a fuego: si no, la tarjeta se quedaría en castellano dentro de
+ * una app en inglés, que es justo el defecto que este trabajo viene a cerrar.
+ *
+ * La atribución de los motores es OBLIGATORIA y por eso vuelve aquí: la voz
+ * catalana es CC BY-SA 4.0 y la latinoamericana CC BY 4.0 (ver
+ * `tools/nos/voices.json`), y las dos licencias exigen citar al autor. Se
+ * habían perdido de esta pantalla al reescribir la lista.
+ */
+const languageCredits = (t: UiStrings) => [
+  { flag: '🇪🇸', name: SESSION_LANG_LABEL.es, role: t.credits.langEs },
+  { flag: '🌐', name: SESSION_LANG_LABEL.gl, role: t.credits.langGl },
+  { flag: '🌐', name: SESSION_LANG_LABEL.eu, role: t.credits.langEu },
+  { flag: '🌐', name: SESSION_LANG_LABEL.ca, role: t.credits.langCa },
+  { flag: '🌎', name: SESSION_LANG_LABEL['es-419'], role: t.credits.langEs419 },
+  { flag: '🇩🇴', name: SESSION_LANG_LABEL['es-DO'], role: t.credits.langEsDO },
+  { flag: '🇺🇸', name: SESSION_LANG_LABEL.en, role: t.credits.langEn },
+  // i18n-exempt: nombre propio del motor; su descripción sí sale del catálogo.
+  { flag: '🎙️', name: 'Piper · rhasspy/piper-voices', role: t.credits.enginePiper },
+  // i18n-exempt: nombre propio del motor.
+  { flag: '🔊', name: 'eSpeak NG', role: t.credits.engineEspeak },
 ];
 
 
@@ -224,7 +238,15 @@ export default function CreditosScreen({ navigation }: Props) {
   const [bandWidth, setBandWidth] = useState(0);
   const [langModalVisible, setLangModalVisible] = useState(false);
 
-  const currentLang = useSelector((state: RootState) => state.locale?.language ?? 'es') as SessionLang;
+  const t = useT();
+
+  // El idioma de INTERFAZ vive en `I18n/uiLang` (módulo con suscripción), no en
+  // redux: `useT()` ya repinta el catálogo, y este espejo repinta el código que
+  // se enseña en el botón. La variedad de sesión sigue en redux y la mueve
+  // `setAppLanguage` desde el selector.
+  const [, forceLang] = useReducer((n: number) => n + 1, 0);
+  useEffect(() => subscribeUiLang(forceLang), []);
+  const currentLang: UiLang = getUiLang();
 
   // Animaciones continuas de pulso y flotación
   const ring1 = useSharedValue(0);
@@ -312,7 +334,7 @@ export default function CreditosScreen({ navigation }: Props) {
       <View style={[styles.topNavbar, { paddingTop: Math.max(insets.top, 12) }]}>
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel="Volver a la pantalla de bienvenida"
+          accessibilityLabel={t.credits.navBackA11y}
           style={({ pressed }) => [styles.navBackButton, pressed && styles.navButtonPressed]}
           onPress={handleBack}>
           <ArrowLeft size={20} color="#2B2620" strokeWidth={2.4} />
@@ -324,12 +346,12 @@ export default function CreditosScreen({ navigation }: Props) {
           </View>
         </Pressable>
 
-        <Text style={styles.navTitle}>Créditos y Avales</Text>
+        <Text style={styles.navTitle}>{t.credits.navTitle}</Text>
 
         <View style={styles.navRightGroup}>
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel={`Idioma actual: ${SESSION_LANG_LABEL[currentLang] ?? currentLang}. Toca para cambiar idioma.`}
+            accessibilityLabel={t.langPicker.navA11y(SESSION_LANG_LABEL[currentLang] ?? currentLang)}
             style={({ pressed }) => [styles.langNavButton, pressed && styles.navButtonPressed]}
             onPress={() => setLangModalVisible(true)}>
             <Globe size={14} color="#FF7F00" strokeWidth={2.4} />
@@ -338,7 +360,7 @@ export default function CreditosScreen({ navigation }: Props) {
 
           <View style={styles.samdBadgeNav}>
             <ShieldCheck size={13} color="#0D9488" strokeWidth={2.2} />
-            <Text style={styles.samdBadgeNavText}>Clase IIa</Text>
+            <Text style={styles.samdBadgeNavText}>{t.credits.samdBadge}</Text>
           </View>
         </View>
       </View>
@@ -384,7 +406,7 @@ export default function CreditosScreen({ navigation }: Props) {
             </Animated.View>
 
             <Text style={styles.emblemFootnote}>
-              Arquitectura integrada de valoración audiológica, fonética y deglutoria
+              {t.credits.emblemFootnote}
             </Text>
           </View>
 
@@ -401,10 +423,10 @@ export default function CreditosScreen({ navigation }: Props) {
               <View style={{ flex: 1 }}>
                 <View style={styles.authorBadgeRow}>
                   <UserCheck size={14} color="#EA580C" strokeWidth={2.4} />
-                  <Text style={styles.authorBadgeText}>AUTORÍA Y DIRECCIÓN CLÍNICA</Text>
+                  <Text style={styles.authorBadgeText}>{t.credits.authorBadge}</Text>
                 </View>
                 <Text style={styles.authorName}>Dr. Frank Alberto Betances Reinoso</Text>
-                <Text style={styles.authorRole}>Otorrinolaringólogo e investigador principal</Text>
+                <Text style={styles.authorRole}>{t.credits.authorRole}</Text>
               </View>
             </View>
 
@@ -424,7 +446,7 @@ export default function CreditosScreen({ navigation }: Props) {
         <Animated.View style={[styles.rightColumn, isTabletLandscape && styles.columnHalf, introStyle]}>
           {/* Tarjeta 1: Entidades Colaboradoras */}
           <View style={styles.cardBlock}>
-            <Text style={styles.cardBlockTitle}>ALIANZAS Y COLABORADORES</Text>
+            <Text style={styles.cardBlockTitle}>{t.credits.partnersTitle}</Text>
             
             <View style={styles.partnerList}>
               <View style={styles.partnerItem}>
@@ -433,7 +455,7 @@ export default function CreditosScreen({ navigation }: Props) {
                 </View>
                 <View style={{ flex: 1 }}>
                   <Text style={styles.partnerName}>Quisqueya Habla (FONDOCYT)</Text>
-                  <Text style={styles.partnerSubtitle}>Proyecto FONDOCYT · adaptación lingüística dominicana</Text>
+                  <Text style={styles.partnerSubtitle}>{t.credits.quisqueyaDesc}</Text>
                 </View>
               </View>
 
@@ -445,7 +467,7 @@ export default function CreditosScreen({ navigation }: Props) {
                 </View>
                 <View style={{ flex: 1 }}>
                   <Text style={styles.partnerName}>ACOPROS</Text>
-                  <Text style={styles.partnerSubtitle}>Asociación de Colaboración y Promoción del Sordo</Text>
+                  <Text style={styles.partnerSubtitle}>{t.credits.acoprosDesc}</Text>
                 </View>
               </View>
 
@@ -457,7 +479,7 @@ export default function CreditosScreen({ navigation }: Props) {
                 </View>
                 <View style={{ flex: 1 }}>
                   <Text style={styles.partnerName}>Earlify Health</Text>
-                  <Text style={styles.partnerSubtitle}>Tecnología e ingeniería clínica sanitaria</Text>
+                  <Text style={styles.partnerSubtitle}>{t.credits.earlifyDesc}</Text>
                 </View>
               </View>
             </View>
@@ -466,19 +488,19 @@ export default function CreditosScreen({ navigation }: Props) {
           {/* Tarjeta 2: Voces y Variantes */}
           <View style={styles.cardBlock}>
             <View style={styles.cardBlockHeaderRow}>
-              <Text style={styles.cardBlockTitle}>VOCES Y LOCALIZACIÓN</Text>
+              <Text style={styles.cardBlockTitle}>{t.credits.voicesTitle}</Text>
               <Pressable
                 accessibilityRole="button"
-                accessibilityLabel="Cambiar idioma de la aplicación"
+                accessibilityLabel={t.langPicker.openA11y}
                 style={({ pressed }) => [styles.changeLangButton, pressed && styles.navButtonPressed]}
                 onPress={() => setLangModalVisible(true)}>
                 <Globe size={13} color="#FF7F00" strokeWidth={2.2} />
-                <Text style={styles.changeLangButtonText}>Cambiar idioma ({currentLang})</Text>
+                <Text style={styles.changeLangButtonText}>{t.langPicker.change(currentLang)}</Text>
               </Pressable>
             </View>
             
             <View style={styles.langList}>
-              {LANGUAGE_CREDITS.map((item, idx) => (
+              {languageCredits(t).map((item, idx) => (
                 <View key={idx} style={[styles.langItem, idx > 0 && { marginTop: 10 }]}>
                   <Text style={styles.langFlag}>{item.flag}</Text>
                   <View style={{ flex: 1 }}>
@@ -492,30 +514,30 @@ export default function CreditosScreen({ navigation }: Props) {
 
           {/* Tarjeta 3: Calidad y Marco Regulatorio */}
           <View style={styles.cardBlock}>
-            <Text style={styles.cardBlockTitle}>CALIDAD Y REGULACIÓN SANITARIA</Text>
+            <Text style={styles.cardBlockTitle}>{t.credits.qualityTitle}</Text>
             
             <View style={styles.sealRow}>
               <ItemasSealMark size={40} />
               <View style={{ flex: 1, marginLeft: 14 }}>
-                <Text style={styles.sealTitle}>Sello de Calidad ITEMAS 2024</Text>
+                <Text style={styles.sealTitle}>{t.credits.sealTitle}</Text>
                 {/* El rediseño proponía «Innovación sanitaria avalada por el
                     ISCIII». Es una afirmación sobre una acreditación, más
                     fuerte que la actual, y cambiarla no es un efecto colateral
                     de un cambio de estilo: se mantiene la que ya estaba hasta
                     que Frank confirme los términos del sello. */}
-                <Text style={styles.sealSubtitle}>Innovación tecnológica en salud</Text>
+                <Text style={styles.sealSubtitle}>{t.credits.sealSubtitle}</Text>
               </View>
             </View>
 
             <View style={styles.chipsRow}>
               <View style={styles.chipPill}>
-                <Text style={styles.chipText}>SaMD Clase IIa</Text>
+                <Text style={styles.chipText}>{t.credits.chipSamd}</Text>
               </View>
               <View style={styles.chipPill}>
                 <Text style={styles.chipText}>MDR 2017/745</Text>
               </View>
               <View style={styles.chipPill}>
-                <Text style={styles.chipText}>Lugo, Galicia</Text>
+                <Text style={styles.chipText}>{t.credits.chipLocation}</Text>
               </View>
             </View>
           </View>
@@ -527,12 +549,12 @@ export default function CreditosScreen({ navigation }: Props) {
         <Animated.View style={btnAnimatedStyle}>
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel="Comenzar Selección Profesional"
+            accessibilityLabel={t.credits.dockButton}
             style={({ pressed }) => [styles.dockButton, pressed && styles.dockButtonPressed]}
             onPressIn={() => (btnScale.value = withSpring(0.97, { damping: 15, stiffness: 300 }))}
             onPressOut={() => (btnScale.value = withSpring(1, { damping: 15, stiffness: 300 }))}
             onPress={handleContinue}>
-            <Text style={styles.dockButtonText}>Comenzar Selección Profesional</Text>
+            <Text style={styles.dockButtonText}>{t.credits.dockButton}</Text>
             <View style={styles.dockArrowCircle}>
               <ArrowRight size={18} color="#FF7F00" strokeWidth={2.6} />
             </View>
