@@ -1,0 +1,912 @@
+{
+  "generatedAt": "2026-08-31T08:38:07.204Z",
+  "lang": "en",
+  "baseLang": "es",
+  "provisional": true,
+  "note": "Orden de producción de assets de la audiometría verbal. Locuciones e ilustraciones actuales son PROVISIONALES (síntesis espeak-ng/neural y pictogramas); la producción clínica final sustituye cada archivo conservando su clave.",
+  "audio": [
+    {
+      "key": "boca",
+      "word": "boca",
+      "file": "assets/audio/verbal/en/boca.m4a",
+      "exists": true
+    },
+    {
+      "key": "bota",
+      "word": "bota",
+      "file": "assets/audio/verbal/en/bota.m4a",
+      "exists": true
+    },
+    {
+      "key": "botella",
+      "word": "botella",
+      "file": "assets/audio/verbal/en/botella.m4a",
+      "exists": true
+    },
+    {
+      "key": "caballo",
+      "word": "caballo",
+      "file": "assets/audio/verbal/en/caballo.m4a",
+      "exists": true
+    },
+    {
+      "key": "callo",
+      "word": "callo",
+      "file": "assets/audio/verbal/en/callo.m4a",
+      "exists": true
+    },
+    {
+      "key": "cama",
+      "word": "cama",
+      "file": "assets/audio/verbal/en/cama.m4a",
+      "exists": true
+    },
+    {
+      "key": "canya",
+      "word": "caña",
+      "file": "assets/audio/verbal/en/canya.m4a",
+      "exists": true
+    },
+    {
+      "key": "casa",
+      "word": "casa",
+      "file": "assets/audio/verbal/en/casa.m4a",
+      "exists": true
+    },
+    {
+      "key": "cebolla",
+      "word": "cebolla",
+      "file": "assets/audio/verbal/en/cebolla.m4a",
+      "exists": true
+    },
+    {
+      "key": "coma",
+      "word": "coma",
+      "file": "assets/audio/verbal/en/coma.m4a",
+      "exists": true
+    },
+    {
+      "key": "escoba",
+      "word": "escoba",
+      "file": "assets/audio/verbal/en/escoba.m4a",
+      "exists": true
+    },
+    {
+      "key": "flor",
+      "word": "flor",
+      "file": "assets/audio/verbal/en/flor.m4a",
+      "exists": true
+    },
+    {
+      "key": "gato",
+      "word": "gato",
+      "file": "assets/audio/verbal/en/gato.m4a",
+      "exists": true
+    },
+    {
+      "key": "gota",
+      "word": "gota",
+      "file": "assets/audio/verbal/en/gota.m4a",
+      "exists": true
+    },
+    {
+      "key": "higo",
+      "word": "higo",
+      "file": "assets/audio/verbal/en/higo.m4a",
+      "exists": true
+    },
+    {
+      "key": "jarra",
+      "word": "jarra",
+      "file": "assets/audio/verbal/en/jarra.m4a",
+      "exists": true
+    },
+    {
+      "key": "mano",
+      "word": "mano",
+      "file": "assets/audio/verbal/en/mano.m4a",
+      "exists": true
+    },
+    {
+      "key": "mariposa",
+      "word": "mariposa",
+      "file": "assets/audio/verbal/en/mariposa.m4a",
+      "exists": true
+    },
+    {
+      "key": "mora",
+      "word": "mora",
+      "file": "assets/audio/verbal/en/mora.m4a",
+      "exists": true
+    },
+    {
+      "key": "pala",
+      "word": "pala",
+      "file": "assets/audio/verbal/en/pala.m4a",
+      "exists": true
+    },
+    {
+      "key": "pan",
+      "word": "pan",
+      "file": "assets/audio/verbal/en/pan.m4a",
+      "exists": true
+    },
+    {
+      "key": "pato",
+      "word": "pato",
+      "file": "assets/audio/verbal/en/pato.m4a",
+      "exists": true
+    },
+    {
+      "key": "peine",
+      "word": "peine",
+      "file": "assets/audio/verbal/en/peine.m4a",
+      "exists": true
+    },
+    {
+      "key": "pelota",
+      "word": "pelota",
+      "file": "assets/audio/verbal/en/pelota.m4a",
+      "exists": true
+    },
+    {
+      "key": "peso",
+      "word": "peso",
+      "file": "assets/audio/verbal/en/peso.m4a",
+      "exists": true
+    },
+    {
+      "key": "pino",
+      "word": "pino",
+      "file": "assets/audio/verbal/en/pino.m4a",
+      "exists": true
+    },
+    {
+      "key": "platano",
+      "word": "plátano",
+      "file": "assets/audio/verbal/en/platano.m4a",
+      "exists": true
+    },
+    {
+      "key": "queso",
+      "word": "queso",
+      "file": "assets/audio/verbal/en/queso.m4a",
+      "exists": true
+    },
+    {
+      "key": "rata",
+      "word": "rata",
+      "file": "assets/audio/verbal/en/rata.m4a",
+      "exists": true
+    },
+    {
+      "key": "rosa",
+      "word": "rosa",
+      "file": "assets/audio/verbal/en/rosa.m4a",
+      "exists": true
+    },
+    {
+      "key": "taza",
+      "word": "taza",
+      "file": "assets/audio/verbal/en/taza.m4a",
+      "exists": true
+    },
+    {
+      "key": "tijeras",
+      "word": "tijeras",
+      "file": "assets/audio/verbal/en/tijeras.m4a",
+      "exists": true
+    },
+    {
+      "key": "tos",
+      "word": "tos",
+      "file": "assets/audio/verbal/en/tos.m4a",
+      "exists": true
+    },
+    {
+      "key": "vaca",
+      "word": "vaca",
+      "file": "assets/audio/verbal/en/vaca.m4a",
+      "exists": true
+    },
+    {
+      "key": "ven",
+      "word": "ven",
+      "file": "assets/audio/verbal/en/ven.m4a",
+      "exists": true
+    },
+    {
+      "key": "ventana",
+      "word": "ventana",
+      "file": "assets/audio/verbal/en/ventana.m4a",
+      "exists": true
+    },
+    {
+      "key": "zapato",
+      "word": "zapato",
+      "file": "assets/audio/verbal/en/zapato.m4a",
+      "exists": true
+    }
+  ],
+  "images": [
+    {
+      "key": "abejas",
+      "word": "abejas",
+      "file": "assets/img/verbal/abejas.png",
+      "inherited": true,
+      "exists": true
+    },
+    {
+      "key": "aceite",
+      "word": "aceite",
+      "file": "assets/img/verbal/aceite.png",
+      "inherited": true,
+      "exists": true
+    },
+    {
+      "key": "ballena",
+      "word": "ballena",
+      "file": "assets/img/verbal/ballena.png",
+      "inherited": true,
+      "exists": true
+    },
+    {
+      "key": "bandera",
+      "word": "bandera",
+      "file": "assets/img/verbal/bandera.png",
+      "inherited": true,
+      "exists": true
+    },
+    {
+      "key": "barra",
+      "word": "barra",
+      "file": "assets/img/verbal/barra.png",
+      "inherited": true,
+      "exists": true
+    },
+    {
+      "key": "bata",
+      "word": "bata",
+      "file": "assets/img/verbal/bata.png",
+      "inherited": true,
+      "exists": true
+    },
+    {
+      "key": "beso",
+      "word": "beso",
+      "file": "assets/img/verbal/beso.png",
+      "inherited": true,
+      "exists": true
+    },
+    {
+      "key": "boca",
+      "word": "boca",
+      "file": "assets/img/verbal/boca.png",
+      "inherited": true,
+      "exists": true
+    },
+    {
+      "key": "bota",
+      "word": "bota",
+      "file": "assets/img/verbal/bota.png",
+      "inherited": true,
+      "exists": true
+    },
+    {
+      "key": "botella",
+      "word": "botella",
+      "file": "assets/img/verbal/botella.png",
+      "inherited": true,
+      "exists": true
+    },
+    {
+      "key": "boton",
+      "word": "botón",
+      "file": "assets/img/verbal/boton.png",
+      "inherited": true,
+      "exists": true
+    },
+    {
+      "key": "caballo",
+      "word": "caballo",
+      "file": "assets/img/verbal/caballo.png",
+      "inherited": true,
+      "exists": true
+    },
+    {
+      "key": "cabanya",
+      "word": "cabaña",
+      "file": "assets/img/verbal/cabanya.png",
+      "inherited": true,
+      "exists": true
+    },
+    {
+      "key": "cadena",
+      "word": "cadena",
+      "file": "assets/img/verbal/cadena.png",
+      "inherited": true,
+      "exists": true
+    },
+    {
+      "key": "camara",
+      "word": "cámara",
+      "file": "assets/img/verbal/camara.png",
+      "inherited": true,
+      "exists": true
+    },
+    {
+      "key": "campana",
+      "word": "campana",
+      "file": "assets/img/verbal/campana.png",
+      "inherited": true,
+      "exists": true
+    },
+    {
+      "key": "cana",
+      "word": "cana",
+      "file": "assets/img/verbal/cana.png",
+      "inherited": true,
+      "exists": true
+    },
+    {
+      "key": "canya",
+      "word": "caña",
+      "file": "assets/img/verbal/canya.png",
+      "inherited": true,
+      "exists": true
+    },
+    {
+      "key": "cara",
+      "word": "cara",
+      "file": "assets/img/verbal/cara.png",
+      "inherited": true,
+      "exists": true
+    },
+    {
+      "key": "carta",
+      "word": "carta",
+      "file": "assets/img/verbal/carta.png",
+      "inherited": true,
+      "exists": true
+    },
+    {
+      "key": "casa",
+      "word": "casa",
+      "file": "assets/img/verbal/casa.png",
+      "inherited": true,
+      "exists": true
+    },
+    {
+      "key": "cebolla",
+      "word": "cebolla",
+      "file": "assets/img/verbal/cebolla.png",
+      "inherited": true,
+      "exists": true
+    },
+    {
+      "key": "cerezas",
+      "word": "cerezas",
+      "file": "assets/img/verbal/cerezas.png",
+      "inherited": true,
+      "exists": true
+    },
+    {
+      "key": "diente",
+      "word": "diente",
+      "file": "assets/img/verbal/diente.png",
+      "inherited": true,
+      "exists": true
+    },
+    {
+      "key": "escalera",
+      "word": "escalera",
+      "file": "assets/img/verbal/escalera.png",
+      "inherited": true,
+      "exists": true
+    },
+    {
+      "key": "escoba",
+      "word": "escoba",
+      "file": "assets/img/verbal/escoba.png",
+      "inherited": true,
+      "exists": true
+    },
+    {
+      "key": "escuela",
+      "word": "escuela",
+      "file": "assets/img/verbal/escuela.png",
+      "inherited": true,
+      "exists": true
+    },
+    {
+      "key": "estrella",
+      "word": "estrella",
+      "file": "assets/img/verbal/estrella.png",
+      "inherited": true,
+      "exists": true
+    },
+    {
+      "key": "fino",
+      "word": "fino",
+      "file": "assets/img/verbal/fino.png",
+      "inherited": true,
+      "exists": true
+    },
+    {
+      "key": "flor",
+      "word": "flor",
+      "file": "assets/img/verbal/flor.png",
+      "inherited": true,
+      "exists": true
+    },
+    {
+      "key": "foca",
+      "word": "foca",
+      "file": "assets/img/verbal/foca.png",
+      "inherited": true,
+      "exists": true
+    },
+    {
+      "key": "fuente",
+      "word": "fuente",
+      "file": "assets/img/verbal/fuente.png",
+      "inherited": true,
+      "exists": true
+    },
+    {
+      "key": "galleta",
+      "word": "galleta",
+      "file": "assets/img/verbal/galleta.png",
+      "inherited": true,
+      "exists": true
+    },
+    {
+      "key": "gallina",
+      "word": "gallina",
+      "file": "assets/img/verbal/gallina.png",
+      "inherited": true,
+      "exists": true
+    },
+    {
+      "key": "gana",
+      "word": "gana",
+      "file": "assets/img/verbal/gana.png",
+      "inherited": true,
+      "exists": true
+    },
+    {
+      "key": "garra",
+      "word": "garra",
+      "file": "assets/img/verbal/garra.png",
+      "inherited": true,
+      "exists": true
+    },
+    {
+      "key": "gata",
+      "word": "gata",
+      "file": "assets/img/verbal/gata.png",
+      "inherited": true,
+      "exists": true
+    },
+    {
+      "key": "gato",
+      "word": "gato",
+      "file": "assets/img/verbal/gato.png",
+      "inherited": true,
+      "exists": true
+    },
+    {
+      "key": "gorra",
+      "word": "gorra",
+      "file": "assets/img/verbal/gorra.png",
+      "inherited": true,
+      "exists": true
+    },
+    {
+      "key": "gota",
+      "word": "gota",
+      "file": "assets/img/verbal/gota.png",
+      "inherited": true,
+      "exists": true
+    },
+    {
+      "key": "hueso",
+      "word": "hueso",
+      "file": "assets/img/verbal/hueso.png",
+      "inherited": true,
+      "exists": true
+    },
+    {
+      "key": "jarra",
+      "word": "jarra",
+      "file": "assets/img/verbal/jarra.png",
+      "inherited": true,
+      "exists": true
+    },
+    {
+      "key": "lampara",
+      "word": "lámpara",
+      "file": "assets/img/verbal/lampara.png",
+      "inherited": true,
+      "exists": true
+    },
+    {
+      "key": "lata",
+      "word": "lata",
+      "file": "assets/img/verbal/lata.png",
+      "inherited": true,
+      "exists": true
+    },
+    {
+      "key": "lino",
+      "word": "lino",
+      "file": "assets/img/verbal/lino.png",
+      "inherited": true,
+      "exists": true
+    },
+    {
+      "key": "loca",
+      "word": "loca",
+      "file": "assets/img/verbal/loca.png",
+      "inherited": true,
+      "exists": true
+    },
+    {
+      "key": "maderas",
+      "word": "maderas",
+      "file": "assets/img/verbal/maderas.png",
+      "inherited": true,
+      "exists": true
+    },
+    {
+      "key": "maleta",
+      "word": "maleta",
+      "file": "assets/img/verbal/maleta.png",
+      "inherited": true,
+      "exists": true
+    },
+    {
+      "key": "manguera",
+      "word": "manguera",
+      "file": "assets/img/verbal/manguera.png",
+      "inherited": true,
+      "exists": true
+    },
+    {
+      "key": "mano",
+      "word": "mano",
+      "file": "assets/img/verbal/mano.png",
+      "inherited": true,
+      "exists": true
+    },
+    {
+      "key": "manya",
+      "word": "maña",
+      "file": "assets/img/verbal/manya.png",
+      "inherited": true,
+      "exists": true
+    },
+    {
+      "key": "manyana",
+      "word": "mañana",
+      "file": "assets/img/verbal/manyana.png",
+      "inherited": true,
+      "exists": true
+    },
+    {
+      "key": "manzana",
+      "word": "manzana",
+      "file": "assets/img/verbal/manzana.png",
+      "inherited": true,
+      "exists": true
+    },
+    {
+      "key": "marca",
+      "word": "marca",
+      "file": "assets/img/verbal/marca.png",
+      "inherited": true,
+      "exists": true
+    },
+    {
+      "key": "mariposa",
+      "word": "mariposa",
+      "file": "assets/img/verbal/mariposa.png",
+      "inherited": true,
+      "exists": true
+    },
+    {
+      "key": "mesa",
+      "word": "mesa",
+      "file": "assets/img/verbal/mesa.png",
+      "inherited": true,
+      "exists": true
+    },
+    {
+      "key": "mono",
+      "word": "mono",
+      "file": "assets/img/verbal/mono.png",
+      "inherited": true,
+      "exists": true
+    },
+    {
+      "key": "ninyo",
+      "word": "niño",
+      "file": "assets/img/verbal/ninyo.png",
+      "inherited": true,
+      "exists": true
+    },
+    {
+      "key": "nota",
+      "word": "nota",
+      "file": "assets/img/verbal/nota.png",
+      "inherited": true,
+      "exists": true
+    },
+    {
+      "key": "numero",
+      "word": "número",
+      "file": "assets/img/verbal/numero.png",
+      "inherited": true,
+      "exists": true
+    },
+    {
+      "key": "orejas",
+      "word": "orejas",
+      "file": "assets/img/verbal/orejas.png",
+      "inherited": true,
+      "exists": true
+    },
+    {
+      "key": "pajaro",
+      "word": "pájaro",
+      "file": "assets/img/verbal/pajaro.png",
+      "inherited": true,
+      "exists": true
+    },
+    {
+      "key": "pala",
+      "word": "pala",
+      "file": "assets/img/verbal/pala.png",
+      "inherited": true,
+      "exists": true
+    },
+    {
+      "key": "pan",
+      "word": "pan",
+      "file": "assets/img/verbal/pan.png",
+      "inherited": true,
+      "exists": true
+    },
+    {
+      "key": "parra",
+      "word": "parra",
+      "file": "assets/img/verbal/parra.png",
+      "inherited": true,
+      "exists": true
+    },
+    {
+      "key": "pastilla",
+      "word": "pastilla",
+      "file": "assets/img/verbal/pastilla.png",
+      "inherited": true,
+      "exists": true
+    },
+    {
+      "key": "pata",
+      "word": "pata",
+      "file": "assets/img/verbal/pata.png",
+      "inherited": true,
+      "exists": true
+    },
+    {
+      "key": "pato",
+      "word": "pato",
+      "file": "assets/img/verbal/pato.png",
+      "inherited": true,
+      "exists": true
+    },
+    {
+      "key": "peine",
+      "word": "peine",
+      "file": "assets/img/verbal/peine.png",
+      "inherited": true,
+      "exists": true
+    },
+    {
+      "key": "pelota",
+      "word": "pelota",
+      "file": "assets/img/verbal/pelota.png",
+      "inherited": true,
+      "exists": true
+    },
+    {
+      "key": "peso",
+      "word": "peso",
+      "file": "assets/img/verbal/peso.png",
+      "inherited": true,
+      "exists": true
+    },
+    {
+      "key": "pez",
+      "word": "pez",
+      "file": "assets/img/verbal/pez.png",
+      "inherited": true,
+      "exists": true
+    },
+    {
+      "key": "pila",
+      "word": "pila",
+      "file": "assets/img/verbal/pila.png",
+      "inherited": true,
+      "exists": true
+    },
+    {
+      "key": "pino",
+      "word": "pino",
+      "file": "assets/img/verbal/pino.png",
+      "inherited": true,
+      "exists": true
+    },
+    {
+      "key": "platano",
+      "word": "plátano",
+      "file": "assets/img/verbal/platano.png",
+      "inherited": true,
+      "exists": true
+    },
+    {
+      "key": "pota",
+      "word": "pota",
+      "file": "assets/img/verbal/pota.png",
+      "inherited": true,
+      "exists": true
+    },
+    {
+      "key": "puente",
+      "word": "puente",
+      "file": "assets/img/verbal/puente.png",
+      "inherited": true,
+      "exists": true
+    },
+    {
+      "key": "queso",
+      "word": "queso",
+      "file": "assets/img/verbal/queso.png",
+      "inherited": true,
+      "exists": true
+    },
+    {
+      "key": "rana",
+      "word": "rana",
+      "file": "assets/img/verbal/rana.png",
+      "inherited": true,
+      "exists": true
+    },
+    {
+      "key": "rata",
+      "word": "rata",
+      "file": "assets/img/verbal/rata.png",
+      "inherited": true,
+      "exists": true
+    },
+    {
+      "key": "reina",
+      "word": "reina",
+      "file": "assets/img/verbal/reina.png",
+      "inherited": true,
+      "exists": true
+    },
+    {
+      "key": "roca",
+      "word": "roca",
+      "file": "assets/img/verbal/roca.png",
+      "inherited": true,
+      "exists": true
+    },
+    {
+      "key": "rodilla",
+      "word": "rodilla",
+      "file": "assets/img/verbal/rodilla.png",
+      "inherited": true,
+      "exists": true
+    },
+    {
+      "key": "rota",
+      "word": "rota",
+      "file": "assets/img/verbal/rota.png",
+      "inherited": true,
+      "exists": true
+    },
+    {
+      "key": "sabana",
+      "word": "sábana",
+      "file": "assets/img/verbal/sabana.png",
+      "inherited": true,
+      "exists": true
+    },
+    {
+      "key": "semana",
+      "word": "semana",
+      "file": "assets/img/verbal/semana.png",
+      "inherited": true,
+      "exists": true
+    },
+    {
+      "key": "semilla",
+      "word": "semilla",
+      "file": "assets/img/verbal/semilla.png",
+      "inherited": true,
+      "exists": true
+    },
+    {
+      "key": "seso",
+      "word": "seso",
+      "file": "assets/img/verbal/seso.png",
+      "inherited": true,
+      "exists": true
+    },
+    {
+      "key": "sol",
+      "word": "sol",
+      "file": "assets/img/verbal/sol.png",
+      "inherited": true,
+      "exists": true
+    },
+    {
+      "key": "taza",
+      "word": "taza",
+      "file": "assets/img/verbal/taza.png",
+      "inherited": true,
+      "exists": true
+    },
+    {
+      "key": "tijeras",
+      "word": "tijeras",
+      "file": "assets/img/verbal/tijeras.png",
+      "inherited": true,
+      "exists": true
+    },
+    {
+      "key": "toca",
+      "word": "toca",
+      "file": "assets/img/verbal/toca.png",
+      "inherited": true,
+      "exists": true
+    },
+    {
+      "key": "vaca",
+      "word": "vaca",
+      "file": "assets/img/verbal/vaca.png",
+      "inherited": true,
+      "exists": true
+    },
+    {
+      "key": "ventana",
+      "word": "ventana",
+      "file": "assets/img/verbal/ventana.png",
+      "inherited": true,
+      "exists": true
+    },
+    {
+      "key": "vino",
+      "word": "vino",
+      "file": "assets/img/verbal/vino.png",
+      "inherited": true,
+      "exists": true
+    },
+    {
+      "key": "yeso",
+      "word": "yeso",
+      "file": "assets/img/verbal/yeso.png",
+      "inherited": true,
+      "exists": true
+    },
+    {
+      "key": "zapato",
+      "word": "zapato",
+      "file": "assets/img/verbal/zapato.png",
+      "inherited": true,
+      "exists": true
+    }
+  ]
+}
