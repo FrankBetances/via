@@ -238,8 +238,35 @@ puede cumplir — comprobado el 22/8/2026 antes de escribir esta línea.
 con 16 en rojo permanente, nadie distingue el número 17. Arreglado donde tocaba,
 en `.eslintrc.js`: esos ficheros corren en Node y no se empaquetan nunca, así que
 llevan `env: { node: true }` por `overrides`. **Cualquier error es tuyo ahora.**
-Quedan ~650 avisos (`no-bitwise` en el DSP, `no-void`, disables obsoletos): son
-avisos, no errores, y tocarlos es reescribir el DSP.
+
+Y desde el **31/8/2026 sale también con 0 AVISOS**, desde los 725 que
+arrastraba. La frase que ocupaba este hueco —«quedan ~650 avisos: son avisos, no
+errores, y tocarlos es reescribir el DSP»— era la misma figura que los 16
+errores «preexistentes» de arriba, un piso de ruido con el que nadie ve el aviso
+727. Cómo se cerraron, porque marca lo que se espera de aquí en adelante:
+
+- **Lo que era un fallo de verdad, arreglado en el código.** Dos componentes
+  definidos DENTRO del render (`StepButton`, y `ParamCard`/`TakeRow` del
+  análisis de voz), que hacían a React desmontar el subárbol entero en cada
+  render; 26 variables que tapaban otra del ámbito exterior; un `require` sin
+  usar.
+- **Lo que era el linter equivocándose de dominio, en su sitio y CON MOTIVO.**
+  `no-bitwise` no se discute en el cable de Lúa, el SFLOAT del pulsioxímetro, el
+  CRC-32 del PNG ni las dos divisiones enteras del DSP: cada silenciador lleva
+  escrito por qué, como ya hacía `scripts/resize-verbal-images.js`. `no-void`
+  usa `allowAsStatement`, la opción que la propia regla trae para el disparo sin
+  espera. **Un silenciador en blanco no vale**: se quitaron los que había, y
+  `eslint-comments/no-unused-disable` avisa solo cuando uno se queda obsoleto.
+- **Los 577 estilos en línea, a `@/Theme/styleAtoms` y a hojas locales.** Los
+  átomos son los retoques sueltos y llevan nombre derivado del contenido
+  (`flex1`, `marginTop2`); un estilo con significado propio va al `StyleSheet`
+  de su pantalla con nombre pensado, como el decorado de `TrainScene`. Antes de
+  añadir uno nuevo, busca el que ya existe.
+
+**El listón es cero, y un aviso nuevo es tuyo igual que un error.** Lo que NO se
+comprobó: nada de esto se ha visto en el emulador; que el aspecto no cambie está
+razonado sobre el código —mismos valores, mismo orden— y verificado con `tsc` y
+los 870 tests, no en pantalla.
 
 Todo cambio de **texto locutado** lleva `node scripts/export-voice-corpus.js` y
 `node scripts/build-voice-asset-map.js` en el MISMO commit; sin ellos las
