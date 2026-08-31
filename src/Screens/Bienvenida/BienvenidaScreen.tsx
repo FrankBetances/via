@@ -39,6 +39,8 @@ import {
 import type { RootStackParamList } from '@/Navigators/screenTypeNavigator';
 import ViaIcon from '@/Components/Common/ViaIcon';
 
+import { useT } from '@/I18n';
+import { ORBIT_MODULES } from '@/Screens/Creditos/orbitModules';
 type Nav = NativeStackNavigationProp<RootStackParamList, 'Bienvenida'>;
 
 /* -------------------------------------------------------------------------- */
@@ -210,6 +212,7 @@ function Particle({
 }
 
 export default function BienvenidaScreen() {
+  const t = useT();
   const navigation = useNavigation<Nav>();
   const insets = useSafeAreaInsets();
   const { width: winW, height: winH } = useWindowDimensions();
@@ -343,9 +346,9 @@ export default function BienvenidaScreen() {
             <View style={styles.stageCardHeader}>
               <View style={styles.signalLiveBadge}>
                 <View style={styles.liveDot} />
-                <Text style={styles.signalLiveText}>PROCESAMIENTO DSP</Text>
+                <Text style={styles.signalLiveText}>{t.bienvenida.procesamientoDsp}</Text>
               </View>
-              <Text style={styles.signalSamplingText}>48 kHz · 24-bit</Text>
+              <Text style={styles.signalSamplingText}>{t.bienvenida.n48Khz24Bit}</Text>
             </View>
 
             {/* Contenedor del osciloscopio cinemático */}
@@ -425,14 +428,14 @@ export default function BienvenidaScreen() {
             {/* Cápsula de transformación DSP */}
             <View style={styles.stageLabelsRow}>
               <View style={styles.stagePillLeft}>
-                <Text style={styles.stageLabelLeft}>RUIDO</Text>
+                <Text style={styles.stageLabelLeft}>{t.bienvenida.ruido}</Text>
               </View>
               <View style={styles.arrowRow}>
                 <View style={styles.arrowLine} />
                 <Text style={styles.arrowHead}>➔</Text>
               </View>
               <View style={styles.stagePillRight}>
-                <Text style={styles.stageLabelRight}>INFORMACIÓN CLÍNICA</Text>
+                <Text style={styles.stageLabelRight}>{t.bienvenida.informacionClinica}</Text>
               </View>
             </View>
           </View>
@@ -455,27 +458,30 @@ export default function BienvenidaScreen() {
             </View>
             <View style={styles.samdHeaderPill}>
               <ShieldCheck size={14} color="#0D9488" strokeWidth={2.2} />
-              <Text style={styles.samdHeaderText}>SaMD Clase IIa</Text>
+              <Text style={styles.samdHeaderText}>{t.bienvenida.samdClaseIia}</Text>
             </View>
           </View>
 
           {/* Titular Principal */}
           <View style={styles.titleWrapper}>
-            <Text style={styles.titleEyebrow}>VALORACIÓN INTERACTIVA DE AUDICIÓN Y LENGUAJE</Text>
+            <Text style={styles.titleEyebrow}>{t.bienvenida.valoracionInteractivaAudicionLenguaje}</Text>
             <Text style={[styles.titleLead, isTabletLandscape && styles.titleLeadWide]}>
-              Del ruido a la
+              
+              {t.bienvenida.ruido2}
             </Text>
             <View style={styles.titleHighlightPill}>
               <Sparkles size={isTabletLandscape ? 26 : 20} color="#9A3412" strokeWidth={2} style={styles.sparkleIcon} />
               <Text style={[styles.titleHighlightText, isTabletLandscape && styles.titleHighlightWide]}>
-                información clínica
+                
+                {t.bienvenida.informacionClinica2}
               </Text>
             </View>
           </View>
 
           {/* Descripción clínica */}
           <Text style={[styles.description, isTabletLandscape && styles.descriptionWide]}>
-            Plataforma avanzada de evaluación audiológica y del lenguaje. Procesa objetivamente la acústica vocal y el comportamiento auditivo para una toma de decisiones clínicas con máxima precisión.
+            
+            {t.bienvenida.plataformaAvanzadaEvaluacionAudiologicaLenguaje}
           </Text>
 
           {/* 3 Tarjetas de Valor Clínico Enriquecidas */}
@@ -486,9 +492,10 @@ export default function BienvenidaScreen() {
                 <Stethoscope size={20} color="#0284C7" strokeWidth={2.2} />
               </View>
               <View style={styles.cardContent}>
-                <Text style={styles.cardTitle}>12 Módulos de Batería Clínica</Text>
+                <Text style={styles.cardTitle}>{t.bienvenida.modulosBateria(ORBIT_MODULES.length)}</Text>
                 <Text style={styles.cardSubtitle}>
-                  Audiometría (tonal, CPA y verbal), voz acústica, prosodia, articulación, disfagia, SAHS y FE.
+                  
+                  {t.bienvenida.audiometriaTonalCpaVerbalVoz}
                 </Text>
               </View>
             </View>
@@ -499,9 +506,10 @@ export default function BienvenidaScreen() {
                 <Lock size={19} color="#0D9488" strokeWidth={2.2} />
               </View>
               <View style={styles.cardContent}>
-                <Text style={styles.cardTitle}>100% On-Device · Zero-PHI</Text>
+                <Text style={styles.cardTitle}>{t.bienvenida.n100OnDeviceZeroPhi}</Text>
                 <Text style={styles.cardSubtitle}>
-                  DSP acústico local sin subida de audio a la nube. Privacidad total y cumplimiento normativo estricto.
+                  
+                  {t.bienvenida.dspAcusticoLocalSinSubida}
                 </Text>
               </View>
             </View>
@@ -512,9 +520,10 @@ export default function BienvenidaScreen() {
                 <Award size={20} color="#D97706" strokeWidth={2.2} />
               </View>
               <View style={styles.cardContent}>
-                <Text style={styles.cardTitle}>Sello de Calidad ITEMAS 2024</Text>
+                <Text style={styles.cardTitle}>{t.bienvenida.selloCalidadItemas2024}</Text>
                 <Text style={styles.cardSubtitle}>
-                  Innovación sanitaria avalada por el Instituto de Salud Carlos III y validación multicéntrica.
+                  
+                  {t.bienvenida.innovacionSanitariaAvaladaInstitutoSalud}
                 </Text>
               </View>
             </View>
@@ -524,13 +533,13 @@ export default function BienvenidaScreen() {
           <Animated.View style={[styles.ctaWrapper, btnAnimatedStyle]}>
             <Pressable
               accessibilityRole="button"
-              accessibilityLabel="Comenzar Exploración Clínica"
-              accessibilityHint="Navega a la pantalla de créditos e inicio de sesión"
+              accessibilityLabel={t.bienvenida.comenzarExploracionClinica}
+              accessibilityHint={t.bienvenida.navegaPantallaCreditosEInicio}
               style={({ pressed }) => [styles.ctaButton, pressed && styles.ctaButtonPressed]}
               onPressIn={handlePressIn}
               onPressOut={handlePressOut}
               onPress={handleStart}>
-              <Text style={styles.ctaButtonText}>Comenzar Exploración</Text>
+              <Text style={styles.ctaButtonText}>{t.bienvenida.comenzarExploracion}</Text>
               <View style={styles.ctaArrowCircle}>
                 <ArrowRight size={18} color="#FF7F00" strokeWidth={2.6} />
               </View>
@@ -541,7 +550,8 @@ export default function BienvenidaScreen() {
           <View style={styles.regulatoryRow}>
             <Activity size={13} color="#9C9284" />
             <Text style={styles.regulatoryNote}>
-              VIA+ Medical System · MDR 2017/745 · IEC 62304 / ISO 14971
+              
+              {t.bienvenida.viaMedicalSystemMdr2017}
             </Text>
           </View>
         </Animated.View>

@@ -42,4 +42,20 @@ export const ES_DO: UiStrings = {
     volver: 'Regresar',
     firmeAqui: 'Firme aquí con el dedo o con un lápiz táctil',
   },
+  seleccionProfesional: {
+    ...ES.seleccionProfesional,
+    eligeTuPerfilAccedeTu: 'Elige tu perfil e ingresa con tu contraseña',
+    aunHayProfesionalesEsteDispositivo: 'Todavía no hay profesionales en este dispositivo. Registra tu perfil para comenzar.',
+    acceder: 'Ingresar →',
+  },
+
+  seleccionEjercicios: {
+    ...ES.seleccionEjercicios,
+    sonometroSala: 'Sonómetro de la sala',
+  },
+
+  bienvenida: {
+    ...ES.bienvenida,
+    n100OnDeviceZeroPhi: '100% en el dispositivo · Zero-PHI',
+  },
 };

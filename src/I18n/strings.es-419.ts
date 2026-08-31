@@ -47,4 +47,24 @@ export const ES_419: UiStrings = {
     tamanoLetra: 'Tamaño de letra',
     firmeAqui: 'Firme aquí con el dedo o con un lápiz táctil',
   },
+  seleccionProfesional: {
+    ...ES.seleccionProfesional,
+    eligeTuPerfilAccedeTu: 'Elige tu perfil e ingresa con tu contraseña',
+    creaTuPerfilSolaVez: 'Crea tu perfil una sola vez en este dispositivo',
+    aunHayProfesionalesEsteDispositivo: 'Todavía no hay profesionales en este dispositivo. Registra tu perfil para comenzar.',
+    acceder: 'Ingresar →',
+  },
+
+  seleccionEjercicios: {
+    ...ES.seleccionEjercicios,
+    volverCap: 'Volver al centro de atención',
+    sonometroSala: 'Sonómetro de la sala',
+    cerrarSesion: 'Cerrar la sesión',
+  },
+
+  bienvenida: {
+    ...ES.bienvenida,
+    n100OnDeviceZeroPhi: '100% en el dispositivo · Zero-PHI',
+    dspAcusticoLocalSinSubida: 'DSP acústico local sin subir audio a la nube. Privacidad total y cumplimiento normativo estricto.',
+  },
 };

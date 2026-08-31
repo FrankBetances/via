@@ -124,6 +124,62 @@ export const ES = {
     frecuenciaHz: 'Frecuencia (Hz)',
     genial: '¡GENIAL! ⭐',
   },
+  seleccionProfesional: {
+    col: 'Col.',
+    quienVaEvaluarHoy: '¿Quién va a evaluar hoy?',
+    eligeTuPerfilAccedeTu: 'Elige tu perfil y accede con tu contraseña',
+    registrarNuevoProfesional: 'Registrar nuevo profesional',
+    creaTuPerfilSolaVez: 'Crea tu perfil una sola vez en este dispositivo',
+    n1PerfilRegistrado: '1 PERFIL REGISTRADO',
+    perfilesRegistrados: (a: string | number) => `${a} PERFILES REGISTRADOS`,
+    cargandoPerfiles: 'Cargando perfiles…',
+    aunHayProfesionalesEsteDispositivo: 'Aún no hay profesionales en este dispositivo. Registra tu perfil para comenzar.',
+    contrasena: 'Contraseña',
+    cancelar: 'Cancelar',
+    acceder: 'Acceder →',
+  },
+
+  seleccionEjercicios: {
+    volverCap: 'Volver al CAP',
+    sonometroSala: 'Sonómetro de sala',
+    comprobarAudio: 'Comprobar audio',
+    reintentando: 'Reintentando…',
+    reintentarVozSistema: 'Reintentar la voz del sistema',
+    comprobarTodaCadena: 'Comprobar toda la cadena',
+    verResultadosPreliminares: 'Ver resultados preliminares',
+    historialPaciente: 'Historial del paciente',
+    cerrarSesion: 'Cerrar sesión',
+    ningunaPruebaCola: 'Ninguna prueba en cola',
+    pruebaCola: (a: string | number) => `${a} ${Number(a) === 1 ? 'prueba' : 'pruebas'} en cola`,
+    tiempoTotal: '⏱️ Tiempo total: ~',
+    min: 'min',
+    limpiar: 'Limpiar',
+  },
+
+  bienvenida: {
+    procesamientoDsp: 'PROCESAMIENTO DSP',
+    n48Khz24Bit: '48 kHz · 24-bit',
+    ruido: 'RUIDO',
+    informacionClinica: 'INFORMACIÓN CLÍNICA',
+    samdClaseIia: 'SaMD Clase IIa',
+    valoracionInteractivaAudicionLenguaje: 'VALORACIÓN INTERACTIVA DE AUDICIÓN Y LENGUAJE',
+    ruido2: 'Del ruido a la',
+    informacionClinica2: 'información clínica',
+    plataformaAvanzadaEvaluacionAudiologicaLenguaje: 'Plataforma avanzada de evaluación audiológica y del lenguaje. Procesa objetivamente la acústica vocal y el comportamiento auditivo para una toma de decisiones clínicas con máxima precisión.',
+    /* El número se DEDUCE de la constelación de módulos. Estaba escrito a mano
+     * como «12» con trece módulos en la batería: el mismo defecto que ya se
+     * corrigió en Créditos, y que traducirlo a siete lenguas habría fijado. */
+    modulosBateria: (a: string | number) => `${a} Módulos de Batería Clínica`,
+    audiometriaTonalCpaVerbalVoz: 'Audiometría (tonal, CPA y verbal), voz acústica, prosodia, articulación, disfagia, SAHS y FE.',
+    n100OnDeviceZeroPhi: '100% On-Device · Zero-PHI',
+    dspAcusticoLocalSinSubida: 'DSP acústico local sin subida de audio a la nube. Privacidad total y cumplimiento normativo estricto.',
+    selloCalidadItemas2024: 'Sello de Calidad ITEMAS 2024',
+    innovacionSanitariaAvaladaInstitutoSalud: 'Innovación sanitaria avalada por el Instituto de Salud Carlos III y validación multicéntrica.',
+    comenzarExploracionClinica: 'Comenzar Exploración Clínica',
+    navegaPantallaCreditosEInicio: 'Navega a la pantalla de créditos e inicio de sesión',
+    comenzarExploracion: 'Comenzar Exploración',
+    viaMedicalSystemMdr2017: 'VIA+ Medical System · MDR 2017/745 · IEC 62304 / ISO 14971',
+  },
 } as const;
 
 /**
