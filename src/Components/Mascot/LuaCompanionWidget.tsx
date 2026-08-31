@@ -18,6 +18,7 @@ import { Sparkles, Wind, Award, Heart, CheckCircle2, Ear } from 'lucide-react-na
 import { CatPixel } from './LuaPixel';
 import { LuaEmotion, LuaBadgeInfo } from '@/Lua';
 
+import { useT } from '@/I18n';
 export interface LuaCompanionWidgetProps {
   emotion?: LuaEmotion;
   isBreathing?: boolean;
@@ -110,6 +111,7 @@ export const LuaCompanionWidget: React.FC<LuaCompanionWidgetProps> = ({
   connected = false,
   level,
 }) => {
+  const t = useT();
   const breathAnim = useRef(new Animated.Value(1)).current;
   const meta = EMOTION_META[emotion] ?? EMOTION_META[LuaEmotion.Tranquility];
 
@@ -192,7 +194,8 @@ export const LuaCompanionWidget: React.FC<LuaCompanionWidgetProps> = ({
             <HStack alignItems="center" space="xs">
               <Icon as={meta.icon} size="xs" color={meta.color} />
               <Text size="2xs" weight="bold" color={meta.color} style={{ textTransform: 'uppercase', letterSpacing: 0.5 }}>
-                Lúa · {isBreathing ? 'Respiración Guiada' : meta.label}
+                
+                {t.components.lua} {isBreathing ? t.components.respiracionGuiada : meta.label}
               </Text>
             </HStack>
 
@@ -200,13 +203,15 @@ export const LuaCompanionWidget: React.FC<LuaCompanionWidgetProps> = ({
               <HStack alignItems="center" space="xs" bg="$emerald100" px="$2" py="$0.5" borderRadius="$full">
                 <Icon as={CheckCircle2} size="2xs" color="$emerald700" />
                 <Text size="2xs" weight="bold" color="$emerald800">
-                  ESP32 BLE
+                  
+                  {t.components.esp32Ble}
                 </Text>
               </HStack>
             ) : level ? (
               <Box bg="$primary100" px="$2" py="$0.5" borderRadius="$full">
                 <Text size="2xs" weight="bold" color="$primary800">
-                  Nivel {level}/12
+                  
+                  {t.components.nivel} {level}/12
                 </Text>
               </Box>
             ) : null}

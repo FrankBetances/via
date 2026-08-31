@@ -215,7 +215,15 @@ node scripts/check-verbal-coverage.js --strict
 node scripts/check-lua-sprite.js
 node scripts/resize-verbal-images.js --check
 node scripts/build-lua-protocol.js --check
+node scripts/check-ui-strings.js
 ```
+
+`check-ui-strings.js` (portado de Valeria+, agosto 2026) prohíbe texto literal
+en los `.tsx`: la interfaz se lee entera del catálogo de `src/I18n/`. Sin él,
+migrar 40 ficheros «a ojo» deja la app mitad en un idioma y mitad en otro sin
+que nada avise — es lo que pasó en Valeria+ dos veces. Para exceptuar una línea
+(un nombre propio, una marca), un comentario en ella o en la anterior:
+`// i18n-exempt: motivo`. El motivo es obligatorio.
 
 `scripts/check-android-permissions.js` **NO va en esa lista**: necesita el
 manifiesto FUSIONADO de release y en local siempre falla con «no encuentro el

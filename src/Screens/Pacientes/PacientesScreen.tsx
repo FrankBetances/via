@@ -22,6 +22,7 @@ import { InformedConsentRepository } from '@/Repositories/InformedConsentReposit
 import { showErrorToast } from '@/Helpers/showToast';
 import { writeWithVerify } from '@/Helpers/dbWrite';
 
+import { useT } from '@/I18n';
 /* -------------------------------------------------------------------------- */
 /*  PacientesScreen — lista/búsqueda de pacientes (mockup `Pacientes.dc.html`)*/
 /*  "Nuevo paciente" abre el alta (`RegistroPaciente`). Al seleccionar un      */
@@ -62,9 +63,10 @@ const PatientListItem = React.memo(function PatientListItem({
   onPress,
   onHistory,
 }: PatientListItemProps) {
+  const t = useT();
   const { patient, latestEvaluation } = row;
   const completed = latestEvaluation?.status === 'completed';
-  const statusLabel = completed ? 'Completado' : 'En curso';
+  const statusLabel = completed ? t.pacientes.completado : t.pacientes.curso;
   const statusBg = completed ? '$success50' : '$warning50';
   const statusFg = completed ? '$success700' : '$warning800';
 
@@ -84,12 +86,13 @@ const PatientListItem = React.memo(function PatientListItem({
               </Text>
               <Box bg="$backgroundLight100" px="$2" py="$0.5" borderRadius="$full">
                 <Text size="2xs" weight="bold" color="$textLight500" style={{ fontVariant: ['tabular-nums'] }}>
-                  NHC {patient.idHash}
+                  
+                  {t.pacientes.nhc} {patient.idHash}
                 </Text>
               </Box>
             </HStack>
             <Text size="2xs" color="$textLight400" mt="$0.5" style={{ fontVariant: ['tabular-nums'] }}>
-              {patient.dobEnc} · {latestEvaluation ? 'Evaluación registrada' : 'Sin evaluaciones previas'}
+              {patient.dobEnc} · {latestEvaluation ? t.pacientes.evaluacionRegistrada : t.pacientes.sinEvaluacionesPrevias}
             </Text>
           </VStack>
           <VStack alignItems="flex-end" space="xs">
@@ -110,7 +113,7 @@ const PatientListItem = React.memo(function PatientListItem({
       <Pressable
         onPress={() => onHistory(row)}
         accessibilityRole="button"
-        accessibilityLabel={`Ver resultados de ${patient.nameEnc}`}>
+        accessibilityLabel={t.pacientes.verResultados(patient.nameEnc)}>
         <HStack
           space="xs"
           alignItems="center"
@@ -122,7 +125,8 @@ const PatientListItem = React.memo(function PatientListItem({
           borderColor="$borderLight200">
           <Icon as={FileClock} size="xs" color="$primary600" />
           <Text size="2xs" weight="bold" color="$primary600">
-            Ver resultados de pruebas realizadas
+            
+            {t.pacientes.verResultadosPruebasRealizadas}
           </Text>
         </HStack>
       </Pressable>
@@ -131,6 +135,7 @@ const PatientListItem = React.memo(function PatientListItem({
 });
 
 export default function PacientesScreen({ navigation }: Props) {
+  const t = useT();
   const dispatch = useDispatch<AppDispatch>();
   const currentProfessional = useSelector((state: RootState) => state.auth.currentProfessional);
 
@@ -290,10 +295,12 @@ export default function PacientesScreen({ navigation }: Props) {
               <HStack alignItems="flex-start" justifyContent="space-between">
                 <VStack>
                   <Text size="2xl" weight="bold" color="$textLight900">
-                    Pacientes
+                    
+                    {t.pacientes.pacientes}
                   </Text>
                   <Text size="xs" color="$textLight500">
-                    Crea un registro nuevo o abre un expediente previo
+                    
+                    {t.pacientes.creaRegistroNuevoAbreExpediente}
                   </Text>
                 </VStack>
                 {currentProfessional ? (
@@ -317,7 +324,7 @@ export default function PacientesScreen({ navigation }: Props) {
                         dispatch(logout());
                       }}
                       accessibilityRole="button"
-                      accessibilityLabel="Cerrar sesión">
+                      accessibilityLabel={t.pacientes.cerrarSesion}>
                       <Center w={36} h={36} borderRadius="$full" borderWidth={1.5} borderColor="$error200" bg="$error50">
                         <Icon as={LogOut} size="sm" color="$error500" />
                       </Center>
@@ -342,10 +349,12 @@ export default function PacientesScreen({ navigation }: Props) {
                   </Center>
                   <VStack style={{ flex: 1 }}>
                     <Text size="sm" weight="bold" color="$textLight900">
-                      Nuevo paciente
+                      
+                      {t.pacientes.nuevoPaciente}
                     </Text>
                     <Text size="xs" color="$textLight500" style={{ lineHeight: 16 }}>
-                      Registra los datos de un paciente y empieza una sesión de evaluación
+                      
+                      {t.pacientes.registraDatosPacienteEmpiezaSesion}
                     </Text>
                   </VStack>
                   <Icon as={ChevronRight} size="sm" color="$textLight400" />
@@ -355,24 +364,25 @@ export default function PacientesScreen({ navigation }: Props) {
               {/* ----- search + list header ----- */}
               <HStack alignItems="center" justifyContent="space-between" mt="$2">
                 <Text size="sm" weight="bold" color="$textLight800">
-                  Registros previos
+                  
+                  {t.pacientes.registrosPrevios}
                 </Text>
                 <Box bg="$backgroundLight100" px="$2.5" py="$0.5" borderRadius="$full">
                   <Text size="2xs" weight="bold" color="$textLight500">
-                    {rows.length} expediente{rows.length === 1 ? '' : 's'}
+                    {rows.length}  {t.pacientes.expediente}{rows.length === 1 ? '' : 's'}
                   </Text>
                 </Box>
               </HStack>
 
               <Input variant="outline" borderRadius={14} bg="$white">
                 <Icon as={Search} size="sm" color="$textLight400" ml="$3" />
-                <InputField placeholder="Buscar por nombre o NHC…" value={query} onChangeText={setQuery} />
+                <InputField placeholder={t.pacientes.buscarNombreNhc} value={query} onChangeText={setQuery} />
               </Input>
             </VStack>
           }
           ListEmptyComponent={
             <Text size="xs" color="$textLight400" style={{ textAlign: 'center' }} mt="$4">
-              {isLoading ? 'Cargando pacientes…' : 'Sin expedientes registrados todavía.'}
+              {isLoading ? t.pacientes.cargandoPacientes : t.pacientes.sinExpedientesRegistradosTodavia}
             </Text>
           }
         />

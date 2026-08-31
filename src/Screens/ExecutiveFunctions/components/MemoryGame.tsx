@@ -3,6 +3,7 @@ import { Center, HStack, VStack } from '@gluestack-ui/themed';
 
 import { Text } from '@/Components/Common';
 import GameCard from './GameCard';
+import { useT } from '@/I18n';
 import {
   buildMemorySequence,
   expectedMemoryAnswer,
@@ -30,6 +31,7 @@ export default function MemoryGame({
   seed: number;
   onFinish: (result: MemoryResult) => void;
 }) {
+  const t = useT();
   const [span, setSpan] = useState(plan.startSpan);
   const [attempt, setAttempt] = useState(1);
   const [stage, setStage] = useState<Stage>('watch');
@@ -160,7 +162,8 @@ export default function MemoryGame({
 
       <HStack space="xs" alignItems="center">
         <Text size="xs" color="$textLight500">
-          Secuencia de {span}
+          
+          {t.efGames.secuencia} {span}
         </Text>
         {stage === 'answer' ? (
           <Text size="xs" weight="bold" color="$primary600">

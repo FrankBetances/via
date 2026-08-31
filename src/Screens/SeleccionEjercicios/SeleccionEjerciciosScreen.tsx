@@ -40,6 +40,7 @@ import CategoryFilterChip from './CategoryFilterChip';
 import { MODULES } from './moduleCards';
 import { CategoryType } from './CategoryBadgeIcon';
 
+import { useT } from '@/I18n';
 /* -------------------------------------------------------------------------- */
 /*  SeleccionEjerciciosScreen — Hub clínico con diseño en tableta (4:3)        */
 /*  Pixel-perfect según la referencia visual aprobada de VIA+                  */
@@ -70,6 +71,7 @@ const CATEGORIES: FilterCategoryDef[] = [
 ];
 
 export default function SeleccionEjerciciosScreen({ navigation }: Props) {
+  const t = useT();
   const dispatch = useDispatch<AppDispatch>();
   const { width } = useWindowDimensions();
 
@@ -257,14 +259,16 @@ export default function SeleccionEjerciciosScreen({ navigation }: Props) {
             {/* Acceso directo a CAP */}
             <Pressable onPress={() => navigation.navigate('ClinicalAssessment')}>
               <Text size="xs" weight="medium" style={{ color: '#64748B', textDecorationLine: 'underline' }}>
-                Volver al CAP
+                
+                {t.seleccionEjercicios.volverCap}
               </Text>
             </Pressable>
 
             {/* Acceso a Sonómetro */}
             <Pressable onPress={() => navigation.navigate('RoomNoiseCheck')}>
               <Text size="xs" weight="medium" style={{ color: '#64748B', textDecorationLine: 'underline' }}>
-                Sonómetro de sala
+                
+                {t.seleccionEjercicios.sonometroSala}
               </Text>
             </Pressable>
 
@@ -274,7 +278,8 @@ export default function SeleccionEjerciciosScreen({ navigation }: Props) {
                 tiene desde dónde averiguar qué eslabón está roto. */}
             <Pressable onPress={() => navigation.navigate('DiagnosticoAudio')}>
               <Text size="xs" weight="medium" style={{ color: '#64748B', textDecorationLine: 'underline' }}>
-                Comprobar audio
+                
+                {t.seleccionEjercicios.comprobarAudio}
               </Text>
             </Pressable>
           </HStack>
@@ -296,7 +301,7 @@ export default function SeleccionEjerciciosScreen({ navigation }: Props) {
                 <Pressable style={{ flex: 1 }} onPress={voiceEngine.retry} disabled={voiceEngine.retrying}>
                   <Center py="$1.5" borderRadius={10} borderWidth={1} borderColor="#FECACA" bg="#FFFFFF">
                     <Text size="2xs" weight="bold" style={{ color: '#DC2626' }}>
-                      {voiceEngine.retrying ? 'Reintentando…' : 'Reintentar la voz del sistema'}
+                      {voiceEngine.retrying ? t.seleccionEjercicios.reintentando : t.seleccionEjercicios.reintentarVozSistema}
                     </Text>
                   </Center>
                 </Pressable>
@@ -306,7 +311,8 @@ export default function SeleccionEjerciciosScreen({ navigation }: Props) {
                 <Pressable style={{ flex: 1 }} onPress={() => navigation.navigate('DiagnosticoAudio')}>
                   <Center py="$1.5" borderRadius={10} borderWidth={1} borderColor="#FECACA" bg="#FFFFFF">
                     <Text size="2xs" weight="bold" style={{ color: '#DC2626' }}>
-                      Comprobar toda la cadena
+                      
+                      {t.seleccionEjercicios.comprobarTodaCadena}
                     </Text>
                   </Center>
                 </Pressable>
@@ -374,7 +380,8 @@ export default function SeleccionEjerciciosScreen({ navigation }: Props) {
               <HStack alignItems="center" space="xs" px="$4" py="$2" borderRadius={12} bg="#FFFFFF" borderWidth={1} borderColor="#E2DDD5">
                 <CheckCircle2 size={15} color="#0D9488" />
                 <Text size="xs" weight="bold" color="#0D9488">
-                  Ver resultados preliminares
+                  
+                  {t.seleccionEjercicios.verResultadosPreliminares}
                 </Text>
               </HStack>
             </Pressable>
@@ -391,7 +398,8 @@ export default function SeleccionEjerciciosScreen({ navigation }: Props) {
                 <HStack alignItems="center" space="xs" px="$4" py="$2" borderRadius={12} bg="#FFFFFF" borderWidth={1} borderColor="#E2DDD5">
                   <FileClock size={15} color="#475569" />
                   <Text size="xs" weight="bold" color="#475569">
-                    Historial del paciente
+                    
+                    {t.seleccionEjercicios.historialPaciente}
                   </Text>
                 </HStack>
               </Pressable>
@@ -405,7 +413,8 @@ export default function SeleccionEjerciciosScreen({ navigation }: Props) {
               <HStack alignItems="center" space="xs" px="$4" py="$2" borderRadius={12} bg="#FEF2F2" borderWidth={1} borderColor="#FECACA">
                 <LogOut size={15} color="#DC2626" />
                 <Text size="xs" weight="bold" color="#DC2626">
-                  Cerrar sesión
+                  
+                  {t.seleccionEjercicios.cerrarSesion}
                 </Text>
               </HStack>
             </Pressable>
@@ -421,14 +430,15 @@ export default function SeleccionEjerciciosScreen({ navigation }: Props) {
             <HStack alignItems="center" space="xs">
               <Text size="sm" weight="bold" style={{ color: '#1E293B', fontSize: 14 }}>
                 {selCount === 0
-                  ? 'Ninguna prueba en cola'
-                  : `${selCount} prueba${selCount > 1 ? 's' : ''} en cola`}
+                  ? t.seleccionEjercicios.ningunaPruebaCola
+                  : t.seleccionEjercicios.pruebaCola(selCount)}
               </Text>
               {totalEstimatedMinutes > 0 && (
                 <>
                   <Text size="sm" style={{ color: '#94A3B8' }}>·</Text>
                   <Text size="sm" weight="medium" style={{ color: '#475569', fontSize: 14 }}>
-                    ⏱️ Tiempo total: ~{totalEstimatedMinutes} min
+                    
+                    {t.seleccionEjercicios.tiempoTotal}{totalEstimatedMinutes}  {t.seleccionEjercicios.min}
                   </Text>
                 </>
               )}
@@ -443,7 +453,8 @@ export default function SeleccionEjerciciosScreen({ navigation }: Props) {
                   <HStack alignItems="center" space="xs">
                     <RotateCcw size={13} color="#64748B" />
                     <Text size="xs" weight="medium" color="#64748B">
-                      Limpiar
+                      
+                      {t.seleccionEjercicios.limpiar}
                     </Text>
                   </HStack>
                 </Pressable>

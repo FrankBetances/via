@@ -8,6 +8,7 @@ import { Button, Content, Header, Text } from '@/Components/Common';
 import RadialBackground from '@/Components/Themed/RadialBackground';
 import { RootStackParamList } from '@/Navigators';
 import { EvaluationRepository } from '@/Repositories/EvaluationRepository';
+import { useT } from '@/I18n';
 import {
   countResults,
   loadEvaluationResultCards,
@@ -50,6 +51,7 @@ const formatDate = (d: Date | null): string => {
 };
 
 export default function HistorialPacienteScreen({ navigation, route }: Props) {
+  const t = useT();
   const { patientId, patientName, nhc } = route.params;
 
   const [sessions, setSessions] = useState<SessionBlock[]>([]);
@@ -110,18 +112,20 @@ export default function HistorialPacienteScreen({ navigation, route }: Props) {
               <HStack alignItems="center" space="sm">
                 <Icon as={FileClock} size="sm" color="$primary600" />
                 <Text size="2xl" weight="bold" color="$textLight900">
-                  Historial de pruebas
+                  
+                  {t.historialPaciente.historialPruebas}
                 </Text>
               </HStack>
               <Text size="xs" color="$textLight500">
                 {patientName}
-                {nhc ? ` · NHC ${nhc}` : ''}
+                {nhc ? t.historialPaciente.nhc(nhc) : ''}
               </Text>
             </VStack>
 
             {isLoading ? (
               <Text size="xs" color="$textLight400" style={{ textAlign: 'center' }} mt="$6">
-                Cargando historial…
+                
+                {t.historialPaciente.cargandoHistorial}
               </Text>
             ) : error ? (
               <Card bgColor="$error50" borderRadius={18} p="$4">
@@ -132,11 +136,12 @@ export default function HistorialPacienteScreen({ navigation, route }: Props) {
             ) : sessions.length === 0 ? (
               <Card bgColor="$white" borderRadius={18} p="$5">
                 <Text size="sm" weight="bold" color="$textLight800">
-                  Sin sesiones registradas
+                  
+                  {t.historialPaciente.sinSesionesRegistradas}
                 </Text>
                 <Text size="xs" color="$textLight500" mt="$1" style={{ lineHeight: 17 }}>
-                  Este paciente todavía no tiene ninguna evaluación. Ábralo desde la lista de pacientes para
-                  empezar una.
+                  
+                  {t.historialPaciente.estePacienteTodaviaTieneNinguna}
                 </Text>
               </Card>
             ) : (
@@ -144,12 +149,12 @@ export default function HistorialPacienteScreen({ navigation, route }: Props) {
                 <HStack space="sm" alignItems="center">
                   <Box bg="$backgroundLight100" px="$3" py="$1" borderRadius="$full">
                     <Text size="2xs" weight="bold" color="$textLight600">
-                      {sessions.length} sesión{sessions.length === 1 ? '' : 'es'}
+                      {sessions.length}  {t.historialPaciente.sesion}{sessions.length === 1 ? '' : 'es'}
                     </Text>
                   </Box>
                   <Box bg="$backgroundLight100" px="$3" py="$1" borderRadius="$full">
                     <Text size="2xs" weight="bold" color="$textLight600">
-                      {totalTests} prueba{totalTests === 1 ? '' : 's'}
+                      {totalTests}  {t.historialPaciente.prueba}{totalTests === 1 ? '' : 's'}
                     </Text>
                   </Box>
                 </HStack>
@@ -164,8 +169,8 @@ export default function HistorialPacienteScreen({ navigation, route }: Props) {
                             {formatDate(session.startedAt)}
                           </Text>
                           <Text size="2xs" color="$textLight400">
-                            {session.cards.length} prueba{session.cards.length === 1 ? '' : 's'}
-                            {counts.affected > 0 ? ` · ${counts.affected} con hallazgos` : ''}
+                            {session.cards.length}  {t.historialPaciente.prueba}{session.cards.length === 1 ? '' : 's'}
+                            {counts.affected > 0 ? t.historialPaciente.hallazgos(counts.affected) : ''}
                           </Text>
                         </VStack>
                         <Box
@@ -177,14 +182,15 @@ export default function HistorialPacienteScreen({ navigation, route }: Props) {
                             size="2xs"
                             weight="bold"
                             color={session.status === 'completed' ? '$success700' : '$warning800'}>
-                            {session.status === 'completed' ? 'Completada' : 'En curso'}
+                            {session.status === 'completed' ? t.historialPaciente.completada : t.historialPaciente.curso}
                           </Text>
                         </Box>
                       </HStack>
 
                       {session.cards.length === 0 ? (
                         <Text size="2xs" color="$textLight400" mt="$3" style={{ lineHeight: 15 }}>
-                          Esta sesión no llegó a registrar ninguna prueba.
+                          
+                          {t.historialPaciente.estaSesionLlegoRegistrarNinguna}
                         </Text>
                       ) : (
                         <VStack space="sm" mt="$3">
@@ -224,7 +230,8 @@ export default function HistorialPacienteScreen({ navigation, route }: Props) {
             )}
 
             <Text size="2xs" color="$textLight400" mt="$2" style={{ lineHeight: 15 }}>
-              Resumen orientativo de pruebas ya registradas. No constituye un informe clínico definitivo.
+              
+              {t.historialPaciente.resumenOrientativoPruebasYaRegistradas}
             </Text>
 
             <Button
@@ -235,7 +242,8 @@ export default function HistorialPacienteScreen({ navigation, route }: Props) {
               <HStack space="sm" alignItems="center">
                 <Icon as={ChevronLeft} size="sm" color="$primary500" />
                 <Text size="sm" weight="bold" color="$primary500">
-                  Volver a pacientes
+                  
+                  {t.historialPaciente.volverPacientes}
                 </Text>
               </HStack>
             </Button>

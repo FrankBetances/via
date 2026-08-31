@@ -1,21 +1,255 @@
 {
   "schema": "via-plus/voice-corpus@1",
-  "entries": 388,
+  "entries": 421,
   "byLang": {
     "es": 97,
     "gl": 97,
     "eu": 97,
-    "es-DO": 97
+    "ca": 11,
+    "es-419": 11,
+    "es-DO": 97,
+    "en": 11
   },
   "byStyle": {
-    "tutor": 388
+    "tutor": 421
   },
   "bySource": {
-    "executiveFunctions": 36,
+    "executiveFunctions": 63,
     "articulation": 344,
-    "prosodyAnalysis": 8
+    "prosodyAnalysis": 14
   },
   "corpus": [
+    {
+      "id": "ca_tutor_2a4b4ad5_52",
+      "lang": "ca",
+      "style": "tutor",
+      "text": "Atenció! La norma ha canviat: ara es juga per color.",
+      "source": "executiveFunctions"
+    },
+    {
+      "id": "ca_tutor_2e186aeb_75",
+      "lang": "ca",
+      "style": "tutor",
+      "text": "Mira bé aquest dibuix. Explica’m tot el que veus i tot el que està passant.",
+      "source": "prosodyAnalysis"
+    },
+    {
+      "id": "ca_tutor_45daff15_95",
+      "lang": "ca",
+      "style": "tutor",
+      "text": "No despertis el llop. Toca cada animal que aparegui… però MAI toquis el llop, que està adormit!",
+      "source": "executiveFunctions"
+    },
+    {
+      "id": "ca_tutor_5885ac7e_18",
+      "lang": "ca",
+      "style": "tutor",
+      "text": "Es juga per forma.",
+      "source": "executiveFunctions"
+    },
+    {
+      "id": "ca_tutor_6f445ca7_52",
+      "lang": "ca",
+      "style": "tutor",
+      "text": "Atenció! La norma ha canviat: ara es juga per forma.",
+      "source": "executiveFunctions"
+    },
+    {
+      "id": "ca_tutor_7d3733e6_97",
+      "lang": "ca",
+      "style": "tutor",
+      "text": "Mira les tres vinyetes per ordre. Explica’m la història completa, des del principi fins al final.",
+      "source": "prosodyAnalysis"
+    },
+    {
+      "id": "ca_tutor_aa2d976b_68",
+      "lang": "ca",
+      "style": "tutor",
+      "text": "Cerca i troba. Toca TOTS els gatets que vegis, tan ràpid com puguis!",
+      "source": "executiveFunctions"
+    },
+    {
+      "id": "ca_tutor_bc1a544e_102",
+      "lang": "ca",
+      "style": "tutor",
+      "text": "Ordena la història. Aquestes targetes estan desordenades: toca-les en l’ordre correcte de la història.",
+      "source": "executiveFunctions"
+    },
+    {
+      "id": "ca_tutor_c7e33fc1_106",
+      "lang": "ca",
+      "style": "tutor",
+      "text": "El joc de les normes. Mira la targeta i toca-la on correspongui segons la norma. Atenció, la norma canvia!",
+      "source": "executiveFunctions"
+    },
+    {
+      "id": "ca_tutor_d824a0a8_18",
+      "lang": "ca",
+      "style": "tutor",
+      "text": "Es juga per color.",
+      "source": "executiveFunctions"
+    },
+    {
+      "id": "ca_tutor_f7e28b95_105",
+      "lang": "ca",
+      "style": "tutor",
+      "text": "El lloro repetidor. Mira quines targetes s’encenen i repeteix la seqüència tocant-les en el mateix ordre.",
+      "source": "executiveFunctions"
+    },
+    {
+      "id": "en_tutor_17735dff_50",
+      "lang": "en",
+      "style": "tutor",
+      "text": "Attention! The rule changed: now we play by shape.",
+      "source": "executiveFunctions"
+    },
+    {
+      "id": "en_tutor_1dc69b0e_111",
+      "lang": "en",
+      "style": "tutor",
+      "text": "The rules game. Look at the card and touch where it belongs according to the rule. Watch out, the rule changes!",
+      "source": "executiveFunctions"
+    },
+    {
+      "id": "en_tutor_4eea7e9a_67",
+      "lang": "en",
+      "style": "tutor",
+      "text": "Search and find. Touch ALL the kittens you see, as fast as you can!",
+      "source": "executiveFunctions"
+    },
+    {
+      "id": "en_tutor_573365d7_90",
+      "lang": "en",
+      "style": "tutor",
+      "text": "Look closely at this picture. Tell me everything you see and everything that is happening.",
+      "source": "prosodyAnalysis"
+    },
+    {
+      "id": "en_tutor_6dca0773_14",
+      "lang": "en",
+      "style": "tutor",
+      "text": "Play by color.",
+      "source": "executiveFunctions"
+    },
+    {
+      "id": "en_tutor_77995a9e_93",
+      "lang": "en",
+      "style": "tutor",
+      "text": "Don’t wake the wolf. Touch every animal that appears… but NEVER touch the wolf, he is asleep!",
+      "source": "executiveFunctions"
+    },
+    {
+      "id": "en_tutor_84bfea3f_87",
+      "lang": "en",
+      "style": "tutor",
+      "text": "Sort the story. These cards are mixed up: touch them in the correct order of the story.",
+      "source": "executiveFunctions"
+    },
+    {
+      "id": "en_tutor_b2af9bd5_81",
+      "lang": "en",
+      "style": "tutor",
+      "text": "Look at the three panels in order. Tell me the full story, from beginning to end.",
+      "source": "prosodyAnalysis"
+    },
+    {
+      "id": "en_tutor_cc7235d9_14",
+      "lang": "en",
+      "style": "tutor",
+      "text": "Play by shape.",
+      "source": "executiveFunctions"
+    },
+    {
+      "id": "en_tutor_fbcc7013_108",
+      "lang": "en",
+      "style": "tutor",
+      "text": "The repeating parrot. Watch which cards light up and repeat the sequence by touching them in the same order.",
+      "source": "executiveFunctions"
+    },
+    {
+      "id": "en_tutor_fcdb90ad_50",
+      "lang": "en",
+      "style": "tutor",
+      "text": "Attention! The rule changed: now we play by color.",
+      "source": "executiveFunctions"
+    },
+    {
+      "id": "es-419_tutor_0b70c6c9_19",
+      "lang": "es-419",
+      "style": "tutor",
+      "text": "Se juega por forma.",
+      "source": "executiveFunctions"
+    },
+    {
+      "id": "es-419_tutor_21853718_99",
+      "lang": "es-419",
+      "style": "tutor",
+      "text": "No despiertes al lobo. Toca cada animal que aparezca… ¡pero NUNCA toques al lobo, que está dormido!",
+      "source": "executiveFunctions"
+    },
+    {
+      "id": "es-419_tutor_294ca0ec_53",
+      "lang": "es-419",
+      "style": "tutor",
+      "text": "¡Atención! La regla cambió: ahora se juega por color.",
+      "source": "executiveFunctions"
+    },
+    {
+      "id": "es-419_tutor_34eb5f68_98",
+      "lang": "es-419",
+      "style": "tutor",
+      "text": "Mira las tres viñetas por orden. Cuéntame la historia completa, desde el principio hasta el final.",
+      "source": "prosodyAnalysis"
+    },
+    {
+      "id": "es-419_tutor_5401177c_75",
+      "lang": "es-419",
+      "style": "tutor",
+      "text": "Mira bien este dibujo. Cuéntame todo lo que ves y todo lo que está pasando.",
+      "source": "prosodyAnalysis"
+    },
+    {
+      "id": "es-419_tutor_597a4f43_19",
+      "lang": "es-419",
+      "style": "tutor",
+      "text": "Se juega por color.",
+      "source": "executiveFunctions"
+    },
+    {
+      "id": "es-419_tutor_86b57c32_53",
+      "lang": "es-419",
+      "style": "tutor",
+      "text": "¡Atención! La regla cambió: ahora se juega por forma.",
+      "source": "executiveFunctions"
+    },
+    {
+      "id": "es-419_tutor_95399f2d_99",
+      "lang": "es-419",
+      "style": "tutor",
+      "text": "Ordena la historia. Estas tarjetas están desordenadas: tócalas en el orden correcto de la historia.",
+      "source": "executiveFunctions"
+    },
+    {
+      "id": "es-419_tutor_ba6fefc8_110",
+      "lang": "es-419",
+      "style": "tutor",
+      "text": "El juego de las reglas. Mira la tarjeta y tócala donde corresponda según la regla. ¡Atención, la regla cambia!",
+      "source": "executiveFunctions"
+    },
+    {
+      "id": "es-419_tutor_d21e608b_101",
+      "lang": "es-419",
+      "style": "tutor",
+      "text": "El loro repetidor. Mira qué tarjetas se encienden y repite la secuencia tocándolas en el mismo orden.",
+      "source": "executiveFunctions"
+    },
+    {
+      "id": "es-419_tutor_d8b99306_78",
+      "lang": "es-419",
+      "style": "tutor",
+      "text": "Busca y encuentra. ¡Toca TODOS los gatitos que veas, lo más rápido que puedas!",
+      "source": "executiveFunctions"
+    },
     {
       "id": "es-DO_tutor_010fe67e_5",
       "lang": "es-DO",

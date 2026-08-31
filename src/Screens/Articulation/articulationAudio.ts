@@ -90,8 +90,11 @@ const optionalRequire = (name: OptionalLibName): any => {
 const RECOGNITION_LOCALE: Record<string, string> = {
   es: 'es-ES',
   'es-DO': 'es-DO',
+  'es-419': 'es-MX',
   gl: 'gl-ES',
   eu: 'eu-ES',
+  ca: 'ca-ES',
+  en: 'en-US',
 };
 
 /** Lengua a la que degrada el reconocedor si no hay modelo para la pedida. */

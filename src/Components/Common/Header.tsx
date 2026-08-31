@@ -4,6 +4,7 @@ import { ArrowLeft } from 'lucide-react-native';
 import { useNavigation } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { useT } from '@/I18n';
 /* -------------------------------------------------------------------------- */
 /*  Header — cabecera mínima compartida por las 9 pantallas de módulo.        */
 /*  Las pantallas solo usan `<Header animationType="expand" />` sin más       */
@@ -18,6 +19,7 @@ export interface HeaderProps {
 }
 
 export default function Header({ animationType: _animationType }: HeaderProps) {
+  const t = useT();
   const navigation = useNavigation();
   const insets = useSafeAreaInsets();
   const canGoBack = navigation.canGoBack();
@@ -29,7 +31,7 @@ export default function Header({ animationType: _animationType }: HeaderProps) {
           onPress={() => navigation.goBack()}
           $pressed-opacity={0.6}
           accessibilityRole="button"
-          accessibilityLabel="Volver">
+          accessibilityLabel={t.components.volver}>
           <HStack
             space="xs"
             alignItems="center"
@@ -41,7 +43,8 @@ export default function Header({ animationType: _animationType }: HeaderProps) {
             bg="$white">
             <Icon as={ArrowLeft} size="sm" color="$textLight700" />
             <Text fontSize={13} fontWeight="$bold" color="$textLight700">
-              Volver
+              
+              {t.components.volver}
             </Text>
           </HStack>
         </Pressable>

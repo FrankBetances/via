@@ -7,6 +7,7 @@ import { Text } from '@/Components/Common';
 import GameCard from './GameCard';
 import { PlanningPlan, PlanningResult } from '../executiveFunctionsGame';
 
+import { useT } from '@/I18n';
 /* -------------------------------------------------------------------------- */
 /*  «Ordena la historia» — planificación (secuenciación de tarjetas).          */
 /*  Las tarjetas aparecen desordenadas; el niño las toca en el orden que cree  */
@@ -25,6 +26,7 @@ export default function PlanningGame({
   plan: PlanningPlan;
   onFinish: (result: PlanningResult) => void;
 }) {
+  const t = useT();
   const [trialIndex, setTrialIndex] = useState(0);
   const [picks, setPicks] = useState<number[]>([]); // índices sobre `ordered`, en orden de toque
   const [graded, setGraded] = useState<boolean | null>(null); // null = aún eligiendo
@@ -90,7 +92,7 @@ export default function PlanningGame({
     <VStack space="md" alignItems="center">
       <Center bg="$primary0" borderRadius={14} px="$4" py="$2">
         <Text size="md" weight="bold" color="$primary800">
-          {trial.sequence.title} · toca las tarjetas en orden
+          {trial.sequence.title}  {t.efGames.tocaTarjetasOrden}
         </Text>
       </Center>
 
@@ -122,14 +124,15 @@ export default function PlanningGame({
 
       {graded !== null ? (
         <Text size="md" weight="bold" color={graded ? '$success700' : '$primary800'}>
-          {graded ? '¡Historia perfecta! 🎉' : '¡Buen intento! Mira el orden correcto 💙'}
+          {graded ? t.efGames.historiaPerfecta : t.efGames.buenIntentoMiraOrdenCorrecto}
         </Text>
       ) : (
         <Pressable onPress={clear} disabled={!picks.length}>
           <HStack space="xs" alignItems="center" style={{ opacity: picks.length ? 1 : 0.4 }}>
             <Icon as={RotateCcw} size="xs" color="$textLight500" />
             <Text size="xs" weight="bold" color="$textLight500">
-              Empezar esta historia de nuevo
+              
+              {t.efGames.empezarEstaHistoriaNuevo}
             </Text>
           </HStack>
         </Pressable>

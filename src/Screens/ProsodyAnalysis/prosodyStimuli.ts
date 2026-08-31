@@ -28,8 +28,11 @@ export type ProsodyAgeBand = 'prelector' | 'lector';
 export interface ProsodyConsignaText {
   es: string;
   'es-DO'?: string;
+  'es-419'?: string;
   gl?: string;
   eu?: string;
+  ca?: string;
+  en?: string;
 }
 
 /** Un elemento describible de la lámina, con su etiqueta de trazabilidad. */
@@ -81,8 +84,11 @@ export const PROSODY_STIMULI: Record<ProsodyAgeBand, ProsodyStimulus> = {
     consigna: {
       es: 'Mira bien este dibujo. Cuéntame todo lo que ves y todo lo que está pasando.',
       'es-DO': 'Mira bien este dibujo. Cuéntame todo lo que ves y todo lo que está pasando.',
+      'es-419': 'Mira bien este dibujo. Cuéntame todo lo que ves y todo lo que está pasando.',
       gl: 'Mira ben este debuxo. Cóntame todo o que ves e todo o que está a pasar.',
       eu: 'Begiratu ondo marrazki honi. Kontatu ikusten duzun guztia eta gertatzen ari dena.',
+      ca: 'Mira bé aquest dibuix. Explica’m tot el que veus i tot el que està passant.',
+      en: 'Look closely at this picture. Tell me everything you see and everything that is happening.',
     },
     panels: 1,
     elements: [
@@ -112,8 +118,11 @@ export const PROSODY_STIMULI: Record<ProsodyAgeBand, ProsodyStimulus> = {
     consigna: {
       es: 'Mira las tres viñetas por orden. Cuéntame la historia completa, desde el principio hasta el final.',
       'es-DO': 'Mira las tres viñetas por orden. Cuéntame la historia completa, desde el principio hasta el final.',
+      'es-419': 'Mira las tres viñetas por orden. Cuéntame la historia completa, desde el principio hasta el final.',
       gl: 'Mira as tres viñetas por orde. Cóntame a historia completa, desde o principio ata o final.',
       eu: 'Begiratu hiru binetei hurrenez hurren. Kontatu istorio osoa, hasieratik amaieraraino.',
+      ca: 'Mira les tres vinyetes per ordre. Explica’m la història completa, des del principi fins al final.',
+      en: 'Look at the three panels in order. Tell me the full story, from beginning to end.',
     },
     panels: 3,
     elements: [

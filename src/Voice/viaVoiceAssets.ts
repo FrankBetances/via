@@ -9,10 +9,32 @@
 /* -------------------------------------------------------------------------- */
 
 /** Versión del paquete de assets (nº de locuciones + hash de sus ids). */
-export const VOICE_ASSETS_VERSION = "built-388-206eae89";
+export const VOICE_ASSETS_VERSION = "built-410-88d15fc1";
 
 /** id de locución → módulo del asset (`require(...)`). Poblado por el pipeline. */
 export const VOICE_ASSETS: Record<string, number> = {
+  "en_tutor_17735dff_50": require('../../assets/voice/en_tutor_17735dff_50.m4a'),
+  "en_tutor_1dc69b0e_111": require('../../assets/voice/en_tutor_1dc69b0e_111.m4a'),
+  "en_tutor_4eea7e9a_67": require('../../assets/voice/en_tutor_4eea7e9a_67.m4a'),
+  "en_tutor_573365d7_90": require('../../assets/voice/en_tutor_573365d7_90.m4a'),
+  "en_tutor_6dca0773_14": require('../../assets/voice/en_tutor_6dca0773_14.m4a'),
+  "en_tutor_77995a9e_93": require('../../assets/voice/en_tutor_77995a9e_93.m4a'),
+  "en_tutor_84bfea3f_87": require('../../assets/voice/en_tutor_84bfea3f_87.m4a'),
+  "en_tutor_b2af9bd5_81": require('../../assets/voice/en_tutor_b2af9bd5_81.m4a'),
+  "en_tutor_cc7235d9_14": require('../../assets/voice/en_tutor_cc7235d9_14.m4a'),
+  "en_tutor_fbcc7013_108": require('../../assets/voice/en_tutor_fbcc7013_108.m4a'),
+  "en_tutor_fcdb90ad_50": require('../../assets/voice/en_tutor_fcdb90ad_50.m4a'),
+  "es-419_tutor_0b70c6c9_19": require('../../assets/voice/es-419_tutor_0b70c6c9_19.m4a'),
+  "es-419_tutor_21853718_99": require('../../assets/voice/es-419_tutor_21853718_99.m4a'),
+  "es-419_tutor_294ca0ec_53": require('../../assets/voice/es-419_tutor_294ca0ec_53.m4a'),
+  "es-419_tutor_34eb5f68_98": require('../../assets/voice/es-419_tutor_34eb5f68_98.m4a'),
+  "es-419_tutor_5401177c_75": require('../../assets/voice/es-419_tutor_5401177c_75.m4a'),
+  "es-419_tutor_597a4f43_19": require('../../assets/voice/es-419_tutor_597a4f43_19.m4a'),
+  "es-419_tutor_86b57c32_53": require('../../assets/voice/es-419_tutor_86b57c32_53.m4a'),
+  "es-419_tutor_95399f2d_99": require('../../assets/voice/es-419_tutor_95399f2d_99.m4a'),
+  "es-419_tutor_ba6fefc8_110": require('../../assets/voice/es-419_tutor_ba6fefc8_110.m4a'),
+  "es-419_tutor_d21e608b_101": require('../../assets/voice/es-419_tutor_d21e608b_101.m4a'),
+  "es-419_tutor_d8b99306_78": require('../../assets/voice/es-419_tutor_d8b99306_78.m4a'),
   "es-DO_tutor_010fe67e_5": require('../../assets/voice/es-DO_tutor_010fe67e_5.m4a'),
   "es-DO_tutor_04563e7d_4": require('../../assets/voice/es-DO_tutor_04563e7d_4.m4a'),
   "es-DO_tutor_06c2191f_6": require('../../assets/voice/es-DO_tutor_06c2191f_6.m4a'),

@@ -9,6 +9,7 @@ import { HStack } from '@gluestack-ui/themed';
 import { Text } from '@/Components/Common';
 import CategoryBadgeIcon, { CategoryType } from './CategoryBadgeIcon';
 
+import { useT } from '@/I18n';
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
 /* El color del dominio lo pinta `CategoryBadgeIcon` a partir de la categoría:
@@ -30,6 +31,7 @@ export default function CategoryFilterChip({
   isActive,
   onPress,
 }: Props) {
+  const t = useT();
   const scale = useSharedValue(1);
 
   const animatedStyle = useAnimatedStyle(() => ({
@@ -56,7 +58,7 @@ export default function CategoryFilterChip({
       ]}
       accessibilityRole="button"
       accessibilityState={{ selected: isActive }}
-      accessibilityLabel={`Filtro ${label}, ${count} prueba${count === 1 ? '' : 's'}`}>
+      accessibilityLabel={t.components.filtroPrueba(label, count)}>
       <HStack alignItems="center" space="xs" style={styles.content}>
         {/* Icono vectorial */}
         <CategoryBadgeIcon category={category} size={20} isActive={isActive} />

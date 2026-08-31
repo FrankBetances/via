@@ -47,6 +47,7 @@ import { ClinicalAssessmentRepository } from '@/Repositories/ClinicalAssessmentR
 import { EvaluationRepository } from '@/Repositories/EvaluationRepository';
 import { showErrorToast, showSuccessToast } from '@/Helpers/showToast';
 import { writeWithVerify } from '@/Helpers/dbWrite';
+import { useT } from '@/I18n';
 import {
   AgeGroup,
   DOMAIN_LABELS,
@@ -262,6 +263,7 @@ const ItemRow = ({
 type Props = NativeStackScreenProps<RootStackParamList, 'ClinicalAssessment'>;
 
 export default function ClinicalAssessmentScreen({ navigation }: Props) {
+  const t = useT();
   const insets = useSafeAreaInsets();
   const activeEvaluation = useClassSelector(
     Evaluation,
@@ -444,28 +446,32 @@ export default function ClinicalAssessmentScreen({ navigation }: Props) {
                     <View style={styles.badgePrereqRow}>
                       <ShieldCheck size={14} color="#0D9488" strokeWidth={2.2} />
                       <Text size="2xs" weight="bold" color="$teal700" style={{ letterSpacing: 0.4 }}>
-                        PRERREQUISITO CLÍNICO · CAP
+                        
+                        {t.clinicalAssessment.prerrequisitoClinicoCap}
                       </Text>
                     </View>
                     <Text size="2xl" weight="bold" color="$textLight900" style={{ marginTop: 2 }}>
-                      Evaluación Clínica Previa
+                      
+                      {t.clinicalAssessment.evaluacionClinicaPrevia}
                     </Text>
                   </View>
 
                   <View style={styles.samdBadge}>
                     <Text size="2xs" weight="bold" color="$textLight600">
-                      SaMD Clase IIa
+                      
+                      {t.clinicalAssessment.samdClaseIia}
                     </Text>
                   </View>
                 </View>
 
                 <View style={styles.patientInfoBar}>
                   <Text size="xs" weight="semiBold" color="$textLight800">
-                    {patientName ? `Paciente: ${patientName}` : 'Paciente sin registrar'}
+                    {patientName ? t.clinicalAssessment.paciente(patientName) : t.clinicalAssessment.pacienteSinRegistrar}
                   </Text>
                   {patient?.nhc ? (
                     <Text size="2xs" color="$textLight500" style={{ marginLeft: 8 }}>
-                      NHC: {patient.nhc}
+                      
+                      {t.clinicalAssessment.nhc} {patient.nhc}
                     </Text>
                   ) : null}
                 </View>
@@ -476,7 +482,7 @@ export default function ClinicalAssessmentScreen({ navigation }: Props) {
               {/* ============================================================ */}
               <Pressable
                 accessibilityRole="button"
-                accessibilityLabel="Ir directo a exploración de disfagia"
+                accessibilityLabel={t.clinicalAssessment.irDirectoExploracionDisfagia}
                 style={({ pressed }) => [styles.dysphagiaBanner, pressed && styles.bannerPressed]}
                 onPress={() => navigation.navigate('DysphagiaTest')}>
                 <View style={styles.dysphagiaIconBox}>
@@ -484,10 +490,12 @@ export default function ClinicalAssessmentScreen({ navigation }: Props) {
                 </View>
                 <View style={{ flex: 1 }}>
                   <Text size="xs" weight="bold" color="$info800">
-                    ¿Sesión exclusiva de Disfagia (EAT-10 / Protocolo Deglutorio)?
+                    
+                    {t.clinicalAssessment.sesionExclusivaDisfagiaEat10}
                   </Text>
                   <Text size="2xs" color="$info700" style={{ marginTop: 1 }}>
-                    Ir directo — este módulo clínico no requiere CAP ni control de ruido.
+                    
+                    {t.clinicalAssessment.irDirectoEsteModuloClinico}
                   </Text>
                 </View>
                 <ChevronRight size={18} color="#0284C7" strokeWidth={2.2} />
@@ -546,11 +554,13 @@ export default function ClinicalAssessmentScreen({ navigation }: Props) {
                         <View style={styles.sectionTitleBadge}>
                           <Ear size={16} color="#EA580C" strokeWidth={2.2} />
                           <Text size="sm" weight="bold" color="$textLight900">
-                            Dominio 1 · Otoscopia Clínica
+                            
+                            {t.clinicalAssessment.dominio1OtoscopiaClinica}
                           </Text>
                         </View>
                         <Text size="2xs" color="$textLight500" style={{ marginTop: 2 }}>
-                          Seleccione el hallazgo de cada oído (OD / OI). Obligatorio para habilitar audiometría.
+                          
+                          {t.clinicalAssessment.seleccioneHallazgoCadaOidoOd}
                         </Text>
                       </View>
                       <StatusChip kind={a.otoKind} />
@@ -580,7 +590,7 @@ export default function ClinicalAssessmentScreen({ navigation }: Props) {
                                 ]}
                               />
                               <Text size="sm" weight="bold" color="$textLight900">
-                                {isRight ? 'Oído Derecho (OD)' : 'Oído Izquierdo (OI)'}
+                                {isRight ? t.clinicalAssessment.oidoDerechoOd : t.clinicalAssessment.oidoIzquierdoOi}
                               </Text>
                             </View>
                             <StatusChip kind={sevKind} />
@@ -618,7 +628,7 @@ export default function ClinicalAssessmentScreen({ navigation }: Props) {
 
                           <Input variant="outline" borderRadius={12} mt="$3" bg="$white">
                             <InputField
-                              placeholder="Anotaciones de otoscopia (tímpano, CAE)..."
+                              placeholder={t.clinicalAssessment.anotacionesOtoscopiaTimpanoCae}
                               value={isRight ? s.odNotes : s.oiNotes}
                               onChangeText={t =>
                                 setS(prev => ({
@@ -635,8 +645,8 @@ export default function ClinicalAssessmentScreen({ navigation }: Props) {
                     <View style={styles.clinicalAlertBox}>
                       <Info size={16} color="#0D9488" style={{ marginTop: 2 }} />
                       <Text size="2xs" color="$teal800" style={{ flex: 1, lineHeight: 17 }}>
-                        Criterio de Seguridad Audiológica: Cerumen oclusivo, OMA y perforación timpánica bloquean
-                        específicamente la audiometría tonal del oído afectado (Ref.: Guías CODEPEH / SNS).
+                        
+                        {t.clinicalAssessment.criterioSeguridadAudiologicaCerumenOclusivo}
                       </Text>
                     </View>
                   </View>
@@ -650,11 +660,13 @@ export default function ClinicalAssessmentScreen({ navigation }: Props) {
                         <View style={styles.sectionTitleBadge}>
                           <Eye size={16} color="#0284C7" strokeWidth={2.2} />
                           <Text size="sm" weight="bold" color="$textLight900">
-                            Dominio 2 · Capacidad Visual Mínima
+                            
+                            {t.clinicalAssessment.dominio2CapacidadVisualMinima}
                           </Text>
                         </View>
                         <Text size="2xs" color="$textLight500" style={{ marginTop: 2 }}>
-                          Discriminación de estímulos en pantalla (≥5 cm a 30–50 cm de distancia).
+                          
+                          {t.clinicalAssessment.discriminacionEstimulosPantalla5Cm}
                         </Text>
                       </View>
                       <StatusChip kind={a.visKind} />
@@ -673,11 +685,12 @@ export default function ClinicalAssessmentScreen({ navigation }: Props) {
 
                     <Box mt="$4">
                       <Text size="2xs" weight="bold" color="$textLight600" mb="$1.5">
-                        OBSERVACIONES DEL DOMINIO VISUAL
+                        
+                        {t.clinicalAssessment.observacionesDominioVisual}
                       </Text>
                       <Textarea borderRadius={12} bg="$backgroundLight50">
                         <TextareaInput
-                          placeholder="Anotaciones oftalmológicas o de respuesta visual..."
+                          placeholder={t.clinicalAssessment.anotacionesOftalmologicasRespuestaVisual}
                           value={visObs}
                           onChangeText={setVisObs}
                         />
@@ -694,11 +707,13 @@ export default function ClinicalAssessmentScreen({ navigation }: Props) {
                         <View style={styles.sectionTitleBadge}>
                           <MessageSquare size={16} color="#0D9488" strokeWidth={2.2} />
                           <Text size="sm" weight="bold" color="$textLight900">
-                            Dominio 3 · Capacidad Verbal Mínima
+                            
+                            {t.clinicalAssessment.dominio3CapacidadVerbalMinima}
                           </Text>
                         </View>
                         <Text size="2xs" color="$textLight500" style={{ marginTop: 2 }}>
-                          Comprensión y respuesta adaptada al rango etario del paciente.
+                          
+                          {t.clinicalAssessment.comprensionRespuestaAdaptadaRangoEtario}
                         </Text>
                       </View>
                       <StatusChip kind={a.verKind} />
@@ -707,7 +722,8 @@ export default function ClinicalAssessmentScreen({ navigation }: Props) {
                     {/* Selector de Grupo de Edad */}
                     <View style={styles.ageGroupContainer}>
                       <Text size="2xs" weight="bold" color="$textLight600" mb="$2">
-                        GRUPO DE EDAD DEL PACIENTE:
+                        
+                        {t.clinicalAssessment.grupoEdadPaciente}
                       </Text>
                       <View style={styles.ageButtonsRow}>
                         {(['A', 'B', 'C'] as AgeGroup[]).map(g => {
@@ -752,11 +768,12 @@ export default function ClinicalAssessmentScreen({ navigation }: Props) {
 
                     <Box mt="$4">
                       <Text size="2xs" weight="bold" color="$textLight600" mb="$1.5">
-                        OBSERVACIONES DEL DOMINIO VERBAL
+                        
+                        {t.clinicalAssessment.observacionesDominioVerbal}
                       </Text>
                       <Textarea borderRadius={12} bg="$backgroundLight50">
                         <TextareaInput
-                          placeholder="Anotaciones de lenguaje o comunicación..."
+                          placeholder={t.clinicalAssessment.anotacionesLenguajeComunicacion}
                           value={verObs}
                           onChangeText={setVerObs}
                         />
@@ -773,11 +790,13 @@ export default function ClinicalAssessmentScreen({ navigation }: Props) {
                         <View style={styles.sectionTitleBadge}>
                           <Hand size={16} color="#7C3AED" strokeWidth={2.2} />
                           <Text size="sm" weight="bold" color="$textLight900">
-                            Dominio 4 · Capacidad Motora Mínima
+                            
+                            {t.clinicalAssessment.dominio4CapacidadMotoraMinima}
                           </Text>
                         </View>
                         <Text size="2xs" color="$textLight500" style={{ marginTop: 2 }}>
-                          Capacidad para interactuar con la pantalla táctil de manera intencional.
+                          
+                          {t.clinicalAssessment.capacidadInteractuarPantallaTactilManera}
                         </Text>
                       </View>
                       <StatusChip kind={a.motKind} />
@@ -797,11 +816,12 @@ export default function ClinicalAssessmentScreen({ navigation }: Props) {
 
                     <Box mt="$4">
                       <Text size="2xs" weight="bold" color="$textLight600" mb="$1.5">
-                        OBSERVACIONES DEL DOMINIO MOTOR
+                        
+                        {t.clinicalAssessment.observacionesDominioMotor}
                       </Text>
                       <Textarea borderRadius={12} bg="$backgroundLight50">
                         <TextareaInput
-                          placeholder="Anotaciones psicomotrices o de lateralidad..."
+                          placeholder={t.clinicalAssessment.anotacionesPsicomotricesLateralidad}
                           value={motObs}
                           onChangeText={setMotObs}
                         />
@@ -818,7 +838,8 @@ export default function ClinicalAssessmentScreen({ navigation }: Props) {
                 <View style={styles.aptitudeHeaderRow}>
                   <ShieldCheck size={20} color="#FF7F00" strokeWidth={2.4} />
                   <Text size="md" weight="bold" color="$textLight900">
-                    Perfil de Aptitud y Gating de Pruebas
+                    
+                    {t.clinicalAssessment.perfilAptitudGatingPruebas}
                   </Text>
                 </View>
 
@@ -837,7 +858,8 @@ export default function ClinicalAssessmentScreen({ navigation }: Props) {
                         size="2xs"
                         weight="bold"
                         style={{ color: KIND_THEME[a.globalKind].fg, letterSpacing: 0.6 }}>
-                        VEREDICTO CLÍNICO GLOBAL
+                        
+                        {t.clinicalAssessment.veredictoClinicoGlobal}
                       </Text>
                       <Text
                         size="xl"
@@ -852,7 +874,7 @@ export default function ClinicalAssessmentScreen({ navigation }: Props) {
                         { backgroundColor: KIND_THEME[a.globalKind].dot },
                       ]}>
                       <Text size="xs" weight="bold" color="$white">
-                        {a.activeCount}/{a.totalGames} Activas
+                        {a.activeCount}/{a.totalGames}  {t.clinicalAssessment.activas}
                       </Text>
                     </View>
                   </View>
@@ -865,7 +887,8 @@ export default function ClinicalAssessmentScreen({ navigation }: Props) {
 
                 {/* Desglose de Pruebas de la Sesión */}
                 <Text size="2xs" weight="bold" color="$textLight600" mt="$3" mb="$2" style={{ letterSpacing: 0.5 }}>
-                  ESTADO DE HABILITACIÓN DE PRUEBAS DE LA BATERÍA
+                  
+                  {t.clinicalAssessment.estadoHabilitacionPruebasBateria}
                 </Text>
                 <View style={styles.gamesListWrap}>
                   {a.games.map(g => (
@@ -909,18 +932,20 @@ export default function ClinicalAssessmentScreen({ navigation }: Props) {
                 <View style={styles.evaluatorHeaderRow}>
                   <UserCheck size={18} color="#0D9488" strokeWidth={2.2} />
                   <Text size="sm" weight="bold" color="$textLight900">
-                    Profesional Evaluador Responsable
+                    
+                    {t.clinicalAssessment.profesionalEvaluadorResponsable}
                   </Text>
                 </View>
 
                 <HStack space="md" mb="$4" mt="$2">
                   <View style={{ flex: 2 }}>
                     <Text size="2xs" weight="bold" color="$textLight600" mb="$1">
-                      NOMBRE DEL PROFESIONAL
+                      
+                      {t.clinicalAssessment.nombreProfesional}
                     </Text>
                     <Input variant="outline" borderRadius={12} bg="$white">
                       <InputField
-                        placeholder="Ej. Dr. Frank Betances"
+                        placeholder={t.clinicalAssessment.ejDrFrankBetances}
                         value={evaluatorName}
                         onChangeText={setEvaluatorName}
                       />
@@ -928,11 +953,12 @@ export default function ClinicalAssessmentScreen({ navigation }: Props) {
                   </View>
                   <View style={{ flex: 1 }}>
                     <Text size="2xs" weight="bold" color="$textLight600" mb="$1">
-                      Nº COLEGIADO
+                      
+                      {t.clinicalAssessment.nColegiado}
                     </Text>
                     <Input variant="outline" borderRadius={12} bg="$white">
                       <InputField
-                        placeholder="Nº Colegiado"
+                        placeholder={t.clinicalAssessment.nColegiado2}
                         value={evaluatorLicense}
                         onChangeText={setEvaluatorLicense}
                       />
@@ -942,7 +968,7 @@ export default function ClinicalAssessmentScreen({ navigation }: Props) {
 
                 <Pressable
                   accessibilityRole="button"
-                  accessibilityLabel="Confirmar y generar Certificado de Aptitud"
+                  accessibilityLabel={t.clinicalAssessment.confirmarGenerarCertificadoAptitud}
                   disabled={!confirmReady || isSaving}
                   style={({ pressed }) => [
                     styles.confirmButton,
@@ -952,13 +978,14 @@ export default function ClinicalAssessmentScreen({ navigation }: Props) {
                   onPress={handleSave}>
                   <ShieldQuestion size={18} color="#FFFFFF" strokeWidth={2.2} />
                   <Text size="md" weight="bold" color="$white" style={{ marginHorizontal: 8 }}>
-                    {isSaving ? 'Guardando Certificado...' : 'Confirmar y Generar CAP'}
+                    {isSaving ? t.clinicalAssessment.guardandoCertificado : t.clinicalAssessment.confirmarGenerarCap}
                   </Text>
                   <ArrowRight size={18} color="#FFFFFF" strokeWidth={2.4} />
                 </Pressable>
 
                 <Text size="2xs" color="$textLight400" mt="$3" style={{ textAlign: 'center', lineHeight: 15 }}>
-                  El CAP certifica las condiciones de viabilidad para la sesión actual. Cumplimiento MDR 2017/745 y protocolos clínicos.
+                  
+                  {t.clinicalAssessment.capCertificaCondicionesViabilidadSesion}
                 </Text>
               </View>
             </VStack>

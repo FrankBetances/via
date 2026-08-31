@@ -26,6 +26,7 @@ import { ProfessionalRepository } from '@/Repositories/ProfessionalRepository';
 import { showErrorToast } from '@/Helpers/showToast';
 import { describeAuthError, isFirebaseAvailable, signInWithEmail } from '@/Services/firebase';
 
+import { useT } from '@/I18n';
 /* -------------------------------------------------------------------------- */
 /*  SeleccionProfesionalScreen — acceso del profesional: se elige el perfil    */
 /*  del dispositivo y, si tiene cuenta (email), se pide la contraseña y se     */
@@ -74,6 +75,7 @@ interface ProfessionalItemProps {
 }
 
 const ProfessionalItem = React.memo(function ProfessionalItem({ professional, color, onSelect }: ProfessionalItemProps) {
+  const t = useT();
   const role = ROLE_META[professional.role] ?? { label: professional.role, emoji: '🧑‍⚕️' };
   return (
     <Pressable onPress={() => onSelect(professional)}>
@@ -95,7 +97,7 @@ const ProfessionalItem = React.memo(function ProfessionalItem({ professional, co
                 </Text>
               </View>
               {professional.licenseNumber ? (
-                <Text style={styles.cardLicense}>Col. {professional.licenseNumber}</Text>
+                <Text style={styles.cardLicense}>{t.seleccionProfesional.col} {professional.licenseNumber}</Text>
               ) : null}
             </View>
           </View>
@@ -114,6 +116,7 @@ const ItemSeparator = () => <View style={{ height: 10 }} />;
 /* --------------------------------- pantalla -------------------------------- */
 
 export default function SeleccionProfesionalScreen({ navigation }: Props) {
+  const t = useT();
   const dispatch = useDispatch<AppDispatch>();
 
   const [professionals, setProfessionals] = useState<Professional[]>([]);
@@ -239,8 +242,8 @@ export default function SeleccionProfesionalScreen({ navigation }: Props) {
             <Text style={styles.greeting}>
               {hello.text} {hello.emoji}
             </Text>
-            <Text style={styles.title}>¿Quién va a evaluar hoy?</Text>
-            <Text style={styles.subtitle}>Elige tu perfil y accede con tu contraseña</Text>
+            <Text style={styles.title}>{t.seleccionProfesional.quienVaEvaluarHoy}</Text>
+            <Text style={styles.subtitle}>{t.seleccionProfesional.eligeTuPerfilAccedeTu}</Text>
 
             {/* ----- alta de nuevo profesional ----- */}
             <Pressable onPress={() => navigation.navigate('RegistroProfesional')}>
@@ -250,8 +253,8 @@ export default function SeleccionProfesionalScreen({ navigation }: Props) {
                     <Text style={styles.newBadgeText}>+</Text>
                   </View>
                   <View style={{ flex: 1 }}>
-                    <Text style={styles.newTitle}>Registrar nuevo profesional</Text>
-                    <Text style={styles.newSubtitle}>Crea tu perfil una sola vez en este dispositivo</Text>
+                    <Text style={styles.newTitle}>{t.seleccionProfesional.registrarNuevoProfesional}</Text>
+                    <Text style={styles.newSubtitle}>{t.seleccionProfesional.creaTuPerfilSolaVez}</Text>
                   </View>
                   <Text style={styles.newEmoji}>🧑‍⚕️</Text>
                 </View>
@@ -262,7 +265,7 @@ export default function SeleccionProfesionalScreen({ navigation }: Props) {
               <View style={styles.sectionRow}>
                 <View style={styles.sectionLine} />
                 <Text style={styles.sectionLabel}>
-                  {professionals.length === 1 ? '1 PERFIL REGISTRADO' : `${professionals.length} PERFILES REGISTRADOS`}
+                  {professionals.length === 1 ? t.seleccionProfesional.n1PerfilRegistrado : t.seleccionProfesional.perfilesRegistrados(professionals.length)}
                 </Text>
                 <View style={styles.sectionLine} />
               </View>
@@ -276,8 +279,8 @@ export default function SeleccionProfesionalScreen({ navigation }: Props) {
             </View>
             <Text style={styles.emptyText}>
               {isLoading
-                ? 'Cargando perfiles…'
-                : 'Aún no hay profesionales en este dispositivo.\nRegistra tu perfil para comenzar.'}
+                ? t.seleccionProfesional.cargandoPerfiles
+                : t.seleccionProfesional.aunHayProfesionalesEsteDispositivo}
             </Text>
           </View>
         }
@@ -295,7 +298,7 @@ export default function SeleccionProfesionalScreen({ navigation }: Props) {
 
             <TextInput
               style={styles.modalInput}
-              placeholder="Contraseña"
+              placeholder={t.seleccionProfesional.contrasena}
               placeholderTextColor="#B8B2A7"
               value={password}
               onChangeText={text => {
@@ -317,7 +320,7 @@ export default function SeleccionProfesionalScreen({ navigation }: Props) {
                 style={({ pressed }) => [styles.modalCancel, pressed && styles.cardPressed]}
                 disabled={isAuthenticating}
                 onPress={closeAuthModal}>
-                <Text style={styles.modalCancelText}>Cancelar</Text>
+                <Text style={styles.modalCancelText}>{t.seleccionProfesional.cancelar}</Text>
               </Pressable>
               <Pressable
                 style={({ pressed }) => [
@@ -330,7 +333,7 @@ export default function SeleccionProfesionalScreen({ navigation }: Props) {
                 {isAuthenticating ? (
                   <ActivityIndicator color="#FFFFFF" />
                 ) : (
-                  <Text style={styles.modalConfirmText}>Acceder →</Text>
+                  <Text style={styles.modalConfirmText}>{t.seleccionProfesional.acceder}</Text>
                 )}
               </Pressable>
             </View>

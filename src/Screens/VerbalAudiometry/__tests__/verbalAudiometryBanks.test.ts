@@ -4,6 +4,7 @@ import {
   resolveVerbalLang,
   VERBAL_BANK_BASE,
   VERBAL_AUDIO_PENDING,
+  VERBAL_BANK_BORROWED,
   VERBAL_BANK_LANGS,
   VERBAL_BANK_PROVISIONAL,
 } from '../verbalAudiometryBanks';
@@ -93,6 +94,9 @@ describe('getVerbalBands · registro por idioma', () => {
     // que se dicta con la voz del sistema y el profesional no se entera.
     for (const lang of VERBAL_BANK_LANGS) {
       if (VERBAL_AUDIO_PENDING.includes(lang)) continue;
+      // Un banco PRESTADO no tiene recortes propios ni debe tenerlos: sus
+      // palabras son de otra lengua y suenan con la voz de esa lengua.
+      if (VERBAL_BANK_BORROWED[lang]) continue;
       const dir = path.join(
         ROOT, 'assets', 'audio', 'verbal', ...(lang === 'es' ? [] : [lang]),
       );
@@ -116,7 +120,8 @@ describe('getVerbalBands · registro por idioma', () => {
     // la audiometría verbal «no funcionaba» sin más explicación.
     expect(resolveVerbalLang('gl')).toBe('gl');
     expect(resolveVerbalLang('es-DO')).toBe('es-DO');
-    expect(resolveVerbalLang('en')).toBe('es');
+    expect(resolveVerbalLang('en')).toBe('en');
+    expect(resolveVerbalLang('fr')).toBe('es');
     expect(resolveVerbalLang(null)).toBe('es');
     expect(resolveVerbalLang(undefined)).toBe('es');
     expect(() => getVerbalBands(resolveVerbalLang('cualquier-cosa'))).not.toThrow();
@@ -200,7 +205,7 @@ describe('coherencia con el motor de voz neural (tools/nos/voices.json)', () => 
     for (const [lang, cfg] of Object.entries<any>(registry.voices)) {
       // `ahotts`: el euskera no se infiere como un VITS suelto — su ONNX espera
       // fonemas y los produce el frontend lingüístico vasco de AhoTTS.
-      expect({ lang, engine: ['piper', 'coqui-vits', 'ahotts'].includes(cfg.engine) })
+      expect({ lang, engine: ['piper', 'coqui-vits', 'ahotts', 'matxa'].includes(cfg.engine) })
         .toEqual({ lang, engine: true });
       expect(typeof cfg.model).toBe('string');
       expect(typeof cfg.source).toBe('string');
@@ -232,6 +237,44 @@ describe('coherencia con el motor de voz neural (tools/nos/voices.json)', () => 
     // Voz femenina Maider y respaldo masculino Antton, en ese orden.
     expect(eu.hfRepos).toEqual(['HiTZ/TTS-eu_maider', 'HiTZ/TTS-eu_antton']);
     expect(eu.license).toContain('CC BY 4.0');
+  });
+
+  /* ------------------------------------------------------------------ */
+  /*  LICENCIAS Y MOTORES: lo que Valeria+ ya auditó, y aquí se incumplió. */
+  /* ------------------------------------------------------------------ */
+
+  it('el inglés NO usa una voz descartada por licencia', () => {
+    // Valeria+ auditó rhasspy/piper-voices VOZ POR VOZ (no es uniforme):
+    //   · en_US-hfc_female-medium → Hi-Fi Captain, CC BY-NC-SA ⇒ NO comercial.
+    //   · en_US-lessac-medium     → Blizzard Challenge, licencia de investigación.
+    //   · en_US-ljspeech-high     → LibriVox dominio público + modelo MIT. ✅
+    // VIA+ declaraba `lessac` y lo etiquetaba «Public Domain»: las dos cosas
+    // eran falsas, en un producto Clase IIa. Este test es lo que impide que
+    // vuelva por descuido.
+    const prohibidas = ['lessac', 'hfc_female'];
+    for (const mala of prohibidas) {
+      expect({ mala, usada: registry.voices.en.model.includes(mala) })
+        .toEqual({ mala, usada: false });
+    }
+    expect(registry.voices.en.model).toBe('en_US-ljspeech-high');
+  });
+
+  it('el catalán usa Matxa-TTS de AINA, que es lo demostrado en Valeria+', () => {
+    // No es Piper: es Matcha-TTS con el vocóder dentro del export y frontend
+    // fonémico. Declararlo como piper no da error, da ruido.
+    const ca = registry.voices.ca;
+    expect(ca.engine).toBe('matxa');
+    expect(ca.hfRepos[0]).toContain('projecte-aina');
+  });
+
+  it('toda voz declara dónde están sus pesos: ni un `files` nulo', () => {
+    // `ca`, `es-419` y `en` entraron con `files: null`, así que el motor Piper
+    // reventaba al construirse (`base / cfg["files"]["onnx"]`). Estaban
+    // declaradas, no cableadas — y nada lo decía.
+    for (const [lang, cfg] of Object.entries<any>(registry.voices)) {
+      expect({ lang, files: !!cfg.files && Object.keys(cfg.files).length > 0 })
+        .toEqual({ lang, files: true });
+    }
   });
 
   it('toda voz VITS declara sus repositorios de pesos por orden de preferencia', () => {
@@ -301,6 +344,11 @@ describe('aprobación clínica · el código no puede adelantarse al registro', 
     // qué se cambió de voz. La prueba contaba todas y llevaba roja desde que se
     // retiró davefx: lo que debe haber una y solo una es la firma VIGENTE.
     for (const lang of VERBAL_BANK_LANGS) {
+      if (VERBAL_AUDIO_PENDING.includes(lang)) continue;
+      // Un banco PRESTADO no firma audio propio: no lo tiene. Lo que suena es
+      // la locución de la lengua que le presta las palabras, y esa ya está
+      // firmada en SU expediente.
+      if (VERBAL_BANK_BORROWED[lang]) continue;
       const audio = approvalsOf(lang).filter(a => scopeOf(a) === 'audio');
       const vigentes = audio.filter(a => a.status !== 'superseded');
       expect({ lang, firmas: vigentes.length }).toEqual({ lang, firmas: 1 });

@@ -16,6 +16,7 @@ import { Text } from '@/Components/Common';
 import ModuleIllustration from './ModuleIllustration';
 import { CategoryType } from './CategoryBadgeIcon';
 
+import { useT } from '@/I18n';
 /* -------------------------------------------------------------------------- */
 /*  ModuleCardItem — Tarjeta clínica vertical en rejilla según el render       */
 /*  aprobado para tableta (azulejo superior, micro-gráfica central, metadatos) */
@@ -55,6 +56,7 @@ export default function ModuleCardItem({
   onToggle,
   cardWidth = '100%',
 }: Props) {
+  const t = useT();
   const isSelected = order !== null;
   const IconGlyph = m.icon;
 
@@ -87,7 +89,7 @@ export default function ModuleCardItem({
         }}
         accessibilityRole="checkbox"
         accessibilityState={{ checked: isSelected }}
-        accessibilityLabel={`${m.title}. ${m.description} Duración ${m.duration}. Edades ${m.ages}.`}>
+        accessibilityLabel={t.components.duracionEdades(m.title, m.description, m.duration, m.ages)}>
         <Animated.View
           style={[
             styles.card,
@@ -252,7 +254,8 @@ export default function ModuleCardItem({
                     size="2xs"
                     weight="semiBold"
                     style={{ color: '#0D9488', fontSize: 11 }}>
-                    Calibración OK
+                    
+                    {t.components.calibracionOk}
                   </Text>
                 </HStack>
               )}

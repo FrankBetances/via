@@ -41,6 +41,7 @@ import { useClassSelector } from '@/Helpers/ClassTransformer';
 import { useTelemetryTracker } from '@/Telemetry';
 import { useCreateSahsScreeningMutation } from '@/Services/local/modules/sahsScreenings';
 import { showErrorToast, showSuccessToast } from '@/Helpers/showToast';
+import { useT } from '@/I18n';
 import {
   BRODSKY_OPTIONS,
   EXAM_SIGNS,
@@ -139,6 +140,7 @@ const PhaseStepper = ({ view }: { view: View }) => {
 type Props = NativeStackScreenProps<RootStackParamList, 'SahsScreening'>;
 
 export default function SahsScreeningScreen({ navigation }: Props) {
+  const t = useT();
   const activeEvaluation = useClassSelector(Evaluation, (state: RootState) => state.activeEvaluation.evaluation);
   const [createSahsScreening, { isLoading: isSaving }] = useCreateSahsScreeningMutation();
   const tracker = useTelemetryTracker(); // telemetría silenciosa (useRef, sin re-render)
@@ -363,18 +365,20 @@ export default function SahsScreeningScreen({ navigation }: Props) {
           <VStack>
             <HStack alignItems="center" space="sm">
               <Text size="2xl" weight="bold" color="$textLight900">
-                Cribado de SAHS infantil
+                
+                {t.sahs.cribadoSahsInfantil}
               </Text>
               <Box bg="$primary50" px="$2" py="$0.5" borderRadius="$full">
                 <Text size="2xs" weight="bold" color="$primary800" style={{ letterSpacing: 0.4 }}>
-                  PSQ-CHERVIN
+                  
+                  {t.sahs.psqChervin}
                 </Text>
               </Box>
             </HStack>
             <Text size="xs" color="$textLight500">
               {patientName
                 ? `${patientName}${patient?.nhc ? ` · NHC ${patient.nhc}` : ''}`
-                : 'Trastornos respiratorios del sueño · Atención Primaria'}
+                : t.sahs.trastornosRespiratoriosSuenoAtencionPrimaria}
             </Text>
           </VStack>
 
@@ -385,17 +389,19 @@ export default function SahsScreeningScreen({ navigation }: Props) {
             <VStack space="md">
               <Card bgColor="$white" borderRadius={22} p="$5">
                 <Text size="lg" weight="bold" color="$textLight900">
-                  Preparación del cribado
+                  
+                  {t.sahs.preparacionCribado}
                 </Text>
                 <Text size="sm" color="$textLight600" mt="$1">
-                  Cuestionario PSQ de Chervin (22 ítems Sí/No) más exploración física y factores de riesgo. El sistema
-                  calcula el nivel de sospecha y la recomendación de derivación de forma automática.
+                  
+                  {t.sahs.cuestionarioPsqChervin22Items}
                 </Text>
 
                 <HStack alignItems="center" space="sm" mt="$5" mb="$3">
                   <Icon as={ShieldCheck} size="sm" color="$primary500" />
                   <Text size="sm" weight="bold" color="$textLight800" style={{ textTransform: 'uppercase', letterSpacing: 0.4 }}>
-                    Condiciones de aplicación
+                    
+                    {t.sahs.condicionesAplicacion}
                   </Text>
                 </HStack>
 
@@ -418,15 +424,16 @@ export default function SahsScreeningScreen({ navigation }: Props) {
               <HStack space="sm" alignItems="flex-start" p="$3.5" borderRadius={16} bg="$primary0" borderWidth={1} borderColor="$primary100">
                 <Icon as={Info} size="sm" color="$primary600" style={{ marginTop: 1 }} />
                 <Text size="xs" color="$primary800" style={{ flex: 1, lineHeight: 18 }}>
-                  Cribado orientativo de trastornos respiratorios del sueño: identifica el riesgo, no diagnostica SAHS. El
-                  diagnóstico requiere polisomnografía en Unidad de Sueño.
+                  
+                  {t.sahs.cribadoOrientativoTrastornosRespiratoriosSueno}
                 </Text>
               </HStack>
 
               <Button action="primary" variant="solid" rounded="$full" isDisabled={!setupReady} onPress={handleStart}>
                 <HStack space="sm" alignItems="center">
                   <Text size="md" weight="bold" color="$white">
-                    Comenzar cribado
+                    
+                    {t.sahs.comenzarCribado}
                   </Text>
                   <Icon as={ArrowRight} size="sm" color="$white" />
                 </HStack>
@@ -439,20 +446,21 @@ export default function SahsScreeningScreen({ navigation }: Props) {
             <VStack space="md">
               {/* progreso + mapa del cuestionario */}
               <Card bgColor="$white" borderRadius={22} p="$4">
-                <SurveyProgress answered={score.answeredCount} total={PSQ_TOTAL} label={`Pregunta ${qIndex + 1} de ${PSQ_TOTAL}`} />
+                <SurveyProgress answered={score.answeredCount} total={PSQ_TOTAL} label={t.sahs.pregunta(qIndex + 1, PSQ_TOTAL)} />
                 <Box mt="$3">
                   <QuestionDots states={dotStates} current={qIndex} onJump={goTo} />
                 </Box>
                 <HStack space="sm" alignItems="center" mt="$2">
                   <Box bg={score.yesCount > 0 ? '$warning50' : '$backgroundLight50'} px="$2.5" py="$0.5" borderRadius="$full">
                     <Text size="2xs" weight="bold" color={score.yesCount > 0 ? '$warning700' : '$textLight400'} style={{ fontVariant: ['tabular-nums'] }}>
-                      {score.yesCount} síntomas «Sí»
+                      {score.yesCount}  {t.sahs.sintomas}
                     </Text>
                   </Box>
                   {score.redFlag ? (
                     <Box bg="$error50" px="$2.5" py="$0.5" borderRadius="$full">
                       <Text size="2xs" weight="bold" color="$error600" style={{ textTransform: 'uppercase', letterSpacing: 0.3 }}>
-                        Señal de alarma
+                        
+                        {t.sahs.senalAlarma}
                       </Text>
                     </Box>
                   ) : null}
@@ -472,11 +480,13 @@ export default function SahsScreeningScreen({ navigation }: Props) {
                     </Center>
                     <VStack style={{ flex: 1 }}>
                       <Text size="2xs" weight="bold" color="$primary700" style={{ textTransform: 'uppercase', letterSpacing: 0.4 }}>
-                        Bloque {q.block + 1} de {PSQ_BLOCKS.length} · {block.short}
+                        
+                        {t.sahs.bloque} {q.block + 1} de {PSQ_BLOCKS.length} · {block.short}
                       </Text>
                       {isBlockStart ? (
                         <Text size="2xs" color="$textLight500">
-                          Empieza un bloque nuevo: {block.name.toLowerCase()}
+                          
+                          {t.sahs.empiezaBloqueNuevo} {block.name.toLowerCase()}
                         </Text>
                       ) : null}
                     </VStack>
@@ -490,7 +500,8 @@ export default function SahsScreeningScreen({ navigation }: Props) {
                   {q.flag ? (
                     <Box alignSelf="flex-start" bg="$error50" px="$2" py="$0.5" borderRadius="$full" mb="$2">
                       <Text size="2xs" weight="bold" color="$error600" style={{ textTransform: 'uppercase', letterSpacing: 0.3 }}>
-                        Señal de alarma
+                        
+                        {t.sahs.senalAlarma}
                       </Text>
                     </Box>
                   ) : null}
@@ -510,7 +521,8 @@ export default function SahsScreeningScreen({ navigation }: Props) {
                     <HStack space="sm" alignItems="center" mt="$3" p="$2.5" borderRadius={12} bg="$error50">
                       <Icon as={AlertTriangle} size="xs" color="$error600" />
                       <Text size="xs" weight="semiBold" color="$error700" style={{ flex: 1 }}>
-                        Señal de alarma presente: prioriza la derivación en el resultado.
+                        
+                        {t.sahs.senalAlarmaPresentePriorizaDerivacion}
                       </Text>
                     </HStack>
                   ) : null}
@@ -522,20 +534,23 @@ export default function SahsScreeningScreen({ navigation }: Props) {
                 <>
                   <Card bgColor="$white" borderRadius={18} p="$4">
                     <Text size="2xs" weight="bold" color="$textLight500" mb="$2" style={{ textTransform: 'uppercase', letterSpacing: 0.4 }}>
-                      Observaciones del PSQ
+                      
+                      {t.sahs.observacionesPsq}
                     </Text>
                     <Input variant="outline" borderRadius={12}>
-                      <InputField placeholder="Anotaciones del profesional…" value={psqObs} onChangeText={setPsqObs} multiline />
+                      <InputField placeholder={t.sahs.anotacionesProfesional} value={psqObs} onChangeText={setPsqObs} multiline />
                     </Input>
                   </Card>
                   <Pressable onPress={() => setView('exam')}>
                     <HStack space="sm" alignItems="center" p="$3.5" borderRadius={16} bg="$success50" borderWidth={1} borderColor="$success200">
                       <Icon as={CheckCircle2} size="sm" color="$success600" />
                       <Text size="sm" weight="bold" color="$success800" style={{ flex: 1 }}>
-                        Las {PSQ_TOTAL} preguntas están respondidas
+                        
+                        {t.sahs.las} {PSQ_TOTAL}  {t.sahs.preguntasEstanRespondidas}
                       </Text>
                       <Text size="sm" weight="bold" color="$success700">
-                        Exploración →
+                        
+                        {t.sahs.exploracion}
                       </Text>
                     </HStack>
                   </Pressable>
@@ -559,11 +574,12 @@ export default function SahsScreeningScreen({ navigation }: Props) {
                 <HStack alignItems="center" space="sm" mb="$3">
                   <Icon as={Stethoscope} size="sm" color="$primary600" />
                   <Text size="sm" weight="bold" color="$textLight800" style={{ flex: 1 }}>
-                    Tamaño amigdalar · escala de Brodsky
+                    
+                    {t.sahs.tamanoAmigdalarEscalaBrodsky}
                   </Text>
                   <Box bg={brodsky == null ? '$backgroundLight100' : brodsky >= 4 ? '$error50' : brodsky === 3 ? '$warning50' : '$success50'} px="$2.5" py="$0.5" borderRadius="$full">
                     <Text size="2xs" weight="bold" color={brodsky == null ? '$textLight400' : brodsky >= 4 ? '$error600' : brodsky === 3 ? '$warning700' : '$success700'}>
-                      {brodsky == null ? 'Sin registrar' : `Grado ${brodsky}`}
+                      {brodsky == null ? t.sahs.sinRegistrar : t.sahs.grado(brodsky)}
                     </Text>
                   </Box>
                 </HStack>
@@ -592,7 +608,8 @@ export default function SahsScreeningScreen({ navigation }: Props) {
                 <HStack alignItems="center" space="sm" mb="$3">
                   <Icon as={Scale} size="sm" color="$primary600" />
                   <Text size="sm" weight="bold" color="$textLight800">
-                    Estado ponderal · IMC por percentil
+                    
+                    {t.sahs.estadoPonderalImcPercentil}
                   </Text>
                 </HStack>
                 <HStack space="xs">
@@ -618,10 +635,12 @@ export default function SahsScreeningScreen({ navigation }: Props) {
               {/* Signos */}
               <Card bgColor="$white" borderRadius={20} p="$5">
                 <Text size="sm" weight="bold" color="$textLight800">
-                  Signos exploratorios
+                  
+                  {t.sahs.signosExploratorios}
                 </Text>
                 <Text size="2xs" color="$textLight500" mt="$0.5" mb="$3">
-                  Marque los hallazgos presentes.
+                  
+                  {t.sahs.marqueHallazgosPresentes}
                 </Text>
                 <HStack space="sm" flexWrap="wrap" style={{ rowGap: 8 }}>
                   {EXAM_SIGNS.map(label => {
@@ -639,10 +658,11 @@ export default function SahsScreeningScreen({ navigation }: Props) {
                 </HStack>
                 <Box mt="$4">
                   <Text size="2xs" weight="bold" color="$textLight500" mb="$2" style={{ textTransform: 'uppercase', letterSpacing: 0.4 }}>
-                    Observaciones de la exploración
+                    
+                    {t.sahs.observacionesExploracion}
                   </Text>
                   <Input variant="outline" borderRadius={12}>
-                    <InputField placeholder="Anotaciones del profesional…" value={examObs} onChangeText={setExamObs} multiline />
+                    <InputField placeholder={t.sahs.anotacionesProfesional} value={examObs} onChangeText={setExamObs} multiline />
                   </Input>
                 </Box>
               </Card>
@@ -651,7 +671,8 @@ export default function SahsScreeningScreen({ navigation }: Props) {
                 <HStack space="sm" alignItems="flex-start" p="$3" borderRadius={14} bg="$warning50">
                   <Icon as={AlertTriangle} size="sm" color="$warning700" style={{ marginTop: 1 }} />
                   <Text size="xs" color="$warning800" style={{ flex: 1, lineHeight: 18 }}>
-                    Registre el grado de Brodsky y el estado ponderal para completar la exploración.
+                    
+                    {t.sahs.registreGradoBrodskyEstadoPonderal}
                   </Text>
                 </HStack>
               ) : null}
@@ -665,10 +686,12 @@ export default function SahsScreeningScreen({ navigation }: Props) {
             <VStack space="md">
               <Card bgColor="$white" borderRadius={20} p="$5">
                 <Text size="sm" weight="bold" color="$textLight800">
-                  Factores de riesgo y comorbilidades
+                  
+                  {t.sahs.factoresRiesgoComorbilidades}
                 </Text>
                 <Text size="2xs" color="$textLight500" mt="$0.5">
-                  Circunstancias que aumentan la probabilidad de SAHS o el riesgo perioperatorio.
+                  
+                  {t.sahs.circunstanciasAumentanProbabilidadSahsRiesgo}
                 </Text>
               </Card>
 
@@ -699,10 +722,11 @@ export default function SahsScreeningScreen({ navigation }: Props) {
 
               <Card bgColor="$white" borderRadius={18} p="$4">
                 <Text size="2xs" weight="bold" color="$textLight500" mb="$2" style={{ textTransform: 'uppercase', letterSpacing: 0.4 }}>
-                  Observaciones de factores de riesgo
+                  
+                  {t.sahs.observacionesFactoresRiesgo}
                 </Text>
                 <Input variant="outline" borderRadius={12}>
-                  <InputField placeholder="Anotaciones del profesional…" value={riskObs} onChangeText={setRiskObs} multiline />
+                  <InputField placeholder={t.sahs.anotacionesProfesional} value={riskObs} onChangeText={setRiskObs} multiline />
                 </Input>
               </Card>
 
@@ -737,7 +761,8 @@ export default function SahsScreeningScreen({ navigation }: Props) {
                       </Text>
                     </Text>
                     <Text size="2xs" weight="bold" color={reportTheme.bannerFg} style={{ textTransform: 'uppercase', opacity: 0.8 }}>
-                      Puntuación
+                      
+                      {t.sahs.puntuacion}
                     </Text>
                   </VStack>
                 </HStack>
@@ -746,7 +771,8 @@ export default function SahsScreeningScreen({ navigation }: Props) {
               {/* recomendación */}
               <Card bgColor="$white" borderRadius={20} p="$5">
                 <Text size="sm" weight="bold" color="$textLight700" mb="$2" style={{ textTransform: 'uppercase', letterSpacing: 0.4 }}>
-                  Recomendación · derivación
+                  
+                  {t.sahs.recomendacionDerivacion}
                 </Text>
                 <HStack space="sm" alignItems="center" mb="$2">
                   <Text size="lg" weight="bold" color="$textLight900" style={{ flex: 1 }}>
@@ -766,7 +792,8 @@ export default function SahsScreeningScreen({ navigation }: Props) {
               {/* desglose */}
               <Card bgColor="$white" borderRadius={20} p="$5">
                 <Text size="sm" weight="bold" color="$textLight700" mb="$3" style={{ textTransform: 'uppercase', letterSpacing: 0.4 }}>
-                  Desglose de puntuación
+                  
+                  {t.sahs.desglosePuntuacion}
                 </Text>
                 <VStack space="sm">
                   {breakdownRows.map(row => (
@@ -788,7 +815,8 @@ export default function SahsScreeningScreen({ navigation }: Props) {
                   ))}
                   <HStack alignItems="center" justifyContent="space-between" pt="$2">
                     <Text size="sm" weight="bold" color="$textLight900">
-                      Puntuación total
+                      
+                      {t.sahs.puntuacionTotal}
                     </Text>
                     <Text size="md" weight="bold" color="$textLight900" style={{ fontVariant: ['tabular-nums'] }}>
                       {score.total} / {score.totalMax}
@@ -800,14 +828,15 @@ export default function SahsScreeningScreen({ navigation }: Props) {
               {/* evaluador */}
               <Card bgColor="$white" borderRadius={20} p="$5">
                 <Text size="sm" weight="bold" color="$textLight700" mb="$2">
-                  Profesional responsable
+                  
+                  {t.sahs.profesionalResponsable}
                 </Text>
                 <HStack space="sm">
                   <Input variant="outline" borderRadius={12} style={{ flex: 2 }}>
-                    <InputField placeholder="Nombre" value={evaluatorName} onChangeText={setEvaluatorName} />
+                    <InputField placeholder={t.sahs.nombre} value={evaluatorName} onChangeText={setEvaluatorName} />
                   </Input>
                   <Input variant="outline" borderRadius={12} style={{ flex: 1 }}>
-                    <InputField placeholder="Colegiado" value={evaluatorLicense} onChangeText={setEvaluatorLicense} />
+                    <InputField placeholder={t.sahs.colegiado} value={evaluatorLicense} onChangeText={setEvaluatorLicense} />
                   </Input>
                 </HStack>
               </Card>
@@ -817,7 +846,8 @@ export default function SahsScreeningScreen({ navigation }: Props) {
                   <HStack space="sm" alignItems="center">
                     <Icon as={ArrowLeft} size="sm" color="$primary500" />
                     <Text size="sm" weight="bold" color="$primary500">
-                      Modificar
+                      
+                      {t.sahs.modificar}
                     </Text>
                   </HStack>
                 </Button>
@@ -832,7 +862,8 @@ export default function SahsScreeningScreen({ navigation }: Props) {
                   <HStack space="sm" alignItems="center">
                     <Icon as={ClipboardCheck} size="sm" color="$white" />
                     <Text size="sm" weight="bold" color="$white">
-                      Confirmar y guardar
+                      
+                      {t.sahs.confirmarGuardar}
                     </Text>
                   </HStack>
                 </Button>
@@ -843,10 +874,11 @@ export default function SahsScreeningScreen({ navigation }: Props) {
                   <Icon as={AlertTriangle} size="sm" color="$warning700" style={{ marginTop: 1 }} />
                   <Text size="xs" color="$warning800" style={{ flex: 1, lineHeight: 18 }}>
                     {!psqComplete
-                      ? `Quedan ${PSQ_TOTAL - score.answeredCount} preguntas del PSQ por responder. `
+                      ? t.sahs.quedanPreguntasPsqResponder(PSQ_TOTAL - score.answeredCount)
                       : ''}
-                    {!examComplete ? 'Complete el grado de Brodsky y el estado ponderal. ' : ''}
-                    Es necesario para poder guardar el resultado.
+                    {!examComplete ? t.sahs.completeGradoBrodskyEstadoPonderal : ''}
+                    
+                    {t.sahs.necesarioPoderGuardarResultado}
                   </Text>
                 </HStack>
               ) : null}

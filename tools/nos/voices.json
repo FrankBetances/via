@@ -112,6 +112,74 @@
         "scope": "audio",
         "record": "assets/verbal-approval.gl.json"
       }
+    },
+    "ca": {
+      "engine": "matxa",
+      "model": "matxa-tts-cat-multiaccent",
+      "hfRepos": [
+        "projecte-aina/matxa-tts-cat-multiaccent",
+        "projecte-aina/matxa_tts_cat_multiaccent",
+        "projecte-aina/matxa-tts-cat-multispeaker"
+      ],
+      "files": {
+        "dir": "matxa"
+      },
+      "origin": "Matxa-TTS · projecte AINA (BSC · Generalitat de Catalunya).",
+      "source": "https://huggingface.co/projecte-aina/matxa-tts-cat-multiaccent",
+      "license": "ver ficha del modelo en Hugging Face (auditoría T0.2 pendiente de firma)",
+      "params": {
+        "lengthScale": 1.0,
+        "temperature": 0.667
+      },
+      "speaker": 0,
+      "accent": "central",
+      "notes": "PORTE de Valeria+ (`scripts/generate-voice-assets.py`, VOICES['ca']). NO es Piper: es Matcha-TTS (flow matching) con el vocóder DENTRO del export ONNX, y su frontend es FONÉMICO (espeak-ng vía phonemizer, idioma `ca`), no de grafemas. Meterle letras produce ruido, no acento, y `scales` son DOS valores (temperatura y length_scale), no los tres de VITS. Por eso no puede ir por el motor `piper` aunque el fichero acabe en .onnx. La variante MULTIACCENT trae central, balear, nord-occidental y valencià; el índice de hablante se elige OYENDO las muestras que deja el canario.",
+      "clinicalApproval": {
+        "status": "pendiente",
+        "scope": "audio"
+      }
+    },
+    "es-419": {
+      "engine": "piper",
+      "model": "es_MX-claude-high",
+      "hfRepos": null,
+      "files": {
+        "onnx": "piper/es_MX-claude-high.onnx",
+        "config": "piper/es_MX-claude-high.onnx.json"
+      },
+      "origin": "VIA+ · Español latinoamericano neutro (Piper).",
+      "source": "https://huggingface.co/rhasspy/piper-voices/tree/main/es/es_MX/claude/high",
+      "license": "ver ficha del modelo en Hugging Face (auditoría T0.2 pendiente de firma)",
+      "params": {
+        "lengthScale": 1.1,
+        "noiseScale": 0.333,
+        "noiseW": 0.333
+      },
+      "notes": "Variedad PROPIA de VIA+: Valeria+ no tiene `es-419`, así que aquí no hay camino demostrado que copiar. Se declaraba «CC BY 4.0» sin que nadie lo hubiese comprobado; hasta que la auditoría T0.2 la firme, se dice lo que se sabe. Además le faltaba el bloque `files`, así que el motor Piper reventaba al construirse: estaba declarada, no cableada.",
+      "clinicalApproval": {
+        "status": "pendiente",
+        "scope": "audio"
+      }
+    },
+    "en": {
+      "engine": "piper",
+      "model": "en_US-ljspeech-high",
+      "hfRepos": null,
+      "files": {
+        "onnx": "piper/en_US-ljspeech-high.onnx",
+        "config": "piper/en_US-ljspeech-high.onnx.json"
+      },
+      "origin": "LJSpeech (femenina, dominio público) · rhasspy/piper-voices.",
+      "source": "https://huggingface.co/rhasspy/piper-voices/tree/main/en/en_US/ljspeech/high",
+      "license": "MIT (modelo) sobre grabaciones de LibriVox en dominio público",
+      "params": {
+        "lengthScale": 1.0
+      },
+      "notes": "LICENCIA AUDITADA VOZ POR VOZ, copiada de Valeria+: rhasspy/piper-voices NO es uniforme. · en_US-hfc_female-medium → Hi-Fi Captain (NICT), CC BY-NC-SA 4.0 ⇒ NO COMERCIAL, descartada. · en_US-lessac-medium → Blizzard Challenge 2013 (Lessac/C. Byers), licencia de INVESTIGACIÓN ⇒ descartada. · en_US-ljspeech-high → LJSpeech, LibriVox en dominio público, modelo MIT ⇒ ELEGIDA. · en_US-amy-medium → MIT, alternativa válida. VIA+ declaraba `en_US-lessac-medium` como «Public Domain»: las dos cosas eran falsas.",
+      "clinicalApproval": {
+        "status": "pendiente",
+        "scope": "audio"
+      }
     }
   }
 }

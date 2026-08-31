@@ -106,6 +106,23 @@ function loadVerbalModules(lang) {
     '--outDir', out, '--module', 'commonjs', '--target', 'es2019', '--skipLibCheck',
   ]);
   const banks = require(path.join(out, 'verbalAudiometryBanks.js'));
+  // BANCO PRESTADO: `ca` y `en` no tienen banco propio, así que las palabras
+  // que se presentarían son CASTELLANAS. Sintetizarlas con su voz produce lo
+  // que produjo el run 25 de este workflow: 37 ficheros de una voz inglesa
+  // diciendo «caballo», «botella» y «cebolla», commiteados y listos para
+  // presentarse como estímulo clínico. El runtime ya reproduce los recortes de
+  // la lengua que presta las palabras (`verbalStimulusLang`); aquí se cierra el
+  // otro extremo, que es donde se fabricaban.
+  const borrowedFrom = banks.VERBAL_BANK_BORROWED[lang];
+  if (borrowedFrom) {
+    console.error(
+      `✗ '${lang}' no tiene banco verbal propio: presenta las palabras de `
+      + `'${borrowedFrom}'. No se sintetizan recortes suyos — la app usa los de `
+      + `'${borrowedFrom}'. Cuando exista un banco clínico propio, vacíe su `
+      + 'entrada en VERBAL_BANK_BORROWED y vuelva a lanzar esto.',
+    );
+    process.exit(2);
+  }
   return {
     bands: banks.getVerbalBands(lang),
     inventory: banks.collectLangAssetInventory(lang),

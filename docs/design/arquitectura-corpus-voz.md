@@ -173,6 +173,58 @@ SOLO en build-time; ver `tools/nos/README.md`):
 | `gl` | Coqui (VITS grafemas) | **Celtia** | **Proxecto Nós / ILENIA** | Provisional |
 | `eu` | **AhoTTS** (VITS + frontend vasco) | **Maider** (respaldo Antton) | **HiTZ/Aholab · UPV/EHU (ILENIA / NEL-GAITU)** | Provisional |
 | `es-DO` | Piper (VITS/ONNX) | `es_MX` (neutra LatAm) | rhasspy/piper-voices | Provisional (ADR Q4.3) |
+| `ca` | **Matxa-TTS** (Matcha + vocóder, ONNX end-to-end, frontend fonémico) | **matxa-tts-cat-multiaccent** | **projecte AINA · BSC / Generalitat de Catalunya** | Provisional |
+| `es-419` | Piper (VITS/ONNX) | `es_MX-claude-high` | rhasspy/piper-voices | Provisional · licencia sin auditar |
+| `en` | Piper (VITS/ONNX) | `en_US-ljspeech-high` | rhasspy/piper-voices | Provisional |
+
+### 5 bis. Catalán e inglés: dos elecciones que se hicieron mal y se corrigieron
+
+Ambas entraron en la rama `mejora2` (agosto 2026) SIN mirar Valeria+, que es
+la referencia obligatoria de la regla 1. Las dos estaban mal, y de formas
+distintas:
+
+**Inglés — licencia.** Se declaró `en_US-lessac-medium` con la etiqueta
+«Public Domain». Valeria+ ya había auditado ese repositorio **voz por voz**,
+precisamente porque `rhasspy/piper-voices` NO es uniforme:
+
+| Voz | Origen | Licencia | Veredicto |
+|---|---|---|---|
+| `en_US-hfc_female-medium` | Hi-Fi Captain (NICT) | CC BY-NC-SA 4.0 | **No comercial** → descartada |
+| `en_US-lessac-medium` | Blizzard Challenge 2013 (Lessac/C. Byers) | licencia de investigación | **descartada** |
+| `en_US-ljspeech-high` | LJSpeech · LibriVox, dominio público | modelo MIT | **elegida** |
+| `en_US-amy-medium` | — | MIT | alternativa válida |
+
+O sea: VIA+ iba a distribuir en un producto Clase IIa una voz licenciada solo
+para investigación, etiquetada como de dominio público. Ahora usa la misma que
+Valeria+, y `verbalAudiometryBanks.test.ts` prohíbe que las descartadas vuelvan.
+
+**Catalán — motor.** Se declaró Piper `ca_ES-upc_ona-medium`. El catalán de
+Valeria+ es **Matxa-TTS del projecte AINA**, y su propio código explica por qué
+no puede ir por el motor Piper aunque el fichero acabe en `.onnx`:
+
+- Es **Matcha-TTS**, no VITS: `scales` son DOS valores (temperatura y
+  `length_scale`), no los tres de VITS. Pasarle tres desplaza el vector y el
+  audio sale mal **sin dar error**.
+- El frontend es **fonémico** (espeak-ng vía `phonemizer`, idioma `ca`), no de
+  grafemas: meterle letras produce ruido, no acento.
+- El **vocóder va dentro del export**, así que la salida ya es forma de onda, y
+  la onda es la SEGUNDA salida (`hfwaveform`); la primera es `mel_lengths`.
+
+El porte trae también el **canario** de Valeria+: una frase catalana real se
+sintetiza al construir el motor y, si su duración o su energía no son
+plausibles, el proceso muere **con cero ficheros escritos**. Allí ese canario
+evitó 858 ficheros de ruido. Y deja una muestra por índice de hablante en
+`muestras/`, porque el modelo es multiacento y su metadata viene vacía: cuál es
+el central no se deduce de un log, se decide oyéndolo.
+
+**Además, ninguna de las tres voces nuevas estaba cableada:** `ca`, `es-419` y
+`en` entraron con `files: null`, así que `PiperEngine.__init__` habría reventado
+al construirse. Estaban declaradas, no conectadas, y nada lo decía.
+
+**Lo que sigue sin resolver:** `es-419` es una variedad PROPIA de VIA+ —Valeria+
+no la tiene—, así que ahí no hay camino demostrado que copiar. Su licencia se
+declaraba «CC BY 4.0» sin que nadie lo hubiera comprobado; ahora dice lo que se
+sabe, que es nada, hasta que la auditoría T0.2 la firme.
 
 La voz **neural es la vía por defecto de todos los idiomas**, castellano
 incluido: `VERBAL_TTS=espeak` queda solo como degradación explícita para

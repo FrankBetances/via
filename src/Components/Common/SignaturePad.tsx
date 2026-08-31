@@ -6,6 +6,7 @@ import { Eraser, PenLine } from 'lucide-react-native';
 
 import Text from './Text';
 
+import { useT } from '@/I18n';
 /* -------------------------------------------------------------------------- */
 /*  SignaturePad — pad de firma manuscrita (SVG + PanResponder).               */
 /*                                                                            */
@@ -32,8 +33,9 @@ export default function SignaturePad({
   onAddPath,
   onClear,
   setScrollEnabled,
-  placeholder = 'Firme aquí con el dedo o un lápiz táctil',
+  placeholder,
 }: SignaturePadProps) {
+  const t = useT();
   const [livePath, setLivePath] = useState('');
   const currentPath = useRef('');
 
@@ -100,7 +102,7 @@ export default function SignaturePad({
           <Center style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }} pointerEvents="none">
             <Icon as={PenLine} size="md" color="$textLight300" />
             <Text size="2xs" color="$textLight400" mt="$1">
-              {placeholder}
+              {placeholder ?? t.components.firmeAqui}
             </Text>
           </Center>
         ) : null}
@@ -110,7 +112,8 @@ export default function SignaturePad({
           <HStack space="xs" alignItems="center" style={{ opacity: paths.length ? 1 : 0.4 }}>
             <Icon as={Eraser} size="xs" color="$textLight500" />
             <Text size="xs" weight="bold" color="$textLight500">
-              Borrar firma
+              
+              {t.components.borrarFirma}
             </Text>
           </HStack>
         </Pressable>

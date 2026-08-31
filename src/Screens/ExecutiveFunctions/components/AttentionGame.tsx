@@ -5,6 +5,7 @@ import { Text } from '@/Components/Common';
 import GameCard, { GameCardState } from './GameCard';
 import { AttentionPlan, AttentionResult } from '../executiveFunctionsGame';
 
+import { useT } from '@/I18n';
 /* -------------------------------------------------------------------------- */
 /*  «Busca y encuentra» — atención (búsqueda visual).                          */
 /*  Lámina fija con objetivos y distractores: el niño toca TODOS los           */
@@ -19,6 +20,7 @@ export default function AttentionGame({
   plan: AttentionPlan;
   onFinish: (result: AttentionResult) => void;
 }) {
+  const t = useT();
   const [found, setFound] = useState<Set<number>>(() => new Set());
   const [wrongFlash, setWrongFlash] = useState<number | null>(null);
   const falseTaps = useRef(0);
@@ -73,8 +75,8 @@ export default function AttentionGame({
       <Center bg="$primary0" borderRadius={14} px="$4" py="$2">
         <Text size="md" weight="bold" color="$primary800">
           {remaining > 0
-            ? `Busca ${remaining === plan.targetCount ? 'todos los' : 'los que faltan:'} ${plan.targetGlyph} (${remaining})`
-            : '¡Los has encontrado todos! 🎉'}
+            ? t.efGames.busca(remaining === plan.targetCount ? 'todos los' : 'los que faltan:', plan.targetGlyph, remaining)
+            : t.efGames.hasEncontradoTodos}
         </Text>
       </Center>
       <HStack flexWrap="wrap" justifyContent="center" style={{ gap: 10 }}>

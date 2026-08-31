@@ -18,6 +18,10 @@
  *     defectuoso, no una degradación aceptada.
  *
  * En modo `--strict` el criterio NO es «todos los idiomas al 100 %», sino
+ * Un idioma de BANCO PRESTADO (`VERBAL_BANK_BORROWED`) se mide al revés: NO
+ * debe tener locuciones propias, porque las palabras que presenta son de otra
+ * lengua. Tenerlas es el defecto, no la cobertura.
+ *
  * COHERENCIA CON `VERBAL_AUDIO_PENDING`, que es la declaración revisada de qué
  * idiomas se sabe que aún no tienen locuciones propias. Se comprueba en los dos
  * sentidos, igual que las pruebas de trazabilidad de la aprobación clínica:
@@ -54,6 +58,31 @@ function loadBanks() {
   return require(path.join(out, 'verbalAudiometryBanks.js'));
 }
 
+/**
+ * ¿Tiene este idioma una firma de AUDIO vigente en el registro clínico?
+ *
+ * Lo que hace definitivo a un estímulo NO son los bytes en disco: es la firma.
+ * El run 25 del workflow de voz generó 37 locuciones de `es-419` en dos
+ * minutos; nadie las ha aprobado. Si la cobertura mirase solo el disco, la
+ * pantalla dejaría de advertir «el estímulo no es el definitivo» justo cuando
+ * más cierto es — y en un SaMD Clase IIa eso es el código adelantándose al
+ * expediente.
+ */
+const hasSignedAudio = lang => {
+  const file = path.join(ROOT, 'assets', `verbal-approval.${lang}.json`);
+  if (!fs.existsSync(file)) return false;
+  let parsed;
+  try {
+    parsed = JSON.parse(fs.readFileSync(file, 'utf8'));
+  } catch {
+    return false;
+  }
+  const list = Array.isArray(parsed) ? parsed : parsed.approvals ?? [];
+  return list.some(
+    a => a.scope === 'audio' && a.status === 'aprobado-produccion',
+  );
+};
+
 /** Directorio de recortes de un idioma (`es` vive en la raíz, el resto en subcarpeta). */
 const audioDir = lang =>
   path.join(ROOT, 'assets', 'audio', 'verbal', ...(lang === 'es' ? [] : [lang]));
@@ -83,12 +112,30 @@ function main() {
       .map(k => ({ key: k, seconds: m4aDurationSeconds(path.join(dir, `${k}.m4a`)) }))
       .filter(m => m.seconds != null && MIN_CLIP_MS > 0 && m.seconds * 1000 < MIN_CLIP_MS)
       .sort((a, b) => a.seconds - b.seconds);
-    rows.push({ lang, total: keys.length, missing, tooShort, declaredPending: pending.has(lang) });
+    rows.push({
+      lang,
+      total: keys.length,
+      missing,
+      tooShort,
+      declaredPending: pending.has(lang),
+      borrowedFrom: banks.VERBAL_BANK_BORROWED[lang] ?? null,
+      signed: hasSignedAudio(lang),
+    });
   }
 
   console.log('Cobertura de locuciones del banco verbal\n');
-  for (const { lang, total, missing, declaredPending } of rows) {
+  for (const { lang, total, missing, declaredPending, borrowedFrom } of rows) {
     const have = total - missing.length;
+    // Un banco prestado no «tiene 0 de 37»: no le corresponde ninguna. Decirlo
+    // como una carencia empujaba justo al error que este control persigue —
+    // alguien lanzaría el workflow para «rellenarlas».
+    if (borrowedFrom) {
+      console.log(
+        `  · ${lang.padEnd(6)}   —      (banco PRESTADO de '${borrowedFrom}': `
+        + 'presenta sus palabras y suena con su voz)',
+      );
+      continue;
+    }
     const mark = missing.length === 0 ? '✓' : declaredPending ? '·' : '✗';
     const tag = declaredPending ? '  (audio declarado pendiente)' : '';
     console.log(`  ${mark} ${lang.padEnd(6)} ${String(have).padStart(3)}/${total}${tag}`);
@@ -136,7 +183,29 @@ function main() {
       );
     }
   }
-  for (const { lang, missing, declaredPending, total } of rows) {
+  for (const { lang, missing, declaredPending, total, borrowedFrom, signed } of rows) {
+    // BANCO PRESTADO: no es que le falten locuciones, es que no le tocan. Sus
+    // palabras son de otra lengua y su voz no debe decirlas — el runtime
+    // reproduce las del prestador. Tener recortes propios aquí es un DEFECTO,
+    // no una cobertura: el run 25 de `voice-assets` dejó 37 ficheros de una voz
+    // inglesa diciendo «caballo» antes de que este control existiera.
+    if (borrowedFrom) {
+      if (missing.length < total) {
+        problems.push(
+          `'${lang}': tiene ${total - missing.length} locuciones propias, pero su banco es `
+          + `PRESTADO de '${borrowedFrom}': esas palabras no son de su lengua y su voz no debe `
+          + `decirlas. Borre assets/audio/verbal/${lang}/ — la app usa las de '${borrowedFrom}'.`,
+        );
+      }
+      if (declaredPending) {
+        problems.push(
+          `'${lang}': está en VERBAL_AUDIO_PENDING, que significa «aún no tiene sus `
+          + 'locuciones». No es su caso: tiene banco PRESTADO y nunca tendrá locuciones '
+          + 'propias mientras lo tenga. Quítelo de la lista; ya lo advierte la pantalla.',
+        );
+      }
+      continue;
+    }
     if (missing.length && !declaredPending) {
       problems.push(
         `'${lang}': faltan ${missing.length} de ${total} locuciones y NO está declarado ` +
@@ -144,11 +213,19 @@ function main() {
         'VERBAL_AUDIO_PENDING en verbalAudiometryBanks.ts.',
       );
     }
-    if (!missing.length && declaredPending) {
+    if (!missing.length && declaredPending && signed) {
       problems.push(
-        `'${lang}': ya tiene sus ${total} locuciones pero sigue en VERBAL_AUDIO_PENDING. ` +
-        'La pantalla advierte al profesional de que el estímulo no es el definitivo cuando ' +
-        'ya lo es: quítelo de la lista.',
+        `'${lang}': ya tiene sus ${total} locuciones Y firma de audio vigente, pero sigue ` +
+        'en VERBAL_AUDIO_PENDING. La pantalla advierte al profesional de que el estímulo no ' +
+        'es el definitivo cuando ya lo es: quítelo de la lista.',
+      );
+    }
+    if (!missing.length && !declaredPending && !signed) {
+      problems.push(
+        `'${lang}': tiene sus ${total} locuciones pero NINGUNA firma de audio vigente en ` +
+        `assets/verbal-approval.${lang}.json, y no está en VERBAL_AUDIO_PENDING. Generar los ` +
+        'bytes no aprueba el estímulo: hasta que alguien firme la voz, la pantalla tiene que ' +
+        'seguir advirtiendo que no es el definitivo.',
       );
     }
   }

@@ -78,6 +78,7 @@ import { ASHA_RISK_LABELS } from '@/Screens/AshaScreening/ashaCdssEngine';
 import { generateReport } from '@/PDF/templates/Report';
 import { showErrorToast, showSuccessToast } from '@/Helpers/showToast';
 
+import { useT } from '@/I18n';
 /* -------------------------------------------------------------------------- */
 /*  ResultadosFinalScreen — Arquitectura Master-Detail en Tableta (4:3)        */
 /*  Sidebar de navegación con telemetría/QR a la izquierda y escenario         */
@@ -145,6 +146,7 @@ function ClinicalAudiogramChart({
   oi?: (number | null)[];
   cl?: (number | null)[];
 }) {
+  const t = useT();
   const freqs = FREQS.map(f => (f >= 1000 ? `${f / 1000} kHz` : `${f} Hz`));
   const dbs = [0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 110, 120];
 
@@ -177,7 +179,7 @@ function ClinicalAudiogramChart({
 
   return (
     <View style={styles.chartWrapper}>
-      <Text style={styles.chartTitle}>Audiograma tonal · dB HL</Text>
+      <Text style={styles.chartTitle}>{t.resultadosFinal.audiogramaTonalDbHl}</Text>
       
       <Svg width={w} height={h} viewBox={`0 0 ${w} ${h}`} fill="none">
         {/* Banda sombreada de audición normal (0 a 20 dB HL) */}
@@ -301,17 +303,17 @@ function ClinicalAudiogramChart({
         {isSoundfield ? (
           <View style={styles.legendItem}>
             <Text style={{ color: '#0D9488', fontWeight: 'bold', fontSize: 13 }}>S</Text>
-            <Text style={styles.legendText}>Campo libre · binaural</Text>
+            <Text style={styles.legendText}>{t.resultadosFinal.campoLibreBinaural}</Text>
           </View>
         ) : (
           <>
             <View style={styles.legendItem}>
               <View style={[styles.legendDot, { borderColor: '#DC2626' }]} />
-              <Text style={styles.legendText}>Oído derecho (OD)</Text>
+              <Text style={styles.legendText}>{t.resultadosFinal.oidoDerechoOd}</Text>
             </View>
             <View style={styles.legendItem}>
               <Text style={{ color: '#2563EB', fontWeight: 'bold', fontSize: 13 }}>✕</Text>
-              <Text style={styles.legendText}>Oído izquierdo (OI)</Text>
+              <Text style={styles.legendText}>{t.resultadosFinal.oidoIzquierdoOi}</Text>
             </View>
           </>
         )}
@@ -321,6 +323,7 @@ function ClinicalAudiogramChart({
 }
 
 export default function ResultadosFinalScreen({ navigation }: Props) {
+  const t = useT();
   const dispatch = useDispatch<AppDispatch>();
   const activeEvaluation = useClassSelector(Evaluation, (state: RootState) => state.activeEvaluation.evaluation);
   const patient = activeEvaluation?.patient;
@@ -830,7 +833,7 @@ export default function ResultadosFinalScreen({ navigation }: Props) {
                 }
               }}
               accessibilityRole="button"
-              accessibilityLabel="Volver a resultados preliminares">
+              accessibilityLabel={t.resultadosFinal.volverResultadosPreliminares}>
               <ArrowLeft size={18} color="#334155" strokeWidth={2.2} />
             </Pressable>
 
@@ -854,7 +857,7 @@ export default function ResultadosFinalScreen({ navigation }: Props) {
 
           <View style={styles.sealedStatusPill}>
             <View style={styles.statusDotGreen} />
-            <Text style={styles.sealedStatusText}>Sesión Sellada · Informe Listo</Text>
+            <Text style={styles.sealedStatusText}>{t.resultadosFinal.sesionSelladaInformeListo}</Text>
           </View>
         </View>
 
@@ -865,11 +868,11 @@ export default function ResultadosFinalScreen({ navigation }: Props) {
           
           {/* ----- PANEL IZQUIERDO: Master Sidebar (Navegación + QR) ----- */}
           <View style={styles.masterSidebar}>
-            <Text style={styles.sidebarSectionTitle}>Pruebas de la sesión</Text>
+            <Text style={styles.sidebarSectionTitle}>{t.resultadosFinal.pruebasSesion}</Text>
 
             <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false}>
               <View style={styles.testsList}>
-                {isLoading ? <Text style={styles.testItemStatus}>Cargando resultados…</Text> : null}
+                {isLoading ? <Text style={styles.testItemStatus}>{t.resultadosFinal.cargandoResultados}</Text> : null}
                 {tests.map(t => {
                   const isActive = t.id === active?.id;
                   const IconComp = t.icon;
@@ -917,8 +920,8 @@ export default function ResultadosFinalScreen({ navigation }: Props) {
               </View>
 
               <View style={{ flex: 1 }}>
-                <Text style={styles.telemetryTitle}>Telemetría Zero-PHI</Text>
-                <Text style={styles.telemetrySubtitle}>QR anónimo de la sesión</Text>
+                <Text style={styles.telemetryTitle}>{t.resultadosFinal.telemetriaZeroPhi}</Text>
+                <Text style={styles.telemetrySubtitle}>{t.resultadosFinal.qrAnonimoSesion}</Text>
                 
                 {/* 5 Estrellas Interactivas Likert */}
                 <View style={styles.starsRow}>
@@ -946,12 +949,12 @@ export default function ResultadosFinalScreen({ navigation }: Props) {
             {!active ? (
               <View style={styles.emptyStage}>
                 <Text style={styles.emptyStageTitle}>
-                  {isLoading ? 'Cargando resultados…' : 'Esta sesión no tiene pruebas registradas'}
+                  {isLoading ? t.resultadosFinal.cargandoResultados : t.resultadosFinal.estaSesionTienePruebasRegistradas}
                 </Text>
                 {!isLoading ? (
                   <Text style={styles.emptyStageBody}>
-                    El informe se compone con lo que cada módulo haya guardado. Vuelve al hub de la
-                    batería y completa al menos una prueba.
+                    
+                    {t.resultadosFinal.informeComponeCadaModuloHaya}
                   </Text>
                 ) : null}
               </View>
@@ -987,13 +990,13 @@ export default function ResultadosFinalScreen({ navigation }: Props) {
                 <ClinicalAudiogramChart od={active.od} oi={active.oi} cl={active.cl} />
               ) : (
                 <View style={styles.paramsCard}>
-                  <Text style={styles.paramsCardTitle}>Parámetros Objetivos</Text>
+                  <Text style={styles.paramsCardTitle}>{t.resultadosFinal.parametrosObjetivos}</Text>
                   <View style={styles.paramsList}>
                     {active.params?.map((p, idx) => (
                       <View key={idx} style={styles.paramRow}>
                         <View style={{ flex: 1 }}>
                           <Text style={styles.paramLabel}>{p.label}</Text>
-                          <Text style={styles.paramRef}>Referencia: {p.ref}</Text>
+                          <Text style={styles.paramRef}>{t.resultadosFinal.referencia} {p.ref}</Text>
                         </View>
                         <View
                           style={[
@@ -1031,7 +1034,7 @@ export default function ResultadosFinalScreen({ navigation }: Props) {
 
               {/* Tarjeta 2: Interpretación Clínica & Sello Facultativo */}
               <View style={styles.interpCard}>
-                <Text style={styles.interpCardTitle}>Interpretación clínica</Text>
+                <Text style={styles.interpCardTitle}>{t.resultadosFinal.interpretacionClinica}</Text>
 
                 <Text style={styles.interpBodyText}>
                   {active.interp}
@@ -1050,7 +1053,7 @@ export default function ResultadosFinalScreen({ navigation }: Props) {
                   <Text style={styles.signatureDoctorName}>
                     {professionalName
                       ? `${professionalName}${professional?.licenseNumber ? ` · Col. ${professional.licenseNumber}` : ''}`
-                      : 'Pendiente de firma del facultativo responsable'}
+                      : t.resultadosFinal.pendienteFirmaFacultativoResponsable}
                   </Text>
                 </View>
               </View>
@@ -1065,7 +1068,8 @@ export default function ResultadosFinalScreen({ navigation }: Props) {
         {/* ==================================================================== */}
         <View style={styles.actionDock}>
           <Text style={styles.regulatoryNote}>
-            SaMD Clase IIa · MDR 2017/745
+            
+            {t.resultadosFinal.samdClaseIiaMdr2017}
           </Text>
 
           <View style={styles.dockActionsRow}>
@@ -1074,14 +1078,14 @@ export default function ResultadosFinalScreen({ navigation }: Props) {
               onPress={handleExportPdf}
               disabled={isGenerating}>
               <FileText size={16} color="#334155" />
-              <Text style={styles.exportPdfText}>Exportar PDF</Text>
+              <Text style={styles.exportPdfText}>{t.resultadosFinal.exportarPdf}</Text>
             </Pressable>
 
             <Pressable
               style={styles.archiveBtn}
               onPress={handleFinishAndArchive}>
               <Check size={16} color="#FFFFFF" strokeWidth={2.5} />
-              <Text style={styles.archiveBtnText}>Finalizar y Archivar</Text>
+              <Text style={styles.archiveBtnText}>{t.resultadosFinal.finalizarArchivar}</Text>
             </Pressable>
           </View>
         </View>

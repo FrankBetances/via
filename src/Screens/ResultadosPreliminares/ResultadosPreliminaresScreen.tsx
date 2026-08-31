@@ -32,6 +32,7 @@ import {
 import { LuaCompanionWidget } from '@/Components/Mascot/LuaCompanionWidget';
 import { LuaEmotion, LUA_CLINICAL_BADGES } from '@/Lua';
 
+import { useT } from '@/I18n';
 /* -------------------------------------------------------------------------- */
 /*  ResultadosPreliminaresScreen — Vista rápida en tableta (4:3) con medidor   */
 /*  circular de normalidad global a la izquierda y cuadrícula de tarjetas a    */
@@ -111,6 +112,7 @@ function MiniVoiceSpectrogram({ color = '#7C3AED' }: { color?: string }) {
 }
 
 export default function ResultadosPreliminaresScreen({ navigation }: Props) {
+  const t = useT();
   const dispatch = useDispatch<AppDispatch>();
   const { width } = useWindowDimensions();
   const isTablet = width >= 800;
@@ -254,7 +256,7 @@ export default function ResultadosPreliminaresScreen({ navigation }: Props) {
 
           <View style={styles.statusPill}>
             <View style={styles.statusDot} />
-            <Text style={styles.statusPillText}>Sesión de Evaluación</Text>
+            <Text style={styles.statusPillText}>{t.resultadosPreliminares.sesionEvaluacion}</Text>
           </View>
         </View>
 
@@ -271,7 +273,7 @@ export default function ResultadosPreliminaresScreen({ navigation }: Props) {
           
           {/* ----- COLUMNA IZQUIERDA: Medidor de Salud Global (Score Card) ----- */}
           <View style={[styles.gaugeCard, isTablet && { width: '42%' }]}>
-            <Text style={styles.gaugeTitle}>Índice global de normalidad</Text>
+            <Text style={styles.gaugeTitle}>{t.resultadosPreliminares.indiceGlobalNormalidad}</Text>
 
             {/* Medidor Circular SVG */}
             <View style={styles.gaugeContainer}>
@@ -315,8 +317,8 @@ export default function ResultadosPreliminaresScreen({ navigation }: Props) {
                 <Text style={styles.gaugeScoreNumber}>
                   {healthScore === null ? '—' : `${healthScore}%`}
                 </Text>
-                <Text style={styles.gaugeScoreLabel}>Normalidad</Text>
-                <Text style={styles.gaugeScoreLabel}>Global</Text>
+                <Text style={styles.gaugeScoreLabel}>{t.resultadosPreliminares.normalidad}</Text>
+                <Text style={styles.gaugeScoreLabel}>{t.resultadosPreliminares.global}</Text>
               </View>
             </View>
 
@@ -325,21 +327,21 @@ export default function ResultadosPreliminaresScreen({ navigation }: Props) {
               <View style={[styles.chip, { backgroundColor: '#D1FAE5' }]}>
                 <View style={[styles.chipDot, { backgroundColor: '#10B981' }]} />
                 <Text style={[styles.chipText, { color: '#065F46' }]}>
-                  {counts.ok} Normales
+                  {counts.ok}  {t.resultadosPreliminares.normales}
                 </Text>
               </View>
 
               <View style={[styles.chip, { backgroundColor: '#FEF3C7' }]}>
                 <View style={[styles.chipDot, { backgroundColor: '#F59E0B' }]} />
                 <Text style={[styles.chipText, { color: '#92400E' }]}>
-                  {counts.warn} En Observación
+                  {counts.warn}  {t.resultadosPreliminares.observacion}
                 </Text>
               </View>
 
               <View style={[styles.chip, { backgroundColor: '#FEE2E2' }]}>
                 <View style={[styles.chipDot, { backgroundColor: '#EF4444' }]} />
                 <Text style={[styles.chipText, { color: '#991B1B' }]}>
-                  {counts.alt} Alterados
+                  {counts.alt}  {t.resultadosPreliminares.alterados}
                 </Text>
               </View>
             </View>
@@ -369,13 +371,13 @@ export default function ResultadosPreliminaresScreen({ navigation }: Props) {
             </View>
 
             {isLoading ? (
-              <Text style={styles.loadingText}>Cargando resultados…</Text>
+              <Text style={styles.loadingText}>{t.resultadosPreliminares.cargandoResultados}</Text>
             ) : !hasResults ? (
               <View style={styles.emptyCard}>
-                <Text style={styles.emptyCardTitle}>Sin pruebas completadas</Text>
+                <Text style={styles.emptyCardTitle}>{t.resultadosPreliminares.sinPruebasCompletadas}</Text>
                 <Text style={styles.emptyCardBody}>
-                  Aquí aparecerá el resumen de cada módulo en cuanto guarde su resultado. Vuelve al
-                  hub de la batería para iniciar una prueba.
+                  
+                  {t.resultadosPreliminares.aquiApareceraResumenCadaModulo}
                 </Text>
               </View>
             ) : (
@@ -431,21 +433,21 @@ export default function ResultadosPreliminaresScreen({ navigation }: Props) {
         {/* ==================================================================== */}
         <View style={styles.actionDock}>
           <Text style={styles.dockStatusText}>
-            {cards.length} prueba{cards.length === 1 ? '' : 's'} evaluada
-            {cards.length === 1 ? '' : 's'} · Sesión activa
+            {cards.length}  {t.resultadosPreliminares.prueba}{cards.length === 1 ? '' : 's'}  {t.resultadosPreliminares.evaluada}
+            {cards.length === 1 ? '' : 's'}  {t.resultadosPreliminares.sesionActiva}
           </Text>
 
           <View style={styles.dockButtonsRow}>
             <Pressable
               style={styles.secondaryBtn}
               onPress={() => navigation.navigate('SeleccionEjercicios')}>
-              <Text style={styles.secondaryBtnText}>Volver a pruebas</Text>
+              <Text style={styles.secondaryBtnText}>{t.resultadosPreliminares.volverPruebas}</Text>
             </Pressable>
 
             <Pressable
               style={styles.primaryCtaBtn}
               onPress={() => navigation.navigate('ResultadosFinal')}>
-              <Text style={styles.primaryCtaText}>Ver Informe Detallado</Text>
+              <Text style={styles.primaryCtaText}>{t.resultadosPreliminares.verInformeDetallado}</Text>
               <ArrowRight size={16} color="#FFFFFF" strokeWidth={2.5} />
             </Pressable>
           </View>

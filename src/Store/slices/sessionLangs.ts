@@ -14,14 +14,18 @@
 /*  Módulo puro para poder testearlo sin arrastrar redux.                       */
 /* -------------------------------------------------------------------------- */
 
-export const SESSION_LANGS = ['es', 'gl', 'eu', 'es-DO'] as const;
+export const SESSION_LANGS = ['es', 'gl', 'eu', 'ca', 'es-419', 'es-DO', 'en'] as const;
 
 export type SessionLang = (typeof SESSION_LANGS)[number];
 
-/** Etiqueta de cada idioma de sesión para el selector del hub. */
+/** Etiqueta de cada idioma de sesión para el selector del hub y selector de idiomas. */
 export const SESSION_LANG_LABEL: Record<SessionLang, string> = {
   es: 'Español (España)',
   gl: 'Galego',
   eu: 'Euskara',
+  ca: 'Català',
+  'es-419': 'Español (Latinoamérica)',
   'es-DO': 'Español (Rep. Dominicana) · Quisqueya Habla',
+  en: 'English (US)',
 };
+

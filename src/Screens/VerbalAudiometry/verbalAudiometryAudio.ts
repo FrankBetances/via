@@ -8,6 +8,7 @@ import type {
 
 import { acquireAudioContext, releaseAudioContext, resumeAudioContext } from '@/Audio';
 import { isOfflineVoice, pickVoiceForLang, ttsLanguageTagFor, type TtsVoice } from './verbalTtsVoice';
+import { verbalStimulusLang } from './verbalAudiometryBanks';
 
 /**
  * Lenguas que se prueban al arrancar el motor, en orden. Basta que UNA quede
@@ -758,18 +759,36 @@ export function installVerbalAudioAdapter(opts: VerbalAudioAdapterOptions = {}):
   const prime = (audioKey: string, lang?: string) => {
     if (!ctx) ctx = acquireAudioContext();
     if (!ctx) return;
-    const cacheKey = `${lang ?? 'es'}:${audioKey}`;
+    // Misma lengua de estímulo que `playWord`, o la precarga calentaría una
+    // clave que luego nadie busca y el recorte llegaría tarde.
+    const stimulusLang = verbalStimulusLang(lang);
+    const cacheKey = `${stimulusLang}:${audioKey}`;
     if (bufferCache.has(cacheKey)) return;
-    decodeClip(audioKey, lang)
+    decodeClip(audioKey, stimulusLang)
       .then(buffer => bufferCache.set(cacheKey, buffer))
       .catch(() => { /* sin recorte: la degradación la resuelve playWord */ });
   };
 
   const playWord = (audioKey: string, word: string, levelDb: number, lang?: string) => {
     stop();
-    const sessionLang = lang ?? 'es';
+    /* La lengua que manda sobre el ESTÍMULO es la de las PALABRAS, no la
+     * etiqueta de la sesión.
+     *
+     * `ca` y `en` no tienen banco propio: la prueba les presenta las palabras
+     * castellanas (`VERBAL_BANK_BORROWED`). Dictar «caballo» con la voz
+     * inglesa del sistema no es un acento distinto, es ruido — y hasta ahora
+     * `pickVoiceForLang` lo daba además por NO degradado, porque el inglés era
+     * el primer prefijo de su propia cadena. La regla ya estaba escrita en
+     * `src/Voice/voiceCorpusId.ts`; esta capa no la seguía.
+     *
+     * Con esto, una sesión en catalán o en inglés reproduce el recorte
+     * castellano validado —que existe— y, si no lo hay, dicta con voz
+     * castellana. Las variantes del castellano (`es-419`, `es-DO`) no cambian:
+     * sus palabras SÍ son de su lengua. */
+    const sessionLang = verbalStimulusLang(lang);
     const hasClip =
-      engine === 'assets' && (!!assetBase64?.(audioKey, lang) || !!assetSource?.(audioKey, lang));
+      engine === 'assets'
+      && (!!assetBase64?.(audioKey, sessionLang) || !!assetSource?.(audioKey, sessionLang));
     // VARIANTES del castellano (es-DO): los recortes empaquetados son el
     // estímulo validado por el logopeda de la variante y SIEMPRE la vía
     // primaria — el TTS del dispositivo impondría otro acento y solo queda
@@ -803,7 +822,7 @@ export function installVerbalAudioAdapter(opts: VerbalAudioAdapterOptions = {}):
         },
         () => {
           ttsConsecutiveFailures += 1;
-          if (hasClip) playClip(audioKey, levelDb, lang, () => speakText(word, sessionLang));
+          if (hasClip) playClip(audioKey, levelDb, sessionLang, () => speakText(word, sessionLang));
           else speakText(word, sessionLang);
         },
       );
@@ -817,7 +836,7 @@ export function installVerbalAudioAdapter(opts: VerbalAudioAdapterOptions = {}):
       return;
     }
     // Recorte ilegible → degradar a TTS por palabra (comportamiento histórico).
-    playClip(audioKey, levelDb, lang, () => {
+    playClip(audioKey, levelDb, sessionLang, () => {
       speakWord(word, levelDb, sessionLang).catch(() => { speakText(word, sessionLang); });
     });
   };

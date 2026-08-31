@@ -62,6 +62,7 @@ import {
 import { LuaCompanionWidget } from '@/Components/Mascot/LuaCompanionWidget';
 import { useLuaCompanion, LuaEmotion } from '@/Lua';
 
+import { useT } from '@/I18n';
 /* -------------------------------------------------------------------------- */
 /*  Test de Articulación a la Repetición (T.A.R.)                              */
 /* -------------------------------------------------------------------------- */
@@ -115,6 +116,7 @@ const SODA_BG: Record<SodaCode, string> = {
 type Props = NativeStackScreenProps<RootStackParamList, 'Articulation'>;
 
 export default function ArticulationTestScreen({ navigation }: Props) {
+  const t = useT();
   const activeEvaluation = useClassSelector(Evaluation, (state: RootState) => state.activeEvaluation.evaluation);
   const [createArticulation, { isLoading: isSaving }] = useCreateArticulationMutation();
   // Idioma/variante de la sesión: es el mismo estado que fija el hub, así que
@@ -302,18 +304,20 @@ export default function ArticulationTestScreen({ navigation }: Props) {
           <VStack>
             <HStack alignItems="center" space="sm">
               <Text size="2xl" weight="bold" color="$textLight900">
-                Articulación · T.A.R.
+                
+                {t.articulation.articulacionTR}
               </Text>
               <Box bg="$primary50" px="$2" py="$0.5" borderRadius="$full">
                 <Text size="2xs" weight="bold" color="$primary800" style={{ letterSpacing: 0.4 }}>
-                  REPETICIÓN
+                  
+                  {t.articulation.repeticion}
                 </Text>
               </Box>
             </HStack>
             <Text size="xs" color="$textLight500">
               {patientName
                 ? `${patientName}${patient?.nhc ? ` · NHC ${patient.nhc}` : ''}`
-                : 'Test de articulación a la repetición · registro SODA por fonema'}
+                : t.articulation.testArticulacionRepeticionRegistroSoda}
             </Text>
           </VStack>
 
@@ -338,17 +342,19 @@ export default function ArticulationTestScreen({ navigation }: Props) {
             <VStack space="md">
               <Card bgColor="$white" borderRadius={22} p="$5">
                 <Text size="lg" weight="bold" color="$textLight900">
-                  Preparación del registro
+                  
+                  {t.articulation.preparacionRegistro}
                 </Text>
                 <Text size="sm" color="$textLight600" mt="$1">
-                  Inventario fonético por punto de articulación más dífonos, palabras polisilábicas y frases. Para cada
-                  ítem se presenta un modelo hablado y se clasifica la producción del niño/a según el sistema SODA.
+                  
+                  {t.articulation.inventarioFoneticoPuntoArticulacionMas}
                 </Text>
 
                 <HStack alignItems="center" space="sm" mt="$5" mb="$3">
                   <Icon as={ShieldCheck} size="sm" color="$primary500" />
                   <Text size="sm" weight="bold" color="$textLight800" style={{ textTransform: 'uppercase', letterSpacing: 0.4 }}>
-                    Condiciones de aplicación
+                    
+                    {t.articulation.condicionesAplicacion}
                   </Text>
                 </HStack>
 
@@ -376,13 +382,13 @@ export default function ArticulationTestScreen({ navigation }: Props) {
                 <HStack alignItems="center" space="sm" mb="$1">
                   <Icon as={Languages} size="sm" color="$primary500" />
                   <Text size="sm" weight="bold" color="$textLight800" style={{ textTransform: 'uppercase', letterSpacing: 0.4 }}>
-                    Voz del modelo hablado
+                    
+                    {t.articulation.vozModeloHablado}
                   </Text>
                 </HStack>
                 <Text size="xs" color="$textLight600" mb="$3">
-                  Determina con qué voz se presenta cada palabra y en qué lengua transcribe el
-                  reconocimiento. Es el idioma de la sesión: cambiarlo aquí lo cambia en toda la
-                  batería.
+                  
+                  {t.articulation.determinaVozPresentaCadaPalabra}
                 </Text>
                 <HStack space="sm" flexWrap="wrap" style={{ rowGap: 8 }}>
                   {TAR_MODEL_LANGS.map(l => {
@@ -405,8 +411,8 @@ export default function ArticulationTestScreen({ navigation }: Props) {
                   })}
                 </HStack>
                 <Text size="2xs" color="$textLight400" mt="$3" style={{ lineHeight: 15 }}>
-                  El inventario fonético es del español (T.A.R.), así que la variante dominicana
-                  cambia el acento de la voz pero no las palabras.
+                  
+                  {t.articulation.inventarioFoneticoEspanolTR}
                 </Text>
 
                 {/* El selector solo ofrece las lenguas del banco T.A.R.
@@ -418,11 +424,8 @@ export default function ArticulationTestScreen({ navigation }: Props) {
                 {!TAR_MODEL_LANGS.includes(sessionLanguage as never) ? (
                   <HStack space="xs" alignItems="flex-start" mt="$3" p="$2.5" borderRadius={12} bg="$warning50">
                     <Text size="2xs" color="$warning800" style={{ flex: 1, lineHeight: 15 }}>
-                      La sesión está en {SESSION_LANG_LABEL[sessionLanguage as SessionLang] ?? sessionLanguage},
-                      pero el T.A.R. no tiene inventario articulatorio propio en esa lengua: los modelos se
-                      presentan en castellano y con voz castellana. Para explorar la articulación en gallego o
-                      euskera hace falta un inventario propio, no una voz distinta sobre las palabras
-                      españolas.
+                      
+                      {t.articulation.sesionEsta} {SESSION_LANG_LABEL[sessionLanguage as SessionLang] ?? sessionLanguage}{t.articulation.peroTRTieneInventario}
                     </Text>
                   </HStack>
                 ) : null}
@@ -432,9 +435,8 @@ export default function ArticulationTestScreen({ navigation }: Props) {
                 <HStack space="sm" alignItems="flex-start" p="$3.5" borderRadius={16} bg="$warning50" borderWidth={1} borderColor="$warning200">
                   <Icon as={Info} size="sm" color="$warning700" style={{ marginTop: 1 }} />
                   <Text size="xs" color="$warning800" style={{ flex: 1, lineHeight: 18 }}>
-                    Sin voz disponible para el modelo hablado: no hay locuciones empaquetadas ni voz
-                    del sistema utilizable. Presente el modelo con su propia voz; el registro SODA
-                    funciona igual.
+                    
+                    {t.articulation.sinVozDisponibleModeloHablado}
                   </Text>
                 </HStack>
               ) : null}
@@ -459,8 +461,8 @@ export default function ArticulationTestScreen({ navigation }: Props) {
                 <HStack space="sm" alignItems="flex-start" p="$3.5" borderRadius={16} bg="$warning50" borderWidth={1} borderColor="$warning200">
                   <Icon as={Info} size="sm" color="$warning700" style={{ marginTop: 1 }} />
                   <Text size="xs" color="$warning800" style={{ flex: 1, lineHeight: 18 }}>
-                    Modo limitado: sin motor de grabación ni reconocimiento de voz disponible. Puede registrar la
-                    clasificación SODA igualmente; el modelo se pronuncia manualmente.
+                    
+                    {t.articulation.modoLimitadoSinMotorGrabacion}
                   </Text>
                 </HStack>
               ) : null}
@@ -468,14 +470,16 @@ export default function ArticulationTestScreen({ navigation }: Props) {
               <HStack space="sm" alignItems="flex-start" p="$3.5" borderRadius={16} bg="$primary0" borderWidth={1} borderColor="$primary100">
                 <Icon as={Info} size="sm" color="$primary600" style={{ marginTop: 1 }} />
                 <Text size="xs" color="$primary800" style={{ flex: 1, lineHeight: 18 }}>
-                  Registro descriptivo de la producción a la repetición. No sustituye el juicio clínico del fonoaudiólogo.
+                  
+                  {t.articulation.registroDescriptivoProduccionRepeticionSustituye}
                 </Text>
               </HStack>
 
               <Button action="primary" variant="solid" rounded="$full" isDisabled={!setupReady} onPress={handleStart}>
                 <HStack space="sm" alignItems="center">
                   <Text size="md" weight="bold" color="$white">
-                    Comenzar registro
+                    
+                    {t.articulation.comenzarRegistro}
                   </Text>
                   <Icon as={ArrowRight} size="sm" color="$white" />
                 </HStack>
@@ -525,7 +529,8 @@ export default function ArticulationTestScreen({ navigation }: Props) {
                   {cur.section === 'consonantes' && cur.position !== '-' ? (
                     <Box bg="$primary50" px="$2.5" py="$0.5" borderRadius="$full">
                       <Text size="2xs" weight="bold" color="$primary800">
-                        Sílaba {POSITION_LABELS[cur.position]}
+                        
+                        {t.articulation.silaba} {POSITION_LABELS[cur.position]}
                       </Text>
                     </Box>
                   ) : null}
@@ -576,7 +581,8 @@ export default function ArticulationTestScreen({ navigation }: Props) {
                     <HStack space="sm" alignItems="center">
                       <Icon as={Volume2} size="sm" color="$white" />
                       <Text size="sm" weight="bold" color="$white">
-                        Escuchar modelo
+                        
+                        {t.articulation.escucharModelo}
                       </Text>
                     </HStack>
                   </Button>
@@ -587,7 +593,7 @@ export default function ArticulationTestScreen({ navigation }: Props) {
                           <HStack space="sm" alignItems="center">
                             <Icon as={audio.recStatus === 'recording' ? Square : Mic} size="sm" color={audio.recStatus === 'recording' ? '$error500' : '$white'} />
                             <Text size="sm" weight="bold" color={audio.recStatus === 'recording' ? '$error600' : '$white'}>
-                              {audio.recStatus === 'recording' ? 'Detener' : 'Grabar'}
+                              {audio.recStatus === 'recording' ? t.articulation.detener : t.articulation.grabar}
                             </Text>
                           </HStack>
                         </Center>
@@ -607,8 +613,8 @@ export default function ArticulationTestScreen({ navigation }: Props) {
                   <HStack space="xs" alignItems="flex-start" mt="$3" p="$2.5" borderRadius={12} bg="$warning50">
                     <Icon as={AlertTriangle} size="xs" color="$warning700" style={{ marginTop: 2 }} />
                     <Text size="2xs" color="$warning800" style={{ flex: 1, lineHeight: 15 }}>
-                      Este dispositivo no tiene voz para locutar el modelo. Pronuncie «{shownWord}»
-                      usted mismo/a: el registro SODA funciona igual.
+                      
+                      {t.articulation.esteDispositivoTieneVozLocutar}{shownWord}{t.articulation.ustedMismoRegistroSodaFunciona}
                     </Text>
                   </HStack>
                 ) : null}
@@ -620,16 +626,16 @@ export default function ArticulationTestScreen({ navigation }: Props) {
                       <Icon as={Mic} size="sm" color={audio.matched ? '$success600' : '$warning700'} />
                       <VStack style={{ flex: 1 }}>
                         <Text size="2xs" weight="bold" color="$textLight500" style={{ textTransform: 'uppercase', letterSpacing: 0.4 }}>
-                          {audio.recognizing ? 'Escuchando…' : 'Reconocimiento de voz'}
+                          {audio.recognizing ? t.articulation.escuchando : t.articulation.reconocimientoVoz}
                         </Text>
                         <Text size="sm" weight="bold" color="$textLight800">
-                          {audio.transcript ? `«${audio.transcript}»` : 'Habla ahora…'}
+                          {audio.transcript ? `«${audio.transcript}»` : t.articulation.hablaAhora}
                         </Text>
                       </VStack>
                       {audio.transcript ? (
                         <Box bg={audio.matched ? '$success600' : '$warning700'} px="$2.5" py="$0.5" borderRadius="$full">
                           <Text size="2xs" weight="bold" color="$white">
-                            {audio.matched ? 'COINCIDE' : 'REVISAR'}
+                            {audio.matched ? t.articulation.coincide : t.articulation.revisar}
                           </Text>
                         </Box>
                       ) : null}
@@ -646,7 +652,8 @@ export default function ArticulationTestScreen({ navigation }: Props) {
                         </Text>
                         {audio.sodaProposal.confidence === 'baja' ? (
                           <Text size="2xs" color="$warning700">
-                            La transcripción no ve las distorsiones: confírmelo de oído.
+                            
+                            {t.articulation.transcripcionVeDistorsionesConfirmeloOido}
                           </Text>
                         ) : null}
                         <Pressable onPress={() => recordCode(audio.sodaProposal!.code as SodaCode)}>
@@ -654,7 +661,8 @@ export default function ArticulationTestScreen({ navigation }: Props) {
                             <HStack space="sm" alignItems="center">
                               <Icon as={Check} size="sm" color="$white" />
                               <Text size="sm" weight="bold" color="$white">
-                                Aceptar propuesta: {audio.sodaProposal.code}
+                                
+                                {t.articulation.aceptarPropuesta} {audio.sodaProposal.code}
                               </Text>
                             </HStack>
                           </Center>
@@ -668,10 +676,12 @@ export default function ArticulationTestScreen({ navigation }: Props) {
               {/* clasificación SODA */}
               <Card bgColor="$white" borderRadius={20} p="$5">
                 <Text size="sm" weight="bold" color="$textLight800" mb="$1">
-                  Registro de la producción
+                  
+                  {t.articulation.registroProduccion}
                 </Text>
                 <Text size="2xs" color="$textLight500" mb="$3">
-                  Clasifique la repetición del niño/a (SODA).
+                  
+                  {t.articulation.clasifiqueRepeticionNinoSoda}
                 </Text>
                 <VStack space="sm">
                   {SODA_META.map(m => {
@@ -702,11 +712,12 @@ export default function ArticulationTestScreen({ navigation }: Props) {
                 {curCode === 'S' ? (
                   <Box mt="$4">
                     <Text size="2xs" weight="bold" color="$textLight500" mb="$2" style={{ textTransform: 'uppercase', letterSpacing: 0.4 }}>
-                      ¿Qué produjo?
+                      
+                      {t.articulation.produjo}
                     </Text>
                     <Input variant="outline" borderRadius={12}>
                       <InputField
-                        placeholder="Transcriba el fonema/sílaba producido (p. ej. /t/ por /k/)"
+                        placeholder={t.articulation.transcribaFonemaSilabaProducidoP}
                         value={subs[cur.id] ?? ''}
                         onChangeText={onSub}
                       />
@@ -723,7 +734,8 @@ export default function ArticulationTestScreen({ navigation }: Props) {
                 <Button action="secondary" variant="outline" rounded="$full" style={{ flex: 1 }} onPress={next} isDisabled={idx >= items.length - 1}>
                   <HStack space="sm" alignItems="center">
                     <Text size="sm" weight="bold" color="$primary500">
-                      Siguiente
+                      
+                      {t.articulation.siguiente}
                     </Text>
                     <Icon as={ArrowRight} size="sm" color="$primary500" />
                   </HStack>
@@ -731,7 +743,8 @@ export default function ArticulationTestScreen({ navigation }: Props) {
                 <Button action="primary" variant="solid" rounded="$full" style={{ flex: 1 }} onPress={() => { audio.reset(); setView('report'); }} isDisabled={!canSave}>
                   <HStack space="sm" alignItems="center">
                     <Text size="sm" weight="bold" color="$white">
-                      Finalizar
+                      
+                      {t.articulation.finalizar}
                     </Text>
                     <Icon as={Check} size="sm" color="$white" />
                   </HStack>
@@ -742,20 +755,21 @@ export default function ArticulationTestScreen({ navigation }: Props) {
               <Card bgColor="$white" borderRadius={20} p="$5">
                 <HStack alignItems="center" justifyContent="space-between" mb="$3">
                   <Text size="sm" weight="bold" color="$textLight800">
-                    Inventario fonético
+                    
+                    {t.articulation.inventarioFonetico}
                   </Text>
                   <HStack space="sm">
                     <HStack space="xs" alignItems="center">
                       <Box w={8} h={8} borderRadius="$full" bg="$success600" />
-                      <Text size="2xs" color="$textLight500">Logrado</Text>
+                      <Text size="2xs" color="$textLight500">{t.articulation.logrado}</Text>
                     </HStack>
                     <HStack space="xs" alignItems="center">
                       <Box w={8} h={8} borderRadius="$full" bg="$warning700" />
-                      <Text size="2xs" color="$textLight500">En proceso</Text>
+                      <Text size="2xs" color="$textLight500">{t.articulation.proceso}</Text>
                     </HStack>
                     <HStack space="xs" alignItems="center">
                       <Box w={8} h={8} borderRadius="$full" bg="$error500" />
-                      <Text size="2xs" color="$textLight500">No logr.</Text>
+                      <Text size="2xs" color="$textLight500">{t.articulation.logr}</Text>
                     </HStack>
                   </HStack>
                 </HStack>
@@ -794,10 +808,11 @@ export default function ArticulationTestScreen({ navigation }: Props) {
                     </Center>
                     <VStack style={{ flex: 1 }}>
                       <Text size="lg" weight="bold" color={reportTheme.fg}>
-                        Resumen articulatorio
+                        
+                        {t.articulation.resumenArticulatorio}
                       </Text>
                       <Text size="2xs" color={reportTheme.fg} style={{ opacity: 0.9 }}>
-                        {score.evaluatedCount} / {score.totalCount} ítems registrados
+                        {score.evaluatedCount} / {score.totalCount}  {t.articulation.itemsRegistrados}
                       </Text>
                     </VStack>
                   </HStack>
@@ -806,7 +821,8 @@ export default function ArticulationTestScreen({ navigation }: Props) {
                       {score.correctPct}%
                     </Text>
                     <Text size="2xs" weight="bold" color={reportTheme.fg} style={{ textTransform: 'uppercase', opacity: 0.8 }}>
-                      Acierto
+                      
+                      {t.articulation.acierto}
                     </Text>
                   </VStack>
                 </HStack>
@@ -815,7 +831,8 @@ export default function ArticulationTestScreen({ navigation }: Props) {
               {/* recuento SODA */}
               <Card bgColor="$white" borderRadius={20} p="$5">
                 <Text size="sm" weight="bold" color="$textLight700" mb="$3" style={{ textTransform: 'uppercase', letterSpacing: 0.4 }}>
-                  Recuento por categoría (SODA)
+                  
+                  {t.articulation.recuentoCategoriaSoda}
                 </Text>
                 <HStack space="sm" flexWrap="wrap" style={{ rowGap: 8 }}>
                   {sodaSummary.map(m => (
@@ -834,13 +851,15 @@ export default function ArticulationTestScreen({ navigation }: Props) {
               {/* fonemas a intervenir */}
               <Card bgColor="$white" borderRadius={20} p="$5">
                 <Text size="sm" weight="bold" color="$textLight700" mb="$3" style={{ textTransform: 'uppercase', letterSpacing: 0.4 }}>
-                  Fonemas a intervenir
+                  
+                  {t.articulation.fonemasIntervenir}
                 </Text>
                 {score.affectedPhonemes.length === 0 ? (
                   <HStack space="sm" alignItems="center">
                     <Icon as={CheckCircle2} size="sm" color="$success600" />
                     <Text size="sm" color="$success700">
-                      Inventario completo sin alteraciones registradas.
+                      
+                      {t.articulation.inventarioCompletoSinAlteracionesRegistradas}
                     </Text>
                   </HStack>
                 ) : (
@@ -859,24 +878,26 @@ export default function ArticulationTestScreen({ navigation }: Props) {
               {/* observaciones */}
               <Card bgColor="$white" borderRadius={18} p="$4">
                 <Text size="2xs" weight="bold" color="$textLight500" mb="$2" style={{ textTransform: 'uppercase', letterSpacing: 0.4 }}>
-                  Observaciones clínicas
+                  
+                  {t.articulation.observacionesClinicas}
                 </Text>
                 <Input variant="outline" borderRadius={12}>
-                  <InputField placeholder="Anotaciones del profesional…" value={obs} onChangeText={setObs} multiline />
+                  <InputField placeholder={t.articulation.anotacionesProfesional} value={obs} onChangeText={setObs} multiline />
                 </Input>
               </Card>
 
               {/* evaluador */}
               <Card bgColor="$white" borderRadius={20} p="$5">
                 <Text size="sm" weight="bold" color="$textLight700" mb="$2">
-                  Profesional responsable
+                  
+                  {t.articulation.profesionalResponsable}
                 </Text>
                 <HStack space="sm">
                   <Input variant="outline" borderRadius={12} style={{ flex: 2 }}>
-                    <InputField placeholder="Nombre" value={evaluatorName} onChangeText={setEvaluatorName} />
+                    <InputField placeholder={t.articulation.nombre} value={evaluatorName} onChangeText={setEvaluatorName} />
                   </Input>
                   <Input variant="outline" borderRadius={12} style={{ flex: 1 }}>
-                    <InputField placeholder="Colegiado" value={evaluatorLicense} onChangeText={setEvaluatorLicense} />
+                    <InputField placeholder={t.articulation.colegiado} value={evaluatorLicense} onChangeText={setEvaluatorLicense} />
                   </Input>
                 </HStack>
               </Card>
@@ -886,7 +907,8 @@ export default function ArticulationTestScreen({ navigation }: Props) {
                   <HStack space="sm" alignItems="center">
                     <Icon as={ArrowLeft} size="sm" color="$primary500" />
                     <Text size="sm" weight="bold" color="$primary500">
-                      Seguir
+                      
+                      {t.articulation.seguir}
                     </Text>
                   </HStack>
                 </Button>
@@ -901,14 +923,16 @@ export default function ArticulationTestScreen({ navigation }: Props) {
                   <HStack space="sm" alignItems="center">
                     <Icon as={ClipboardCheck} size="sm" color="$white" />
                     <Text size="sm" weight="bold" color="$white">
-                      Guardar en la evaluación
+                      
+                      {t.articulation.guardarEvaluacion}
                     </Text>
                   </HStack>
                 </Button>
               </HStack>
 
               <Text size="2xs" color="$textLight400" style={{ textAlign: 'center', lineHeight: 16 }}>
-                Registro descriptivo de la producción a la repetición. No sustituye el juicio clínico del fonoaudiólogo.
+                
+                {t.articulation.registroDescriptivoProduccionRepeticionSustituye}
               </Text>
             </VStack>
           )}

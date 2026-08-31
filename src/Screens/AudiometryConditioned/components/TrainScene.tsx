@@ -2,6 +2,7 @@ import React, { useEffect, useRef } from 'react';
 import { Animated, Easing, LayoutChangeEvent, View } from 'react-native';
 import { Box, HStack, Text } from '@gluestack-ui/themed';
 
+import { useT } from '@/I18n';
 interface Props {
   /** Estaciones alcanzadas para el oído activo (0..4). */
   progress: number;
@@ -153,6 +154,7 @@ const FloatingNote = ({
 /* ----------------- muñeco que se ilumina (refuerzo al acierto) ------------- */
 
 const GlowMascot = ({ visible }: { visible: boolean }) => {
+  const t = useT();
   const pop = useRef(new Animated.Value(0)).current;
   const rot = useRef(new Animated.Value(0)).current;
   const pulse = useRef(new Animated.Value(0)).current;
@@ -249,7 +251,8 @@ const GlowMascot = ({ visible }: { visible: boolean }) => {
       </View>
       <Box bg="#FFF9C4" px="$3" py="$1" borderRadius={12} mt={-6} borderWidth={2} borderColor="#FFA000" shadowColor="#000" shadowOpacity={0.1} shadowRadius={4} elevation={3}>
         <Text fontSize={13} fontWeight="$bold" color="#B78103">
-          ¡GENIAL! ⭐
+          
+          {t.components.genial}
         </Text>
       </Box>
     </Animated.View>

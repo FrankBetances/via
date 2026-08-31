@@ -9,7 +9,9 @@ export { default as Button } from './Button';
 export { default as Content } from './Content';
 export { default as FontSizeControl } from './FontSizeControl';
 export { default as Header } from './Header';
+export { default as LanguagePickerModal } from './LanguagePickerModal';
 export { default as SignaturePad } from './SignaturePad';
 export { default as Text } from './Text';
 export { default as ViaIcon } from './ViaIcon';
 export { ScaledTextScope } from './fontScaleScope';
+

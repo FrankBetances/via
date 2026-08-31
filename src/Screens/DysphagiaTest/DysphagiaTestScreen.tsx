@@ -37,6 +37,7 @@ import { useCreateDysphagiaMutation } from '@/Services/local/modules/dysphagiaTe
 import { showErrorToast, showSuccessToast } from '@/Helpers/showToast';
 import { usePulseOximeter, PulseOximeterState } from './pulseOximeter';
 
+import { useT } from '@/I18n';
 /* -------------------------------------------------------------------------- */
 /*  Configuración clínica MECV-V                                               */
 /* -------------------------------------------------------------------------- */
@@ -222,34 +223,39 @@ function deriveBolo(s: BoloState, basalSpO2: number) {
 }
 
 /* Fila de lectura en vivo del pulsioxímetro (BLE o demo) + botón Capturar. */
-const OximeterRow = ({ ox, onCapture }: { ox: PulseOximeterState; onCapture: () => void }) => (
+const OximeterRow = ({ ox, onCapture }: { ox: PulseOximeterState; onCapture: () => void }) => {
+  const t = useT();
+  return (
   <HStack alignItems="center" justifyContent="space-between" mt="$3" p="$2.5" borderRadius={12} bg={ox.connected ? '$success50' : '$backgroundLight100'}>
     <HStack space="sm" alignItems="center" style={{ flex: 1 }}>
       <Icon as={ox.connected ? BluetoothConnected : Bluetooth} size="sm" color={ox.connected ? '$success600' : '$textLight400'} />
       <VStack>
         <Text size="2xs" weight="semiBold" color="$textLight700">
-          {ox.connected ? 'Pulsioxímetro BLE' : 'Sensor demo (sin BLE)'}
+          {ox.connected ? t.dysphagia.pulsioximetroBle : t.dysphagia.sensorDemoSinBle}
         </Text>
         <Text size="2xs" color="$textLight500">
-          {ox.spo2 != null ? `${ox.spo2}% SpO₂${ox.hr != null ? ` · ${ox.hr} lpm` : ''}` : 'Sin lectura'}
+          {ox.spo2 != null ? t.dysphagia.spo(ox.spo2, ox.hr != null ? ` · ${ox.hr} lpm` : '') : t.dysphagia.sinLectura}
         </Text>
       </VStack>
     </HStack>
     <Pressable onPress={onCapture}>
       <Box bg="$primary500" px="$3" py="$1.5" borderRadius="$full">
         <Text size="2xs" weight="bold" color="$white">
-          Capturar
+          
+          {t.dysphagia.capturar}
         </Text>
       </Box>
     </Pressable>
   </HStack>
-);
+  );
+};
 
 /* -------------------------------------------------------------------------- */
 /*  Pantalla principal                                                         */
 /* -------------------------------------------------------------------------- */
 
 export default function DysphagiaTestScreen() {
+  const t = useT();
   const navigation = useNavigation();
 
   const activeEvaluation = useClassSelector(Evaluation, (state: RootState) => state.activeEvaluation.evaluation);
@@ -538,16 +544,19 @@ export default function DysphagiaTestScreen() {
           <VStack>
             <HStack alignItems="center" space="sm">
               <Text size="2xl" weight="bold" color="$textLight900">
-                Disfagia MECV-V
+                
+                {t.dysphagia.disfagiaMecvV}
               </Text>
               <Box bg="$primary50" px="$2" py="$0.5" borderRadius="$full">
                 <Text size="2xs" weight="bold" color="$primary800" style={{ letterSpacing: 0.4 }}>
-                  MÉTODO CLÍNICO
+                  
+                  {t.dysphagia.metodoClinico}
                 </Text>
               </Box>
             </HStack>
             <Text size="xs" color="$textLight500">
-              Volumen-Viscosidad · cribado de disfagia orofaríngea
+              
+              {t.dysphagia.volumenViscosidadCribadoDisfagiaOrofaringea}
             </Text>
           </VStack>
 
@@ -556,17 +565,19 @@ export default function DysphagiaTestScreen() {
             <VStack space="md">
               <Card bgColor="$white" borderRadius={22} p="$5">
                 <Text size="lg" weight="bold" color="$textLight900">
-                  Preparación de la exploración
+                  
+                  {t.dysphagia.preparacionExploracion}
                 </Text>
                 <Text size="sm" color="$textLight600" mt="$1">
-                  Evalúa la deglución ante texturas néctar, líquido y pudin en volúmenes crecientes (5 · 10 · 20 mL),
-                  monitorizando la saturación de oxígeno de forma continua.
+                  
+                  {t.dysphagia.evaluaDeglucionAnteTexturasNectar}
                 </Text>
 
                 <HStack alignItems="center" space="sm" mt="$5" mb="$3">
                   <Icon as={ShieldCheck} size="sm" color="$primary500" />
                   <Text size="sm" weight="bold" color="$textLight800" style={{ textTransform: 'uppercase', letterSpacing: 0.4 }}>
-                    Requisitos previos de seguridad
+                    
+                    {t.dysphagia.requisitosPreviosSeguridad}
                   </Text>
                 </HStack>
 
@@ -597,10 +608,12 @@ export default function DysphagiaTestScreen() {
                 <HStack alignItems="center" justifyContent="space-between">
                   <VStack style={{ flex: 1 }}>
                     <Text size="sm" weight="semiBold" color="$textLight800">
-                      Saturación basal (SpO₂)
+                      
+                      {t.dysphagia.saturacionBasalSpo}
                     </Text>
                     <Text size="2xs" color="$textLight500">
-                      Lectura estable antes del primer bolo
+                      
+                      {t.dysphagia.lecturaEstableAntesPrimerBolo}
                     </Text>
                   </VStack>
                   <Input variant="outline" w={96} borderRadius={12}>
@@ -623,7 +636,8 @@ export default function DysphagiaTestScreen() {
                 onPress={handleStart}>
                 <HStack space="sm" alignItems="center">
                   <Text size="md" weight="bold" color="$white">
-                    Iniciar exploración
+                    
+                    {t.dysphagia.iniciarExploracion}
                   </Text>
                   <Icon as={ArrowRight} size="sm" color="$white" />
                 </HStack>
@@ -644,7 +658,8 @@ export default function DysphagiaTestScreen() {
                     </Center>
                     <VStack style={{ flex: 1 }}>
                       <Text size="lg" weight="bold" color="$textLight900">
-                        Bolo {activeBolo.id} · {activeBolo.viscosityLabel} {activeBolo.volume}
+                        
+                        {t.dysphagia.bolo} {activeBolo.id} · {activeBolo.viscosityLabel} {activeBolo.volume}
                       </Text>
                       <Text size="2xs" color="$textLight500">
                         {activeBolo.desc}
@@ -661,8 +676,8 @@ export default function DysphagiaTestScreen() {
                 <HStack space="sm" alignItems="flex-start" mt="$4" p="$3" borderRadius={14} bg="$primary0">
                   <Icon as={Info} size="sm" color="$primary600" style={{ marginTop: 1 }} />
                   <Text size="xs" color="$primary800" style={{ flex: 1, lineHeight: 18 }}>
-                    Pida al paciente que retenga el bolo antes de tragar; tras la deglución, que abra la boca para
-                    verificar residuos y que repita su nombre para detectar fonación húmeda.
+                    
+                    {t.dysphagia.pidaPacienteRetengaBoloAntes}
                   </Text>
                 </HStack>
               </Card>
@@ -671,10 +686,12 @@ export default function DysphagiaTestScreen() {
               <Card bgColor="$white" borderRadius={22} p="$5">
                 <HStack alignItems="center" justifyContent="space-between" mb="$3">
                   <Text size="sm" weight="bold" color="$error500" style={{ textTransform: 'uppercase', letterSpacing: 0.4 }}>
-                    Seguridad
+                    
+                    {t.dysphagia.seguridad}
                   </Text>
                   <Text size="2xs" color="$textLight400">
-                    Riesgo crítico
+                    
+                    {t.dysphagia.riesgoCritico}
                   </Text>
                 </HStack>
                 <VStack space="sm">
@@ -698,10 +715,11 @@ export default function DysphagiaTestScreen() {
                     borderColor={liveDerive.desat ? '$error500' : '$borderLight100'}
                     bg={liveDerive.desat ? '$error50' : '$white'}>
                     <Text size="sm" weight="semiBold" color="$textLight800">
-                      Desaturación SpO₂ (≥3%)
+                      
+                      {t.dysphagia.desaturacionSpo3}
                     </Text>
                     <Text size="2xs" weight="bold" color={liveDerive.desat ? '$error500' : '$textLight400'}>
-                      {liveDerive.desat ? 'Detectada' : 'No'}
+                      {liveDerive.desat ? t.dysphagia.detectada : 'No'}
                     </Text>
                   </HStack>
                 </VStack>
@@ -714,10 +732,12 @@ export default function DysphagiaTestScreen() {
                     </Center>
                     <VStack style={{ flex: 1 }}>
                       <Text size="sm" weight="semiBold" color="$textLight800">
-                        SpO₂ tras la deglución
+                        
+                        {t.dysphagia.spoTrasDeglucion}
                       </Text>
                       <Text size="2xs" color={liveDerive.desat ? '$error500' : '$textLight500'}>
-                        Dif {basalSpO2 - liveSpO2 > 0 ? `−${basalSpO2 - liveSpO2}` : 0}% vs basal
+                        
+                        {t.dysphagia.dif} {basalSpO2 - liveSpO2 > 0 ? `−${basalSpO2 - liveSpO2}` : 0}{t.dysphagia.vsBasal}
                       </Text>
                     </VStack>
                   </HStack>
@@ -737,10 +757,12 @@ export default function DysphagiaTestScreen() {
               <Card bgColor="$white" borderRadius={22} p="$5">
                 <HStack alignItems="center" justifyContent="space-between" mb="$3">
                   <Text size="sm" weight="bold" color="$warning700" style={{ textTransform: 'uppercase', letterSpacing: 0.4 }}>
-                    Eficacia
+                    
+                    {t.dysphagia.eficacia}
                   </Text>
                   <Text size="2xs" color="$textLight400">
-                    Nutrición
+                    
+                    {t.dysphagia.nutricion}
                   </Text>
                 </HStack>
                 <VStack space="sm">
@@ -761,14 +783,15 @@ export default function DysphagiaTestScreen() {
                   <HStack space="sm" alignItems="center">
                     <Icon as={ArrowLeft} size="sm" color="$primary500" />
                     <Text size="sm" weight="bold" color="$primary500">
-                      Anterior
+                      
+                      {t.dysphagia.anterior}
                     </Text>
                   </HStack>
                 </Button>
                 <Button action="primary" variant="solid" rounded="$full" style={{ flex: 1 }} onPress={handleNext}>
                   <HStack space="sm" alignItems="center">
                     <Text size="sm" weight="bold" color="$white">
-                      {activeBolo.nextSafe === null && activeBolo.nextUnsafe === null ? 'Finalizar' : 'Registrar y continuar'}
+                      {activeBolo.nextSafe === null && activeBolo.nextUnsafe === null ? t.dysphagia.finalizar : t.dysphagia.registrarContinuar}
                     </Text>
                     <Icon as={ArrowRight} size="sm" color="$white" />
                   </HStack>
@@ -785,16 +808,19 @@ export default function DysphagiaTestScreen() {
                   {reportTitle}
                 </Text>
                 <Text size="sm" color={bannerFg} mt="$1">
-                  Dieta recomendada: <Text weight="bold" color={bannerFg}>{analysis.recom}</Text>
+                  
+                  {t.dysphagia.dietaRecomendada} <Text weight="bold" color={bannerFg}>{analysis.recom}</Text>
                 </Text>
                 <Text size="2xs" color="$textLight500" mt="$2">
-                  Basal {basalSpO2}% · mínima {analysis.minSpO2}% · caída máx −{analysis.maxDrop}%
+                  
+                  {t.dysphagia.basal} {basalSpO2}{t.dysphagia.minima} {analysis.minSpO2}{t.dysphagia.caidaMax}{analysis.maxDrop}%
                 </Text>
               </Card>
 
               <Card bgColor="$white" borderRadius={20} p="$5">
                 <Text size="sm" weight="bold" color="$textLight700" mb="$3" style={{ textTransform: 'uppercase', letterSpacing: 0.4 }}>
-                  Detalle por bolo
+                  
+                  {t.dysphagia.detalleBolo}
                 </Text>
                 <VStack space="xs">
                   {BOLUS_LIST.map(b => {
@@ -834,14 +860,15 @@ export default function DysphagiaTestScreen() {
 
               <Card bgColor="$white" borderRadius={20} p="$5">
                 <Text size="sm" weight="bold" color="$textLight700" mb="$2">
-                  Evaluador responsable
+                  
+                  {t.dysphagia.evaluadorResponsable}
                 </Text>
                 <HStack space="sm">
                   <Input variant="outline" borderRadius={12} style={{ flex: 2 }}>
-                    <InputField placeholder="Nombre" value={evaluatorName} onChangeText={setEvaluatorName} />
+                    <InputField placeholder={t.dysphagia.nombre} value={evaluatorName} onChangeText={setEvaluatorName} />
                   </Input>
                   <Input variant="outline" borderRadius={12} style={{ flex: 1 }}>
-                    <InputField placeholder="Colegiado" value={evaluatorLicense} onChangeText={setEvaluatorLicense} />
+                    <InputField placeholder={t.dysphagia.colegiado} value={evaluatorLicense} onChangeText={setEvaluatorLicense} />
                   </Input>
                 </HStack>
               </Card>
@@ -851,7 +878,8 @@ export default function DysphagiaTestScreen() {
                   <HStack space="sm" alignItems="center">
                     <Icon as={ArrowLeft} size="sm" color="$primary500" />
                     <Text size="sm" weight="bold" color="$primary500">
-                      Modificar
+                      
+                      {t.dysphagia.modificar}
                     </Text>
                   </HStack>
                 </Button>
@@ -865,7 +893,8 @@ export default function DysphagiaTestScreen() {
                   <HStack space="sm" alignItems="center">
                     <Icon as={ClipboardCheck} size="sm" color="$white" />
                     <Text size="sm" weight="bold" color="$white">
-                      Confirmar y guardar
+                      
+                      {t.dysphagia.confirmarGuardar}
                     </Text>
                   </HStack>
                 </Button>
