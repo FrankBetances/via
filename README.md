@@ -9,7 +9,7 @@
 [![IEC 62304](https://img.shields.io/badge/IEC%2062304-Class%20B-yellow?style=flat-square)](#normativas-aplicables)
 [![ISO 14971](https://img.shields.io/badge/ISO%2014971-Risk%20Management-orange?style=flat-square)](#normativas-aplicables)
 [![GDPR](https://img.shields.io/badge/GDPR%2FLOPDGDD-Privacy%20by%20Design-green?style=flat-square)](#privacidad-y-datos)
-[![Idiomas](https://img.shields.io/badge/Idiomas-es%20gl%20eu%20es--DO-purple?style=flat-square)](#idiomas-y-voz-neuronal)
+[![Idiomas](https://img.shields.io/badge/Idiomas-7%20lenguas%20de%20sesi%C3%B3n-purple?style=flat-square)](#idiomas-y-voz-neuronal)
 [![License](https://img.shields.io/badge/License-Proprietary-red?style=flat-square)](./LICENSE)
 
 *Parte del ecosistema [Earlify Health](https://futureforkids.eu) · Detección temprana en salud pediátrica*
@@ -82,7 +82,8 @@ La aplicación opera sobre **tablets iOS/Android** en entornos clínicos bajo su
 
 - 🎮 **Baterías gamificadas** — 13 módulos de evaluación adaptados al paciente pediátrico
 - 🔇 **Offline-first** — Operación completa sin conexión; los datos clínicos del paciente residen solo en el dispositivo
-- 🌐 **Cuatro lenguas de sesión** — Castellano · Galego · Euskara · Español dominicano, con [banco de estímulos y voz propios](#idiomas-y-voz-neuronal)
+- 🌐 **Siete lenguas de sesión** — Castellano · Galego · Euskara · Català · Español (LatAm) · Español dominicano · English, con [banco de estímulos y voz propios](#idiomas-y-voz-neuronal). Cuatro tienen banco verbal y corpus completos; las otras tres entran declaradas como provisionales, y la pantalla lo dice
+- 🔤 **Interfaz traducida, con puerta** — Toda la interfaz se lee del catálogo de `src/I18n/` (patrón portado de Valeria+, sin `i18next`) y `scripts/check-ui-strings.js` **falla el build** si un `.tsx` vuelve a pintar texto literal
 - 🧠 **Cero IA en el dispositivo** — Los modelos neuronales solo corren en **build-time**; la app reproduce audio ya empaquetado y mide con DSP determinista. Principio **ratificado** en [ADR de inferencia en el dispositivo](./docs/design/adr-inferencia-en-dispositivo.md)
 - 🔐 **Privacidad por diseño** — Datos clínicos locales · TLS 1.3 en tránsito · seudonimización del NHC ([estado real de los controles](#controles-de-seguridad))
 - 📋 **Consentimiento informado digital** — Gestión legal obligatoria para tutores legales
@@ -142,13 +143,15 @@ Estructura real del repositorio (React Native + TypeScript, `@/` → `src/`):
 ```
 via/
 ├── src/
-│   ├── Screens/                 # Una carpeta por pantalla (22 rutas en RootStackParamList)
-│   │   ├── Splash · Bienvenida · Creditos            # Arranque, acceso e identidad del proyecto
+│   ├── Screens/                 # Una carpeta por pantalla (26 rutas en RootStackParamList)
+│   │   ├── Bienvenida · Creditos · PresentacionLua   # Acceso, identidad del proyecto y ficha de Lúa
 │   │   ├── SeleccionProfesional · RegistroProfesional
 │   │   ├── Pacientes · RegistroPaciente · Consentimiento
 │   │   ├── ClinicalAssessment · AutismScreening · RoomNoiseCheck
 │   │   ├── Audiometry · AudiometryConditioned · VerbalAudiometry
-│   │   ├── VoiceAnalysis · Articulation · DysphagiaTest
+│   │   ├── VoiceAnalysis · ProsodyAnalysis · AshaScreening
+│   │   ├── DiagnosticoAudio           # «Comprobar audio»: nombra el eslabón roto de la cadena
+│   │   ├── Articulation · DysphagiaTest
 │   │   │   ├── articulationResult      # Rejilla fonema × posición (columna castellana IBÉRICA)
 │   │   │   ├── articulationLexicon     # Los 86 ítems en es · es-DO · gl · eu (firmado)
 │   │   │   └── articulationPictograms  # Pictograma por ítem (dato, no vista: testeable)
@@ -156,7 +159,7 @@ via/
 │   │   ├── SeleccionEjercicios                       # Hub de la batería + idioma de sesión
 │   │   └── ResultadosPreliminares · ResultadosFinal · HistorialPaciente
 │   │
-│   ├── Voice/                   # Capa de voz neuronal multi-idioma (es · gl · eu · es-DO)
+│   ├── Voice/                   # Capa de voz neuronal multi-idioma (7 variedades)
 │   │   ├── voiceCorpusId        # Contrato de id por hash de contenido (PURO, build+runtime)
 │   │   ├── viaVoiceCorpus       # Enumeración del corpus (consignas + bancos locutables)
 │   │   ├── viaVoiceAssets       # GENERADO: mapa id → asset empaquetado
@@ -188,8 +191,13 @@ via/
 │   ├── Store/                   # Redux Toolkit (auth · theme · locale · patient…)
 │   ├── Navigators/              # Native Stack + finishModule (salida de módulo)
 │   ├── Components/              # Common · Survey · Themed · Mascot (LuaPixel, copia con gate)
-│   ├── I18n/                    # Catálogos i18next (es · en · es-DO) — preparado
+│   ├── Startup/                 # Barrera de error + informe de arranque legible EN PANTALLA
+│   ├── I18n/                    # Catálogo de interfaz (7 variedades) — cableado y con gate
+│   │   ├── catalog              # tNow(): módulo PURO, sin React (PDF y scripts de Node)
+│   │   ├── index                # useT(): hook reactivo para las pantallas
+│   │   └── strings.<lang>       # Un catálogo por variedad (Record sin huecos: tsc lo exige)
 │   ├── Theme/                   # Tokens de diseño Gluestack
+│   │   └── styleAtoms           # Átomos de estilo: los retoques que antes iban en línea
 │   └── Helpers/
 │
 ├── assets/
@@ -242,7 +250,8 @@ El siguiente flujo es **obligatorio** y no puede omitirse. Cada fase es un prere
       │  → CAP NO APTO: bloqueo + sugerencia de metodologías alternativas
       ▼
 [4] HUB DE LA BATERÍA (SeleccionEjercicios)
-      │  Idioma de la sesión (es · gl · eu · es-DO) → consignas y banco de estímulos
+      │  Idioma de la sesión (7 variedades) → interfaz, consignas y banco de estímulos
+      │  Acceso a «Comprobar audio» si alguna prueba no suena o no graba
       │  Selección y orden de los módulos · estado del motor de voz (con reintento)
       ▼
 [5] BATERÍA DE EVALUACIÓN GAMIFICADA
@@ -264,35 +273,83 @@ El siguiente flujo es **obligatorio** y no puede omitirse. Cada fase es un prere
 
 ### Pre-Screening — Checklist CAP
 
-El profesional debe confirmar las siguientes capacidades **antes** de iniciar la evaluación:
+El profesional certifica las condiciones **mínimas de viabilidad** en cuatro dominios antes de
+iniciar la evaluación (`clinicalAssessmentResult.ts`, lógica pura sin UI ni base de datos):
 
-| # | Capacidad | Evaluación |
+| # | Dominio | Qué se registra |
 |---|---|---|
-| 1 | **Visual** | Identificación de estímulos en pantalla |
-| 2 | **Motora fina** | Interacción táctil (drag & drop, tap) en tablet |
-| 3 | **Auditiva periférica** | Percepción basal para recibir instrucciones |
-| 4 | **Estado cognitivo** | Alerta y atención mínimas para tareas lúdicas |
+| 1 | **Otoscopia** | Hallazgo por oído (Normal · Cerumen · OMA · OME · Perforación · DTT · Otro). Cerumen, OMA y perforación **bloquean la audiometría de ese oído** |
+| 2 | **Visual** (V-01…V-04) | Fija la mirada, distingue dos imágenes, señala en pantalla, sin nistagmo marcado |
+| 3 | **Verbal** (VB-…) | Ítems **por grupo de edad** A (18 m–2 a 11 m) · B (3–4 a 11 m) · C (5 años y mayores), del «responde a su nombre» a la comprensión de instrucciones tras demostración |
+| 4 | **Motora fina** (M-01…M-04) | Tap en objetivo ≥ 4 cm, dos objetivos distintos, arrastre ≥ 3 cm, sin movimientos involuntarios severos |
+
+El veredicto no es binario: cada dominio queda en `ok`/`warn`/`block` y el resultado global es
+**`FULL`, `PARTIAL` o `BLOCKED`**, que es lo que habilita o bloquea cada prueba de la batería. Un
+CAP `PARTIAL` no cierra la sesión: cierra las pruebas que ese hallazgo invalida.
 
 ---
 
 ## Idiomas y Voz Neuronal
 
-VIA+ se aplica en **cuatro lenguas o variantes de sesión**. El idioma se elige en el hub de la
-batería (`SeleccionEjercicios`), se **persiste** en `state.locale.language` (whitelist de
-`redux-persist`) y determina dos cosas distintas: el **banco de estímulos** (contenido clínico) y
-la **voz** que locuta (consignas y modelos hablados).
+VIA+ se aplica en **siete lenguas o variantes de sesión** (`SESSION_LANGS`). El idioma se elige en
+el hub de la batería (`SeleccionEjercicios`), se **persiste** en `state.locale.language` (whitelist
+de `redux-persist`) y determina tres cosas distintas: la **interfaz** (catálogo de `src/I18n/`), el
+**banco de estímulos** (contenido clínico) y la **voz** que locuta (consignas y modelos hablados).
 
-| Lengua | Banco verbal | Locuciones del estímulo | Consignas locutadas | Estado clínico |
+Las cuatro primeras están completas. Las tres últimas entraron en agosto de 2026 con la rama
+`mejora2` y **no** están al mismo nivel: conviene leer la tabla por columnas antes de ofrecerlas en
+consulta.
+
+| Lengua | Interfaz | Banco verbal | Corpus locutado | Estado clínico |
 |---|---|---|---|---|
-| **es** — Español (España) | Base: 38 láminas, bandas A–D | ✅ empaquetadas | ✅ 97 locuciones | 🟢 Validado |
-| **gl** — Galego | Banco propio, 38 láminas (Proxecto Nós) | ✅ voz Celtia | ✅ 97 locuciones | 🟢 Banco aprobado por **ACOPROS** (2026-07-28) |
-| **eu** — Euskara | Banco propio, 37 láminas (sibilantes, vibrante múltiple, diptongos decrecientes) | ✅ voz AhoTTS Maider | ✅ 97 locuciones | 🟡 **Provisional** — falta firma de logopeda euskaldun |
-| **es-DO** — Español dominicano · *Quisqueya Habla* | Hereda el banco `es` con auditoría fonética caribeña (hoy **0 sustituciones firmadas**) | ✅ 37/37 aprobadas (2026-07-19) | ✅ 97 locuciones | 🟢 Audio aprobado para los archivos actuales |
+| **es** — Español (España) | ✅ catálogo | Base: 38 láminas, bandas A–D | ✅ 97 entradas | 🟢 Audio aprobado por **ACOPROS** (2026-07-31, receta `sharvard`) |
+| **gl** — Galego | ✅ catálogo | Banco propio, 38 láminas (Proxecto Nós) | ✅ 97 entradas · voz Celtia | 🟢 Banco y audio aprobados por **ACOPROS** |
+| **eu** — Euskara | ✅ catálogo | Banco propio, 37 láminas (sibilantes, vibrante múltiple, diptongos decrecientes) | ✅ 97 entradas · voz AhoTTS Maider | 🟢 Firmado por la logopeda euskaldun de **Ulertuz** (2026-07-31) |
+| **es-DO** — Español dominicano · *Quisqueya Habla* | ✅ catálogo | Hereda el banco `es` con auditoría fonética caribeña (hoy **0 sustituciones firmadas**) | ✅ 97 entradas | 🟢 Audio aprobado por **ACOPROS** (2026-07-31) |
+| **ca** — Català | ✅ catálogo | ⚠️ **Prestado**: se le presentan las palabras castellanas, locutadas con voz castellana | 🟡 11 entradas de consigna (sin T.A.R.) · voz Matxa-TTS | 🟡 **Provisional** — sin acta clínica, sin diseño fonológico catalán |
+| **es-419** — Español (Latinoamérica) | ✅ catálogo | Hereda el banco `es` · 37/37 recortes presentes, **audio declarado pendiente** (`VERBAL_AUDIO_PENDING`) | 🟡 11 entradas de consigna (sin T.A.R.) | 🟡 **Provisional** — sin acta clínica |
+| **en** — English (US) | ✅ catálogo | ⚠️ **Prestado**: se le presentan las palabras castellanas, locutadas con voz castellana | 🟡 11 entradas de consigna (sin T.A.R.) · voz Piper LJSpeech | 🟡 **Provisional** — sin acta clínica, sin diseño fonológico inglés |
 
+> **Banco prestado no es lo mismo que banco provisional, y la pantalla lo distingue.** A `ca` y `en`
+> se les presenta el banco castellano —que sí está firmado—: lo que no está validado es
+> presentárselo *a ellos*. Por eso la audiometría verbal les advierte del **préstamo**
+> (`usesBorrowedBank`) y **locuta esas palabras con la voz castellana** (`verbalStimulusLang`), en
+> vez de hacer que una voz inglesa lea palabras españolas, que es lo que hacía la primera versión de
+> esa rama: 37 recortes fabricados así hubo que tirarlos.
+>
 > El aviso de «banco provisional» y el de «estímulo no definitivo» se muestran **en la pantalla
 > donde se elige el idioma**, no enterrados en la documentación. La audiometría verbal además
 > **sanea** el idioma recibido (`resolveVerbalLang`): un valor persistido de una versión anterior
 > degrada a castellano en vez de tumbar la pantalla.
+
+Cobertura de recortes del banco verbal, tal como la informa `node scripts/check-verbal-coverage.js`
+(ejecutado el 31/8/2026):
+
+```
+  ✓ es      37/37        ✓ es-DO   37/37
+  ✓ gl      37/37        ✓ es-419  37/37  (audio declarado pendiente)
+  ✓ eu      32/32        · ca / en  —     (banco PRESTADO de 'es')
+```
+
+### La interfaz también se traduce (agosto 2026)
+
+Hasta agosto de 2026 la app se pintaba **entera con literales castellanos**: `src/I18n/` era una
+capa i18next «preparada, no cableada» —catálogos JSON, dependencias declaradas y un `initI18n()` que
+no llamaba nadie— y el selector de idioma no podía cambiar ni un rótulo. Con siete lenguas de sesión
+encima, eso dejaba de ser un detalle.
+
+Se sustituyó por el **patrón de Valeria+** (regla 1: se copia lo demostrado, no se inventa):
+
+| Pieza | Qué hace |
+|---|---|
+| `src/I18n/catalog.ts` | Módulo **puro**, sin React: `tNow()` para los bloques del PDF y los scripts de Node |
+| `src/I18n/index.ts` | `useT()` para las pantallas — `useSyncExternalStore`, así que cambiar el idioma en Créditos repinta la app entera sin reiniciar |
+| `src/I18n/strings.<lang>.ts` | Un catálogo por variedad; `Record<UiLang, UiStrings>` no admite huecos, así que dar de alta una lengua sin escribir su catálogo **rompe `tsc`** |
+| `scripts/check-ui-strings.js` | La puerta: ningún `.tsx` puede pintar texto literal. Excepción con `// i18n-exempt: motivo`, y **el motivo es obligatorio** |
+
+El acceso es por **propiedad** (`t.credits.navTitle`), no por clave de texto: una clave inexistente
+la caza el compilador, no el QA. `i18next` y `react-i18next` salieron del `package.json` — una
+dependencia que nadie importa no es inofensiva.
 
 ### Principio rector: cero IA en el dispositivo
 
@@ -300,12 +357,15 @@ Los modelos neuronales de síntesis **solo se ejecutan en build-time** (`tools/n
 app únicamente **reproduce ficheros ya empaquetados** o cae a la voz del sistema operativo. VIA+
 sigue siendo offline-first y no incorpora inferencia de IA como parte del dispositivo médico.
 
-| Lengua | Motor (build-time) | Voz | Proyecto |
-|---|---|---|---|
-| `es` | Piper (VITS/ONNX) | `es_ES-sharvard-medium` (`lengthScale` 1.1) | rhasspy/piper-voices |
-| `gl` | Coqui TTS (VITS grafemas) | **Celtia** | **Proxecto Nós / ILENIA** |
-| `eu` | **AhoTTS** (VITS + frontend vasco) | **Maider** (respaldo Antton) | **HiTZ/Aholab · UPV/EHU** (ILENIA / NEL-GAITU) |
-| `es-DO` | Piper (VITS/ONNX) | `es_MX-claude-high` (neutra LatAm, provisional) | rhasspy/piper-voices |
+| Lengua | Motor (build-time) | Voz | Proyecto | Firma clínica |
+|---|---|---|---|---|
+| `es` | Piper (VITS/ONNX) | `es_ES-sharvard-medium` (`lengthScale` 1.1) | rhasspy/piper-voices | 🟢 ACOPROS |
+| `gl` | Coqui TTS (VITS grafemas) | **Celtia** | **Proxecto Nós / ILENIA** | 🟢 ACOPROS |
+| `eu` | **AhoTTS** (VITS + frontend vasco) | **Maider** (respaldo Antton) | **HiTZ/Aholab · UPV/EHU** (ILENIA / NEL-GAITU) | 🟢 Ulertuz |
+| `es-DO` | Piper (VITS/ONNX) | `es_MX-claude-high` (neutra LatAm) | rhasspy/piper-voices | 🟢 ACOPROS |
+| `ca` | **Matxa-TTS** | `matxa-tts-cat-multiaccent` | **Projecte AINA / BSC** | 🔴 Pendiente |
+| `es-419` | Piper (VITS/ONNX) | `es_MX-claude-high` (la misma neutra LatAm) | rhasspy/piper-voices | 🔴 Pendiente |
+| `en` | Piper (VITS/ONNX) | `en_US-ljspeech-high` | rhasspy/piper-voices | 🔴 Pendiente |
 
 > La voz **neural es la vía por defecto de todos los idiomas**, castellano incluido.
 > `VERBAL_TTS=espeak` queda solo como degradación explícita para entornos sin acceso a los pesos
@@ -322,7 +382,8 @@ id = [${lang}_]${style}_${fnv1a32(normalize(text))}_${len}
 ```
 
 - **`style`** ∈ `tutor | child | clinical | slow` — la prosodia se **hornea** en el audio.
-- **`lang`** ∈ `es | gl | eu | es-DO` — la base `es` no lleva prefijo (retro-compat de assets).
+- **`lang`** ∈ `es | gl | eu | ca | es-419 | es-DO | en` (`VOICE_LANGS`) — la base `es` no lleva
+  prefijo (retro-compat de assets).
 - La **misma función** calcula el id en build y en runtime (`src/Voice/voiceCorpusId.ts`, módulo
   puro). Si un literal cambia en el código, cambia su id, el mapa deja de resolver y la locución
   **cae limpiamente a la voz del sistema**: la deriva degrada calidad, nunca rompe.
@@ -360,14 +421,20 @@ se abriera: por eso el veredicto se apoya en escuchas, no en banderas.
 
 ### Corpus general y pipeline
 
-El corpus enumerable actual tiene **388 entradas, 97 por lengua** en las cuatro: los 86 modelos
-hablados del T.A.R., las 9 consignas de Funciones Ejecutivas (5 de dominio + 4 de norma) y las 2 de
-prosodia. El inventario del T.A.R. se **deriva de `buildArticulationItems()`** —la misma función que
-dicta la pantalla—, así que corpus e inventario no pueden divergir.
+El corpus enumerable actual tiene **421 entradas** (`voice-corpus.json`), repartidas de forma
+deliberadamente desigual:
 
-Las cuatro lenguas tienen ya **contenido propio**, no relleno: `gl` y `eu` dejaron de reutilizar el
-recorte castellano, que era la promesa incumplida —se elegía la lengua y el estímulo seguía saliendo
-en castellano—. El T.A.R. no se traduce, porque es una rejilla FONEMA × POSICIÓN y traducir destruye
+| Lenguas | Entradas | Qué incluye |
+|---|---|---|
+| `es` · `gl` · `eu` · `es-DO` | 97 cada una | Los 86 modelos hablados del T.A.R. + las 9 consignas de Funciones Ejecutivas (5 de dominio + 4 de norma) + las 2 de prosodia |
+| `ca` · `es-419` · `en` | 11 cada una | Solo las consignas (Funciones Ejecutivas + prosodia). **Sin T.A.R.**: la rejilla fonémica de esas lenguas no está diseñada |
+
+El inventario del T.A.R. se **deriva de `buildArticulationItems()`** —la misma función que dicta la
+pantalla—, así que corpus e inventario no pueden divergir.
+
+Las cuatro lenguas completas tienen **contenido propio**, no relleno: `gl` y `eu` dejaron de
+reutilizar el recorte castellano, que era la promesa incumplida —se elegía la lengua y el estímulo
+seguía saliendo en castellano—. El T.A.R. no se traduce, porque es una rejilla FONEMA × POSICIÓN y traducir destruye
 la casilla (*Llave* → *Chave* cambia /ʎ/ por /tʃ/): cada variedad tiene su propio portador del
 fonema en `articulationLexicon`, con las desviaciones documentadas ítem a ítem.
 
@@ -383,6 +450,7 @@ node scripts/synthesize-voice-corpus.js  # síntesis incremental → assets/voic
 node scripts/build-voice-asset-map.js    # assets presentes → src/Voice/viaVoiceAssets.ts
 node scripts/verbal-assets.js            # recortes de la audiometría verbal por idioma
 node scripts/check-verbal-coverage.js    # puerta de cobertura de locuciones (usada en release)
+node scripts/check-ui-strings.js         # puerta de i18n: ningún .tsx pinta texto literal
 ```
 
 Documentos de diseño: [`arquitectura-corpus-voz.md`](./docs/design/arquitectura-corpus-voz.md) ·
@@ -504,7 +572,7 @@ JSON estricto con **claves de un solo carácter** y **arrays anónimos** para mi
   (1 = «Muy difícil» → 5 = «Muy fácil»), para mitigar la caída de tasa de respuesta por fatiga
   al terminar la evaluación.
 
-### Cobertura de instrumentación (10/10 módulos)
+### Cobertura de instrumentación (11 de los 13 módulos)
 
 Cada módulo emite eventos con su granularidad natural (tiempo = respuesta; 2.ª+ clasificación
 = rectificación):
@@ -519,9 +587,15 @@ Cada módulo emite eventos con su granularidad natural (tiempo = respuesta; 2.ª
 | Disfagia MECV-V | bolo (viscosidad × volumen) | avance de bolo |
 | Articulación · T.A.R. | ítem (fonema) | clasificación SODA |
 | Análisis Prosódico | toma de habla conectada | análisis de la muestra |
+| Cribado de Hitos ASHA | hito contestado (+ banda de edad y aceptación del modal ISO 14971) | envío del cribado |
 
 > Los «Sí/No» de las audiometrías son el *bracketing* de Hughson-Westlake (protocolo), **no**
 > fricción; por eso esos módulos miden por umbral confirmado, no por pulsación.
+>
+> **Los dos módulos que faltan y por qué.** La Evaluación Clínica Previa (CAP) y el Sonómetro
+> Ambiental no emiten telemetría: son puertas de prerrequisito, no reactivos de la batería. Que no
+> estén instrumentados es una decisión, no un olvido — pero tampoco está medida su fricción, y en el
+> caso del CAP hablamos del primer formulario que el clínico rellena en cada sesión.
 
 ---
 
@@ -529,7 +603,7 @@ Cada módulo emite eventos con su granularidad natural (tiempo = respuesta; 2.ª
 
 | Capa | Tecnología | Justificación |
 |---|---|---|
-| **Frontend / App** | React Native 0.80.1 · TypeScript 5.4 | Multiplataforma iOS/Android (prioritario); optimizado para tablet |
+| **Frontend / App** | React Native 0.81.5 · TypeScript 5.4.5 | Multiplataforma iOS/Android (prioritario); optimizado para tablet |
 | **UI / Design system** | Gluestack UI v1 + `lucide-react-native` | Sistema de diseño consistente, tokens propios (`Theme/gluestack-ui.config.ts`) |
 | **Estado** | Redux Toolkit + redux-persist | Estado global offline-first (whitelist `theme`, `locale`) |
 | **Persistencia local** | TypeORM 0.3.x + `react-native-nitro-sqlite` (SQLite) | Offline-first; `synchronize: true`; driver propio síncrono; repositorios singleton |
@@ -551,8 +625,9 @@ Cada módulo emite eventos con su granularidad natural (tiempo = respuesta; 2.ª
 | **Cifrado en reposo** | AES-256-GCM (SQLCipher) | Exigido por LOPDGDD — **pendiente de implementar**, ver [Controles de Seguridad](#controles-de-seguridad) |
 | **Autenticación** | Firebase Authentication + `authSlice` (Redux, en memoria) | Verificación de credenciales y `uid` que ancla el perfil del profesional |
 | **Sincronización HCE** | HL7 FHIR R4 REST API | Interoperabilidad con sistemas hospitalarios *(roadmap)* |
-| **Voz neuronal (build-time)** | Piper · Coqui TTS (Celtia) · AhoTTS (Maider) + ffmpeg | Síntesis de los recortes fuera del dispositivo; ver [Idiomas y Voz Neuronal](#idiomas-y-voz-neuronal) |
-| **i18n / Errores** | i18next (catálogos es · en · es-DO, preparados) · Sentry React Native | La app es hoy monolingüe en pantalla con literales; el contenido clínico sí es multi-idioma |
+| **Voz neuronal (build-time)** | Piper · Coqui TTS (Celtia) · AhoTTS (Maider) · Matxa-TTS (AINA) + ffmpeg | Síntesis de los recortes fuera del dispositivo; ver [Idiomas y Voz Neuronal](#idiomas-y-voz-neuronal) |
+| **i18n de interfaz** | Catálogo propio en `src/I18n/` (`useT()` en pantallas, `tNow()` en módulos puros) | **Porte de Valeria+**: acceso por propiedad, no por clave de texto, así que una clave mal escrita la caza `tsc`. Siete catálogos (es · gl · eu · ca · es-419 · es-DO · en) y cambio de idioma en caliente sin reiniciar. `i18next` y `react-i18next` se **retiraron**: estaban declarados y no los importaba nadie |
+| **Diagnóstico de fallos** | `@/Startup` (barrera de error + informe en pantalla) · pantalla **Comprobar audio** | Sustituyen al `console.warn`, que en un APK de release no lo ve nadie. `@sentry/react-native` se **retiró**: estaba declarado, se autolinkaba y compilaba, y ningún fichero de `src/` lo importaba |
 
 ---
 
@@ -565,7 +640,7 @@ Cada módulo emite eventos con su granularidad natural (tiempo = respuesta; 2.ª
 ```
 Node.js >= 18.x            (20.x en CI)
 npm >= 9.x  o  yarn >= 1.22.x
-React Native 0.80.x (CLI @react-native-community/cli)
+React Native 0.81.5 (CLI @react-native-community/cli) · módulos Expo instalados sobre flujo bare
 Xcode >= 15 (para iOS)
 Android Studio >= 2023.x (para Android) · AGP 8 (namespace en build.gradle)
 Proyecto Firebase con Authentication (email/contraseña) y Firestore habilitados
@@ -579,10 +654,8 @@ Python 3.11 + ffmpeg      (solo para las herramientas de build-time: voz y acús
 git clone https://github.com/FrankBetances/via.git
 cd via
 
-# Instalar dependencias
-npm install
-# o
-yarn install
+# Instalar dependencias (la misma orden que usa el CI)
+npm ci --legacy-peer-deps
 ```
 
 ### Configuración de Firebase
@@ -638,23 +711,53 @@ npm run android
 > módulos nativos por validar y firma— está detallado en
 > [`docs/design/arquitectura-exportacion-ios.md`](./docs/design/arquitectura-exportacion-ios.md).
 
-### Verificación (tests · lint · tipos)
+### Verificación (tests · lint · tipos · puertas)
+
+**La lista completa que hay que pasar antes de empujar**, en este orden:
 
 ```bash
-# Tests unitarios (Jest)
-npm run test
+npx tsc --noEmit                              # tipos (equivale a `npm run tsc`)
+npx jest                                      # 71 suites · 870 tests (`npm run test`)
+npx eslint . --ext .js,.jsx,.ts,.tsx          # listón: CERO errores y CERO avisos
+node scripts/check-verbal-coverage.js --strict  # cobertura de locuciones por idioma
+node scripts/check-lua-sprite.js              # sprite de Lúa, píxel a píxel contra Valeria+
+node scripts/resize-verbal-images.js --check  # presupuesto de ilustraciones
+node scripts/build-lua-protocol.js --check    # tabla generada ↔ src/Lua/protocol.json
+node scripts/check-ui-strings.js              # i18n: ningún .tsx con texto literal
+```
 
-# Tests de integración clínica
-npm run test:clinical
+Comandos auxiliares: `npm run test:clinical` (integración clínica) y `npm run test:coverage`
+(objetivo ≥ 80 % en módulos core).
 
-# Cobertura (objetivo: ≥ 80% en módulos core)
-npm run test:coverage
+> **`scripts/check-android-permissions.js` NO va en esa lista.** Necesita el manifiesto
+> **fusionado** de release, que en local no existe: falla siempre con «no encuentro el manifiesto
+> fusionado». Corre en CI, después de `./gradlew bundleRelease`.
 
-# Linter (ESLint)
-npm run lint
+<!-- Separador: dos notas independientes, no una continuación. -->
 
-# Comprobación de tipos (TypeScript, sin emitir)
-npm run tsc
+> **El listón del linter es cero, y un aviso cuenta igual que un error.** Desde el 31/8/2026
+> `npx eslint .` sale limpio, desde los 16 errores y 725 avisos que arrastraba. Un piso de ruido
+> permanente es exactamente cómo deja de verse el aviso número 726: lo que era un fallo real se
+> arregló en el código (componentes definidos dentro del render, 26 variables que tapaban otra del
+> ámbito exterior), lo que era el linter equivocándose de dominio se silenció **con su motivo
+> escrito** (`no-bitwise` en el cable de Lúa, el SFLOAT del pulsioxímetro y el CRC-32 del PNG), y los
+> 577 estilos en línea pasaron a `@/Theme/styleAtoms` y a hojas locales. Un silenciador en blanco no
+> vale, y `eslint-comments/no-unused-disable` avisa cuando uno se queda obsoleto.
+
+<!-- Separador: dos notas independientes, no una continuación. -->
+
+> **Todo cambio de texto locutado** lleva `node scripts/export-voice-corpus.js` y
+> `node scripts/build-voice-asset-map.js` en el **mismo commit**: sin ellos, las lenguas sin recorte
+> caen a la voz del sistema en silencio.
+
+**Comprobar el bundle sin SDK de Android.** El fallo del empaquetado no lo ven ni `tsc` ni los
+tests: solo aparece al compilar. Se reproduce en local con el mismo comando que ejecuta Gradle,
+en unos dos minutos frente a los veintidós del CI:
+
+```bash
+rm -rf /tmp/metro-*    # Metro cachea la transformación: sin esto la comparación miente
+npx expo export:embed --platform android --dev false --entry-file index.js \
+  --bundle-output /tmp/b.js --assets-dest /tmp/a
 ```
 
 ---
@@ -666,8 +769,9 @@ npm run tsc
 
 ### 1 — Evaluación Clínica Previa 🟢 (`ClinicalAssessment`)
 
-- **Dominio:** Anamnesis / cuestionario clínico estructurado previo a las pruebas
-- **Nativo:** formularios + firma de consentimiento (`react-native-signature-canvas`) + foto
+- **Dominio:** Certificado de Aptitud para la Prueba (CAP) — otoscopia + capacidad visual, verbal y motora
+- **Objetivo:** Certificar la viabilidad mínima de la prueba y derivar qué módulos quedan habilitados (`FULL` / `PARTIAL` / `BLOCKED`); ver [Pre-Screening](#pre-screening--checklist-cap)
+- **Nativo:** ninguno. Formularios (`react-hook-form` + Yup) sobre lógica pura y determinista (`clinicalAssessmentResult.ts`). La firma del tutor **no está aquí**: vive en Consentimiento, con el `SignaturePad` propio (`react-native-svg` + `PanResponder`)
 - **Datos:** entidad `ClinicalAssessment` · informe PDF `ClinicalAssessmentDetail`
 
 ### 2 — Cuestionario de Autismo M-CHAT-R 🟢 (`Mchat`)
@@ -747,8 +851,8 @@ npm run tsc
 
 - **Dominio:** Logoaudiometría en campo libre (altavoz del dispositivo, sin audífonos)
 - **Objetivo:** Reconocimiento de conjunto cerrado por selección de tarjetas (`WordCard`), con listas de estímulos por franja de edad (A–D); modos discriminación y umbral (URV/SRT estimado)
-- **Idiomas:** un banco de estímulos por lengua — `es` · `gl` (banco propio del Proxecto Nós, aprobado por ACOPROS) · `eu` (banco propio, provisional) · `es-DO` (*Quisqueya Habla*, banco `es` auditado + locución propia); ver [Idiomas y Voz Neuronal](#idiomas-y-voz-neuronal)
-- **Nativo:** **recortes de locución pre-sintetizados** como vía primaria (empaquetados por idioma), con la voz del sistema como degradación; presentados por el altavoz binaural. Degrada con placeholders si falta imagen
+- **Idiomas:** siete bancos registrados (`VERBAL_BANK_LANGS`) con tres situaciones distintas — banco propio (`es` · `gl`, del Proxecto Nós y aprobado por ACOPROS · `eu`, firmado por Ulertuz), banco heredado del castellano (`es-DO` de *Quisqueya Habla*, con locución propia · `es-419`) y **banco prestado** (`ca` · `en`: se les presentan las palabras castellanas, la pantalla lo advierte y se locutan con voz castellana). Ver [Idiomas y Voz Neuronal](#idiomas-y-voz-neuronal)
+- **Nativo:** **recortes de locución pre-sintetizados** como vía primaria (empaquetados por idioma, decodificados desde base64 sobre el `AudioContext` compartido y reproducidos por `BufferSource`), con la voz del sistema como degradación; presentados por el altavoz binaural. Degrada con placeholders si falta imagen
 - **Datos:** entidad `VerbalAudiometryTest` (tabla `verbal_audiometry_test`) · informe PDF
 
 ### 11 — Funciones Ejecutivas 🟢🗣️ (`ExecutiveFunctions`)
@@ -787,6 +891,45 @@ npm run tsc
 - **Hueco abierto:** las 8 banderas rojas están todas entre 0 y 36 meses, así que en las
   bandas `3-4y` y `4-5y` un cribado no puede llegar a rojo. Sin decidir — ver
   [`docs/design/cribado-hitos-asha.md`](./docs/design/cribado-hitos-asha.md)
+
+### Pantallas de apoyo (no son módulos clínicos)
+
+Dos rutas más del navegador y una superficie de arranque. No miden nada: existen porque un fallo
+silencioso cuesta días de campo.
+
+#### Comprobar audio 🎙️🔊 (`DiagnosticoAudio`, desde el hub)
+
+Recorre la cadena de audio entera y **nombra el eslabón roto** en vez de dejar que la prueba
+«no suene» sin más: permiso de micrófono, captura real, motor de audio, contexto de salida, banco de
+locuciones, recortes de la audiometría verbal, sintetizador del sistema, locución real y
+reconocedor del T.A.R.
+
+Lo que la hace fiable es lo que aprendió del fallo de agosto de 2026, cuando enseñó **siete
+eslabones en verde** mientras dos pruebas seguían mudas:
+
+- **Enumerar el catálogo de voces no es emitir.** «473 voces» no significa que suene: ahora
+  `checkSystemVoiceSpeaks` **dicta una frase** y espera `onStart`/`onDone`/`onError` con plazo.
+- **`state === 'running'` del `AudioContext` no prueba nada.** El constructor de la librería marca
+  `RUNNING` **ignorando** el booleano de `start()`, así que un contexto sin stream de Oboe se declara
+  corriendo igual.
+- **Si hay tres motores de salida, hacen falta tres escuchas.** `LISTEN_CHECK_IDS` son cuatro
+  emisiones —`tone`, `verbal-clip-heard`, `voice-bank-heard`, `tts-heard`— y mientras falte una de
+  contestar, ni el titular ni el resumen copiable dicen «todo funciona»: dicen `SALIDA NO COMPROBADA`
+  y cuántas quedan.
+
+#### Informe de arranque (`@/Startup`)
+
+El APK del 24/8/2026 «no abría»: la app no tenía **ninguna barrera de error**, así que cualquier
+excepción de render dejaba la pantalla en blanco, y las dos esperas del arranque —rehidratación de
+`redux-persist` e `initDatabase()`— pintaban el mismo splash mudo. Un síntoma idéntico para media
+docena de causas con arreglos distintos. Ahora `StartupErrorBoundary` + `StartupReport` pintan
+**en el dispositivo** el mensaje, el código, el error del driver que TypeORM envuelve y la pila; y si
+no hay error pero la espera se alarga, la pantalla **nombra el eslabón** en el que se quedó.
+
+#### Presentación de Lúa (`PresentacionLua`, desde Créditos)
+
+Ficha de la mascota y del periférico: qué es, qué hace en VIA+ y qué no, con los enlaces de contacto
+y compra. No toca BLE.
 
 ---
 
@@ -961,7 +1104,7 @@ construidos en total. Detalle en
 
 | Workflow | Disparo | Qué hace |
 |---|---|---|
-| `voice-assets.yml` | Manual · push a `claude/**` que toque el corpus o `tools/nos` | Sintetiza consignas y/o recortes verbales de los cuatro idiomas y los commitea a la rama (nunca a `main`). Tolerante: una voz que falle no tira el lote |
+| `voice-assets.yml` | Manual · push a `claude/**` que toque el corpus o `tools/nos` | Sintetiza consignas y/o recortes verbales de los **siete** idiomas (`all` o uno suelto) y los commitea a la rama (nunca a `main`). Tolerante: una voz que falle no tira el lote. Con motor `espeak` omite `gl`, `ca` y `eu`: sus voces son neurales por diseño y no tienen equivalente |
 | `android-release.yml` | Manual · tag `v*` · push a `main` (android, src, assets/audio) | **Puerta de locuciones** → **gate del sprite de Lúa** → **presupuesto de ilustraciones** → keystore → APK + AAB firmados → verificación de firma. Los artefactos se publican **solo** en tag `v*` o disparo manual; un push a `main` compila y pasa las puertas sin subir nada |
 | `acoustic-validation.yml` | PR/push que toque `VoiceAnalysis` o `tools/acoustics` | Contrasta el DSP con Praat y falla si un parámetro se desvía de su tolerancia |
 | `codeql.yml` | Push/PR a `main` + semanal | Análisis estático de seguridad |
@@ -1027,11 +1170,22 @@ docs/
     ├── arquitectura-exportacion-ios.md   # Las dos vías de iOS, firma y exportación del .ipa
     ├── audiometria-verbal.md             # Diseño del módulo (+ variantes gl · eu · es-DO)
     ├── validacion-clinica-verbal.md      # Trazabilidad de la aprobación clínica
+    ├── audiometria-verbal-gl.md          # Banco gallego (Proxecto Nós), acta de ACOPROS
+    ├── audiometria-verbal-eu.md          # Banco euskera, acta de Ulertuz
+    ├── audiometria-verbal-es-do.md       # Variante dominicana del banco castellano
+    ├── cribado-hitos-asha.md             # Hitos, umbrales P75 y el hueco de las banderas rojas
     ├── integracion-proxecto-nos.md       # Plan de integración del gallego (ILENIA)
     ├── integracion-quisqueya-habla.md    # Plan de integración de la variante dominicana
     ├── integracion-valeria.md            # Voz de referencia de Valeria+: qué se portó y dónde se desvió
-    └── integracion-lua.md                # Lúa en VIA+: solo recompensa de cierre (el aparato es de Valeria+)
+    ├── integracion-lua.md                # Lúa en VIA+: solo recompensa de cierre (el aparato es de Valeria+)
+    ├── lua-salida-y-alertas-sonoras.md   # Ampliación de alcance de la dirección (14/8/2026), sin implementar
+    ├── README-LUA-FIRMWARE-INTEGRATION.md # Enlace GATT y firmware, vendorizados desde Valeria+
+    └── diseno_*.md · render_*.jpg        # Diseño y renders de bienvenida, créditos, hub y resultados
 ```
+
+> Junto a estos, `CLAUDE.md` (en la raíz) recoge las **reglas de trabajo** del repositorio: cada
+> una nace de un error real cometido aquí y lleva anotado su coste. Quien vaya a tocar la capa de
+> voz, el build nativo o los mocks de módulos nativos debería leerlo antes que este README.
 
 El **manual de usuario** con casos de uso clínicos de principio a fin se genera desde
 [`docs/manual/manual.html`](./docs/manual/manual.html):
@@ -1101,6 +1255,11 @@ checklist obligatorio. Cada PR debe incluir:
 - [ ] Evaluación de impacto en seguridad del paciente (ISO 14971)
 - [ ] Verificación de seguridad y privacidad (¿toca datos clínicos, permisos o la nube?)
 - [ ] Tests añadidos o actualizados (cobertura mantenida ≥ 80%)
+- [ ] **Las puertas pasadas en local**, todas: `tsc`, `jest`, `eslint` (cero errores **y** cero
+      avisos) y los cinco scripts de [Verificación](#verificación-tests--lint--tipos--puertas)
+- [ ] Si cambia texto **locutado**: `export-voice-corpus.js` y `build-voice-asset-map.js` en el
+      **mismo commit** (si no, la lengua sin recorte cae a la voz del sistema en silencio)
+- [ ] Si cambia texto de **interfaz**: está en el catálogo de `src/I18n/`, no en el `.tsx`
 - [ ] Documentación actualizada
 - [ ] Revisión de los **Code Owners** de las rutas sensibles (Firestore, auth, Database, telemetría, CI)
 
@@ -1147,7 +1306,12 @@ Earlify Health
 | Generación de informes PDF | 🟢 Integrado |
 | Resultados de sesión e historial del paciente | 🟢 Integrado |
 | Telemetría de usabilidad Zero-PHI (Likert → QR) | 🟢 Integrado |
-| Capa de voz neuronal multi-idioma (es · gl · eu · es-DO) | 🟢 Integrada (consignas `gl`/`eu` con voz del sistema) · **locución confirmada en emulador el 27/8/2026** |
+| Capa de voz neuronal multi-idioma (es · gl · eu · es-DO) | 🟢 Integrada · **locución confirmada en emulador el 27/8/2026** |
+| Tres variedades añadidas (ca · es-419 · en) | 🟡 Interfaz y consignas sí; **sin T.A.R., sin acta clínica** y con banco prestado en `ca`/`en` |
+| Interfaz traducida (catálogo `src/I18n` + gate `check-ui-strings`) | 🟢 Integrada · 7 variedades, cambio de idioma en caliente |
+| Pantalla **Comprobar audio** (diagnóstico de la cadena de audio) | 🟢 Integrada · cuatro escuchas, sin veredicto favorable por omisión |
+| Barrera de error e informe de arranque (`@/Startup`) | 🟢 Integrada · el fallo se lee en el dispositivo, no en `console.error` |
+| Tipos, tests y linter | 🟢 `tsc` limpio · 71 suites / 870 tests en verde · `eslint` en **cero errores y cero avisos** |
 | Validación del análisis acústico contra Praat | 🟢 En CI |
 | Sitio público y política de privacidad (Pages) | 🟢 Publicable |
 | Release firmada de Android (APK + AAB) | 🟢 En CI, con puerta de locuciones |
@@ -1171,12 +1335,13 @@ Earlify Health
 | 7 | Test de Disfagia MECV-V | 🟢 Construido | 🟢 OK (`dysphagiaTest`) | 🟢 BLE pulsioxímetro (`ble-plx`) |
 | 8 | Cribado SAHS Infantil | 🟢 Construido | 🟢 OK (`sahsScreenings`) | 🟢 ninguno |
 | 9 | Articulación · T.A.R. | 🟢 Construido | 🟢 OK (`articulationTests`) | 🟢 mic + reconocedor + `@/Voice` (degrada a SODA manual) |
-| 10 | Audiometría Verbal | 🟢 Construido | 🟢 OK (`verbalAudiometry`) | 🟢 recortes neuronales en 4 idiomas (campo libre) |
+| 10 | Audiometría Verbal | 🟢 Construido | 🟢 OK (`verbalAudiometry`) | 🟢 recortes neuronales, 7 bancos registrados (campo libre) |
 | 11 | Funciones Ejecutivas | 🟢 Construido | 🟢 OK (`executiveFunctions`) | 🟢 consignas locutadas (`@/Voice`) |
 | 12 | Análisis Prosódico | 🟢 Construido | 🟢 OK (`prosodyAnalysis`) | 🟢 mic compartido + DSP propio (validado vs. Praat) |
 | 13 | Cribado de Hitos ASHA | 🟢 Construido | 🟡 Solo repositorio (sin carpeta en `Services/local`) | 🟢 ninguno (motor CDSS determinista) |
 
-> Los 13 módulos están construidos y sus 13 rutas registradas en `RootStackParamList`;
+> Los 13 módulos están construidos y sus 13 rutas registradas en `RootStackParamList`
+> (26 rutas en total, contando acceso, pacientes, resultados, «Comprobar audio» y la ficha de Lúa);
 > la batería completa persiste en la base SQLite local del dispositivo.
 >
 > **Dos precisiones que esta nota afirmaba y no eran ciertas** (corregido el 27/8/2026):
@@ -1192,6 +1357,22 @@ Earlify Health
 > por módulo (`audiometry` sirve a las dos audiometrías tonales, `clinicalAssessments` es
 > el CAP). El cribado ASHA no tiene ninguna: persiste por su repositorio
 > (`AshaMilestoneTestRepository`), que es lo que la pantalla usa.
+
+### Lo que sigue abierto (no lo des por cerrado)
+
+Esta lista existe porque «construido» y «comprobado en dispositivo» no son lo mismo, y confundirlos
+ya costó ciclos de desarrollo enteros. El registro completo, con el coste de cada error, está en
+`CLAUDE.md`.
+
+| Abierto | Estado real |
+|---|---|
+| **Recorrer la batería en el emulador** | Ningún módulo clínico se ha recorrido en dispositivo. Lo confirmado el 27/8/2026 es que **la app habla**, y eso cubre la vía de `expo-speech` y ninguna más |
+| **Las otras tres vías de salida** | `expo-audio` y las dos de `react-native-audio-api` siguen **sin contestar** en dispositivo. Mientras falte una escucha de **Comprobar audio**, no se escribe «el audio funciona» |
+| **El nivel del micrófono no cambia al acercarse** | Reportado el 25/8/2026 como duda, sin resolver. La toma de prueba publica ya el recorrido (bloque más flojo → más fuerte) para poder medirlo. Hipótesis no verificada: el *input preset* de la captura, que la librería nativa no fija |
+| **El veredicto de ruido de sala no llega al informe** | No se persiste en ningún modelo ni aparece en el PDF: un informe de audiometría no deja constancia de las condiciones acústicas ni de si la sala se saltó. Decisión de producto pendiente |
+| **Repositorio de referencia del análisis prosódico** | Existe uno indicado por la dirección y **su URL no consta en el repositorio**. Hasta que esté registrada, `src/Screens/ProsodyAnalysis/` no se toca |
+| **`react-native-ble-plx` en esta versión** | Autolinkada y compilada en cada build, con los dos adaptadores que la usarían esperando un `BleManager` que nadie instancia. Es decisión de producto, no limpieza |
+| **Actas clínicas de `ca`, `es-419` y `en`** | Sin firmar. Y `ca`/`en` presentan banco castellano prestado |
 
 ---
 
