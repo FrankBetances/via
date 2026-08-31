@@ -80,4 +80,26 @@ export const CA: UiStrings = {
     enginePiper: 'Veus neuronals VITS per a castellà, català, anglès i variants',
     engineEspeak: 'Síntesi de reserva fora de línia, sense pesos neuronals',
   },
+
+  components: {
+    volver: 'Tornar',
+    borrarFirma: 'Esborrar la signatura',
+    firmeAqui: 'Signeu aquí amb el dit o amb un llapis tàctil',
+    tamanoLetra: 'Mida de la lletra',
+    lua: 'Lúa ·',
+    respiracionGuiada: 'Respiració Guiada',
+    esp32Ble: 'ESP32 BLE',
+    nivel: 'Nivell',
+    filtroPrueba: (a: string | number, b: string | number) =>
+      `Filtre ${a}, ${b} ${Number(b) === 1 ? 'prova' : 'proves'}`,
+    duracionEdades: (a: string | number, b: string | number, c: string | number, d: string | number) =>
+      `${a}. ${b} Durada ${c}. Edats ${d}.`,
+    calibracionOk: 'Calibratge OK',
+    normal: 'NORMAL',
+    leve: 'LLEU',
+    moderada: 'MODERADA',
+    severa: 'GREU',
+    frecuenciaHz: 'Freqüència (Hz)',
+    genial: 'GENIAL! ⭐',
+  },
 };

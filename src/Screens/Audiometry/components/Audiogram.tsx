@@ -3,6 +3,7 @@ import Svg, { Circle, G, Line, Path, Rect, Text as SvgText } from 'react-native-
 import { AudiometryThresholds } from '@/Models/Audiometry/AudiometryTest';
 import { FREQS } from '../audiometryResult';
 
+import { useT } from '@/I18n';
 const X: Record<number, number> = { 500: 80, 1000: 170, 2000: 260, 4000: 330 };
 const yOf = (db: number) => 50 + (db - 20) * 3;
 
@@ -19,6 +20,7 @@ interface Props {
  * en curso. Reutilizado por la pantalla infantil y la condicionada.
  */
 export default function Audiogram({ thresholds, cursor, cursorColor = '#FF7F00' }: Props) {
+  const t = useT();
   const pointsOf = (chan: 'OD' | 'OI' | 'CL') =>
     FREQS.map(f => ({ f, v: thresholds[chan]?.[f] ?? null }))
       .filter(p => p.v !== null)
@@ -37,10 +39,10 @@ export default function Audiogram({ thresholds, cursor, cursorColor = '#FF7F00' 
       <Rect x={50} y={50} width={300} height={60} fill="#FBF4E3" />
       <Rect x={50} y={110} width={300} height={60} fill="#FBEDDD" />
       <Rect x={50} y={170} width={300} height={62} fill="#FBE6E2" />
-      <SvgText x={54} y={44} fontSize={7.5} fill="#3F9F6B">NORMAL</SvgText>
-      <SvgText x={54} y={76} fontSize={7.5} fill="#C99A3A">LEVE</SvgText>
-      <SvgText x={54} y={136} fontSize={7.5} fill="#C2742E">MODERADA</SvgText>
-      <SvgText x={54} y={196} fontSize={7.5} fill="#C2554E">SEVERA</SvgText>
+      <SvgText x={54} y={44} fontSize={7.5} fill="#3F9F6B">{t.components.normal}</SvgText>
+      <SvgText x={54} y={76} fontSize={7.5} fill="#C99A3A">{t.components.leve}</SvgText>
+      <SvgText x={54} y={136} fontSize={7.5} fill="#C2742E">{t.components.moderada}</SvgText>
+      <SvgText x={54} y={196} fontSize={7.5} fill="#C2554E">{t.components.severa}</SvgText>
 
       {/* rejilla horizontal */}
       {[50, 80, 110, 140, 170, 200, 230].map((y, i) => (
@@ -60,7 +62,7 @@ export default function Audiogram({ thresholds, cursor, cursorColor = '#FF7F00' 
       <SvgText x={170} y={248} fontSize={8.5} fill="#9A938A" textAnchor="middle">1k</SvgText>
       <SvgText x={260} y={248} fontSize={8.5} fill="#9A938A" textAnchor="middle">2k</SvgText>
       <SvgText x={330} y={248} fontSize={8.5} fill="#9A938A" textAnchor="middle">4k</SvgText>
-      <SvgText x={200} y={262} fontSize={8} fill="#B7AFA3" textAnchor="middle">Frecuencia (Hz)</SvgText>
+      <SvgText x={200} y={262} fontSize={8} fill="#B7AFA3" textAnchor="middle">{t.components.frecuenciaHz}</SvgText>
 
       {/* cursor de presentación */}
       {cursor && X[cursor.freq] ? (

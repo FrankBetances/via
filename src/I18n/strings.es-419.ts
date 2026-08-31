@@ -40,4 +40,11 @@ export const ES_419: UiStrings = {
     earlifyDesc: 'Tecnología e ingeniería clínica en salud',
     qualityTitle: 'CALIDAD Y REGULACIÓN SANITARIA',
   },
+
+  components: {
+    ...ES.components,
+    volver: 'Regresar',
+    tamanoLetra: 'Tamaño de letra',
+    firmeAqui: 'Firme aquí con el dedo o con un lápiz táctil',
+  },
 };

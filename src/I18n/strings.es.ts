@@ -97,6 +97,33 @@ export const ES = {
     enginePiper: 'Voces neuronales VITS para castellano, catalán, inglés y variantes',
     engineEspeak: 'Síntesis de respaldo offline sin pesos neuronales',
   },
+
+  /* Componentes compartidos entre pantallas: cabecera, firma, control de
+   * tamaño de letra, mascota, tarjetas del hub, audiograma y tren. */
+  components: {
+    volver: 'Volver',
+    borrarFirma: 'Borrar firma',
+    firmeAqui: 'Firme aquí con el dedo o un lápiz táctil',
+    tamanoLetra: 'Tamaño de letra',
+    lua: 'Lúa ·',
+    respiracionGuiada: 'Respiración Guiada',
+    esp32Ble: 'ESP32 BLE',
+    nivel: 'Nivel',
+    /* El plural lo forma CADA lengua: la pantalla pasa el número, no la «s».
+     * Antes llegaba ya resuelto (`count === 1 ? '' : 's'`), que es castellano
+     * incrustado en el sitio donde no se puede traducir. */
+    filtroPrueba: (a: string | number, b: string | number) =>
+      `Filtro ${a}, ${b} ${Number(b) === 1 ? 'prueba' : 'pruebas'}`,
+    duracionEdades: (a: string | number, b: string | number, c: string | number, d: string | number) =>
+      `${a}. ${b} Duración ${c}. Edades ${d}.`,
+    calibracionOk: 'Calibración OK',
+    normal: 'NORMAL',
+    leve: 'LEVE',
+    moderada: 'MODERADA',
+    severa: 'SEVERA',
+    frecuenciaHz: 'Frecuencia (Hz)',
+    genial: '¡GENIAL! ⭐',
+  },
 } as const;
 
 /**

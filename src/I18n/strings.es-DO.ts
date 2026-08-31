@@ -36,4 +36,10 @@ export const ES_DO: UiStrings = {
      * paréntesis explicativo que necesita el resto. */
     langEsDO: 'Variedad dominicana: banco y locuciones propios (FONDOCYT)',
   },
+
+  components: {
+    ...ES.components,
+    volver: 'Regresar',
+    firmeAqui: 'Firme aquí con el dedo o con un lápiz táctil',
+  },
 };

@@ -8,6 +8,7 @@ import type { AppDispatch, RootState } from '@/Store';
 import { setFontScale } from '@/Store/slices/themeSlice';
 import { MAX_FONT_SCALE, MIN_FONT_SCALE, nextFontScale } from './fontScaleScope';
 
+import { useT } from '@/I18n';
 /* -------------------------------------------------------------------------- */
 /*  FontSizeControl — control A− / A+ del tamaño de letra de los               */
 /*  cuestionarios. Ajusta `theme.fontScale` (persistido: se recuerda entre     */
@@ -16,6 +17,7 @@ import { MAX_FONT_SCALE, MIN_FONT_SCALE, nextFontScale } from './fontScaleScope'
 /* -------------------------------------------------------------------------- */
 
 export default function FontSizeControl() {
+  const t = useT();
   const dispatch = useDispatch<AppDispatch>();
   const fontScale = useSelector((state: RootState) => state.theme.fontScale);
 
@@ -56,7 +58,8 @@ export default function FontSizeControl() {
           Aa
         </GSText>
         <GSText size="2xs" style={{ color: '#A89F93' }}>
-          Tamaño de letra
+          
+          {t.components.tamanoLetra}
         </GSText>
       </HStack>
       <HStack space="sm" alignItems="center">

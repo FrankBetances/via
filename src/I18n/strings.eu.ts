@@ -80,4 +80,25 @@ export const EU: UiStrings = {
     enginePiper: 'VITS ahots neuronalak gaztelaniarako, katalanerako, ingeleserako eta aldaeretarako',
     engineEspeak: 'Lineaz kanpoko ordezko sintesia, pisu neuronalik gabe',
   },
+
+  components: {
+    volver: 'Itzuli',
+    borrarFirma: 'Ezabatu sinadura',
+    firmeAqui: 'Sinatu hemen hatzarekin edo arkatz ukikorrarekin',
+    tamanoLetra: 'Letra-tamaina',
+    lua: 'Lúa ·',
+    respiracionGuiada: 'Arnasketa Gidatua',
+    esp32Ble: 'ESP32 BLE',
+    nivel: 'Maila',
+    filtroPrueba: (a: string | number, b: string | number) => `Iragazkia ${a}, ${b} proba`,
+    duracionEdades: (a: string | number, b: string | number, c: string | number, d: string | number) =>
+      `${a}. ${b} Iraupena ${c}. Adinak ${d}.`,
+    calibracionOk: 'Kalibrazioa OK',
+    normal: 'NORMALA',
+    leve: 'ARINA',
+    moderada: 'ERTAINA',
+    severa: 'LARRIA',
+    frecuenciaHz: 'Maiztasuna (Hz)',
+    genial: 'BIKAIN! ⭐',
+  },
 };

@@ -76,4 +76,26 @@ export const EN: UiStrings = {
     enginePiper: 'VITS neural voices for Spanish, Catalan, English and their varieties',
     engineEspeak: 'Offline fallback synthesis, no neural weights',
   },
+
+  components: {
+    volver: 'Back',
+    borrarFirma: 'Clear signature',
+    firmeAqui: 'Sign here with your finger or a stylus',
+    tamanoLetra: 'Text size',
+    lua: 'Lúa ·',
+    respiracionGuiada: 'Guided Breathing',
+    esp32Ble: 'ESP32 BLE',
+    nivel: 'Level',
+    filtroPrueba: (a: string | number, b: string | number) =>
+      `Filter ${a}, ${b} ${Number(b) === 1 ? 'test' : 'tests'}`,
+    duracionEdades: (a: string | number, b: string | number, c: string | number, d: string | number) =>
+      `${a}. ${b} Duration ${c}. Ages ${d}.`,
+    calibracionOk: 'Calibration OK',
+    normal: 'NORMAL',
+    leve: 'MILD',
+    moderada: 'MODERATE',
+    severa: 'SEVERE',
+    frecuenciaHz: 'Frequency (Hz)',
+    genial: 'AWESOME! ⭐',
+  },
 };

@@ -76,4 +76,26 @@ export const GL: UiStrings = {
     enginePiper: 'Voces neuronais VITS para castelán, catalán, inglés e variantes',
     engineEspeak: 'Síntese de apoio sen conexión, sen pesos neuronais',
   },
+
+  components: {
+    volver: 'Volver',
+    borrarFirma: 'Borrar a sinatura',
+    firmeAqui: 'Asine aquí co dedo ou cun lapis táctil',
+    tamanoLetra: 'Tamaño da letra',
+    lua: 'Lúa ·',
+    respiracionGuiada: 'Respiración Guiada',
+    esp32Ble: 'ESP32 BLE',
+    nivel: 'Nivel',
+    filtroPrueba: (a: string | number, b: string | number) =>
+      `Filtro ${a}, ${b} ${Number(b) === 1 ? 'proba' : 'probas'}`,
+    duracionEdades: (a: string | number, b: string | number, c: string | number, d: string | number) =>
+      `${a}. ${b} Duración ${c}. Idades ${d}.`,
+    calibracionOk: 'Calibración OK',
+    normal: 'NORMAL',
+    leve: 'LEVE',
+    moderada: 'MODERADA',
+    severa: 'SEVERA',
+    frecuenciaHz: 'Frecuencia (Hz)',
+    genial: 'XENIAL! ⭐',
+  },
 };
