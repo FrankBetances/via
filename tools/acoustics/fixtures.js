@@ -1,5 +1,4 @@
 #!/usr/bin/env node
-/* eslint-disable no-console */
 /* global Buffer */
 /**
  * Generador de casos de prueba del análisis acústico (herramienta build-time).
@@ -21,7 +20,6 @@
 
 const { execFileSync } = require('child_process');
 const fs = require('fs');
-const os = require('os');
 const path = require('path');
 
 const ROOT = path.resolve(__dirname, '..', '..');
@@ -150,6 +148,7 @@ function vowel(sampleRate, {
   // Ruido reproducible (congruencial lineal), no `Math.random`.
   let seed = 20260729;
   const rand = () => {
+    // eslint-disable-next-line no-bitwise -- el generador congruencial lineal necesita el módulo 2^31 del enmascarado; es lo que hace la señal REPRODUCIBLE entre ejecuciones.
     seed = (seed * 1103515245 + 12345) & 0x7fffffff;
     return seed / 0x7fffffff - 0.5;
   };
@@ -224,6 +223,7 @@ function vowelPulsed(sampleRate, {
   const n = Math.floor(sampleRate * seconds);
   let seed = 20260826;
   const rand = () => {
+    // eslint-disable-next-line no-bitwise -- el generador congruencial lineal necesita el módulo 2^31 del enmascarado; es lo que hace la señal REPRODUCIBLE entre ejecuciones.
     seed = (seed * 1103515245 + 12345) & 0x7fffffff;
     return seed / 0x7fffffff;
   };
@@ -410,6 +410,7 @@ function speech(sampleRate, {
 
   let seed = 20260803;
   const rand = () => {
+    // eslint-disable-next-line no-bitwise -- el generador congruencial lineal necesita el módulo 2^31 del enmascarado; es lo que hace la señal REPRODUCIBLE entre ejecuciones.
     seed = (seed * 1103515245 + 12345) & 0x7fffffff;
     return seed / 0x7fffffff - 0.5;
   };

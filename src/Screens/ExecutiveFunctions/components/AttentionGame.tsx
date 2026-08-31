@@ -6,6 +6,7 @@ import GameCard, { GameCardState } from './GameCard';
 import { AttentionPlan, AttentionResult } from '../executiveFunctionsGame';
 
 import { useT } from '@/I18n';
+import { atoms } from '@/Theme/styleAtoms';
 /* -------------------------------------------------------------------------- */
 /*  «Busca y encuentra» — atención (búsqueda visual).                          */
 /*  Lámina fija con objetivos y distractores: el niño toca TODOS los           */
@@ -79,7 +80,7 @@ export default function AttentionGame({
             : t.efGames.hasEncontradoTodos}
         </Text>
       </Center>
-      <HStack flexWrap="wrap" justifyContent="center" style={{ gap: 10 }}>
+      <HStack flexWrap="wrap" justifyContent="center" style={atoms.gap10}>
         {plan.cards.map((card, index) => (
           <GameCard key={index} glyph={card.glyph} state={stateOf(index)} onPress={() => tap(index)} size={plan.cards.length > 12 ? 74 : 86} />
         ))}

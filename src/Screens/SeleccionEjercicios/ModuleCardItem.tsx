@@ -17,6 +17,7 @@ import ModuleIllustration from './ModuleIllustration';
 import { CategoryType } from './CategoryBadgeIcon';
 
 import { useT } from '@/I18n';
+import { atoms } from '@/Theme/styleAtoms';
 /* -------------------------------------------------------------------------- */
 /*  ModuleCardItem — Tarjeta clínica vertical en rejilla según el render       */
 /*  aprobado para tableta (azulejo superior, micro-gráfica central, metadatos) */
@@ -93,13 +94,9 @@ export default function ModuleCardItem({
         <Animated.View
           style={[
             styles.card,
-            {
-              backgroundColor: isSelected ? m.soft : '#FFFFFF',
-              borderColor: isSelected ? m.color : '#EDE7DC',
-              borderLeftColor: m.color,
-              borderLeftWidth: isSelected ? 3 : 4,
-              shadowColor: isSelected ? m.color : '#0F172A',
-            },
+            isSelected ? styles.cardSelected : styles.cardIdle,
+            isSelected ? { backgroundColor: m.soft, borderColor: m.color, shadowColor: m.color } : null,
+            { borderLeftColor: m.color },
             cardStyle,
           ]}>
           {/* Fila Superior: Azulejo de Icono + Número de Selección */}
@@ -109,16 +106,11 @@ export default function ModuleCardItem({
               w={44}
               h={44}
               borderRadius={14}
-              style={{
-                backgroundColor: isSelected ? '#FFFFFF' : m.soft,
-                borderWidth: 1,
-                borderColor: isSelected ? m.color : 'rgba(0,0,0,0.04)',
-                shadowColor: isSelected ? m.color : 'transparent',
-                shadowOffset: { width: 0, height: 2 },
-                shadowOpacity: isSelected ? 0.2 : 0,
-                shadowRadius: 4,
-                elevation: isSelected ? 2 : 0,
-              }}>
+              style={[
+                styles.iconTile,
+                isSelected ? styles.iconTileSelected : styles.iconTileIdle,
+                isSelected ? { borderColor: m.color, shadowColor: m.color } : { backgroundColor: m.soft },
+              ]}>
               <IconGlyph size={22} color={m.color} strokeWidth={2.2} />
             </Center>
 
@@ -129,24 +121,11 @@ export default function ModuleCardItem({
                   w={30}
                   h={30}
                   borderRadius={15}
-                  style={{
-                    backgroundColor: '#FFFFFF',
-                    borderWidth: 2,
-                    borderColor: m.color,
-                    shadowColor: m.color,
-                    shadowOffset: { width: 0, height: 2 },
-                    shadowOpacity: 0.25,
-                    shadowRadius: 4,
-                    elevation: 3,
-                  }}>
+                  style={[styles.orderBadge, { borderColor: m.color, shadowColor: m.color }]}>
                   <Text
                     size="xs"
                     weight="bold"
-                    style={{
-                      color: m.color,
-                      fontSize: 13,
-                      fontVariant: ['tabular-nums'],
-                    }}>
+                    style={[atoms.fontSize13, atoms.tabularNums, { color: m.color }]}>
                     {order}
                   </Text>
                 </Center>
@@ -156,26 +135,18 @@ export default function ModuleCardItem({
                 w={26}
                 h={26}
                 borderRadius={13}
-                style={{
-                  backgroundColor: 'rgba(0,0,0,0.03)',
-                  borderWidth: 1.5,
-                  borderColor: '#E2DDD5',
-                }}
+                style={styles.orderSlot}
               />
             )}
           </HStack>
 
           {/* Título y Subtítulo / Descripción */}
-          <VStack space="xs" style={{ minHeight: 64 }}>
+          <VStack space="xs" style={atoms.minHeight64}>
             <Text
               size="sm"
               weight="bold"
               color="$textLight900"
-              style={{
-                fontSize: 15,
-                lineHeight: 19,
-                letterSpacing: -0.2,
-              }}
+              style={atoms.fontSize15LineHeight19LetterSpacingNeg02}
               numberOfLines={2}>
               {m.title}
             </Text>
@@ -183,14 +154,14 @@ export default function ModuleCardItem({
               <Text
                 size="2xs"
                 weight="semiBold"
-                style={{ color: m.color, fontSize: 11, lineHeight: 14 }}>
+                style={[atoms.fontSize11LineHeight14, { color: m.color }]}>
                 {m.subtitle}
               </Text>
             ) : null}
             <Text
               size="2xs"
               color="$textLight600"
-              style={{ fontSize: 11, lineHeight: 15 }}
+              style={atoms.fontSize11LineHeight15}
               numberOfLines={2}>
               {m.description}
             </Text>
@@ -210,7 +181,7 @@ export default function ModuleCardItem({
                 <Text
                   size="2xs"
                   weight="medium"
-                  style={{ color: '#475569', fontSize: 11, fontVariant: ['tabular-nums'] }}>
+                  style={[atoms.color475569FontSize11, atoms.tabularNums]}>
                   {m.duration}
                 </Text>
               </HStack>
@@ -219,7 +190,7 @@ export default function ModuleCardItem({
                 <Text
                   size="2xs"
                   weight="medium"
-                  style={{ color: '#475569', fontSize: 11 }}>
+                  style={atoms.color475569FontSize11}>
                   {m.ages}
                 </Text>
               </HStack>
@@ -234,16 +205,16 @@ export default function ModuleCardItem({
                   px="$2"
                   py="$0.5"
                   borderRadius={8}
-                  style={{
-                    backgroundColor: isSelected ? '#FFFFFF' : 'rgba(0,0,0,0.05)',
-                    borderWidth: 0.8,
-                    borderColor: isSelected ? m.color : 'rgba(0,0,0,0.08)',
-                  }}>
+                  style={[
+                    styles.paramChip,
+                    isSelected ? styles.paramChipSelected : styles.paramChipIdle,
+                    isSelected ? { borderColor: m.color } : null,
+                  ]}>
                   <Sparkles size={10} color={m.color} />
                   <Text
                     size="2xs"
                     weight="bold"
-                    style={{ color: m.color, fontSize: 10 }}>
+                    style={[atoms.fontSize10, { color: m.color }]}>
                     {m.badgeParam}
                   </Text>
                 </HStack>
@@ -253,7 +224,7 @@ export default function ModuleCardItem({
                   <Text
                     size="2xs"
                     weight="semiBold"
-                    style={{ color: '#0D9488', fontSize: 11 }}>
+                    style={atoms.color0D9488FontSize11}>
                     
                     {t.components.calibracionOk}
                   </Text>
@@ -268,6 +239,24 @@ export default function ModuleCardItem({
 }
 
 const styles = StyleSheet.create({
+  /* Lo que el estado de selección NO cambia, separado de lo que sí. */
+  cardSelected: { borderLeftWidth: 3 },
+  cardIdle: { borderLeftWidth: 4, backgroundColor: '#FFFFFF', borderColor: '#EDE7DC', shadowColor: '#0F172A' },
+  iconTile: { borderWidth: 1, shadowOffset: { width: 0, height: 2 }, shadowRadius: 4 },
+  iconTileSelected: { backgroundColor: '#FFFFFF', shadowOpacity: 0.2, elevation: 2 },
+  iconTileIdle: { borderColor: 'rgba(0,0,0,0.04)', shadowColor: 'transparent', shadowOpacity: 0, elevation: 0 },
+  paramChipSelected: { backgroundColor: '#FFFFFF' },
+  paramChipIdle: { backgroundColor: 'rgba(0,0,0,0.05)', borderColor: 'rgba(0,0,0,0.08)' },
+  orderBadge: {
+    backgroundColor: '#FFFFFF',
+    borderWidth: 2,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  orderSlot: { backgroundColor: 'rgba(0,0,0,0.03)', borderWidth: 1.5, borderColor: '#E2DDD5' },
+  paramChip: { borderWidth: 0.8 },
   card: {
     borderRadius: 20,
     borderWidth: 1.5,

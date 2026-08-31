@@ -1,5 +1,4 @@
 #!/usr/bin/env node
-/* eslint-disable no-console */
 /**
  * Exportador del corpus de voz (herramienta de build-time).
  *

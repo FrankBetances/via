@@ -44,6 +44,7 @@ import { LuaCompanionWidget } from '@/Components/Mascot/LuaCompanionWidget';
 import { useLuaCompanion, LuaEmotion } from '@/Lua';
 
 import { useT } from '@/I18n';
+import { atoms } from '@/Theme/styleAtoms';
 type Props = NativeStackScreenProps<RootStackParamList, 'ProsodyAnalysis'>;
 
 /* -------------------------------------------------------------------------- */
@@ -242,7 +243,7 @@ export default function ProsodyAnalysisScreen({ navigation }: Props) {
                   {t.prosody.analisisProsodico}
                 </Text>
                 <Box bg="$primary50" px="$2" py="$0.5" borderRadius="$full">
-                  <Text size="2xs" weight="bold" color="$primary800" style={{ letterSpacing: 0.4 }}>
+                  <Text size="2xs" weight="bold" color="$primary800" style={atoms.letterSpacing04}>
                     
                     {t.prosody.hablaConectada}
                   </Text>
@@ -406,12 +407,12 @@ export default function ProsodyAnalysisScreen({ navigation }: Props) {
                     <Button
                       flex={1}
                       isDisabled={!prosody.available || analysing}
-                      onPress={() => void prosody.start()}>
+                      onPress={() => { prosody.start(); }}>
                       <Icon as={Mic} size="sm" color="$white" />
                       {done || prosody.phase === 'error' ? t.prosody.repetirToma : t.prosody.iniciarToma}
                     </Button>
                   ) : (
-                    <Button flex={1} action="secondary" onPress={() => void prosody.stop()}>
+                    <Button flex={1} action="secondary" onPress={() => { prosody.stop(); }}>
                       <Icon as={Square} size="sm" color="$white" />
                       {t.prosody.detener}
                     </Button>
@@ -527,7 +528,7 @@ export default function ProsodyAnalysisScreen({ navigation }: Props) {
                       onChangeText={setEvaluatorLicense}
                     />
                   </Input>
-                  <Button isDisabled={!canSave || isSaving} onPress={() => void handleSave()}>
+                  <Button isDisabled={!canSave || isSaving} onPress={() => { handleSave(); }}>
                     <Icon as={Save} size="sm" color="$white" />
                     {t.prosody.guardarMuestra}
                   </Button>

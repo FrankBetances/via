@@ -61,6 +61,7 @@ import {
   earSeverity,
   emptyState,
 } from './clinicalAssessmentResult';
+import { atoms } from '@/Theme/styleAtoms';
 
 /* -------------------------------------------------------------------------- */
 /*  Tokens de color semántico clínico para estados del CAP                     */
@@ -161,7 +162,7 @@ const StatusChip = ({ kind }: { kind: DomainKind }) => {
   return (
     <View style={[styles.statusChip, { backgroundColor: t.bg, borderColor: t.border }]}>
       <View style={[styles.statusDot, { backgroundColor: t.dot }]} />
-      <Text size="2xs" weight="bold" style={{ color: t.fg, letterSpacing: 0.4 }}>
+      <Text size="2xs" weight="bold" style={[atoms.letterSpacing04, { color: t.fg }]}>
         {DOMAIN_LABELS[kind]}
       </Text>
     </View>
@@ -191,7 +192,7 @@ const YesNoToggle = ({
       <Text
         size="sm"
         weight="bold"
-        style={{ color: value === true ? '#FFFFFF' : '#64748B', marginLeft: 4 }}>
+        style={[atoms.marginLeft4, value === true ? atoms.colorFFFFFF : atoms.color64748B]}>
         Sí
       </Text>
     </Pressable>
@@ -209,7 +210,7 @@ const YesNoToggle = ({
       <Text
         size="sm"
         weight="bold"
-        style={{ color: value === false ? '#FFFFFF' : '#64748B', marginLeft: 4 }}>
+        style={[atoms.marginLeft4, value === false ? atoms.colorFFFFFF : atoms.color64748B]}>
         No
       </Text>
     </Pressable>
@@ -238,14 +239,14 @@ const ItemRow = ({
           {code}
         </Text>
       </View>
-      <View style={{ flex: 1 }}>
-        <Text size="sm" weight="medium" color="$textLight800" style={{ lineHeight: 20 }}>
+      <View style={atoms.flex1}>
+        <Text size="sm" weight="medium" color="$textLight800" style={atoms.lineHeight20}>
           {label}
         </Text>
         {note ? (
           <View style={styles.itemNoteRow}>
             <Info size={12} color="#D97706" />
-            <Text size="2xs" color="$warning800" style={{ flex: 1 }}>
+            <Text size="2xs" color="$warning800" style={atoms.flex1}>
               {note}
             </Text>
           </View>
@@ -423,13 +424,13 @@ export default function ClinicalAssessmentScreen({ navigation }: Props) {
         </>
       }>
       <KeyboardAvoidingView
-        style={{ flex: 1 }}
+        style={atoms.flex1}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <VStack flex={1}>
           <Header animationType="expand" />
 
           <ScrollView
-            style={{ flex: 1 }}
+            style={atoms.flex1}
             contentContainerStyle={[
               styles.scrollContent,
               { paddingBottom: 40 + Math.max(insets.bottom, 16) },
@@ -442,15 +443,15 @@ export default function ClinicalAssessmentScreen({ navigation }: Props) {
               {/* ============================================================ */}
               <View style={styles.headerCard}>
                 <View style={styles.headerTitleRow}>
-                  <View style={{ flex: 1 }}>
+                  <View style={atoms.flex1}>
                     <View style={styles.badgePrereqRow}>
                       <ShieldCheck size={14} color="#0D9488" strokeWidth={2.2} />
-                      <Text size="2xs" weight="bold" color="$teal700" style={{ letterSpacing: 0.4 }}>
+                      <Text size="2xs" weight="bold" color="$teal700" style={atoms.letterSpacing04}>
                         
                         {t.clinicalAssessment.prerrequisitoClinicoCap}
                       </Text>
                     </View>
-                    <Text size="2xl" weight="bold" color="$textLight900" style={{ marginTop: 2 }}>
+                    <Text size="2xl" weight="bold" color="$textLight900" style={atoms.marginTop2}>
                       
                       {t.clinicalAssessment.evaluacionClinicaPrevia}
                     </Text>
@@ -469,7 +470,7 @@ export default function ClinicalAssessmentScreen({ navigation }: Props) {
                     {patientName ? t.clinicalAssessment.paciente(patientName) : t.clinicalAssessment.pacienteSinRegistrar}
                   </Text>
                   {patient?.nhc ? (
-                    <Text size="2xs" color="$textLight500" style={{ marginLeft: 8 }}>
+                    <Text size="2xs" color="$textLight500" style={atoms.marginLeft8}>
                       
                       {t.clinicalAssessment.nhc} {patient.nhc}
                     </Text>
@@ -488,12 +489,12 @@ export default function ClinicalAssessmentScreen({ navigation }: Props) {
                 <View style={styles.dysphagiaIconBox}>
                   <Droplets size={20} color="#0284C7" strokeWidth={2.2} />
                 </View>
-                <View style={{ flex: 1 }}>
+                <View style={atoms.flex1}>
                   <Text size="xs" weight="bold" color="$info800">
                     
                     {t.clinicalAssessment.sesionExclusivaDisfagiaEat10}
                   </Text>
-                  <Text size="2xs" color="$info700" style={{ marginTop: 1 }}>
+                  <Text size="2xs" color="$info700" style={atoms.marginTop1}>
                     
                     {t.clinicalAssessment.irDirectoEsteModuloClinico}
                   </Text>
@@ -508,7 +509,7 @@ export default function ClinicalAssessmentScreen({ navigation }: Props) {
                 {DOMAINS.map(d => {
                   const active = activeDomain === d.id;
                   const k = kindByDomain[d.id];
-                  const t = KIND_THEME[k];
+                  const kindTheme = KIND_THEME[k];
                   const IconComp = d.icon;
                   return (
                     <Pressable
@@ -520,16 +521,16 @@ export default function ClinicalAssessmentScreen({ navigation }: Props) {
                         pressed && { opacity: 0.88 },
                       ]}
                       onPress={() => setActiveDomain(d.id)}>
-                      <View style={[styles.tabIconBox, { backgroundColor: active ? d.bgLight : '#F8FAFC' }]}>
+                      <View style={[styles.tabIconBox, active ? { backgroundColor: d.bgLight } : atoms.backgroundColorF8FAFC]}>
                         <IconComp size={20} color={active ? d.accent : '#64748B'} strokeWidth={2.2} />
                       </View>
-                      <View style={{ flex: 1 }}>
+                      <View style={atoms.flex1}>
                         <Text size="xs" weight="bold" color={active ? '$textLight900' : '$textLight600'}>
                           {d.short}
                         </Text>
                         <View style={styles.tabStatusRow}>
-                          <View style={[styles.statusMiniDot, { backgroundColor: t.dot }]} />
-                          <Text size="2xs" weight="semiBold" style={{ color: t.fg }}>
+                          <View style={[styles.statusMiniDot, { backgroundColor: kindTheme.dot }]} />
+                          <Text size="2xs" weight="semiBold" style={{ color: kindTheme.fg }}>
                             {DOMAIN_LABELS[k]}
                           </Text>
                         </View>
@@ -558,7 +559,7 @@ export default function ClinicalAssessmentScreen({ navigation }: Props) {
                             {t.clinicalAssessment.dominio1OtoscopiaClinica}
                           </Text>
                         </View>
-                        <Text size="2xs" color="$textLight500" style={{ marginTop: 2 }}>
+                        <Text size="2xs" color="$textLight500" style={atoms.marginTop2}>
                           
                           {t.clinicalAssessment.seleccioneHallazgoCadaOidoOd}
                         </Text>
@@ -579,14 +580,14 @@ export default function ClinicalAssessmentScreen({ navigation }: Props) {
                           key={ear}
                           style={[
                             styles.earBox,
-                            { borderLeftColor: isRight ? '#EF4444' : '#0284C7' },
+                            isRight ? styles.earBoxRight : styles.earBoxLeft,
                           ]}>
                           <View style={styles.earHeader}>
                             <View style={styles.earLabelBadge}>
                               <View
                                 style={[
                                   styles.earIndicatorCircle,
-                                  { backgroundColor: isRight ? '#EF4444' : '#0284C7' },
+                                  isRight ? atoms.backgroundColorEF4444 : atoms.backgroundColor0284C7,
                                 ]}
                               />
                               <Text size="sm" weight="bold" color="$textLight900">
@@ -618,7 +619,7 @@ export default function ClinicalAssessmentScreen({ navigation }: Props) {
                                   <Text
                                     size="xs"
                                     weight="bold"
-                                    style={{ color: selected ? '#FFFFFF' : '#475569' }}>
+                                    style={selected ? atoms.colorFFFFFF : atoms.color475569}>
                                     {f}
                                   </Text>
                                 </Pressable>
@@ -630,10 +631,10 @@ export default function ClinicalAssessmentScreen({ navigation }: Props) {
                             <InputField
                               placeholder={t.clinicalAssessment.anotacionesOtoscopiaTimpanoCae}
                               value={isRight ? s.odNotes : s.oiNotes}
-                              onChangeText={t =>
+                              onChangeText={text =>
                                 setS(prev => ({
                                   ...prev,
-                                  [isRight ? 'odNotes' : 'oiNotes']: t,
+                                  [isRight ? 'odNotes' : 'oiNotes']: text,
                                 }))
                               }
                             />
@@ -643,8 +644,8 @@ export default function ClinicalAssessmentScreen({ navigation }: Props) {
                     })}
 
                     <View style={styles.clinicalAlertBox}>
-                      <Info size={16} color="#0D9488" style={{ marginTop: 2 }} />
-                      <Text size="2xs" color="$teal800" style={{ flex: 1, lineHeight: 17 }}>
+                      <Info size={16} color="#0D9488" style={atoms.marginTop2} />
+                      <Text size="2xs" color="$teal800" style={atoms.flex1LineHeight17}>
                         
                         {t.clinicalAssessment.criterioSeguridadAudiologicaCerumenOclusivo}
                       </Text>
@@ -664,7 +665,7 @@ export default function ClinicalAssessmentScreen({ navigation }: Props) {
                             {t.clinicalAssessment.dominio2CapacidadVisualMinima}
                           </Text>
                         </View>
-                        <Text size="2xs" color="$textLight500" style={{ marginTop: 2 }}>
+                        <Text size="2xs" color="$textLight500" style={atoms.marginTop2}>
                           
                           {t.clinicalAssessment.discriminacionEstimulosPantalla5Cm}
                         </Text>
@@ -711,7 +712,7 @@ export default function ClinicalAssessmentScreen({ navigation }: Props) {
                             {t.clinicalAssessment.dominio3CapacidadVerbalMinima}
                           </Text>
                         </View>
-                        <Text size="2xs" color="$textLight500" style={{ marginTop: 2 }}>
+                        <Text size="2xs" color="$textLight500" style={atoms.marginTop2}>
                           
                           {t.clinicalAssessment.comprensionRespuestaAdaptadaRangoEtario}
                         </Text>
@@ -746,7 +747,7 @@ export default function ClinicalAssessmentScreen({ navigation }: Props) {
                               <Text
                                 size="xs"
                                 weight="bold"
-                                style={{ color: active ? '#FFFFFF' : '#475569' }}>
+                                style={active ? atoms.colorFFFFFF : atoms.color475569}>
                                 {gLabel}
                               </Text>
                             </Pressable>
@@ -794,7 +795,7 @@ export default function ClinicalAssessmentScreen({ navigation }: Props) {
                             {t.clinicalAssessment.dominio4CapacidadMotoraMinima}
                           </Text>
                         </View>
-                        <Text size="2xs" color="$textLight500" style={{ marginTop: 2 }}>
+                        <Text size="2xs" color="$textLight500" style={atoms.marginTop2}>
                           
                           {t.clinicalAssessment.capacidadInteractuarPantallaTactilManera}
                         </Text>
@@ -853,18 +854,18 @@ export default function ClinicalAssessmentScreen({ navigation }: Props) {
                     },
                   ]}>
                   <View style={styles.globalResultTop}>
-                    <View style={{ flex: 1 }}>
+                    <View style={atoms.flex1}>
                       <Text
                         size="2xs"
                         weight="bold"
-                        style={{ color: KIND_THEME[a.globalKind].fg, letterSpacing: 0.6 }}>
+                        style={[atoms.letterSpacing06, { color: KIND_THEME[a.globalKind].fg }]}>
                         
                         {t.clinicalAssessment.veredictoClinicoGlobal}
                       </Text>
                       <Text
                         size="xl"
                         weight="bold"
-                        style={{ color: KIND_THEME[a.globalKind].fg, marginTop: 2 }}>
+                        style={[atoms.marginTop2, { color: KIND_THEME[a.globalKind].fg }]}>
                         {a.globalLabel}
                       </Text>
                     </View>
@@ -880,13 +881,13 @@ export default function ClinicalAssessmentScreen({ navigation }: Props) {
                   </View>
                   <Text
                     size="xs"
-                    style={{ color: KIND_THEME[a.globalKind].fg, marginTop: 6, lineHeight: 18 }}>
+                    style={[atoms.marginTop6LineHeight18, { color: KIND_THEME[a.globalKind].fg }]}>
                     {a.globalDesc}
                   </Text>
                 </View>
 
                 {/* Desglose de Pruebas de la Sesión */}
-                <Text size="2xs" weight="bold" color="$textLight600" mt="$3" mb="$2" style={{ letterSpacing: 0.5 }}>
+                <Text size="2xs" weight="bold" color="$textLight600" mt="$3" mb="$2" style={atoms.letterSpacing05}>
                   
                   {t.clinicalAssessment.estadoHabilitacionPruebasBateria}
                 </Text>
@@ -896,12 +897,12 @@ export default function ClinicalAssessmentScreen({ navigation }: Props) {
                       key={g.code}
                       style={[
                         styles.gameGateItem,
-                        { backgroundColor: g.active ? '#F8FAFC' : '#FEF2F2' },
+                        g.active ? atoms.backgroundColorF8FAFC : atoms.backgroundColorFEF2F2,
                       ]}>
                       <View
                         style={[
                           styles.gameStatusIcon,
-                          { backgroundColor: g.active ? '#DCFCE7' : '#FEE2E2' },
+                          g.active ? atoms.backgroundColorDCFCE7 : atoms.backgroundColorFEE2E2,
                         ]}>
                         {g.active ? (
                           <Check size={14} color="#16A34A" strokeWidth={2.8} />
@@ -909,14 +910,14 @@ export default function ClinicalAssessmentScreen({ navigation }: Props) {
                           <X size={14} color="#DC2626" strokeWidth={2.8} />
                         )}
                       </View>
-                      <View style={{ flex: 1 }}>
+                      <View style={atoms.flex1}>
                         <Text size="xs" weight="bold" color="$textLight900">
                           {g.code} · {g.title}
                         </Text>
                         <Text
                           size="2xs"
                           weight="medium"
-                          style={{ color: g.active ? '#15803D' : '#DC2626' }}>
+                          style={g.active ? atoms.color15803D : atoms.colorDC2626}>
                           {g.reason}
                         </Text>
                       </View>
@@ -938,7 +939,7 @@ export default function ClinicalAssessmentScreen({ navigation }: Props) {
                 </View>
 
                 <HStack space="md" mb="$4" mt="$2">
-                  <View style={{ flex: 2 }}>
+                  <View style={atoms.flex2}>
                     <Text size="2xs" weight="bold" color="$textLight600" mb="$1">
                       
                       {t.clinicalAssessment.nombreProfesional}
@@ -951,7 +952,7 @@ export default function ClinicalAssessmentScreen({ navigation }: Props) {
                       />
                     </Input>
                   </View>
-                  <View style={{ flex: 1 }}>
+                  <View style={atoms.flex1}>
                     <Text size="2xs" weight="bold" color="$textLight600" mb="$1">
                       
                       {t.clinicalAssessment.nColegiado}
@@ -977,13 +978,13 @@ export default function ClinicalAssessmentScreen({ navigation }: Props) {
                   ]}
                   onPress={handleSave}>
                   <ShieldQuestion size={18} color="#FFFFFF" strokeWidth={2.2} />
-                  <Text size="md" weight="bold" color="$white" style={{ marginHorizontal: 8 }}>
+                  <Text size="md" weight="bold" color="$white" style={atoms.marginHorizontal8}>
                     {isSaving ? t.clinicalAssessment.guardandoCertificado : t.clinicalAssessment.confirmarGenerarCap}
                   </Text>
                   <ArrowRight size={18} color="#FFFFFF" strokeWidth={2.4} />
                 </Pressable>
 
-                <Text size="2xs" color="$textLight400" mt="$3" style={{ textAlign: 'center', lineHeight: 15 }}>
+                <Text size="2xs" color="$textLight400" mt="$3" style={atoms.textAlignCenterLineHeight15}>
                   
                   {t.clinicalAssessment.capCertificaCondicionesViabilidadSesion}
                 </Text>
@@ -1148,6 +1149,8 @@ const styles = StyleSheet.create({
   },
 
   /* Otoscopia */
+  earBoxRight: { borderLeftColor: '#EF4444' },
+  earBoxLeft: { borderLeftColor: '#0284C7' },
   earBox: {
     backgroundColor: '#FAFAF9',
     borderRadius: 16,

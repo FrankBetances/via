@@ -50,6 +50,7 @@ function synthSpeech(
 
   let seed = 987654321;
   const rand = () => {
+    // eslint-disable-next-line no-bitwise -- el generador congruencial lineal necesita el módulo 2^31 del enmascarado; es lo que hace la señal REPRODUCIBLE entre ejecuciones.
     seed = (seed * 1103515245 + 12345) & 0x7fffffff;
     return seed / 0x7fffffff;
   };
@@ -274,6 +275,7 @@ describe('analyseProsody – salidas tempranas', () => {
     const pcm = new Float32Array(SAMPLE_RATE * 4);
     let seed = 24680;
     for (let i = 0; i < pcm.length; i++) {
+      // eslint-disable-next-line no-bitwise -- el generador congruencial lineal necesita el módulo 2^31 del enmascarado; es lo que hace la señal REPRODUCIBLE entre ejecuciones.
       seed = (seed * 1103515245 + 12345) & 0x7fffffff;
       pcm[i] = (seed / 0x7fffffff - 0.5) * 2 * 0.0002;
     }

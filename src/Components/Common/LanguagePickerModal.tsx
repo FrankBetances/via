@@ -33,6 +33,7 @@ import { setSessionLanguage } from '@/Store/slices/localeSlice';
 import { SESSION_LANG_LABEL, SessionLang } from '@/Store/slices/sessionLangs';
 import { useT } from '@/I18n';
 import { UiLang, ALL_UI_LANGS, getUiLang, setAppLanguage, subscribeUiLang } from '@/I18n/uiLang';
+import { atoms } from '@/Theme/styleAtoms';
 
 /** Bandera de cada variedad. El nombre y el pie salen del catálogo activo. */
 const FLAG: Record<UiLang, string> = {
@@ -100,7 +101,7 @@ export default function LanguagePickerModal({ visible, onClose }: Props) {
               <View style={styles.globeCircle}>
                 <Globe size={20} color="#FF7F00" strokeWidth={2.4} />
               </View>
-              <View style={{ flex: 1 }}>
+              <View style={atoms.flex1}>
                 <Text style={styles.modalTitle}>{t.langPicker.title}</Text>
                 <Text style={styles.modalSubtitle}>{t.langPicker.subtitle}</Text>
               </View>

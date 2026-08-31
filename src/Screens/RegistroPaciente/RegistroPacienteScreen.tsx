@@ -19,6 +19,7 @@ import { showErrorToast, showSuccessToast } from '@/Helpers/showToast';
 import { writeWithVerify } from '@/Helpers/dbWrite';
 
 import { useT } from '@/I18n';
+import { atoms } from '@/Theme/styleAtoms';
 /* -------------------------------------------------------------------------- */
 /*  RegistroPacienteScreen — alta sociodemográfica de un paciente nuevo       */
 /*  (mockup `Registro Paciente.dc.html`). Al confirmar: crea `Patient` +      */
@@ -195,14 +196,14 @@ export default function RegistroPacienteScreen({ navigation }: Props) {
         </>
       }>
       <KeyboardAvoidingView
-        style={{ flex: 1 }}
+        style={atoms.flex1}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <VStack flex={1}>
           <Header animationType="expand" />
 
           <ScrollView
-            style={{ flex: 1 }}
-            contentContainerStyle={{ flexGrow: 1, paddingHorizontal: 24, paddingTop: 8 }}
+            style={atoms.flex1}
+            contentContainerStyle={atoms.flexGrow1PaddingHorizontal24PaddingTop8}
             keyboardShouldPersistTaps="handled"
             showsVerticalScrollIndicator={false}>
             <VStack flex={1} space="md">
@@ -237,7 +238,7 @@ export default function RegistroPacienteScreen({ navigation }: Props) {
                         {step.label}
                       </Text>
                     </HStack>
-                    {idx < 4 ? <Box style={{ flex: 1, height: 1 }} bg="$borderLight200" /> : null}
+                    {idx < 4 ? <Box style={atoms.flex1Height1} bg="$borderLight200" /> : null}
                   </React.Fragment>
                 ))}
               </HStack>
@@ -249,16 +250,16 @@ export default function RegistroPacienteScreen({ navigation }: Props) {
                   {t.registroPaciente.nombreApellidos}
                 </Text>
                 <HStack space="sm" mb="$4">
-                  <Input variant="outline" borderRadius={12} style={{ flex: 1 }}>
+                  <Input variant="outline" borderRadius={12} style={atoms.flex1}>
                     <InputField placeholder={t.registroPaciente.nombre} value={nombre} onChangeText={setNombre} />
                   </Input>
-                  <Input variant="outline" borderRadius={12} style={{ flex: 1 }}>
+                  <Input variant="outline" borderRadius={12} style={atoms.flex1}>
                     <InputField placeholder={t.registroPaciente.apellidos} value={lastName} onChangeText={setLastName} />
                   </Input>
                 </HStack>
 
                 <HStack space="sm" mb={fnac.trim() && !fnacValid ? '$1.5' : '$4'}>
-                  <VStack style={{ flex: 1 }}>
+                  <VStack style={atoms.flex1}>
                     <Text size="xs" weight="semiBold" color="$textLight600" mb="$1.5">
                       
                       {t.registroPaciente.fechaNacimiento}
@@ -276,7 +277,7 @@ export default function RegistroPacienteScreen({ navigation }: Props) {
                       />
                     </Input>
                   </VStack>
-                  <VStack style={{ flex: 1 }}>
+                  <VStack style={atoms.flex1}>
                     <Text size="xs" weight="semiBold" color="$textLight600" mb="$1.5">
                       
                       {t.registroPaciente.edad}
@@ -303,7 +304,7 @@ export default function RegistroPacienteScreen({ navigation }: Props) {
                   {SEXOS.map(s => {
                     const selected = sexo === s.value;
                     return (
-                      <Pressable key={s.value} style={{ flex: 1 }} onPress={() => setSexo(s.value)}>
+                      <Pressable key={s.value} style={atoms.flex1} onPress={() => setSexo(s.value)}>
                         <Box alignItems="center" py="$2" borderRadius="$full" borderWidth={1.5} bg={selected ? '$primary50' : '$white'} borderColor={selected ? '$primary500' : '$borderLight200'}>
                           <Text size="sm" weight="bold" color={selected ? '$primary600' : '$textLight400'}>
                             {s.label}
@@ -331,11 +332,11 @@ export default function RegistroPacienteScreen({ navigation }: Props) {
                 </Input>
               </Card>
 
-              <Box style={{ flex: 1 }} />
+              <Box style={atoms.flex1} />
 
               {/* ----- footer ----- */}
               <VStack space="xs" mb="$6" mt="$3">
-                <Text size="2xs" color="$textLight400" style={{ textAlign: 'center' }}>
+                <Text size="2xs" color="$textLight400" style={atoms.textAlignCenter}>
                   {requiredCount}{t.registroPaciente.n4CamposObligatoriosCompletados}
                 </Text>
                 <Button action="primary" variant="solid" rounded="$full" isDisabled={!ready || isSaving} isLoading={isSaving} onPress={() => handleSubmit('cap')}>
@@ -360,7 +361,7 @@ export default function RegistroPacienteScreen({ navigation }: Props) {
                     borderWidth={1.5}
                     borderColor={ready && !isSaving ? '$info300' : '$borderLight200'}
                     bg={ready && !isSaving ? '$info50' : '$white'}
-                    style={{ opacity: ready && !isSaving ? 1 : 0.5 }}>
+                    style={ready && !isSaving ? atoms.opacity1 : atoms.opacity05}>
                     <Text size="lg">💧</Text>
                     <Text size="sm" weight="bold" color={ready && !isSaving ? '$info700' : '$textLight400'}>
                       
@@ -368,7 +369,7 @@ export default function RegistroPacienteScreen({ navigation }: Props) {
                     </Text>
                   </HStack>
                 </Pressable>
-                <Text size="2xs" color="$textLight400" style={{ textAlign: 'center' }}>
+                <Text size="2xs" color="$textLight400" style={atoms.textAlignCenter}>
                   
                   {t.registroPaciente.disfagiaRequiereCapNiSonometro}
                 </Text>

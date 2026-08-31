@@ -41,6 +41,7 @@ import { MODULES } from './moduleCards';
 import { CategoryType } from './CategoryBadgeIcon';
 
 import { useT } from '@/I18n';
+import { atoms } from '@/Theme/styleAtoms';
 /* -------------------------------------------------------------------------- */
 /*  SeleccionEjerciciosScreen — Hub clínico con diseño en tableta (4:3)        */
 /*  Pixel-perfect según la referencia visual aprobada de VIA+                  */
@@ -169,6 +170,7 @@ export default function SeleccionEjerciciosScreen({ navigation }: Props) {
 
   const handleStart = () => {
     if (selCount === 0) return;
+    // eslint-disable-next-line no-bitwise -- la selección de módulos viaja como máscara de bits en la telemetría Zero-PHI.
     const mask = MODULES.reduce((m, mod, i) => (selected.includes(mod.id) ? m | (1 << i) : m), 0);
     tracker.startSession(mask.toString(36));
     navigation.navigate(selected[0] as any);
@@ -191,7 +193,7 @@ export default function SeleccionEjerciciosScreen({ navigation }: Props) {
           <RadialBackground topMultiplier={0.8} leftMultiplier={0.7} widthMultiplier={1.8} heightMultiplier={1.8} center={(w, _h) => [w, w]} radiusMultiplier={1} />
         </>
       }>
-      <VStack flex={1} style={{ backgroundColor: '#F6F3EE' }}>
+      <VStack flex={1} style={atoms.backgroundColorF6F3EE}>
         
         {/* ==================================================================== */}
         {/* Cabecera Superior VIA+ (Zero-PHI & Estado de Sala)                    */}
@@ -208,8 +210,8 @@ export default function SeleccionEjerciciosScreen({ navigation }: Props) {
             {/* Logo VIA+ */}
             <HStack alignItems="center" space="xs">
               <ViaIcon size={28} variant="color" />
-              <Text size="lg" weight="bold" style={{ color: '#2B2620', letterSpacing: -0.5 }}>
-                VIA<Text size="lg" weight="bold" style={{ color: '#FF7F00' }}>+</Text>
+              <Text size="lg" weight="bold" style={atoms.color2B2620LetterSpacingNeg05}>
+                VIA<Text size="lg" weight="bold" style={atoms.colorFF7F00}>+</Text>
               </Text>
             </HStack>
 
@@ -219,11 +221,11 @@ export default function SeleccionEjerciciosScreen({ navigation }: Props) {
             {/* Píldora de Paciente */}
             <HStack alignItems="center" space="xs">
               <Center px="$1.5" py="$0.5" borderRadius={6} bg="#EBE5DB">
-                <Text size="2xs" weight="bold" style={{ color: '#475569', fontSize: 11 }}>
+                <Text size="2xs" weight="bold" style={atoms.color475569FontSize11}>
                   [{initials}]
                 </Text>
               </Center>
-              <Text size="sm" weight="semiBold" style={{ color: '#2B2620' }}>
+              <Text size="sm" weight="semiBold" style={atoms.color2B2620}>
                 {patientLabel}
               </Text>
             </HStack>
@@ -258,7 +260,7 @@ export default function SeleccionEjerciciosScreen({ navigation }: Props) {
 
             {/* Acceso directo a CAP */}
             <Pressable onPress={() => navigation.navigate('ClinicalAssessment')}>
-              <Text size="xs" weight="medium" style={{ color: '#64748B', textDecorationLine: 'underline' }}>
+              <Text size="xs" weight="medium" style={atoms.color64748BTextDecorationLineUnderline}>
                 
                 {t.seleccionEjercicios.volverCap}
               </Text>
@@ -266,7 +268,7 @@ export default function SeleccionEjerciciosScreen({ navigation }: Props) {
 
             {/* Acceso a Sonómetro */}
             <Pressable onPress={() => navigation.navigate('RoomNoiseCheck')}>
-              <Text size="xs" weight="medium" style={{ color: '#64748B', textDecorationLine: 'underline' }}>
+              <Text size="xs" weight="medium" style={atoms.color64748BTextDecorationLineUnderline}>
                 
                 {t.seleccionEjercicios.sonometroSala}
               </Text>
@@ -277,7 +279,7 @@ export default function SeleccionEjerciciosScreen({ navigation }: Props) {
                 suenan ni graban, la app degrada en silencio y el profesional no
                 tiene desde dónde averiguar qué eslabón está roto. */}
             <Pressable onPress={() => navigation.navigate('DiagnosticoAudio')}>
-              <Text size="xs" weight="medium" style={{ color: '#64748B', textDecorationLine: 'underline' }}>
+              <Text size="xs" weight="medium" style={atoms.color64748BTextDecorationLineUnderline}>
                 
                 {t.seleccionEjercicios.comprobarAudio}
               </Text>
@@ -293,14 +295,14 @@ export default function SeleccionEjerciciosScreen({ navigation }: Props) {
             <VStack space="xs" bg="#FEF2F2" p="$3" borderRadius={14} borderWidth={1} borderColor="#FECACA">
               <HStack space="xs" alignItems="flex-start">
                 <AlertTriangle size={14} color="#DC2626" />
-                <Text size="2xs" style={{ flex: 1, color: '#B91C1C', lineHeight: 15 }}>
+                <Text size="2xs" style={atoms.flex1ColorB91C1CLineHeight15}>
                   {voiceEngine.status?.detail}
                 </Text>
               </HStack>
               <HStack space="xs">
-                <Pressable style={{ flex: 1 }} onPress={voiceEngine.retry} disabled={voiceEngine.retrying}>
+                <Pressable style={atoms.flex1} onPress={voiceEngine.retry} disabled={voiceEngine.retrying}>
                   <Center py="$1.5" borderRadius={10} borderWidth={1} borderColor="#FECACA" bg="#FFFFFF">
-                    <Text size="2xs" weight="bold" style={{ color: '#DC2626' }}>
+                    <Text size="2xs" weight="bold" style={atoms.colorDC2626}>
                       {voiceEngine.retrying ? t.seleccionEjercicios.reintentando : t.seleccionEjercicios.reintentarVozSistema}
                     </Text>
                   </Center>
@@ -308,9 +310,9 @@ export default function SeleccionEjerciciosScreen({ navigation }: Props) {
                 {/* El reintento solo cubre el sintetizador del sistema. Si lo que
                     falla es el motor nativo, el banco de locuciones o el propio
                     micrófono, este aviso se quedaría corto. */}
-                <Pressable style={{ flex: 1 }} onPress={() => navigation.navigate('DiagnosticoAudio')}>
+                <Pressable style={atoms.flex1} onPress={() => navigation.navigate('DiagnosticoAudio')}>
                   <Center py="$1.5" borderRadius={10} borderWidth={1} borderColor="#FECACA" bg="#FFFFFF">
-                    <Text size="2xs" weight="bold" style={{ color: '#DC2626' }}>
+                    <Text size="2xs" weight="bold" style={atoms.colorDC2626}>
                       
                       {t.seleccionEjercicios.comprobarTodaCadena}
                     </Text>
@@ -339,7 +341,7 @@ export default function SeleccionEjerciciosScreen({ navigation }: Props) {
                 onPress={() => setActiveCategory(cat.id)}
               />
             ))}
-            <Center w={28} h={28} borderRadius={14} bg="rgba(0,0,0,0.04)" style={{ alignSelf: 'center', marginLeft: 4 }}>
+            <Center w={28} h={28} borderRadius={14} bg="rgba(0,0,0,0.04)" style={atoms.alignSelfCenterMarginLeft4}>
               <ChevronRight size={16} color="#64748B" />
             </Center>
           </ScrollView>
@@ -349,12 +351,8 @@ export default function SeleccionEjerciciosScreen({ navigation }: Props) {
         {/* Contenido Principal: Rejilla Responsiva de Módulos Clínicos          */}
         {/* ==================================================================== */}
         <ScrollView
-          style={{ flex: 1 }}
-          contentContainerStyle={{
-            paddingHorizontal: horizontalPadding,
-            paddingTop: 10,
-            paddingBottom: 110,
-          }}
+          style={atoms.flex1}
+          contentContainerStyle={[atoms.paddingTop10PaddingBottom110, { paddingHorizontal: horizontalPadding }]}
           showsVerticalScrollIndicator={false}>
           
           {/* Rejilla de Tarjetas (Grid Multi-Columna) */}
@@ -428,15 +426,15 @@ export default function SeleccionEjerciciosScreen({ navigation }: Props) {
           <HStack alignItems="center" justifyContent="space-between">
             {/* Texto de estado acumulado */}
             <HStack alignItems="center" space="xs">
-              <Text size="sm" weight="bold" style={{ color: '#1E293B', fontSize: 14 }}>
+              <Text size="sm" weight="bold" style={atoms.color1E293BFontSize14}>
                 {selCount === 0
                   ? t.seleccionEjercicios.ningunaPruebaCola
                   : t.seleccionEjercicios.pruebaCola(selCount)}
               </Text>
               {totalEstimatedMinutes > 0 && (
                 <>
-                  <Text size="sm" style={{ color: '#94A3B8' }}>·</Text>
-                  <Text size="sm" weight="medium" style={{ color: '#475569', fontSize: 14 }}>
+                  <Text size="sm" style={atoms.color94A3B8}>·</Text>
+                  <Text size="sm" weight="medium" style={atoms.color475569FontSize14}>
                     
                     {t.seleccionEjercicios.tiempoTotal}{totalEstimatedMinutes}  {t.seleccionEjercicios.min}
                   </Text>
@@ -466,10 +464,10 @@ export default function SeleccionEjerciciosScreen({ navigation }: Props) {
                 onPress={handleStart}
                 style={[
                   styles.ctaButton,
-                  { backgroundColor: selCount > 0 ? '#FF7F00' : '#CBD5E1' },
+                  selCount > 0 ? atoms.backgroundColorFF7F00 : atoms.backgroundColorCBD5E1,
                 ]}>
                 <HStack alignItems="center" space="xs">
-                  <Text size="sm" weight="bold" style={{ color: '#FFFFFF', fontSize: 14 }}>
+                  <Text size="sm" weight="bold" style={atoms.colorFFFFFFFontSize14}>
                     {ctaLabel}
                   </Text>
                   <ArrowRight size={16} color="#FFFFFF" strokeWidth={2.5} />

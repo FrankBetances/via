@@ -1,4 +1,3 @@
-/* eslint-disable */
 /* -------------------------------------------------------------------------- */
 /*  Recortes de audio de la Audiometría Verbal · variante es-419 (base64).       */
 /*                                                                             */

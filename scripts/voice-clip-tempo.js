@@ -1,4 +1,3 @@
-/* eslint-disable no-console */
 /**
  * Ritmo de las locuciones sintetizadas — criterio ÚNICO para los dos bancos.
  *

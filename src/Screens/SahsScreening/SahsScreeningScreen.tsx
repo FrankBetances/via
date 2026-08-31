@@ -58,6 +58,7 @@ import {
   recommendationFor,
   suspicionLabel,
 } from './sahsScreeningResult';
+import { atoms } from '@/Theme/styleAtoms';
 
 /* -------------------------------------------------------------------------- */
 /*  Cribado de SAHS infantil (trastornos respiratorios del sueño)             */
@@ -369,7 +370,7 @@ export default function SahsScreeningScreen({ navigation }: Props) {
                 {t.sahs.cribadoSahsInfantil}
               </Text>
               <Box bg="$primary50" px="$2" py="$0.5" borderRadius="$full">
-                <Text size="2xs" weight="bold" color="$primary800" style={{ letterSpacing: 0.4 }}>
+                <Text size="2xs" weight="bold" color="$primary800" style={atoms.letterSpacing04}>
                   
                   {t.sahs.psqChervin}
                 </Text>
@@ -399,7 +400,7 @@ export default function SahsScreeningScreen({ navigation }: Props) {
 
                 <HStack alignItems="center" space="sm" mt="$5" mb="$3">
                   <Icon as={ShieldCheck} size="sm" color="$primary500" />
-                  <Text size="sm" weight="bold" color="$textLight800" style={{ textTransform: 'uppercase', letterSpacing: 0.4 }}>
+                  <Text size="sm" weight="bold" color="$textLight800" style={atoms.textTransformUppercaseLetterSpacing04}>
                     
                     {t.sahs.condicionesAplicacion}
                   </Text>
@@ -412,7 +413,7 @@ export default function SahsScreeningScreen({ navigation }: Props) {
                         <Center mt="$0.5" w={20} h={20} borderRadius={6} borderWidth={1.5} borderColor={setup[i] ? '$primary500' : '$borderLight300'} bg={setup[i] ? '$primary500' : '$white'}>
                           {setup[i] ? <Icon as={Check} size="2xs" color="$white" /> : null}
                         </Center>
-                        <Text size="sm" color="$textLight700" style={{ flex: 1 }}>
+                        <Text size="sm" color="$textLight700" style={atoms.flex1}>
                           {label}
                         </Text>
                       </HStack>
@@ -422,8 +423,8 @@ export default function SahsScreeningScreen({ navigation }: Props) {
               </Card>
 
               <HStack space="sm" alignItems="flex-start" p="$3.5" borderRadius={16} bg="$primary0" borderWidth={1} borderColor="$primary100">
-                <Icon as={Info} size="sm" color="$primary600" style={{ marginTop: 1 }} />
-                <Text size="xs" color="$primary800" style={{ flex: 1, lineHeight: 18 }}>
+                <Icon as={Info} size="sm" color="$primary600" style={atoms.marginTop1} />
+                <Text size="xs" color="$primary800" style={atoms.flex1LineHeight18}>
                   
                   {t.sahs.cribadoOrientativoTrastornosRespiratoriosSueno}
                 </Text>
@@ -458,7 +459,7 @@ export default function SahsScreeningScreen({ navigation }: Props) {
                   </Box>
                   {score.redFlag ? (
                     <Box bg="$error50" px="$2.5" py="$0.5" borderRadius="$full">
-                      <Text size="2xs" weight="bold" color="$error600" style={{ textTransform: 'uppercase', letterSpacing: 0.3 }}>
+                      <Text size="2xs" weight="bold" color="$error600" style={atoms.textTransformUppercaseLetterSpacing03}>
                         
                         {t.sahs.senalAlarma}
                       </Text>
@@ -478,8 +479,8 @@ export default function SahsScreeningScreen({ navigation }: Props) {
                     <Center w={34} h={34} borderRadius={10} bg={isBlockStart ? '$primary500' : '$primary50'}>
                       <Icon as={blockIcon} size="sm" color={isBlockStart ? '$white' : '$primary600'} />
                     </Center>
-                    <VStack style={{ flex: 1 }}>
-                      <Text size="2xs" weight="bold" color="$primary700" style={{ textTransform: 'uppercase', letterSpacing: 0.4 }}>
+                    <VStack style={atoms.flex1}>
+                      <Text size="2xs" weight="bold" color="$primary700" style={atoms.textTransformUppercaseLetterSpacing04}>
                         
                         {t.sahs.bloque} {q.block + 1} de {PSQ_BLOCKS.length} · {block.short}
                       </Text>
@@ -499,7 +500,7 @@ export default function SahsScreeningScreen({ navigation }: Props) {
 
                   {q.flag ? (
                     <Box alignSelf="flex-start" bg="$error50" px="$2" py="$0.5" borderRadius="$full" mb="$2">
-                      <Text size="2xs" weight="bold" color="$error600" style={{ textTransform: 'uppercase', letterSpacing: 0.3 }}>
+                      <Text size="2xs" weight="bold" color="$error600" style={atoms.textTransformUppercaseLetterSpacing03}>
                         
                         {t.sahs.senalAlarma}
                       </Text>
@@ -507,7 +508,7 @@ export default function SahsScreeningScreen({ navigation }: Props) {
                   ) : null}
 
                   <ScaledTextScope.Provider value={true}>
-                    <Text size="xl" weight="bold" color="$textLight900" style={{ lineHeight: 30 }}>
+                    <Text size="xl" weight="bold" color="$textLight900" style={atoms.lineHeight30}>
                       {q.label}
                     </Text>
                   </ScaledTextScope.Provider>
@@ -520,7 +521,7 @@ export default function SahsScreeningScreen({ navigation }: Props) {
                   {isPsqRisk(psq[q.id]) && q.flag ? (
                     <HStack space="sm" alignItems="center" mt="$3" p="$2.5" borderRadius={12} bg="$error50">
                       <Icon as={AlertTriangle} size="xs" color="$error600" />
-                      <Text size="xs" weight="semiBold" color="$error700" style={{ flex: 1 }}>
+                      <Text size="xs" weight="semiBold" color="$error700" style={atoms.flex1}>
                         
                         {t.sahs.senalAlarmaPresentePriorizaDerivacion}
                       </Text>
@@ -533,7 +534,7 @@ export default function SahsScreeningScreen({ navigation }: Props) {
               {psqComplete ? (
                 <>
                   <Card bgColor="$white" borderRadius={18} p="$4">
-                    <Text size="2xs" weight="bold" color="$textLight500" mb="$2" style={{ textTransform: 'uppercase', letterSpacing: 0.4 }}>
+                    <Text size="2xs" weight="bold" color="$textLight500" mb="$2" style={atoms.textTransformUppercaseLetterSpacing04}>
                       
                       {t.sahs.observacionesPsq}
                     </Text>
@@ -544,7 +545,7 @@ export default function SahsScreeningScreen({ navigation }: Props) {
                   <Pressable onPress={() => setView('exam')}>
                     <HStack space="sm" alignItems="center" p="$3.5" borderRadius={16} bg="$success50" borderWidth={1} borderColor="$success200">
                       <Icon as={CheckCircle2} size="sm" color="$success600" />
-                      <Text size="sm" weight="bold" color="$success800" style={{ flex: 1 }}>
+                      <Text size="sm" weight="bold" color="$success800" style={atoms.flex1}>
                         
                         {t.sahs.las} {PSQ_TOTAL}  {t.sahs.preguntasEstanRespondidas}
                       </Text>
@@ -573,7 +574,7 @@ export default function SahsScreeningScreen({ navigation }: Props) {
               <Card bgColor="$white" borderRadius={20} p="$5">
                 <HStack alignItems="center" space="sm" mb="$3">
                   <Icon as={Stethoscope} size="sm" color="$primary600" />
-                  <Text size="sm" weight="bold" color="$textLight800" style={{ flex: 1 }}>
+                  <Text size="sm" weight="bold" color="$textLight800" style={atoms.flex1}>
                     
                     {t.sahs.tamanoAmigdalarEscalaBrodsky}
                   </Text>
@@ -588,12 +589,12 @@ export default function SahsScreeningScreen({ navigation }: Props) {
                     const active = brodsky === b.grade;
                     const sevBg = b.grade >= 4 ? '$error500' : b.grade === 3 ? '$warning700' : '$primary500';
                     return (
-                      <Pressable key={b.grade} style={{ flex: 1 }} onPress={() => setBrodsky(b.grade)}>
+                      <Pressable key={b.grade} style={atoms.flex1} onPress={() => setBrodsky(b.grade)}>
                         <Center py="$3" borderRadius={14} borderWidth={1.5} bg={active ? sevBg : '$white'} borderColor={active ? sevBg : '$borderLight200'}>
                           <Text size="lg" weight="bold" color={active ? '$white' : '$textLight400'}>
                             {b.grade}
                           </Text>
-                          <Text size="2xs" color={active ? '$white' : '$textLight400'} mt="$0.5" style={{ textAlign: 'center' }}>
+                          <Text size="2xs" color={active ? '$white' : '$textLight400'} mt="$0.5" style={atoms.textAlignCenter}>
                             {b.sub}
                           </Text>
                         </Center>
@@ -617,7 +618,7 @@ export default function SahsScreeningScreen({ navigation }: Props) {
                     const active = imc === m.key;
                     const sevBg = m.key === 'obesidad' ? '$error500' : m.key === 'sobrepeso' ? '$warning700' : '$success600';
                     return (
-                      <Pressable key={m.key} style={{ flex: 1 }} onPress={() => setImc(m.key)}>
+                      <Pressable key={m.key} style={atoms.flex1} onPress={() => setImc(m.key)}>
                         <Center py="$3" borderRadius={14} borderWidth={1.5} bg={active ? sevBg : '$white'} borderColor={active ? sevBg : '$borderLight200'}>
                           <Text size="sm" weight="bold" color={active ? '$white' : '$textLight400'}>
                             {m.label}
@@ -642,7 +643,7 @@ export default function SahsScreeningScreen({ navigation }: Props) {
                   
                   {t.sahs.marqueHallazgosPresentes}
                 </Text>
-                <HStack space="sm" flexWrap="wrap" style={{ rowGap: 8 }}>
+                <HStack space="sm" flexWrap="wrap" style={atoms.rowGap8}>
                   {EXAM_SIGNS.map(label => {
                     const active = !!signs[label];
                     return (
@@ -657,7 +658,7 @@ export default function SahsScreeningScreen({ navigation }: Props) {
                   })}
                 </HStack>
                 <Box mt="$4">
-                  <Text size="2xs" weight="bold" color="$textLight500" mb="$2" style={{ textTransform: 'uppercase', letterSpacing: 0.4 }}>
+                  <Text size="2xs" weight="bold" color="$textLight500" mb="$2" style={atoms.textTransformUppercaseLetterSpacing04}>
                     
                     {t.sahs.observacionesExploracion}
                   </Text>
@@ -669,8 +670,8 @@ export default function SahsScreeningScreen({ navigation }: Props) {
 
               {!examComplete ? (
                 <HStack space="sm" alignItems="flex-start" p="$3" borderRadius={14} bg="$warning50">
-                  <Icon as={AlertTriangle} size="sm" color="$warning700" style={{ marginTop: 1 }} />
-                  <Text size="xs" color="$warning800" style={{ flex: 1, lineHeight: 18 }}>
+                  <Icon as={AlertTriangle} size="sm" color="$warning700" style={atoms.marginTop1} />
+                  <Text size="xs" color="$warning800" style={atoms.flex1LineHeight18}>
                     
                     {t.sahs.registreGradoBrodskyEstadoPonderal}
                   </Text>
@@ -705,7 +706,7 @@ export default function SahsScreeningScreen({ navigation }: Props) {
                           <Center w={24} h={24} borderRadius={7} borderWidth={1.5} bg={active ? '$primary500' : '$white'} borderColor={active ? '$primary500' : '$borderLight300'}>
                             {active ? <Icon as={Check} size="2xs" color="$white" /> : null}
                           </Center>
-                          <VStack style={{ flex: 1 }}>
+                          <VStack style={atoms.flex1}>
                             <Text size="sm" weight="semiBold" color="$textLight800">
                               {r.label}
                             </Text>
@@ -721,7 +722,7 @@ export default function SahsScreeningScreen({ navigation }: Props) {
               </VStack>
 
               <Card bgColor="$white" borderRadius={18} p="$4">
-                <Text size="2xs" weight="bold" color="$textLight500" mb="$2" style={{ textTransform: 'uppercase', letterSpacing: 0.4 }}>
+                <Text size="2xs" weight="bold" color="$textLight500" mb="$2" style={atoms.textTransformUppercaseLetterSpacing04}>
                   
                   {t.sahs.observacionesFactoresRiesgo}
                 </Text>
@@ -739,15 +740,15 @@ export default function SahsScreeningScreen({ navigation }: Props) {
             <VStack space="md">
               <Card bgColor={reportTheme.bannerBg} borderColor={reportTheme.bannerBorder} borderWidth={1} borderRadius={20} p="$5">
                 <HStack space="sm" alignItems="center" justifyContent="space-between">
-                  <HStack space="sm" alignItems="center" style={{ flex: 1 }}>
+                  <HStack space="sm" alignItems="center" style={atoms.flex1}>
                     <Center w={44} h={44} borderRadius={14} bg="$white">
                       <Icon as={reportTheme.icon} size="lg" color={reportTheme.iconColor} />
                     </Center>
-                    <VStack style={{ flex: 1 }}>
+                    <VStack style={atoms.flex1}>
                       <Text size="lg" weight="bold" color={reportTheme.bannerFg}>
                         {suspicionLabel(score.level)}
                       </Text>
-                      <Text size="2xs" color={reportTheme.bannerFg} style={{ opacity: 0.9 }}>
+                      <Text size="2xs" color={reportTheme.bannerFg} style={atoms.opacity09}>
                         {reportTheme.desc}
                       </Text>
                     </VStack>
@@ -755,12 +756,12 @@ export default function SahsScreeningScreen({ navigation }: Props) {
                   <VStack alignItems="center">
                     <Text size="2xl" weight="bold" color={reportTheme.bannerFg}>
                       {score.total}
-                      <Text size="sm" weight="semiBold" color={reportTheme.bannerFg} style={{ opacity: 0.8 }}>
+                      <Text size="sm" weight="semiBold" color={reportTheme.bannerFg} style={atoms.opacity08}>
                         {' '}
                         / {score.totalMax}
                       </Text>
                     </Text>
-                    <Text size="2xs" weight="bold" color={reportTheme.bannerFg} style={{ textTransform: 'uppercase', opacity: 0.8 }}>
+                    <Text size="2xs" weight="bold" color={reportTheme.bannerFg} style={atoms.textTransformUppercaseOpacity08}>
                       
                       {t.sahs.puntuacion}
                     </Text>
@@ -770,12 +771,12 @@ export default function SahsScreeningScreen({ navigation }: Props) {
 
               {/* recomendación */}
               <Card bgColor="$white" borderRadius={20} p="$5">
-                <Text size="sm" weight="bold" color="$textLight700" mb="$2" style={{ textTransform: 'uppercase', letterSpacing: 0.4 }}>
+                <Text size="sm" weight="bold" color="$textLight700" mb="$2" style={atoms.textTransformUppercaseLetterSpacing04}>
                   
                   {t.sahs.recomendacionDerivacion}
                 </Text>
                 <HStack space="sm" alignItems="center" mb="$2">
-                  <Text size="lg" weight="bold" color="$textLight900" style={{ flex: 1 }}>
+                  <Text size="lg" weight="bold" color="$textLight900" style={atoms.flex1}>
                     {rec.action}
                   </Text>
                   <Box bg="$primary50" px="$2.5" py="$1" borderRadius="$full">
@@ -784,21 +785,21 @@ export default function SahsScreeningScreen({ navigation }: Props) {
                     </Text>
                   </Box>
                 </HStack>
-                <Text size="sm" color="$textLight700" style={{ lineHeight: 21 }}>
+                <Text size="sm" color="$textLight700" style={atoms.lineHeight21}>
                   {rec.desc}
                 </Text>
               </Card>
 
               {/* desglose */}
               <Card bgColor="$white" borderRadius={20} p="$5">
-                <Text size="sm" weight="bold" color="$textLight700" mb="$3" style={{ textTransform: 'uppercase', letterSpacing: 0.4 }}>
+                <Text size="sm" weight="bold" color="$textLight700" mb="$3" style={atoms.textTransformUppercaseLetterSpacing04}>
                   
                   {t.sahs.desglosePuntuacion}
                 </Text>
                 <VStack space="sm">
                   {breakdownRows.map(row => (
                     <HStack key={row.label} alignItems="center" justifyContent="space-between" py="$1.5" borderBottomWidth={1} borderColor="$borderLight50">
-                      <VStack style={{ flex: 1 }}>
+                      <VStack style={atoms.flex1}>
                         <Text size="sm" color="$textLight700">
                           {row.label}
                         </Text>
@@ -832,10 +833,10 @@ export default function SahsScreeningScreen({ navigation }: Props) {
                   {t.sahs.profesionalResponsable}
                 </Text>
                 <HStack space="sm">
-                  <Input variant="outline" borderRadius={12} style={{ flex: 2 }}>
+                  <Input variant="outline" borderRadius={12} style={atoms.flex2}>
                     <InputField placeholder={t.sahs.nombre} value={evaluatorName} onChangeText={setEvaluatorName} />
                   </Input>
-                  <Input variant="outline" borderRadius={12} style={{ flex: 1 }}>
+                  <Input variant="outline" borderRadius={12} style={atoms.flex1}>
                     <InputField placeholder={t.sahs.colegiado} value={evaluatorLicense} onChangeText={setEvaluatorLicense} />
                   </Input>
                 </HStack>
@@ -855,7 +856,7 @@ export default function SahsScreeningScreen({ navigation }: Props) {
                   action="primary"
                   variant="solid"
                   rounded="$full"
-                  style={{ flex: 1 }}
+                  style={atoms.flex1}
                   isDisabled={!canSave || isSaving || !evaluatorName.trim() || !evaluatorLicense.trim()}
                   isLoading={isSaving}
                   onPress={handleSave}>
@@ -871,8 +872,8 @@ export default function SahsScreeningScreen({ navigation }: Props) {
 
               {!canSave ? (
                 <HStack space="sm" alignItems="flex-start" p="$3" borderRadius={14} bg="$warning50">
-                  <Icon as={AlertTriangle} size="sm" color="$warning700" style={{ marginTop: 1 }} />
-                  <Text size="xs" color="$warning800" style={{ flex: 1, lineHeight: 18 }}>
+                  <Icon as={AlertTriangle} size="sm" color="$warning700" style={atoms.marginTop1} />
+                  <Text size="xs" color="$warning800" style={atoms.flex1LineHeight18}>
                     {!psqComplete
                       ? t.sahs.quedanPreguntasPsqResponder(PSQ_TOTAL - score.answeredCount)
                       : ''}
@@ -917,7 +918,7 @@ const NavRow = ({
         </Text>
       </HStack>
     </Button>
-    <Button action="primary" variant="solid" rounded="$full" style={{ flex: 1 }} onPress={onNext}>
+    <Button action="primary" variant="solid" rounded="$full" style={atoms.flex1} onPress={onNext}>
       <HStack space="sm" alignItems="center">
         <Text size="sm" weight="bold" color="$white">
           {nextLabel}

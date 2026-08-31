@@ -3,6 +3,7 @@ import { Animated, Pressable } from 'react-native';
 import { Center, HStack, Icon } from '@gluestack-ui/themed';
 import { Check, X } from 'lucide-react-native';
 import { Text } from '@/Components/Common';
+import { atoms } from '@/Theme/styleAtoms';
 
 /* -------------------------------------------------------------------------- */
 /*  YesNoAnswer — respuesta Sí/No de los cuestionarios, en formato grande y    */
@@ -42,7 +43,7 @@ const AnswerButton = ({ label, icon, selected, tone, onPress }: AnswerButtonProp
   const bg = TONE_BG[tone];
 
   return (
-    <Pressable style={{ flex: 1 }} onPress={onPress}>
+    <Pressable style={atoms.flex1} onPress={onPress}>
       <Animated.View style={{ transform: [{ scale }] }}>
         <Center
           py="$4"

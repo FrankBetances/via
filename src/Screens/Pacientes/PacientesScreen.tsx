@@ -23,6 +23,7 @@ import { showErrorToast } from '@/Helpers/showToast';
 import { writeWithVerify } from '@/Helpers/dbWrite';
 
 import { useT } from '@/I18n';
+import { atoms } from '@/Theme/styleAtoms';
 /* -------------------------------------------------------------------------- */
 /*  PacientesScreen — lista/búsqueda de pacientes (mockup `Pacientes.dc.html`)*/
 /*  "Nuevo paciente" abre el alta (`RegistroPaciente`). Al seleccionar un      */
@@ -79,7 +80,7 @@ const PatientListItem = React.memo(function PatientListItem({
               {initials(patient.nameEnc)}
             </Text>
           </Center>
-          <VStack style={{ flex: 1 }}>
+          <VStack style={atoms.flex1}>
             <HStack alignItems="center" space="sm">
               <Text size="sm" weight="bold" color="$textLight900">
                 {patient.nameEnc}
@@ -287,7 +288,7 @@ export default function PacientesScreen({ navigation }: Props) {
           data={filteredRows}
           keyExtractor={row => String(row.patient.id)}
           renderItem={renderItem}
-          contentContainerStyle={{ paddingHorizontal: 24, paddingTop: 8, paddingBottom: 40 }}
+          contentContainerStyle={atoms.paddingHorizontal24PaddingTop8PaddingBottom40}
           ItemSeparatorComponent={ItemSeparator}
           ListHeaderComponent={
             <VStack space="md" mb="$3">
@@ -343,16 +344,16 @@ export default function PacientesScreen({ navigation }: Props) {
                   borderWidth={1.5}
                   borderColor="$primary300"
                   bg="$primary0"
-                  style={{ borderStyle: 'dashed' }}>
+                  style={atoms.borderStyleDashed}>
                   <Center w={44} h={44} borderRadius={14} bg="$primary500">
                     <Icon as={Plus} size="md" color="$white" />
                   </Center>
-                  <VStack style={{ flex: 1 }}>
+                  <VStack style={atoms.flex1}>
                     <Text size="sm" weight="bold" color="$textLight900">
                       
                       {t.pacientes.nuevoPaciente}
                     </Text>
-                    <Text size="xs" color="$textLight500" style={{ lineHeight: 16 }}>
+                    <Text size="xs" color="$textLight500" style={atoms.lineHeight16}>
                       
                       {t.pacientes.registraDatosPacienteEmpiezaSesion}
                     </Text>
@@ -381,7 +382,7 @@ export default function PacientesScreen({ navigation }: Props) {
             </VStack>
           }
           ListEmptyComponent={
-            <Text size="xs" color="$textLight400" style={{ textAlign: 'center' }} mt="$4">
+            <Text size="xs" color="$textLight400" style={atoms.textAlignCenter} mt="$4">
               {isLoading ? t.pacientes.cargandoPacientes : t.pacientes.sinExpedientesRegistradosTodavia}
             </Text>
           }

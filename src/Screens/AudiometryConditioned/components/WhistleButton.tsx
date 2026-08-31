@@ -1,8 +1,9 @@
 import React, { useEffect, useRef } from 'react';
-import { Animated, Easing, Pressable, View } from 'react-native';
+import { Animated, Easing, Pressable, StyleSheet, View } from 'react-native';
 import { Center, HStack, Icon, VStack } from '@gluestack-ui/themed';
 import { Bell, Sparkles } from 'lucide-react-native';
 import { Text } from '@/Components/Common';
+import { atoms } from '@/Theme/styleAtoms';
 
 interface Props {
   onPress: () => void;
@@ -48,21 +49,22 @@ const SonarRing = ({ active, delay }: { active: boolean; delay: number }) => {
   return (
     <Animated.View
       pointerEvents="none"
-      style={{
-        position: 'absolute',
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        borderRadius: 32,
-        borderWidth: 3.5,
-        borderColor: '#10B981',
-        opacity,
-        transform: [{ scale }],
-      }}
+      style={[
+        StyleSheet.absoluteFill,
+        styles.pulseRing,
+        {
+          opacity,
+          transform: [{ scale }],
+        },
+      ]}
     />
   );
 };
+
+const styles = StyleSheet.create({
+  /* El aro que late alrededor del pulsador mientras suena el estímulo. */
+  pulseRing: { borderRadius: 32, borderWidth: 3.5, borderColor: '#10B981' },
+});
 
 export default function WhistleButton({
   onPress,
@@ -123,8 +125,8 @@ export default function WhistleButton({
       onPressIn={handlePressIn}
       onPressOut={handlePressOut}
       disabled={disabled}
-      style={{ width: '100%' }}>
-      <View style={{ position: 'relative' }}>
+      style={atoms.width100Pct}>
+      <View style={atoms.positionRelative}>
         <SonarRing active={highlight && !disabled} delay={0} />
         <SonarRing active={highlight && !disabled} delay={550} />
 
@@ -165,11 +167,11 @@ export default function WhistleButton({
                 </Animated.View>
               </Center>
 
-              <VStack style={{ flex: 1 }}>
-                <Text size="xl" weight="bold" color="$white" style={{ letterSpacing: 0.3 }}>
+              <VStack style={atoms.flex1}>
+                <Text size="xl" weight="bold" color="$white" style={atoms.letterSpacing03}>
                   {label}
                 </Text>
-                <Text size="sm" weight="medium" color="$white" style={{ opacity: 0.95, lineHeight: 18 }}>
+                <Text size="sm" weight="medium" color="$white" style={atoms.opacity095LineHeight18}>
                   {sublabel}
                 </Text>
               </VStack>

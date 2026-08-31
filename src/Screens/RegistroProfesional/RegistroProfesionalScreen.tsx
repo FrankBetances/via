@@ -25,6 +25,7 @@ import { writeWithVerify } from '@/Helpers/dbWrite';
 import { describeAuthError, isFirebaseAvailable, registerWithEmail, saveProfessionalProfile } from '@/Services/firebase';
 
 import { useT } from '@/I18n';
+import { atoms } from '@/Theme/styleAtoms';
 /* -------------------------------------------------------------------------- */
 /*  RegistroProfesionalScreen — alta del profesional responsable. Nombre,      */
 /*  rol, email y contraseña son obligatorios: la cuenta se crea en Firebase    */
@@ -208,9 +209,9 @@ export default function RegistroProfesionalScreen({ navigation: _navigation }: P
 
       <Header animationType="expand" />
 
-      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+      <KeyboardAvoidingView style={atoms.flex1} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <ScrollView
-          style={{ flex: 1 }}
+          style={atoms.flex1}
           contentContainerStyle={styles.scroll}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}>
@@ -231,7 +232,7 @@ export default function RegistroProfesionalScreen({ navigation: _navigation }: P
                   <Text style={styles.previewAvatarText}>{previewInitials || '🧑‍⚕️'}</Text>
                 </View>
               </View>
-              <View style={{ flex: 1 }}>
+              <View style={atoms.flex1}>
                 <Text style={[styles.previewName, !nameOk && styles.previewPlaceholder]}>
                   {nameOk ? nombre.trim() : t.registroProfesional.tuNombreApellidos}
                 </Text>
@@ -261,7 +262,7 @@ export default function RegistroProfesionalScreen({ navigation: _navigation }: P
               onChangeText={setNombre}
             />
 
-            <Text style={[styles.fieldLabel, { marginTop: 16 }]}>
+            <Text style={[styles.fieldLabel, atoms.marginTop16]}>
               
               {t.registroProfesional.rolProfesional} <Text style={styles.fieldRequired}>*</Text>
             </Text>
@@ -279,7 +280,7 @@ export default function RegistroProfesionalScreen({ navigation: _navigation }: P
               })}
             </View>
 
-            <Text style={[styles.fieldLabel, { marginTop: 16 }]}>
+            <Text style={[styles.fieldLabel, atoms.marginTop16]}>
               
               {t.registroProfesional.email} <Text style={styles.fieldRequired}>*</Text>
             </Text>
@@ -294,7 +295,7 @@ export default function RegistroProfesionalScreen({ navigation: _navigation }: P
               keyboardType="email-address"
             />
 
-            <Text style={[styles.fieldLabel, { marginTop: 16 }]}>
+            <Text style={[styles.fieldLabel, atoms.marginTop16]}>
               
               {t.registroProfesional.contrasena} <Text style={styles.fieldRequired}>*</Text>
             </Text>
@@ -309,7 +310,7 @@ export default function RegistroProfesionalScreen({ navigation: _navigation }: P
             />
 
             <View style={styles.row}>
-              <View style={{ flex: 1 }}>
+              <View style={atoms.flex1}>
                 <Text style={styles.fieldLabel}>{t.registroProfesional.nColegiadoOpcional}</Text>
                 <TextInput
                   style={styles.input}
@@ -321,7 +322,7 @@ export default function RegistroProfesionalScreen({ navigation: _navigation }: P
               </View>
             </View>
 
-            <Text style={[styles.fieldLabel, { marginTop: 16 }]}>{t.registroProfesional.centroTrabajoOpcional}</Text>
+            <Text style={[styles.fieldLabel, atoms.marginTop16]}>{t.registroProfesional.centroTrabajoOpcional}</Text>
             <TextInput
               style={styles.input}
               placeholder={t.registroProfesional.hospitalCentroSalud}

@@ -41,6 +41,7 @@ import ViaIcon from '@/Components/Common/ViaIcon';
 
 import { useT } from '@/I18n';
 import { ORBIT_MODULES } from '@/Screens/Creditos/orbitModules';
+import { atoms } from '@/Theme/styleAtoms';
 type Nav = NativeStackNavigationProp<RootStackParamList, 'Bienvenida'>;
 
 /* -------------------------------------------------------------------------- */
@@ -488,7 +489,7 @@ export default function BienvenidaScreen() {
           <View style={styles.cardsContainer}>
             {/* Tarjeta 1: 12 Módulos Clínicos */}
             <View style={styles.clinicalCard}>
-              <View style={[styles.cardIconBox, { backgroundColor: '#E0F2FE' }]}>
+              <View style={[styles.cardIconBox, atoms.backgroundColorE0F2FE]}>
                 <Stethoscope size={20} color="#0284C7" strokeWidth={2.2} />
               </View>
               <View style={styles.cardContent}>
@@ -502,7 +503,7 @@ export default function BienvenidaScreen() {
 
             {/* Tarjeta 2: 100% On-Device · Zero-PHI */}
             <View style={styles.clinicalCard}>
-              <View style={[styles.cardIconBox, { backgroundColor: '#CCFBF1' }]}>
+              <View style={[styles.cardIconBox, atoms.backgroundColorCCFBF1]}>
                 <Lock size={19} color="#0D9488" strokeWidth={2.2} />
               </View>
               <View style={styles.cardContent}>
@@ -516,7 +517,7 @@ export default function BienvenidaScreen() {
 
             {/* Tarjeta 3: Sello ITEMAS 2024 */}
             <View style={styles.clinicalCard}>
-              <View style={[styles.cardIconBox, { backgroundColor: '#FEF3C7' }]}>
+              <View style={[styles.cardIconBox, atoms.backgroundColorFEF3C7]}>
                 <Award size={20} color="#D97706" strokeWidth={2.2} />
               </View>
               <View style={styles.cardContent}>

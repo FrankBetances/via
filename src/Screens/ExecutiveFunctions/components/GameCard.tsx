@@ -3,6 +3,7 @@ import { Pressable } from 'react-native';
 import { Center } from '@gluestack-ui/themed';
 
 import { Text } from '@/Components/Common';
+import { atoms } from '@/Theme/styleAtoms';
 
 /* -------------------------------------------------------------------------- */
 /*  GameCard — tarjeta de los mini-juegos de funciones ejecutivas.             */
@@ -48,15 +49,16 @@ export default function GameCard({
   return (
     <Pressable onPress={interactive ? onPress : undefined} disabled={!interactive} accessibilityRole="button">
       <Center
-        style={{
-          width: size,
-          height: size,
-          borderRadius: 18,
-          borderWidth: 2.5,
-          borderColor: borderColor ?? s.border,
-          backgroundColor: bg ?? s.bg,
-          opacity: s.opacity,
-        }}>
+        style={[
+          atoms.borderRadius18BorderWidth25,
+          {
+            width: size,
+            height: size,
+            borderColor: borderColor ?? s.border,
+            backgroundColor: bg ?? s.bg,
+            opacity: s.opacity,
+          },
+        ]}>
         <Text style={{ fontSize: size * 0.5, lineHeight: size * 0.62 }}>{glyph}</Text>
         {badge !== null ? (
           <Center
@@ -65,7 +67,7 @@ export default function GameCard({
             borderRadius="$full"
             bg="$primary600"
             position="absolute"
-            style={{ top: -8, right: -8 }}>
+            style={atoms.topNeg8RightNeg8}>
             <Text size="xs" weight="bold" color="$white">
               {badge}
             </Text>

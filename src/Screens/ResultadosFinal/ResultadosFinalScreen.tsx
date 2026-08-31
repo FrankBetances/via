@@ -79,6 +79,7 @@ import { generateReport } from '@/PDF/templates/Report';
 import { showErrorToast, showSuccessToast } from '@/Helpers/showToast';
 
 import { useT } from '@/I18n';
+import { atoms } from '@/Theme/styleAtoms';
 /* -------------------------------------------------------------------------- */
 /*  ResultadosFinalScreen — Arquitectura Master-Detail en Tableta (4:3)        */
 /*  Sidebar de navegación con telemetría/QR a la izquierda y escenario         */
@@ -302,17 +303,17 @@ function ClinicalAudiogramChart({
       <View style={styles.chartLegend}>
         {isSoundfield ? (
           <View style={styles.legendItem}>
-            <Text style={{ color: '#0D9488', fontWeight: 'bold', fontSize: 13 }}>S</Text>
+            <Text style={atoms.color0D9488FontWeightBoldFontSize13}>S</Text>
             <Text style={styles.legendText}>{t.resultadosFinal.campoLibreBinaural}</Text>
           </View>
         ) : (
           <>
             <View style={styles.legendItem}>
-              <View style={[styles.legendDot, { borderColor: '#DC2626' }]} />
+              <View style={[styles.legendDot, atoms.borderColorDC2626]} />
               <Text style={styles.legendText}>{t.resultadosFinal.oidoDerechoOd}</Text>
             </View>
             <View style={styles.legendItem}>
-              <Text style={{ color: '#2563EB', fontWeight: 'bold', fontSize: 13 }}>✕</Text>
+              <Text style={atoms.color2563EBFontWeightBoldFontSize13}>✕</Text>
               <Text style={styles.legendText}>{t.resultadosFinal.oidoIzquierdoOi}</Text>
             </View>
           </>
@@ -781,7 +782,7 @@ export default function ResultadosFinalScreen({ navigation }: Props) {
     };
   }, [evaluationId]);
 
-  const active = useMemo(() => tests.find(t => t.id === activeId) ?? tests[0] ?? null, [tests, activeId]);
+  const active = useMemo(() => tests.find(item => item.id === activeId) ?? tests[0] ?? null, [tests, activeId]);
 
   const handleExportPdf = async () => {
     // Sin evaluación activa no hay informe que compilar: no se anuncia un PDF
@@ -840,7 +841,7 @@ export default function ResultadosFinalScreen({ navigation }: Props) {
             <View style={styles.navLogoRow}>
               <ViaIcon size={28} variant="color" />
               <Text style={styles.navLogoText}>
-                VIA<Text style={{ color: '#FF7F00' }}>+</Text>
+                VIA<Text style={atoms.colorFF7F00}>+</Text>
               </Text>
             </View>
 
@@ -870,34 +871,34 @@ export default function ResultadosFinalScreen({ navigation }: Props) {
           <View style={styles.masterSidebar}>
             <Text style={styles.sidebarSectionTitle}>{t.resultadosFinal.pruebasSesion}</Text>
 
-            <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false}>
+            <ScrollView style={atoms.flex1} showsVerticalScrollIndicator={false}>
               <View style={styles.testsList}>
                 {isLoading ? <Text style={styles.testItemStatus}>{t.resultadosFinal.cargandoResultados}</Text> : null}
-                {tests.map(t => {
-                  const isActive = t.id === active?.id;
-                  const IconComp = t.icon;
-                  const tokens = STATUS_TOKENS[t.status];
+                {tests.map(item => {
+                  const isActive = item.id === active?.id;
+                  const IconComp = item.icon;
+                  const tokens = STATUS_TOKENS[item.status];
 
                   return (
                     <Pressable
-                      key={t.id}
+                      key={item.id}
                       style={[
                         styles.testSidebarItem,
                         isActive && styles.testSidebarItemActive,
                       ]}
-                      onPress={() => setActiveId(t.id)}>
-                      <View style={[styles.testItemIconBox, { backgroundColor: isActive ? '#FFFFFF' : '#F1F5F9' }]}>
-                        <IconComp size={18} color={t.color} />
+                      onPress={() => setActiveId(item.id)}>
+                      <View style={[styles.testItemIconBox, isActive ? atoms.backgroundColorFFFFFF : atoms.backgroundColorF1F5F9]}>
+                        <IconComp size={18} color={item.color} />
                       </View>
 
-                      <View style={{ flex: 1 }}>
+                      <View style={atoms.flex1}>
                         <Text
                           style={[
                             styles.testItemTitle,
-                            isActive && { color: '#0F172A', fontWeight: '800' },
+                            isActive && atoms.color0F172AFontWeight800,
                           ]}
                           numberOfLines={1}>
-                          {t.title}
+                          {item.title}
                         </Text>
                         <Text style={[styles.testItemStatus, { color: tokens.fg }]}>
                           ({tokens.label})
@@ -919,7 +920,7 @@ export default function ResultadosFinalScreen({ navigation }: Props) {
                 )}
               </View>
 
-              <View style={{ flex: 1 }}>
+              <View style={atoms.flex1}>
                 <Text style={styles.telemetryTitle}>{t.resultadosFinal.telemetriaZeroPhi}</Text>
                 <Text style={styles.telemetrySubtitle}>{t.resultadosFinal.qrAnonimoSesion}</Text>
                 
@@ -961,7 +962,7 @@ export default function ResultadosFinalScreen({ navigation }: Props) {
             ) : (
               <>
             {/* Celebración de Lúa y Entrega de la Gran Insignia Final */}
-            <View style={{ marginBottom: 16 }}>
+            <View style={atoms.marginBottom16}>
               <LuaCompanionWidget
                 emotion={LuaEmotion.Pride}
                 activeBadge={LUA_CLINICAL_BADGES.final_champion}
@@ -973,7 +974,7 @@ export default function ResultadosFinalScreen({ navigation }: Props) {
             {/* Título Principal de la Prueba Activa */}
             <View style={styles.detailHeader}>
               <Text style={styles.detailMainTitle}>
-                {active.title} · <Text style={{ color: '#475569', fontWeight: '500' }}>{active.subtitle}</Text>
+                {active.title} · <Text style={atoms.color475569FontWeight500}>{active.subtitle}</Text>
               </Text>
               <View style={[styles.statusBadge, { backgroundColor: STATUS_TOKENS[active.status].bg }]}>
                 <Text style={[styles.statusBadgeText, { color: STATUS_TOKENS[active.status].fg }]}>
@@ -994,7 +995,7 @@ export default function ResultadosFinalScreen({ navigation }: Props) {
                   <View style={styles.paramsList}>
                     {active.params?.map((p, idx) => (
                       <View key={idx} style={styles.paramRow}>
-                        <View style={{ flex: 1 }}>
+                        <View style={atoms.flex1}>
                           <Text style={styles.paramLabel}>{p.label}</Text>
                           <Text style={styles.paramRef}>{t.resultadosFinal.referencia} {p.ref}</Text>
                         </View>
@@ -1012,7 +1013,7 @@ export default function ResultadosFinalScreen({ navigation }: Props) {
                     ))}
                     {active.rows?.map((r, idx) => (
                       <View key={idx} style={styles.paramRow}>
-                        <View style={{ flex: 1 }}>
+                        <View style={atoms.flex1}>
                           <Text style={styles.paramLabel}>{r.label}</Text>
                           {r.tag ? <Text style={styles.paramRef}>{r.tag}</Text> : null}
                         </View>

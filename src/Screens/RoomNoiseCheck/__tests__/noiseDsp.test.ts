@@ -169,6 +169,7 @@ describe('Leq: el promedio energético estabiliza la lectura', () => {
     // bloque salta, el Leq no.
     let seed = 12345;
     const rand = () => {
+      // eslint-disable-next-line no-bitwise -- el generador congruencial lineal necesita el módulo 2^31 del enmascarado; es lo que hace la señal REPRODUCIBLE entre ejecuciones.
       seed = (seed * 1103515245 + 12345) & 0x7fffffff;
       return seed / 0x7fffffff;
     };
@@ -247,6 +248,7 @@ describe('cadena de medición con ESTADO entre bloques', () => {
   const broadband = (n: number, amp: number, offset = 0): Float32Array => {
     let seed = 7;
     const rnd = () => {
+      // eslint-disable-next-line no-bitwise -- el generador congruencial lineal necesita el módulo 2^31 del enmascarado; es lo que hace la señal REPRODUCIBLE entre ejecuciones.
       seed = (seed * 1103515245 + 12345) & 0x7fffffff;
       return seed / 0x7fffffff - 0.5;
     };

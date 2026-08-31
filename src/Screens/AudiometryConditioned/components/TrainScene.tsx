@@ -1,8 +1,10 @@
 import React, { useEffect, useRef } from 'react';
-import { Animated, Easing, LayoutChangeEvent, View } from 'react-native';
+import { Animated, Easing, LayoutChangeEvent, StyleSheet, View } from 'react-native';
 import { Box, HStack, Text } from '@gluestack-ui/themed';
 
 import { useT } from '@/I18n';
+import { atoms } from '@/Theme/styleAtoms';
+
 interface Props {
   /** Estaciones alcanzadas para el oído activo (0..4). */
   progress: number;
@@ -21,6 +23,291 @@ interface Props {
   idle?: boolean;
 }
 
+/* -------------------------------------------------------------------------- */
+/*  El decorado, con nombre. Antes iba en línea: cada fotograma de la          */
+/*  animación reconstruía el cielo, las colinas y las cuarenta y una piezas    */
+/*  del tren. Lo que depende del render —la posición del vapor, el giro de     */
+/*  las ruedas, la parada iluminada— sigue en línea, que es donde tiene que    */
+/*  estar; lo demás se crea una sola vez.                                      */
+/* -------------------------------------------------------------------------- */
+
+const styles = StyleSheet.create({
+  /* rueda */
+  wheel: {
+    backgroundColor: '#2C3E50',
+    borderWidth: 2.5,
+    borderColor: '#1A252F',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  wheelSpoke: { height: 2, backgroundColor: '#BDC3C7', position: 'absolute' },
+  wheelSpokeUpright: { width: 2, backgroundColor: '#BDC3C7', position: 'absolute' },
+  wheelHub: { width: 5, height: 5, borderRadius: 2.5, backgroundColor: '#E74C3C' },
+
+  /* vapor y notas */
+  steamPuff: {
+    position: 'absolute',
+    bottom: 60,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1.5,
+    borderColor: 'rgba(180, 200, 220, 0.7)',
+  },
+  floatingNote: { position: 'absolute', bottom: 66 },
+
+  /* recompensa iluminada */
+  glowWrap: { position: 'absolute', top: 14, left: 0, right: 0, alignItems: 'center', zIndex: 10 },
+  glowBox: { width: 100, height: 100, alignItems: 'center', justifyContent: 'center' },
+  glowRayLayer: {
+    position: 'absolute',
+    width: 100,
+    height: 100,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  glowRay: {
+    position: 'absolute',
+    width: 100,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#FFE57F',
+    opacity: 0.9,
+  },
+  glowHalo: {
+    position: 'absolute',
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    backgroundColor: '#FFD54F',
+    opacity: 0.95,
+  },
+  glowFace: {
+    width: 58,
+    height: 58,
+    borderRadius: 29,
+    backgroundColor: '#FFF9C4',
+    borderWidth: 3,
+    borderColor: '#FFA000',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  confetti: { position: 'absolute', top: 0, zIndex: 9 },
+
+  /* paisaje */
+  sky: { position: 'absolute', top: 0, left: 0, right: 0, height: '54%', backgroundColor: '#E0F2FE' },
+  ground: { position: 'absolute', bottom: 0, left: 0, right: 0, height: '46%', backgroundColor: '#DCFCE7' },
+  sun: {
+    position: 'absolute',
+    top: 12,
+    right: 20,
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: '#FDE047',
+    borderWidth: 2,
+    borderColor: '#FACC15',
+  },
+  cloudNear: {
+    position: 'absolute',
+    top: 18,
+    left: '12%',
+    width: 56,
+    height: 20,
+    borderRadius: 14,
+    backgroundColor: '#FFFFFF',
+    opacity: 0.9,
+  },
+  cloudFar: {
+    position: 'absolute',
+    top: 32,
+    left: '46%',
+    width: 48,
+    height: 16,
+    borderRadius: 12,
+    backgroundColor: '#FFFFFF',
+    opacity: 0.75,
+  },
+  hillLeft: {
+    position: 'absolute',
+    bottom: '42%',
+    left: -35,
+    width: 240,
+    height: 130,
+    borderRadius: 120,
+    backgroundColor: '#BBF7D0',
+    opacity: 0.8,
+  },
+  hillRight: {
+    position: 'absolute',
+    bottom: '42%',
+    right: -45,
+    width: 280,
+    height: 150,
+    borderRadius: 140,
+    backgroundColor: '#86EFAC',
+    opacity: 0.6,
+  },
+
+  /* estaciones */
+  station: { position: 'absolute', bottom: 38, alignItems: 'center', marginLeft: -18, zIndex: 2 },
+  friendWaiting: { fontSize: 22, opacity: 1 },
+  friendBoarded: { fontSize: 14, opacity: 0.35 },
+  hut: {
+    width: 34,
+    height: 26,
+    borderRadius: 6,
+    borderWidth: 2,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  hutDone: { backgroundColor: '#86EFAC', borderColor: '#22C55E' },
+  hutPending: { backgroundColor: '#FEF3C7', borderColor: '#F59E0B' },
+  hutRoof: {
+    position: 'absolute',
+    top: -9,
+    left: -4,
+    right: -4,
+    height: 9,
+    borderTopLeftRadius: 5,
+    borderTopRightRadius: 5,
+  },
+  hutRoofDone: { backgroundColor: '#15803D' },
+  hutRoofPending: { backgroundColor: '#D97706' },
+
+  /* vía */
+  rail: { position: 'absolute', left: 0, right: 0, bottom: 30, height: 6, backgroundColor: '#64748B' },
+  sleepers: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 24,
+    height: 6,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingHorizontal: 6,
+  },
+  sleeper: { width: 5, height: 6, backgroundColor: '#854D0E', borderRadius: 1 },
+
+  /* tren */
+  train: { position: 'absolute', bottom: 30, left: 0, zIndex: 5 },
+  carriageRoof: {
+    position: 'absolute',
+    left: -2,
+    right: -2,
+    top: -6,
+    height: 7,
+    borderRadius: 4,
+    backgroundColor: '#047857',
+  },
+  carriage: {
+    width: 86,
+    height: 42,
+    borderRadius: 9,
+    backgroundColor: '#10B981',
+    borderWidth: 2.5,
+    borderColor: '#047857',
+    alignItems: 'center',
+    justifyContent: 'space-around',
+    paddingHorizontal: 4,
+  },
+  seat: {
+    width: 17,
+    height: 19,
+    borderRadius: 4,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  seatTaken: { backgroundColor: '#FEF08A', borderColor: '#CA8A04' },
+  seatEmpty: { backgroundColor: '#E2E8F0', borderColor: '#94A3B8' },
+  carriageAxles: { width: 68, justifyContent: 'space-around', alignSelf: 'center', marginTop: 3 },
+  coupling: { width: 7, height: 5, backgroundColor: '#334155', marginBottom: 15 },
+  boiler: {
+    position: 'absolute',
+    bottom: 14,
+    left: 32,
+    width: 68,
+    height: 32,
+    borderTopLeftRadius: 7,
+    borderBottomLeftRadius: 7,
+    borderTopRightRadius: 16,
+    borderBottomRightRadius: 16,
+    backgroundColor: '#0284C7',
+    borderWidth: 2.5,
+    borderColor: '#0369A1',
+  },
+  chimney: {
+    position: 'absolute',
+    bottom: 44,
+    left: 36,
+    width: 14,
+    height: 18,
+    borderRadius: 4,
+    backgroundColor: '#0369A1',
+    borderWidth: 2,
+    borderColor: '#075985',
+  },
+  dome: {
+    position: 'absolute',
+    bottom: 44,
+    left: 60,
+    width: 13,
+    height: 10,
+    borderTopLeftRadius: 6,
+    borderTopRightRadius: 6,
+    backgroundColor: '#F59E0B',
+    borderWidth: 2,
+    borderColor: '#D97706',
+  },
+  headlampBeam: {
+    position: 'absolute',
+    bottom: 19,
+    left: 102,
+    width: 32,
+    height: 16,
+    borderTopRightRadius: 12,
+    borderBottomRightRadius: 12,
+    backgroundColor: '#FEF08A',
+    opacity: 0.9,
+  },
+  headlamp: {
+    position: 'absolute',
+    bottom: 21,
+    left: 94,
+    width: 9,
+    height: 12,
+    borderRadius: 4,
+    borderWidth: 1.5,
+    borderColor: '#1E293B',
+  },
+  headlampLit: { backgroundColor: '#FACC15' },
+  headlampDim: { backgroundColor: '#FDE047' },
+  cab: {
+    width: 38,
+    height: 52,
+    borderTopLeftRadius: 8,
+    borderTopRightRadius: 8,
+    borderBottomLeftRadius: 4,
+    borderBottomRightRadius: 4,
+    backgroundColor: '#EF4444',
+    borderWidth: 2.5,
+    borderColor: '#B91C1C',
+    zIndex: 2,
+  },
+  cabWindow: {
+    width: 20,
+    height: 18,
+    borderRadius: 5,
+    backgroundColor: '#E0F2FE',
+    borderWidth: 1.5,
+    borderColor: '#B91C1C',
+    alignSelf: 'center',
+    marginTop: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  locoAxles: { width: 104, alignItems: 'flex-end', marginTop: 3, paddingLeft: 32 },
+});
+
 const STATION_PCT = [0.16, 0.38, 0.6, 0.82];
 const ANIMAL_FRIENDS = ['🐰', '🐻', '🦊', '🐱'];
 const ANIMAL_NAMES = ['Conejito', 'Osito', 'Zorrito', 'Lúa'];
@@ -29,20 +316,10 @@ const ANIMAL_NAMES = ['Conejito', 'Osito', 'Zorrito', 'Lúa'];
 
 const Wheel = ({ size, spin }: { size: number; spin: Animated.AnimatedInterpolation<string> }) => (
   <Animated.View
-    style={{
-      width: size,
-      height: size,
-      borderRadius: size / 2,
-      backgroundColor: '#2C3E50',
-      borderWidth: 2.5,
-      borderColor: '#1A252F',
-      transform: [{ rotate: spin }],
-      alignItems: 'center',
-      justifyContent: 'center',
-    }}>
-    <View style={{ width: size * 0.6, height: 2, backgroundColor: '#BDC3C7', position: 'absolute' }} />
-    <View style={{ width: 2, height: size * 0.6, backgroundColor: '#BDC3C7', position: 'absolute' }} />
-    <View style={{ width: 5, height: 5, borderRadius: 2.5, backgroundColor: '#E74C3C' }} />
+    style={[styles.wheel, { width: size, height: size, borderRadius: size / 2, transform: [{ rotate: spin }] }]}>
+    <View style={[styles.wheelSpoke, { width: size * 0.6 }]} />
+    <View style={[styles.wheelSpokeUpright, { height: size * 0.6 }]} />
+    <View style={styles.wheelHub} />
   </Animated.View>
 );
 
@@ -87,19 +364,10 @@ const SteamPuff = ({
   return (
     <Animated.View
       pointerEvents="none"
-      style={{
-        position: 'absolute',
-        bottom: 60,
-        left,
-        width: size,
-        height: size,
-        borderRadius: size / 2,
-        backgroundColor: '#FFFFFF',
-        borderWidth: 1.5,
-        borderColor: 'rgba(180, 200, 220, 0.7)',
-        opacity,
-        transform: [{ translateY }, { translateX }, { scale }],
-      }}
+      style={[
+        styles.steamPuff,
+        { left, width: size, height: size, borderRadius: size / 2, opacity, transform: [{ translateY }, { translateX }, { scale }] },
+      ]}
     />
   );
 };
@@ -145,7 +413,7 @@ const FloatingNote = ({
   return (
     <Animated.View
       pointerEvents="none"
-      style={{ position: 'absolute', bottom: 66, left, opacity, transform: [{ translateY }, { translateX }, { scale }] }}>
+      style={[styles.floatingNote, { left, opacity, transform: [{ translateY }, { translateX }, { scale }] }]}>
       <Text fontSize={17}>{emoji}</Text>
     </Animated.View>
   );
@@ -195,57 +463,24 @@ const GlowMascot = ({ visible }: { visible: boolean }) => {
   return (
     <Animated.View
       pointerEvents="none"
-      style={{
-        position: 'absolute',
-        top: 14,
-        left: 0,
-        right: 0,
-        alignItems: 'center',
-        zIndex: 10,
-        transform: [{ scale: pop }],
-      }}>
-      <View style={{ width: 100, height: 100, alignItems: 'center', justifyContent: 'center' }}>
+      style={[styles.glowWrap, { transform: [{ scale: pop }] }]}>
+      <View style={styles.glowBox}>
         {/* rayos giratorios */}
         <Animated.View
-          style={{ position: 'absolute', width: 100, height: 100, alignItems: 'center', justifyContent: 'center', transform: [{ rotate: spin }] }}>
+          style={[styles.glowRayLayer, { transform: [{ rotate: spin }] }]}>
           {[0, 45, 90, 135].map(deg => (
             <View
               key={deg}
-              style={{
-                position: 'absolute',
-                width: 100,
-                height: 8,
-                borderRadius: 4,
-                backgroundColor: '#FFE57F',
-                opacity: 0.9,
-                transform: [{ rotate: `${deg}deg` }],
-              }}
+              style={[styles.glowRay, { transform: [{ rotate: `${deg}deg` }] }]}
             />
           ))}
         </Animated.View>
         {/* halo que "se enciende" */}
         <Animated.View
-          style={{
-            position: 'absolute',
-            width: 72,
-            height: 72,
-            borderRadius: 36,
-            backgroundColor: '#FFD54F',
-            opacity: 0.95,
-            transform: [{ scale: glowScale }],
-          }}
+          style={[styles.glowHalo, { transform: [{ scale: glowScale }] }]}
         />
         <View
-          style={{
-            width: 58,
-            height: 58,
-            borderRadius: 29,
-            backgroundColor: '#FFF9C4',
-            borderWidth: 3,
-            borderColor: '#FFA000',
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}>
+          style={styles.glowFace}>
           <Text fontSize={32}>🐱</Text>
         </View>
       </View>
@@ -294,7 +529,7 @@ const ConfettiPiece = ({
   return (
     <Animated.View
       pointerEvents="none"
-      style={{ position: 'absolute', top: 0, left: `${leftPct}%`, zIndex: 9, opacity, transform: [{ translateY }, { rotate }] }}>
+      style={[styles.confetti, { left: `${leftPct}%`, opacity, transform: [{ translateY }, { rotate }] }]}>
       <Text fontSize={16 + ((index * 2) % 6)}>{CONFETTI[index % CONFETTI.length]}</Text>
     </Animated.View>
   );
@@ -374,45 +609,36 @@ export default function TrainScene({
   const steamActive = stimulusVisual || chugging;
 
   return (
-    <Box h={225} borderRadius={22} borderWidth={2} borderColor="#BEE3F8" style={{ overflow: 'hidden' }} onLayout={onLayout}>
+    <Box h={225} borderRadius={22} borderWidth={2} borderColor="#BEE3F8" style={atoms.overflowHidden} onLayout={onLayout}>
       {/* cielo + suelo */}
-      <View style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '54%', backgroundColor: '#E0F2FE' }} />
-      <View style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: '46%', backgroundColor: '#DCFCE7' }} />
+      <View style={styles.sky} />
+      <View style={styles.ground} />
 
       {/* sol brillante y nubes alegres */}
-      <View style={{ position: 'absolute', top: 12, right: 20, width: 38, height: 38, borderRadius: 19, backgroundColor: '#FDE047', borderWidth: 2, borderColor: '#FACC15' }} />
-      <View style={{ position: 'absolute', top: 18, left: '12%', width: 56, height: 20, borderRadius: 14, backgroundColor: '#FFFFFF', opacity: 0.9 }} />
-      <View style={{ position: 'absolute', top: 32, left: '46%', width: 48, height: 16, borderRadius: 12, backgroundColor: '#FFFFFF', opacity: 0.75 }} />
+      <View style={styles.sun} />
+      <View style={styles.cloudNear} />
+      <View style={styles.cloudFar} />
 
       {/* colinas verdes */}
-      <View style={{ position: 'absolute', bottom: '42%', left: -35, width: 240, height: 130, borderRadius: 120, backgroundColor: '#BBF7D0', opacity: 0.8 }} />
-      <View style={{ position: 'absolute', bottom: '42%', right: -45, width: 280, height: 150, borderRadius: 140, backgroundColor: '#86EFAC', opacity: 0.6 }} />
+      <View style={styles.hillLeft} />
+      <View style={styles.hillRight} />
 
       {/* estaciones con los animales amigos */}
       {STATION_PCT.map((pct, i) => {
         const isDone = doneFlags[i];
         return (
-          <View key={i} style={{ position: 'absolute', bottom: 38, left: `${pct * 100}%`, alignItems: 'center', marginLeft: -18, zIndex: 2 }}>
+          <View key={i} style={[styles.station, { left: `${pct * 100}%` }]}>
             {/* Animal amigo esperando en la parada o ya recogido */}
-            <View style={{ alignItems: 'center', marginBottom: 2 }}>
-              <Text style={{ fontSize: isDone ? 14 : 22, opacity: isDone ? 0.35 : 1 }}>
+            <View style={atoms.alignItemsCenterMarginBottom2}>
+              <Text style={isDone ? styles.friendBoarded : styles.friendWaiting}>
                 {ANIMAL_FRIENDS[i]}
               </Text>
             </View>
 
             {/* caseta de la estación */}
             <View
-              style={{
-                width: 34,
-                height: 26,
-                borderRadius: 6,
-                backgroundColor: isDone ? '#86EFAC' : '#FEF3C7',
-                borderWidth: 2,
-                borderColor: isDone ? '#22C55E' : '#F59E0B',
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}>
-              <View style={{ position: 'absolute', top: -9, left: -4, right: -4, height: 9, backgroundColor: isDone ? '#15803D' : '#D97706', borderTopLeftRadius: 5, borderTopRightRadius: 5 }} />
+              style={[styles.hut, isDone ? styles.hutDone : styles.hutPending]}>
+              <View style={[styles.hutRoof, isDone ? styles.hutRoofDone : styles.hutRoofPending]} />
               <Text fontSize={9} fontWeight="$bold" color={isDone ? '#14532D' : '#78350F'}>
                 {isDone ? '✓' : i + 1}
               </Text>
@@ -429,77 +655,45 @@ export default function TrainScene({
       })}
 
       {/* vía del tren */}
-      <View style={{ position: 'absolute', left: 0, right: 0, bottom: 30, height: 6, backgroundColor: '#64748B' }} />
-      <View style={{ position: 'absolute', left: 0, right: 0, bottom: 24, height: 6, flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 6 }}>
+      <View style={styles.rail} />
+      <View style={styles.sleepers}>
         {Array.from({ length: 18 }).map((_, i) => (
-          <View key={i} style={{ width: 5, height: 6, backgroundColor: '#854D0E', borderRadius: 1 }} />
+          <View key={i} style={styles.sleeper} />
         ))}
       </View>
 
       {/* TREN MÁGICO */}
-      <Animated.View style={{ position: 'absolute', bottom: 30, left: 0, zIndex: 5, transform: [{ translateX: trainX }, { translateY: bobY }] }}>
+      <Animated.View style={[styles.train, { transform: [{ translateX: trainX }, { translateY: bobY }] }]}>
         <HStack alignItems="flex-end">
           {/* coche de pasajeros (recoge a los amigos completados) */}
-          <View style={{ marginRight: 3 }}>
-            <View style={{ position: 'absolute', left: -2, right: -2, top: -6, height: 7, borderRadius: 4, backgroundColor: '#047857' }} />
+          <View style={atoms.marginRight3}>
+            <View style={styles.carriageRoof} />
             <HStack
-              style={{
-                width: 86,
-                height: 42,
-                borderRadius: 9,
-                backgroundColor: '#10B981',
-                borderWidth: 2.5,
-                borderColor: '#047857',
-                alignItems: 'center',
-                justifyContent: 'space-around',
-                paddingHorizontal: 4,
-              }}>
+              style={styles.carriage}>
               {ANIMAL_FRIENDS.map((p, i) => (
                 <Box
                   key={i}
-                  style={{
-                    width: 17,
-                    height: 19,
-                    borderRadius: 4,
-                    backgroundColor: doneFlags[i] ? '#FEF08A' : '#E2E8F0',
-                    borderWidth: 1,
-                    borderColor: doneFlags[i] ? '#CA8A04' : '#94A3B8',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                  }}>
+                  style={[styles.seat, doneFlags[i] ? styles.seatTaken : styles.seatEmpty]}>
                   <Text fontSize={doneFlags[i] ? 11 : 8}>{doneFlags[i] ? p : '·'}</Text>
                 </Box>
               ))}
             </HStack>
-            <HStack style={{ width: 68, justifyContent: 'space-around', alignSelf: 'center', marginTop: 3 }}>
+            <HStack style={styles.carriageAxles}>
               <Wheel size={17} spin={spin} />
               <Wheel size={17} spin={spin} />
             </HStack>
           </View>
 
-          <View style={{ width: 7, height: 5, backgroundColor: '#334155', marginBottom: 15 }} />
+          <View style={styles.coupling} />
 
           {/* locomotora */}
-          <View style={{ position: 'relative' }}>
+          <View style={atoms.positionRelative}>
             {/* caldera */}
             <View
-              style={{
-                position: 'absolute',
-                bottom: 14,
-                left: 32,
-                width: 68,
-                height: 32,
-                borderTopLeftRadius: 7,
-                borderBottomLeftRadius: 7,
-                borderTopRightRadius: 16,
-                borderBottomRightRadius: 16,
-                backgroundColor: '#0284C7',
-                borderWidth: 2.5,
-                borderColor: '#0369A1',
-              }}
+              style={styles.boiler}
             />
             {/* chimenea */}
-            <View style={{ position: 'absolute', bottom: 44, left: 36, width: 14, height: 18, borderRadius: 4, backgroundColor: '#0369A1', borderWidth: 2, borderColor: '#075985' }} />
+            <View style={styles.chimney} />
             
             {/* vapor animado de la chimenea */}
             <SteamPuff active={steamActive} delay={0} left={29} size={28} />
@@ -511,77 +705,35 @@ export default function TrainScene({
             <FloatingNote active={stimulusVisual} delay={400} left={68} emoji="✨" />
 
             {/* domo dorado */}
-            <View style={{ position: 'absolute', bottom: 44, left: 60, width: 13, height: 10, borderTopLeftRadius: 6, borderTopRightRadius: 6, backgroundColor: '#F59E0B', borderWidth: 2, borderColor: '#D97706' }} />
+            <View style={styles.dome} />
 
             {/* haz del faro encendido durante el estímulo en la práctica */}
             {stimulusVisual ? (
               <View
                 pointerEvents="none"
-                style={{
-                  position: 'absolute',
-                  bottom: 19,
-                  left: 102,
-                  width: 32,
-                  height: 16,
-                  borderTopRightRadius: 12,
-                  borderBottomRightRadius: 12,
-                  backgroundColor: '#FEF08A',
-                  opacity: 0.9,
-                }}
+                style={styles.headlampBeam}
               />
             ) : null}
 
             {/* faro */}
             <View
-              style={{
-                position: 'absolute',
-                bottom: 21,
-                left: 94,
-                width: 9,
-                height: 12,
-                borderRadius: 4,
-                backgroundColor: stimulusVisual ? '#FACC15' : '#FDE047',
-                borderWidth: 1.5,
-                borderColor: '#1E293B',
-              }}
+              style={[styles.headlamp, stimulusVisual ? styles.headlampLit : styles.headlampDim]}
             />
 
             {/* cabina con maquinista */}
             <View
-              style={{
-                width: 38,
-                height: 52,
-                borderTopLeftRadius: 8,
-                borderTopRightRadius: 8,
-                borderBottomLeftRadius: 4,
-                borderBottomRightRadius: 4,
-                backgroundColor: '#EF4444',
-                borderWidth: 2.5,
-                borderColor: '#B91C1C',
-                zIndex: 2,
-              }}>
+              style={styles.cab}>
               <View
-                style={{
-                  width: 20,
-                  height: 18,
-                  borderRadius: 5,
-                  backgroundColor: '#E0F2FE',
-                  borderWidth: 1.5,
-                  borderColor: '#B91C1C',
-                  alignSelf: 'center',
-                  marginTop: 8,
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}>
+                style={styles.cabWindow}>
                 <Text fontSize={11}>🐱</Text>
               </View>
             </View>
 
             {/* ruedas de la locomotora */}
-            <HStack style={{ width: 104, alignItems: 'flex-end', marginTop: 3, paddingLeft: 32 }} space="xs">
+            <HStack style={styles.locoAxles} space="xs">
               <Wheel size={24} spin={spin} />
               <Wheel size={24} spin={spin} />
-              <View style={{ marginBottom: 3 }}>
+              <View style={atoms.marginBottom3}>
                 <Wheel size={16} spin={spin} />
               </View>
             </HStack>

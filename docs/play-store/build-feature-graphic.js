@@ -1,5 +1,7 @@
 #!/usr/bin/env node
-/* eslint-disable no-console */
+/* eslint-disable no-bitwise -- PNG se define a nivel de bit: CRC-32, filtros
+ * por línea y truncado a octeto. Mismo motivo que en
+ * `scripts/resize-verbal-images.js`. */
 /* -------------------------------------------------------------------------- */
 /*  Gráfico destacado (feature graphic) de la ficha de Google Play.            */
 /*                                                                            */

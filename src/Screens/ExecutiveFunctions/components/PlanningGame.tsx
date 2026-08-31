@@ -8,6 +8,7 @@ import GameCard from './GameCard';
 import { PlanningPlan, PlanningResult } from '../executiveFunctionsGame';
 
 import { useT } from '@/I18n';
+import { atoms } from '@/Theme/styleAtoms';
 /* -------------------------------------------------------------------------- */
 /*  «Ordena la historia» — planificación (secuenciación de tarjetas).          */
 /*  Las tarjetas aparecen desordenadas; el niño las toca en el orden que cree  */
@@ -68,12 +69,12 @@ export default function PlanningGame({
       // Corrección con crédito parcial: posición i correcta si se tocó la
       // tarjeta i de la secuencia en el i-ésimo lugar.
       const correct = next.filter((orderedIdx, position) => orderedIdx === position).length;
-      const t = totals.current;
-      t.correctPositions += correct;
-      t.totalPositions += length;
-      t.sequences += 1;
+      const tally = totals.current;
+      tally.correctPositions += correct;
+      tally.totalPositions += length;
+      tally.sequences += 1;
       const perfect = correct === length;
-      if (perfect) t.perfectSequences += 1;
+      if (perfect) tally.perfectSequences += 1;
       setGraded(perfect);
       after(FEEDBACK_MS, () => {
         setPicks([]);
@@ -96,7 +97,7 @@ export default function PlanningGame({
         </Text>
       </Center>
 
-      <HStack flexWrap="wrap" justifyContent="center" style={{ gap: 12, maxWidth: 360 }}>
+      <HStack flexWrap="wrap" justifyContent="center" style={atoms.gap12MaxWidth360}>
         {trial.displayOrder.map(orderedIndex => {
           const pickPosition = picks.indexOf(orderedIndex);
           const isPicked = pickPosition !== -1;
@@ -128,7 +129,7 @@ export default function PlanningGame({
         </Text>
       ) : (
         <Pressable onPress={clear} disabled={!picks.length}>
-          <HStack space="xs" alignItems="center" style={{ opacity: picks.length ? 1 : 0.4 }}>
+          <HStack space="xs" alignItems="center" style={picks.length ? atoms.opacity1 : atoms.opacity04}>
             <Icon as={RotateCcw} size="xs" color="$textLight500" />
             <Text size="xs" weight="bold" color="$textLight500">
               

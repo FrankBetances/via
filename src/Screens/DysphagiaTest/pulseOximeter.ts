@@ -1,3 +1,6 @@
+/* eslint-disable no-bitwise -- el pulsioxímetro habla IEEE-11073 SFLOAT:
+ * mantisa de 12 bits y exponente de 4 dentro de dos octetos. La separación
+ * solo se puede escribir con máscara y desplazamiento. */
 import { useEffect, useRef, useState } from 'react';
 import { clamp } from '@/Helpers/numeric';
 

@@ -1,5 +1,5 @@
 import React, { useRef, useState } from 'react';
-import { PanResponder, Pressable, View } from 'react-native';
+import { PanResponder, Pressable, StyleSheet, View } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 import { Center, HStack, Icon, VStack } from '@gluestack-ui/themed';
 import { Eraser, PenLine } from 'lucide-react-native';
@@ -7,6 +7,7 @@ import { Eraser, PenLine } from 'lucide-react-native';
 import Text from './Text';
 
 import { useT } from '@/I18n';
+import { atoms } from '@/Theme/styleAtoms';
 /* -------------------------------------------------------------------------- */
 /*  SignaturePad — pad de firma manuscrita (SVG + PanResponder).               */
 /*                                                                            */
@@ -27,6 +28,17 @@ export interface SignaturePadProps {
   /** Texto guía cuando el pad está vacío. */
   placeholder?: string;
 }
+
+const styles = StyleSheet.create({
+  canvas: {
+    height: 150,
+    borderRadius: 14,
+    borderWidth: 1.5,
+    borderColor: '#E5DED2',
+    backgroundColor: '#FDFCFA',
+    overflow: 'hidden',
+  },
+});
 
 export default function SignaturePad({
   paths,
@@ -80,14 +92,7 @@ export default function SignaturePad({
     <VStack>
       <View
         {...responder.panHandlers}
-        style={{
-          height: 150,
-          borderRadius: 14,
-          borderWidth: 1.5,
-          borderColor: '#E5DED2',
-          backgroundColor: '#FDFCFA',
-          overflow: 'hidden',
-        }}>
+        style={styles.canvas}>
         {/* pointerEvents none: el View contenedor es el objetivo táctil y las
             coordenadas locationX/Y quedan siempre referidas a él. */}
         <Svg width="100%" height="100%" pointerEvents="none">
@@ -99,7 +104,7 @@ export default function SignaturePad({
           ) : null}
         </Svg>
         {!hasInk ? (
-          <Center style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }} pointerEvents="none">
+          <Center style={StyleSheet.absoluteFill} pointerEvents="none">
             <Icon as={PenLine} size="md" color="$textLight300" />
             <Text size="2xs" color="$textLight400" mt="$1">
               {placeholder ?? t.components.firmeAqui}
@@ -109,7 +114,7 @@ export default function SignaturePad({
       </View>
       <HStack justifyContent="flex-end" mt="$2">
         <Pressable onPress={onClear} disabled={!paths.length} hitSlop={8}>
-          <HStack space="xs" alignItems="center" style={{ opacity: paths.length ? 1 : 0.4 }}>
+          <HStack space="xs" alignItems="center" style={paths.length ? atoms.opacity1 : atoms.opacity04}>
             <Icon as={Eraser} size="xs" color="$textLight500" />
             <Text size="xs" weight="bold" color="$textLight500">
               

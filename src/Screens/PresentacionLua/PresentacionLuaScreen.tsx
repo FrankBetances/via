@@ -31,6 +31,7 @@ import { useT } from '@/I18n';
 import ViaIcon from '@/Components/Common/ViaIcon';
 import { CatPixel } from '@/Components/Mascot/LuaPixel';
 import { Text } from '@/Components/Common';
+import { atoms } from '@/Theme/styleAtoms';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'PresentacionLua'>;
 
@@ -188,7 +189,7 @@ export default function PresentacionLuaScreen({ navigation }: Props) {
       </View>
 
       <ScrollView
-        style={{ flex: 1 }}
+        style={atoms.flex1}
         contentContainerStyle={[
           styles.scroll,
           { paddingBottom: 100 + Math.max(insets.bottom, 16) },
@@ -237,10 +238,10 @@ export default function PresentacionLuaScreen({ navigation }: Props) {
             
             <View style={styles.partnerList}>
               <View style={styles.partnerItem}>
-                <View style={[styles.partnerIconBox, { backgroundColor: '#FEF3C7' }]}>
+                <View style={[styles.partnerIconBox, atoms.backgroundColorFEF3C7]}>
                   <MessageCircle size={22} color="#D97706" />
                 </View>
-                <View style={{ flex: 1 }}>
+                <View style={atoms.flex1}>
                   <Text style={styles.partnerName}>{t.luaIntro.empathyName}</Text>
                   <Text style={styles.partnerSubtitle}>{t.luaIntro.empathyDesc}</Text>
                 </View>
@@ -249,10 +250,10 @@ export default function PresentacionLuaScreen({ navigation }: Props) {
               <View style={styles.divider} />
 
               <View style={styles.partnerItem}>
-                <View style={[styles.partnerIconBox, { backgroundColor: '#E0F2FE' }]}>
+                <View style={[styles.partnerIconBox, atoms.backgroundColorE0F2FE]}>
                   <Bluetooth size={22} color="#0284C7" />
                 </View>
-                <View style={{ flex: 1 }}>
+                <View style={atoms.flex1}>
                   <Text style={styles.partnerName}>{t.luaIntro.bleName}</Text>
                   <Text style={styles.partnerSubtitle}>{t.luaIntro.bleDesc}</Text>
                 </View>
@@ -261,10 +262,10 @@ export default function PresentacionLuaScreen({ navigation }: Props) {
               <View style={styles.divider} />
 
               <View style={styles.partnerItem}>
-                <View style={[styles.partnerIconBox, { backgroundColor: '#FEE2E2' }]}>
+                <View style={[styles.partnerIconBox, atoms.backgroundColorFEE2E2]}>
                   <Shield size={22} color="#DC2626" />
                 </View>
-                <View style={{ flex: 1 }}>
+                <View style={atoms.flex1}>
                   <Text style={styles.partnerName}>{t.luaIntro.privacyName}</Text>
                   <Text style={styles.partnerSubtitle}>{t.luaIntro.privacyDesc}</Text>
                 </View>

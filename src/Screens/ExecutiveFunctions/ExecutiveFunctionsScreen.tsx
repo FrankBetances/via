@@ -53,6 +53,7 @@ import { LuaCompanionWidget } from '@/Components/Mascot/LuaCompanionWidget';
 import { useLuaCompanion, LuaEmotion } from '@/Lua';
 
 import { useT } from '@/I18n';
+import { atoms } from '@/Theme/styleAtoms';
 type Props = NativeStackScreenProps<RootStackParamList, 'ExecutiveFunctions'>;
 
 /* -------------------------------------------------------------------------- */
@@ -137,9 +138,9 @@ export default function ExecutiveFunctionsScreen({ navigation }: Props) {
       return;
     }
     const currentDomain = EF_DOMAIN_ORDER[Math.min(gameIndex, EF_DOMAIN_ORDER.length - 1)];
-    const t = setTimeout(() => speakConsigna(currentDomain, sessionLanguage), 500);
+    const timer = setTimeout(() => speakConsigna(currentDomain, sessionLanguage), 500);
     return () => {
-      clearTimeout(t);
+      clearTimeout(timer);
       stopConsigna();
     };
   }, [phase, gameIndex, sessionLanguage]);
@@ -242,7 +243,7 @@ export default function ExecutiveFunctionsScreen({ navigation }: Props) {
             {t.executiveFunctions.funcionesEjecutivas}
           </Text>
           <Box bg="$primary50" px="$2" py="$0.5" borderRadius="$full">
-            <Text size="2xs" weight="bold" color="$primary800" style={{ letterSpacing: 0.4 }}>
+            <Text size="2xs" weight="bold" color="$primary800" style={atoms.letterSpacing04}>
               
               {t.executiveFunctions.juegoTarjetas}
             </Text>
@@ -263,11 +264,11 @@ export default function ExecutiveFunctionsScreen({ navigation }: Props) {
       />
 
       <Card bgColor="$white" borderRadius={20} p="$4">
-        <Text size="sm" color="$textLight700" style={{ lineHeight: 20 }}>
+        <Text size="sm" color="$textLight700" style={atoms.lineHeight20}>
           
           {t.executiveFunctions.cincoMiniJuegosCortos} <Text size="sm" weight="bold" color="$textLight900">{t.executiveFunctions.unoDominioEjecutivo}</Text>{t.executiveFunctions.ninoJuegaSoloApoyoMinimo}
         </Text>
-        <HStack flexWrap="wrap" mt="$3" style={{ gap: 6 }}>
+        <HStack flexWrap="wrap" mt="$3" style={atoms.gap6}>
           {EF_DOMAIN_ORDER.map(d => (
             <Box key={d} bg="$backgroundLight50" borderRadius="$full" px="$2.5" py="$1">
               <Text size="2xs" weight="bold" color="$textLight600">
@@ -302,9 +303,9 @@ export default function ExecutiveFunctionsScreen({ navigation }: Props) {
                   borderColor={on ? '$primary500' : '$borderLight200'}
                   bg={on ? '$primary0' : '$white'}>
                   <Center w={48} h={48} borderRadius={14} bg={on ? '$primary50' : '$backgroundLight50'}>
-                    <Text style={{ fontSize: 26, lineHeight: 34 }}>{b.emoji}</Text>
+                    <Text style={atoms.fontSize26LineHeight34}>{b.emoji}</Text>
                   </Center>
-                  <VStack style={{ flex: 1 }}>
+                  <VStack style={atoms.flex1}>
                     <Text size="md" weight="bold" color="$textLight900">
                       {b.ages}
                     </Text>
@@ -332,7 +333,7 @@ export default function ExecutiveFunctionsScreen({ navigation }: Props) {
       <Card bgColor="$white" borderRadius={24} p="$5">
         <HStack alignItems="center" space="sm" mb="$1">
           <Icon as={Languages} size="sm" color="$primary500" />
-          <Text size="sm" weight="bold" color="$textLight800" style={{ textTransform: 'uppercase', letterSpacing: 0.4 }}>
+          <Text size="sm" weight="bold" color="$textLight800" style={atoms.textTransformUppercaseLetterSpacing04}>
             
             {t.executiveFunctions.vozConsignas}
           </Text>
@@ -341,7 +342,7 @@ export default function ExecutiveFunctionsScreen({ navigation }: Props) {
           
           {t.executiveFunctions.vozDictaConsignaCadaMini}
         </Text>
-        <HStack space="sm" flexWrap="wrap" style={{ rowGap: 8 }}>
+        <HStack space="sm" flexWrap="wrap" style={atoms.rowGap8}>
           {EF_CONSIGNA_LANGS.map(l => {
             const on = sessionLanguage === l;
             return (
@@ -361,7 +362,7 @@ export default function ExecutiveFunctionsScreen({ navigation }: Props) {
             );
           })}
         </HStack>
-        <Text size="2xs" color="$textLight400" mt="$3" style={{ lineHeight: 15 }}>
+        <Text size="2xs" color="$textLight400" mt="$3" style={atoms.lineHeight15}>
           
           {t.executiveFunctions.juegosSonMismosTodasLenguas}
         </Text>
@@ -372,7 +373,7 @@ export default function ExecutiveFunctionsScreen({ navigation }: Props) {
             castellano con acento de otra lengua, que es lo que hacía antes. */}
         {!EF_CONSIGNA_LANGS.includes(sessionLanguage as never) ? (
           <HStack space="xs" alignItems="flex-start" mt="$3" p="$2.5" borderRadius={12} bg="$warning50">
-            <Text size="2xs" color="$warning800" style={{ flex: 1, lineHeight: 15 }}>
+            <Text size="2xs" color="$warning800" style={atoms.flex1LineHeight15}>
               
               {t.executiveFunctions.sesionEsta} {SESSION_LANG_LABEL[sessionLanguage as SessionLang] ?? sessionLanguage}{t.executiveFunctions.peroMiniJuegosAunTienen}
             </Text>
@@ -381,7 +382,7 @@ export default function ExecutiveFunctionsScreen({ navigation }: Props) {
       </Card>
 
       <Box bg="$warning50" borderRadius={12} p="$2.5">
-        <Text size="2xs" color="$warning800" style={{ lineHeight: 15 }}>
+        <Text size="2xs" color="$warning800" style={atoms.lineHeight15}>
           
           {t.executiveFunctions.cribadoOrientativoMedianteJuegoCortes}
         </Text>
@@ -417,9 +418,9 @@ export default function ExecutiveFunctionsScreen({ navigation }: Props) {
             <Icon as={X} size="sm" color="$textLight500" />
           </Center>
         </Pressable>
-        <HStack style={{ flex: 1 }} justifyContent="center" space="xs">
+        <HStack style={atoms.flex1} justifyContent="center" space="xs">
           {EF_DOMAIN_ORDER.map((d, i) => (
-            <Text key={d} style={{ fontSize: 15, lineHeight: 20 }}>
+            <Text key={d} style={atoms.fontSize15LineHeight20}>
               {i < gameIndex ? '⭐' : i === gameIndex ? '🔵' : '⚪'}
             </Text>
           ))}
@@ -429,15 +430,15 @@ export default function ExecutiveFunctionsScreen({ navigation }: Props) {
 
       <Card bgColor="$white" borderRadius={24} p="$6">
         <Center>
-          <Text style={{ fontSize: 64, lineHeight: 76 }}>{meta.emoji}</Text>
-          <Text size="2xs" weight="bold" color="$textLight400" mt="$2" style={{ letterSpacing: 1 }}>
+          <Text style={atoms.fontSize64LineHeight76}>{meta.emoji}</Text>
+          <Text size="2xs" weight="bold" color="$textLight400" mt="$2" style={atoms.letterSpacing1}>
             
             {t.executiveFunctions.juego} {gameIndex + 1} DE {EF_DOMAIN_ORDER.length}
           </Text>
           <Text size="2xl" weight="bold" color="$textLight900" mt="$1">
             {meta.game}
           </Text>
-          <Text size="md" color="$textLight700" mt="$3" style={{ textAlign: 'center', lineHeight: 22 }}>
+          <Text size="md" color="$textLight700" mt="$3" style={atoms.textAlignCenterLineHeight22}>
             {meta.instruction}
           </Text>
           <Pressable onPress={() => speakConsigna(domain, sessionLanguage)}>
@@ -458,7 +459,7 @@ export default function ExecutiveFunctionsScreen({ navigation }: Props) {
           {t.executiveFunctions.jugar}
         </Text>
       </Button>
-      <Text size="2xs" color="$textLight400" style={{ textAlign: 'center' }}>
+      <Text size="2xs" color="$textLight400" style={atoms.textAlignCenter}>
         
         {t.executiveFunctions.dominioEvaluado} {meta.title}
       </Text>
@@ -475,9 +476,9 @@ export default function ExecutiveFunctionsScreen({ navigation }: Props) {
             <Icon as={X} size="sm" color="$textLight500" />
           </Center>
         </Pressable>
-        <HStack style={{ flex: 1 }} justifyContent="center" space="xs">
+        <HStack style={atoms.flex1} justifyContent="center" space="xs">
           {EF_DOMAIN_ORDER.map((d, i) => (
-            <Text key={d} style={{ fontSize: 15, lineHeight: 20 }}>
+            <Text key={d} style={atoms.fontSize15LineHeight20}>
               {i < gameIndex ? '⭐' : i === gameIndex ? '🔵' : '⚪'}
             </Text>
           ))}
@@ -528,7 +529,7 @@ export default function ExecutiveFunctionsScreen({ navigation }: Props) {
             <Icon as={ChevronLeft} size="sm" color="$textLight500" />
           </Center>
         </Pressable>
-        <VStack style={{ flex: 1 }}>
+        <VStack style={atoms.flex1}>
           <Text size="2xl" weight="bold" color="$textLight900">
             
             {t.executiveFunctions.perfilEjecutivo}
@@ -567,8 +568,8 @@ export default function ExecutiveFunctionsScreen({ navigation }: Props) {
                     {s !== null ? `${s}/100` : t.executiveFunctions.jugado}
                   </Text>
                 </HStack>
-                <Box h={8} borderRadius="$full" bg="$backgroundLight100" style={{ overflow: 'hidden' }}>
-                  <Box style={{ height: '100%', width: `${s ?? 0}%`, backgroundColor: barColor, borderRadius: 999 }} />
+                <Box h={8} borderRadius="$full" bg="$backgroundLight100" style={atoms.overflowHidden}>
+                  <Box style={[atoms.fillBar, { width: `${s ?? 0}%`, backgroundColor: barColor }]} />
                 </Box>
               </VStack>
             );
@@ -577,11 +578,11 @@ export default function ExecutiveFunctionsScreen({ navigation }: Props) {
       </Card>
 
       <Card bgColor="$white" borderRadius={20} p="$4">
-        <Text size="sm" weight="bold" color="$textLight700" mb="$2" style={{ letterSpacing: 0.3 }}>
+        <Text size="sm" weight="bold" color="$textLight700" mb="$2" style={atoms.letterSpacing03}>
           
           {t.executiveFunctions.interpretacionOrientativa}
         </Text>
-        <Text size="sm" color="$textLight700" style={{ lineHeight: 21 }}>
+        <Text size="sm" color="$textLight700" style={atoms.lineHeight21}>
           {interpretExecutiveFunctions(band, scores)}
         </Text>
       </Card>
@@ -591,7 +592,7 @@ export default function ExecutiveFunctionsScreen({ navigation }: Props) {
           
           {t.executiveFunctions.repetir}
         </Text>
-        <HStack space="sm" flexWrap="wrap" style={{ gap: 6 }}>
+        <HStack space="sm" flexWrap="wrap" style={atoms.gap6}>
           <Button action="secondary" variant="outline" rounded="$full" onPress={startBattery}>
             <Text size="sm" weight="bold" color="$primary500">
               
@@ -613,15 +614,15 @@ export default function ExecutiveFunctionsScreen({ navigation }: Props) {
       <Card bgColor="$white" borderRadius={20} p="$4">
         <Text size="sm" weight="bold" color="$textLight700" mb="$2">{t.executiveFunctions.evaluadorResponsable}</Text>
         <HStack space="sm" mb="$3">
-          <Input variant="outline" borderRadius={12} style={{ flex: 2 }}>
+          <Input variant="outline" borderRadius={12} style={atoms.flex2}>
             <InputField placeholder={t.executiveFunctions.nombre} value={evaluatorName} onChangeText={setEvaluatorName} />
           </Input>
-          <Input variant="outline" borderRadius={12} style={{ flex: 1 }}>
+          <Input variant="outline" borderRadius={12} style={atoms.flex1}>
             <InputField placeholder={t.executiveFunctions.colegiado} value={evaluatorLicense} onChangeText={setEvaluatorLicense} />
           </Input>
         </HStack>
         <Input variant="outline" borderRadius={12} h={64} mb="$3">
-          <InputField multiline placeholder={t.executiveFunctions.observacionesClinicas} value={notes} onChangeText={setNotes} style={{ textAlignVertical: 'top' }} />
+          <InputField multiline placeholder={t.executiveFunctions.observacionesClinicas} value={notes} onChangeText={setNotes} style={atoms.textAlignVerticalTop} />
         </Input>
         <Button
           action="primary"
@@ -637,7 +638,7 @@ export default function ExecutiveFunctionsScreen({ navigation }: Props) {
         </Button>
         <HStack space="xs" alignItems="center" justifyContent="center" mt="$2">
           <Icon as={Check} size="2xs" color="$textLight400" />
-          <Text size="2xs" color="$textLight400" style={{ textAlign: 'center' }}>
+          <Text size="2xs" color="$textLight400" style={atoms.textAlignCenter}>
             
             {t.executiveFunctions.cribadoOrientativoJuegoSustituyeInstrumentos}
           </Text>

@@ -9,12 +9,34 @@ import { setFontScale } from '@/Store/slices/themeSlice';
 import { MAX_FONT_SCALE, MIN_FONT_SCALE, nextFontScale } from './fontScaleScope';
 
 import { useT } from '@/I18n';
+import { atoms } from '@/Theme/styleAtoms';
 /* -------------------------------------------------------------------------- */
 /*  FontSizeControl — control A− / A+ del tamaño de letra de los               */
 /*  cuestionarios. Ajusta `theme.fontScale` (persistido: se recuerda entre     */
 /*  sesiones y aplica a TODOS los cuestionarios a la vez). Usa GSText directo  */
 /*  (no el Text común) para que el propio control no cambie de tamaño.         */
 /* -------------------------------------------------------------------------- */
+
+/* Fuera del componente A PROPÓSITO: definido dentro, React ve un tipo de
+ * componente nuevo en cada render y desmonta el botón entero —perdiendo su
+ * estado de pulsación— cada vez que cambia la escala de letra. */
+const StepButton = ({ label, enabled, onPress, big }: { label: string; enabled: boolean; onPress: () => void; big?: boolean }) => (
+  <Pressable onPress={onPress} disabled={!enabled} hitSlop={8}>
+    <Center
+      w={38}
+      h={30}
+      borderRadius={10}
+      borderWidth={1.5}
+      borderColor={enabled ? '$primary300' : '$borderLight200'}
+      bg={enabled ? '$primary50' : '$white'}>
+      <GSText
+        size={big ? 'md' : 'xs'}
+        style={[atoms.fontWeight700, enabled ? atoms.colorC2410C : atoms.colorB8B2A7]}>
+        {label}
+      </GSText>
+    </Center>
+  </Pressable>
+);
 
 export default function FontSizeControl() {
   const t = useT();
@@ -24,24 +46,6 @@ export default function FontSizeControl() {
   const canShrink = fontScale > MIN_FONT_SCALE + 0.01;
   const canGrow = fontScale < MAX_FONT_SCALE - 0.01;
   const pct = Math.round(fontScale * 100);
-
-  const StepButton = ({ label, enabled, onPress, big }: { label: string; enabled: boolean; onPress: () => void; big?: boolean }) => (
-    <Pressable onPress={onPress} disabled={!enabled} hitSlop={8}>
-      <Center
-        w={38}
-        h={30}
-        borderRadius={10}
-        borderWidth={1.5}
-        borderColor={enabled ? '$primary300' : '$borderLight200'}
-        bg={enabled ? '$primary50' : '$white'}>
-        <GSText
-          size={big ? 'md' : 'xs'}
-          style={{ fontWeight: '700', color: enabled ? '#C2410C' : '#B8B2A7' }}>
-          {label}
-        </GSText>
-      </Center>
-    </Pressable>
-  );
 
   return (
     <HStack
@@ -54,10 +58,10 @@ export default function FontSizeControl() {
       borderColor="$borderLight100"
       bg="$white">
       <HStack space="xs" alignItems="center">
-        <GSText size="xs" style={{ fontWeight: '700', color: '#5B554C' }}>
+        <GSText size="xs" style={atoms.fontWeight700Color5B554C}>
           Aa
         </GSText>
-        <GSText size="2xs" style={{ color: '#A89F93' }}>
+        <GSText size="2xs" style={atoms.colorA89F93}>
           
           {t.components.tamanoLetra}
         </GSText>
@@ -65,7 +69,7 @@ export default function FontSizeControl() {
       <HStack space="sm" alignItems="center">
         <StepButton label="A−" enabled={canShrink} onPress={() => dispatch(setFontScale(nextFontScale(fontScale, -1)))} />
         <Box minWidth={44} alignItems="center">
-          <GSText size="xs" style={{ fontWeight: '700', color: '#5B554C', fontVariant: ['tabular-nums'] }}>
+          <GSText size="xs" style={[atoms.fontWeight700Color5B554C, atoms.tabularNums]}>
             {pct}%
           </GSText>
         </Box>

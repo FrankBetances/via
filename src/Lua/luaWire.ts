@@ -1,3 +1,7 @@
+/* eslint-disable no-bitwise -- la trama de Lúa se define A NIVEL DE BYTE: los
+ * enmascarados y desplazamientos de este fichero SON el formato del cable, no
+ * una optimización. Reescribirlos con aritmética decimal ocultaría el
+ * contrato que el firmware espera. */
 /* -------------------------------------------------------------------------- */
 /*  Lúa — lo que el enlace necesita y la tabla generada no trae.                */
 /*                                                                             */

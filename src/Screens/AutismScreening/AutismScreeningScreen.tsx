@@ -44,6 +44,7 @@ import { showErrorToast, showSuccessToast } from '@/Helpers/showToast';
 import { isRiskAns } from './autismScreeningResult';
 
 import { useT } from '@/I18n';
+import { atoms } from '@/Theme/styleAtoms';
 /* -------------------------------------------------------------------------- */
 /*  Configuración clínica del cribado de autismo                                           */
 /* -------------------------------------------------------------------------- */
@@ -382,7 +383,7 @@ export default function AutismScreeningScreen({ navigation }: Props) {
                 {t.autismScreening.cribadoAutismo}
               </Text>
               <Box bg="$primary50" px="$2" py="$0.5" borderRadius="$full">
-                <Text size="2xs" weight="bold" color="$primary800" style={{ letterSpacing: 0.4 }}>
+                <Text size="2xs" weight="bold" color="$primary800" style={atoms.letterSpacing04}>
                   
                   {t.autismScreening.autismo}
                 </Text>
@@ -410,7 +411,7 @@ export default function AutismScreeningScreen({ navigation }: Props) {
 
                 <HStack alignItems="center" space="sm" mt="$5" mb="$3">
                   <Icon as={ShieldCheck} size="sm" color="$primary500" />
-                  <Text size="sm" weight="bold" color="$textLight800" style={{ textTransform: 'uppercase', letterSpacing: 0.4 }}>
+                  <Text size="sm" weight="bold" color="$textLight800" style={atoms.textTransformUppercaseLetterSpacing04}>
                     
                     {t.autismScreening.condicionesAplicacion}
                   </Text>
@@ -430,7 +431,7 @@ export default function AutismScreeningScreen({ navigation }: Props) {
                           bg={setup[i] ? '$primary500' : '$white'}>
                           {setup[i] ? <Icon as={Check} size="2xs" color="$white" /> : null}
                         </Center>
-                        <Text size="sm" color="$textLight700" style={{ flex: 1 }}>
+                        <Text size="sm" color="$textLight700" style={atoms.flex1}>
                           {label}
                         </Text>
                       </HStack>
@@ -440,8 +441,8 @@ export default function AutismScreeningScreen({ navigation }: Props) {
               </Card>
 
               <HStack space="sm" alignItems="flex-start" p="$3.5" borderRadius={16} bg="$primary0" borderWidth={1} borderColor="$primary100">
-                <Icon as={Info} size="sm" color="$primary600" style={{ marginTop: 1 }} />
-                <Text size="xs" color="$primary800" style={{ flex: 1, lineHeight: 18 }}>
+                <Icon as={Info} size="sm" color="$primary600" style={atoms.marginTop1} />
+                <Text size="xs" color="$primary800" style={atoms.flex1LineHeight18}>
                   
                   {t.autismScreening.cribadoAutismoInstrumentoCribadoValidado}
                 </Text>
@@ -482,8 +483,8 @@ export default function AutismScreeningScreen({ navigation }: Props) {
                     <Center w={34} h={34} borderRadius={10} bg={isBlockStart ? '$primary500' : '$primary50'}>
                       <Icon as={block.icon} size="sm" color={isBlockStart ? '$white' : '$primary600'} />
                     </Center>
-                    <VStack style={{ flex: 1 }}>
-                      <Text size="2xs" weight="bold" color="$primary700" style={{ textTransform: 'uppercase', letterSpacing: 0.4 }}>
+                    <VStack style={atoms.flex1}>
+                      <Text size="2xs" weight="bold" color="$primary700" style={atoms.textTransformUppercaseLetterSpacing04}>
                         
                         {t.autismScreening.bloque} {blockIdx + 1} de 4 · {block.short}
                       </Text>
@@ -502,11 +503,11 @@ export default function AutismScreeningScreen({ navigation }: Props) {
                   </HStack>
 
                   <ScaledTextScope.Provider value={true}>
-                    <Text size="xl" weight="bold" color="$textLight900" style={{ lineHeight: 30 }}>
+                    <Text size="xl" weight="bold" color="$textLight900" style={atoms.lineHeight30}>
                       {q.label}
                     </Text>
                     {q.example ? (
-                      <Text size="sm" color="$textLight500" mt="$2" style={{ lineHeight: 20 }}>
+                      <Text size="sm" color="$textLight500" mt="$2" style={atoms.lineHeight20}>
                         {q.example}
                       </Text>
                     ) : null}
@@ -519,7 +520,7 @@ export default function AutismScreeningScreen({ navigation }: Props) {
                   {isRiskAns(q.id, answers[q.id]) ? (
                     <HStack space="sm" alignItems="center" mt="$3" p="$2.5" borderRadius={12} bg="$warning50">
                       <Icon as={AlertTriangle} size="xs" color="$warning700" />
-                      <Text size="xs" weight="semiBold" color="$warning800" style={{ flex: 1 }}>
+                      <Text size="xs" weight="semiBold" color="$warning800" style={atoms.flex1}>
                         
                         {t.autismScreening.respuestaRiesgoSuma1Punto}
                       </Text>
@@ -527,10 +528,10 @@ export default function AutismScreeningScreen({ navigation }: Props) {
                   ) : null}
 
                   {/* pauta de observación del bloque, plegable */}
-                  <Pressable onPress={() => setShowGuide(g => !g)} style={{ marginTop: 14 }}>
+                  <Pressable onPress={() => setShowGuide(g => !g)} style={atoms.marginTop14}>
                     <HStack space="xs" alignItems="center">
                       <Icon as={Info} size="xs" color="$primary600" />
-                      <Text size="xs" weight="bold" color="$primary700" style={{ flex: 1 }}>
+                      <Text size="xs" weight="bold" color="$primary700" style={atoms.flex1}>
                         
                         {t.autismScreening.pautaObservacionBloque}
                       </Text>
@@ -539,7 +540,7 @@ export default function AutismScreeningScreen({ navigation }: Props) {
                   </Pressable>
                   {showGuide ? (
                     <Box mt="$2" p="$3" borderRadius={12} bg="$primary0">
-                      <Text size="xs" color="$primary800" style={{ lineHeight: 18 }}>
+                      <Text size="xs" color="$primary800" style={atoms.lineHeight18}>
                         {block.guide}
                       </Text>
                     </Box>
@@ -552,7 +553,7 @@ export default function AutismScreeningScreen({ navigation }: Props) {
                 <Pressable onPress={() => setView('report')}>
                   <HStack space="sm" alignItems="center" p="$3.5" borderRadius={16} bg="$success50" borderWidth={1} borderColor="$success200">
                     <Icon as={CheckCircle2} size="sm" color="$success600" />
-                    <Text size="sm" weight="bold" color="$success800" style={{ flex: 1 }}>
+                    <Text size="sm" weight="bold" color="$success800" style={atoms.flex1}>
                       
                       {t.autismScreening.n20PreguntasEstanRespondidas}
                     </Text>
@@ -573,7 +574,7 @@ export default function AutismScreeningScreen({ navigation }: Props) {
                     </Text>
                   </HStack>
                 </Button>
-                <Button action="primary" variant="solid" rounded="$full" style={{ flex: 1 }} onPress={handleNext}>
+                <Button action="primary" variant="solid" rounded="$full" style={atoms.flex1} onPress={handleNext}>
                   <HStack space="sm" alignItems="center">
                     <Text size="sm" weight="bold" color="$white">
                       {qIndex >= 19 ? (all ? t.autismScreening.verResultado2 : t.autismScreening.irPendientes) : t.autismScreening.siguiente}
@@ -590,15 +591,15 @@ export default function AutismScreeningScreen({ navigation }: Props) {
             <VStack space="md">
               <Card bgColor={report.bannerBg} borderColor={report.bannerBorder} borderWidth={1} borderRadius={20} p="$5">
                 <HStack space="sm" alignItems="center" justifyContent="space-between">
-                  <HStack space="sm" alignItems="center" style={{ flex: 1 }}>
+                  <HStack space="sm" alignItems="center" style={atoms.flex1}>
                     <Center w={44} h={44} borderRadius={14} bg="$white">
                       <Icon as={report.icon} size="lg" color={report.iconColor} />
                     </Center>
-                    <VStack style={{ flex: 1 }}>
+                    <VStack style={atoms.flex1}>
                       <Text size="lg" weight="bold" color={report.bannerFg}>
                         {report.title}
                       </Text>
-                      <Text size="2xs" color={report.bannerFg} style={{ opacity: 0.9 }}>
+                      <Text size="2xs" color={report.bannerFg} style={atoms.opacity09}>
                         {report.desc}
                       </Text>
                     </VStack>
@@ -606,12 +607,12 @@ export default function AutismScreeningScreen({ navigation }: Props) {
                   <VStack alignItems="center">
                     <Text size="2xl" weight="bold" color={report.bannerFg}>
                       {score}
-                      <Text size="sm" weight="semiBold" color={report.bannerFg} style={{ opacity: 0.8 }}>
+                      <Text size="sm" weight="semiBold" color={report.bannerFg} style={atoms.opacity08}>
                         {' '}
                         / 20
                       </Text>
                     </Text>
-                    <Text size="2xs" weight="bold" color={report.bannerFg} style={{ textTransform: 'uppercase', opacity: 0.8 }}>
+                    <Text size="2xs" weight="bold" color={report.bannerFg} style={atoms.textTransformUppercaseOpacity08}>
                       {report.range}
                     </Text>
                   </VStack>
@@ -620,18 +621,18 @@ export default function AutismScreeningScreen({ navigation }: Props) {
 
               {/* recomendación */}
               <Card bgColor="$white" borderRadius={20} p="$5">
-                <Text size="sm" weight="bold" color="$textLight700" mb="$2" style={{ textTransform: 'uppercase', letterSpacing: 0.4 }}>
+                <Text size="sm" weight="bold" color="$textLight700" mb="$2" style={atoms.textTransformUppercaseLetterSpacing04}>
                   
                   {t.autismScreening.recomendacionClinica}
                 </Text>
-                <Text size="sm" color="$textLight700" style={{ lineHeight: 21 }}>
+                <Text size="sm" color="$textLight700" style={atoms.lineHeight21}>
                   {report.recommendation}
                 </Text>
               </Card>
 
               {/* distribución por bloque */}
               <Card bgColor="$white" borderRadius={20} p="$5">
-                <Text size="sm" weight="bold" color="$textLight700" mb="$3" style={{ textTransform: 'uppercase', letterSpacing: 0.4 }}>
+                <Text size="sm" weight="bold" color="$textLight700" mb="$3" style={atoms.textTransformUppercaseLetterSpacing04}>
                   
                   {t.autismScreening.respuestasRiesgoBloque}
                 </Text>
@@ -640,11 +641,11 @@ export default function AutismScreeningScreen({ navigation }: Props) {
                     const n = blockCounts[idx];
                     return (
                       <HStack key={idx} alignItems="center" justifyContent="space-between" py="$1.5" borderBottomWidth={1} borderColor="$borderLight50">
-                        <HStack space="sm" alignItems="center" style={{ flex: 1 }}>
+                        <HStack space="sm" alignItems="center" style={atoms.flex1}>
                           <Center w={28} h={28} borderRadius={9} bg="$primary50">
                             <Icon as={b.icon} size="xs" color="$primary600" />
                           </Center>
-                          <Text size="sm" color="$textLight700" style={{ flex: 1 }}>
+                          <Text size="sm" color="$textLight700" style={atoms.flex1}>
                             {b.short}
                           </Text>
                         </HStack>
@@ -661,7 +662,7 @@ export default function AutismScreeningScreen({ navigation }: Props) {
 
               {/* ítems de riesgo */}
               <Card bgColor="$white" borderRadius={20} p="$5">
-                <Text size="sm" weight="bold" color="$textLight700" mb="$3" style={{ textTransform: 'uppercase', letterSpacing: 0.4 }}>
+                <Text size="sm" weight="bold" color="$textLight700" mb="$3" style={atoms.textTransformUppercaseLetterSpacing04}>
                   
                   {t.autismScreening.itemsRiesgoMarcados}
                 </Text>
@@ -674,7 +675,7 @@ export default function AutismScreeningScreen({ navigation }: Props) {
                             {f.code}
                           </Text>
                         </Box>
-                        <Text size="xs" color="$textLight700" style={{ flex: 1, lineHeight: 17 }}>
+                        <Text size="xs" color="$textLight700" style={atoms.flex1LineHeight17}>
                           {f.label}
                         </Text>
                         <Text size="2xs" weight="bold" color="$error500">
@@ -685,7 +686,7 @@ export default function AutismScreeningScreen({ navigation }: Props) {
                   </VStack>
                 ) : (
                   <Center py="$4">
-                    <Text size="sm" color="$success700" style={{ fontStyle: 'italic', textAlign: 'center' }}>
+                    <Text size="sm" color="$success700" style={atoms.fontStyleItalicTextAlignCenter}>
                       
                       {t.autismScreening.ningunaRespuestaRiesgoDesarrolloDentro}
                     </Text>
@@ -700,10 +701,10 @@ export default function AutismScreeningScreen({ navigation }: Props) {
                   {t.autismScreening.evaluadorResponsable}
                 </Text>
                 <HStack space="sm">
-                  <Input variant="outline" borderRadius={12} style={{ flex: 2 }}>
+                  <Input variant="outline" borderRadius={12} style={atoms.flex2}>
                     <InputField placeholder={t.autismScreening.nombre} value={evaluatorName} onChangeText={setEvaluatorName} />
                   </Input>
-                  <Input variant="outline" borderRadius={12} style={{ flex: 1 }}>
+                  <Input variant="outline" borderRadius={12} style={atoms.flex1}>
                     <InputField placeholder={t.autismScreening.colegiado} value={evaluatorLicense} onChangeText={setEvaluatorLicense} />
                   </Input>
                 </HStack>
@@ -723,7 +724,7 @@ export default function AutismScreeningScreen({ navigation }: Props) {
                   action="primary"
                   variant="solid"
                   rounded="$full"
-                  style={{ flex: 1 }}
+                  style={atoms.flex1}
                   isDisabled={!all || isSaving || !evaluatorName.trim() || !evaluatorLicense.trim()}
                   isLoading={isSaving}
                   onPress={handleSave}>
@@ -739,8 +740,8 @@ export default function AutismScreeningScreen({ navigation }: Props) {
 
               {!all ? (
                 <HStack space="sm" alignItems="flex-start" p="$3" borderRadius={14} bg="$warning50">
-                  <Icon as={AlertTriangle} size="sm" color="$warning700" style={{ marginTop: 1 }} />
-                  <Text size="xs" color="$warning800" style={{ flex: 1, lineHeight: 18 }}>
+                  <Icon as={AlertTriangle} size="sm" color="$warning700" style={atoms.marginTop1} />
+                  <Text size="xs" color="$warning800" style={atoms.flex1LineHeight18}>
                     
                     {t.autismScreening.quedan} {20 - answered}  {t.autismScreening.preguntasResponderCompleteCuestionarioPoder}
                   </Text>

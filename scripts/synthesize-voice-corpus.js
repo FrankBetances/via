@@ -1,5 +1,4 @@
 #!/usr/bin/env node
-/* eslint-disable no-console */
 /**
  * Síntesis de los assets del CORPUS GENERAL de voz (herramienta de build-time).
  *

@@ -36,6 +36,7 @@ import { showErrorToast, showSuccessToast } from '@/Helpers/showToast';
 import { writeWithVerify } from '@/Helpers/dbWrite';
 
 import { useT } from '@/I18n';
+import { atoms } from '@/Theme/styleAtoms';
 /* -------------------------------------------------------------------------- */
 /*  ConsentimientoScreen — consentimiento informado BLOQUEANTE.               */
 /*  Flujo: RegistroPaciente → AQUÍ → CAP (o exploración de disfagia).          */
@@ -290,8 +291,8 @@ export default function ConsentimientoScreen({ navigation, route }: Props) {
 
   /* ------------------------------- render -------------------------------- */
 
-  const signerTypeLabel = (t: ConsentSignerType) =>
-    t === 'patient' ? 'el propio paciente' : t === 'guardian' ? 'padre/madre/tutor legal' : 'familiar/representante';
+  const signerTypeLabel = (signer: ConsentSignerType) =>
+    signer === 'patient' ? 'el propio paciente' : signer === 'guardian' ? 'padre/madre/tutor legal' : 'familiar/representante';
 
   return (
     <Content
@@ -316,7 +317,7 @@ export default function ConsentimientoScreen({ navigation, route }: Props) {
                   {t.consentimiento.consentimientoInformado}
                 </Text>
                 <Box bg="$primary50" px="$2" py="$0.5" borderRadius="$full">
-                  <Text size="2xs" weight="bold" color="$primary800" style={{ letterSpacing: 0.4 }}>
+                  <Text size="2xs" weight="bold" color="$primary800" style={atoms.letterSpacing04}>
                     
                     {t.consentimiento.obligatorio}
                   </Text>
@@ -359,7 +360,7 @@ export default function ConsentimientoScreen({ navigation, route }: Props) {
                       {step.label}
                     </Text>
                   </HStack>
-                  {idx < 4 ? <Box style={{ flex: 1, height: 1 }} bg="$borderLight200" /> : null}
+                  {idx < 4 ? <Box style={atoms.flex1Height1} bg="$borderLight200" /> : null}
                 </React.Fragment>
               ))}
             </HStack>
@@ -371,7 +372,7 @@ export default function ConsentimientoScreen({ navigation, route }: Props) {
                   <Center w={40} h={40} borderRadius={12} bg="$success50">
                     <Icon as={ShieldCheck} size="lg" color="$success600" />
                   </Center>
-                  <VStack style={{ flex: 1 }}>
+                  <VStack style={atoms.flex1}>
                     <Text size="md" weight="bold" color="$textLight900">
                       
                       {t.consentimiento.consentimientoYaFirmado}
@@ -381,7 +382,7 @@ export default function ConsentimientoScreen({ navigation, route }: Props) {
                     </Text>
                   </VStack>
                 </HStack>
-                <Text size="sm" color="$textLight700" mb="$4" style={{ lineHeight: 20 }}>
+                <Text size="sm" color="$textLight700" mb="$4" style={atoms.lineHeight20}>
                   
                   {t.consentimiento.firmado} <Text size="sm" weight="bold" color="$textLight900">{existingConsent.signerName}</Text>
                   {existingConsent.signerRelation ? ` (${existingConsent.signerRelation})` : ''} —{' '}
@@ -405,7 +406,7 @@ export default function ConsentimientoScreen({ navigation, route }: Props) {
                     <Center w={40} h={40} borderRadius={12} bg="$primary50">
                       <Icon as={ShieldCheck} size="lg" color="$primary600" />
                     </Center>
-                    <VStack style={{ flex: 1 }}>
+                    <VStack style={atoms.flex1}>
                       <Text size="md" weight="bold" color="$textLight900">
                         
                         {t.consentimiento.informacionEvaluacion}
@@ -418,7 +419,7 @@ export default function ConsentimientoScreen({ navigation, route }: Props) {
                   </HStack>
                   <VStack space="sm">
                     {CONSENT_PARAGRAPHS.map((p, i) => (
-                      <Text key={i} size="xs" color="$textLight700" style={{ lineHeight: 18 }}>
+                      <Text key={i} size="xs" color="$textLight700" style={atoms.lineHeight18}>
                         {p}
                       </Text>
                     ))}
@@ -431,7 +432,7 @@ export default function ConsentimientoScreen({ navigation, route }: Props) {
                     <Center w={40} h={40} borderRadius={12} bg="$primary50">
                       <Icon as={Users} size="lg" color="$primary600" />
                     </Center>
-                    <VStack style={{ flex: 1 }}>
+                    <VStack style={atoms.flex1}>
                       <Text size="md" weight="bold" color="$textLight900">
                         
                         {t.consentimiento.personaFirma}
@@ -453,7 +454,7 @@ export default function ConsentimientoScreen({ navigation, route }: Props) {
                       {signerOptions.map(opt => {
                         const selected = signerType === opt.value;
                         return (
-                          <Pressable key={opt.value} style={{ flex: 1 }} onPress={() => setSignerMode(opt.value)}>
+                          <Pressable key={opt.value} style={atoms.flex1} onPress={() => setSignerMode(opt.value)}>
                             <Box
                               alignItems="center"
                               py="$2"
@@ -466,7 +467,7 @@ export default function ConsentimientoScreen({ navigation, route }: Props) {
                                 size="2xs"
                                 weight="bold"
                                 color={selected ? '$primary600' : '$textLight400'}
-                                style={{ textAlign: 'center' }}>
+                                style={atoms.textAlignCenter}>
                                 {opt.label}
                               </Text>
                             </Box>
@@ -478,7 +479,7 @@ export default function ConsentimientoScreen({ navigation, route }: Props) {
 
                   {signerType === 'family' ? (
                     <HStack space="sm" alignItems="flex-start" p="$3" borderRadius={14} bg="$warning50" mb="$4">
-                      <Text size="xs" color="$warning800" style={{ flex: 1, lineHeight: 17 }}>
+                      <Text size="xs" color="$warning800" style={atoms.flex1LineHeight17}>
                         
                         {t.consentimiento.firmaRepresentacionAdultoPuedeHacerlo}
                       </Text>
@@ -504,7 +505,7 @@ export default function ConsentimientoScreen({ navigation, route }: Props) {
                           {GUARDIAN_RELATIONS.map(rel => {
                             const selected = signerRelation === rel;
                             return (
-                              <Pressable key={rel} style={{ flex: 1 }} onPress={() => setSignerRelation(rel)}>
+                              <Pressable key={rel} style={atoms.flex1} onPress={() => setSignerRelation(rel)}>
                                 <Box
                                   alignItems="center"
                                   py="$2"
@@ -544,7 +545,7 @@ export default function ConsentimientoScreen({ navigation, route }: Props) {
                           placeholder={t.consentimiento.pEjEnfermedadAlzheimerFase}
                           value={incapacityReason}
                           onChangeText={setIncapacityReason}
-                          style={{ textAlignVertical: 'top' }}
+                          style={atoms.textAlignVerticalTop}
                         />
                       </Input>
                     </>
@@ -575,10 +576,10 @@ export default function ConsentimientoScreen({ navigation, route }: Props) {
                               justifyContent="center"
                               bg={checked ? '$primary500' : '$white'}
                               borderColor={checked ? '$primary500' : '$borderLight300'}
-                              style={{ marginTop: 1 }}>
+                              style={atoms.marginTop1}>
                               {checked ? <Icon as={Check} size="2xs" color="$white" /> : null}
                             </Box>
-                            <Text size="xs" color="$textLight700" style={{ flex: 1, lineHeight: 18 }}>
+                            <Text size="xs" color="$textLight700" style={atoms.flex1LineHeight18}>
                               {item}
                             </Text>
                           </HStack>
@@ -613,7 +614,7 @@ export default function ConsentimientoScreen({ navigation, route }: Props) {
                     <Icon as={ArrowRight} size="sm" color="$white" />
                   </HStack>
                 </Button>
-                <Text size="2xs" color="$textLight400" style={{ textAlign: 'center' }} mb="$6">
+                <Text size="2xs" color="$textLight400" style={atoms.textAlignCenter} mb="$6">
                   
                   {t.consentimiento.sinConsentimientoFirmadoPosibleIniciar}
                 </Text>

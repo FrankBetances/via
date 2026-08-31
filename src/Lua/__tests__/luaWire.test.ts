@@ -1,3 +1,5 @@
+/* eslint-disable no-bitwise -- las aserciones desempaquetan la trama byte a
+ * byte; comprobar el formato del cable exige hablar su mismo idioma. */
 /* -------------------------------------------------------------------------- */
 /*  Pruebas del formato de cable de Lúa.                                        */
 /*                                                                             */

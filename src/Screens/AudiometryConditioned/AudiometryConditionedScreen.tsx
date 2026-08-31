@@ -39,6 +39,7 @@ import { LuaCompanionWidget } from '@/Components/Mascot/LuaCompanionWidget';
 import { useLuaCompanion, LuaEmotion } from '@/Lua';
 
 import { useT } from '@/I18n';
+import { atoms } from '@/Theme/styleAtoms';
 /* -------------------------------------------------------------------------- */
 /*  Audiometría condicionada AUTOMÁTICA en CAMPO LIBRE — «El Tren de Lúa»      */
 /*                                                                            */
@@ -206,15 +207,15 @@ export default function AudiometryConditionedScreen({ navigation }: Props) {
   useEffect(() => {
     if (phase !== 'practice' || paused) return;
     if (practiceHits >= PRACTICE_HITS_NEEDED) {
-      const t = setTimeout(startTest, 1500);
-      return () => clearTimeout(t);
+      const timer = setTimeout(startTest, 1500);
+      return () => clearTimeout(timer);
     }
     presentTimer.current = setTimeout(() => {
       a.playStimulus();
       windowOpen.current = true;
       windowTimer.current = setTimeout(() => {
         windowOpen.current = false;
-        setPracticeTick(t => t + 1);
+        setPracticeTick(n => n + 1);
       }, TONE_MS + RESPONSE_GRACE_MS);
     }, 1600 + Math.random() * 800);
     return () => {
@@ -251,7 +252,7 @@ export default function AudiometryConditionedScreen({ navigation }: Props) {
           }
         }
         a.noResponse();
-        setTrialTick(t => t + 1);
+        setTrialTick(n => n + 1);
       }, TONE_MS + RESPONSE_GRACE_MS);
     }, 1400 + Math.random() * 1600);
 
@@ -272,7 +273,7 @@ export default function AudiometryConditionedScreen({ navigation }: Props) {
         setPracticeHits(h => h + 1);
         flashCelebrate();
         lua.setVerdict(2);
-        setPracticeTick(t => t + 1);
+        setPracticeTick(n => n + 1);
       } else {
         flashGentlePrompt();
       }
@@ -286,7 +287,7 @@ export default function AudiometryConditionedScreen({ navigation }: Props) {
         flashCelebrate();
         lua.setVerdict(2);
         if (r.confirmed) advance();
-        else setTrialTick(t => t + 1);
+        else setTrialTick(n => n + 1);
       } else {
         flashGentlePrompt();
       }
@@ -361,7 +362,7 @@ export default function AudiometryConditionedScreen({ navigation }: Props) {
           <VStack flex={1} px="$5" mt="$1" space="md" pb="$10">
             {/* Cabecera Lúdica */}
             <HStack alignItems="center" justifyContent="space-between">
-              <VStack style={{ flex: 1 }}>
+              <VStack style={atoms.flex1}>
                 <HStack alignItems="center" space="xs">
                   <Text size="xl" weight="bold" color="$textLight900">
                     
@@ -417,7 +418,7 @@ export default function AudiometryConditionedScreen({ navigation }: Props) {
                     <Center w={48} h={48} borderRadius={16} bg="$primary50">
                       <Icon as={Train} size="xl" color="$primary600" />
                     </Center>
-                    <VStack style={{ flex: 1 }}>
+                    <VStack style={atoms.flex1}>
                       <Text size="lg" weight="bold" color="$textLight900">
                         
                         {t.audiometryConditioned.comoJugamos}
@@ -433,13 +434,13 @@ export default function AudiometryConditionedScreen({ navigation }: Props) {
                     {INTRO_STEPS.map((s, i) => (
                       <HStack key={i} space="sm" alignItems="center">
                         <Center w={42} h={42} borderRadius={14} bg="$backgroundLight50">
-                          <Text style={{ fontSize: 24 }}>{s.emoji}</Text>
+                          <Text style={atoms.fontSize24}>{s.emoji}</Text>
                         </Center>
-                        <VStack style={{ flex: 1 }}>
+                        <VStack style={atoms.flex1}>
                           <Text size="sm" weight="bold" color="$textLight800">
                             {i + 1}. {s.title}
                           </Text>
-                          <Text size="xs" color="$textLight500" style={{ lineHeight: 16 }}>
+                          <Text size="xs" color="$textLight500" style={atoms.lineHeight16}>
                             {s.text}
                           </Text>
                         </VStack>
@@ -495,7 +496,7 @@ export default function AudiometryConditionedScreen({ navigation }: Props) {
                   />
 
                   <Center mt="$3">
-                    <Text size="sm" weight="bold" color={whistleActive ? '$success600' : '$textLight600'} style={{ textAlign: 'center' }}>
+                    <Text size="sm" weight="bold" color={whistleActive ? '$success600' : '$textLight600'} style={atoms.textAlignCenter}>
                       {practiceHits >= PRACTICE_HITS_NEEDED
                         ? t.audiometryConditioned.genialYaEstasListoGran
                         : whistleActive
@@ -581,7 +582,7 @@ export default function AudiometryConditionedScreen({ navigation }: Props) {
                     <HStack alignItems="center" justifyContent="space-between">
                       <HStack space="xs" alignItems="center">
                         <Icon as={Volume2} size="xs" color="$textLight500" />
-                        <Text size="2xs" weight="bold" color="$textLight500" style={{ letterSpacing: 0.4 }}>
+                        <Text size="2xs" weight="bold" color="$textLight500" style={atoms.letterSpacing04}>
                           
                           {t.audiometryConditioned.panelClinico} {typeof a.freq === 'number' ? `${FREQ_LABEL[String(a.freq)]} Hz · ${a.db} dB HL` : '—'}
                         </Text>
@@ -627,9 +628,9 @@ export default function AudiometryConditionedScreen({ navigation }: Props) {
                 <Card bgColor="$success50" borderRadius={24} borderWidth={1.5} borderColor="$success200" p="$5" shadowColor="$black" shadowOpacity={0.05} elevation={3}>
                   <HStack space="md" alignItems="center">
                     <Center w={52} h={52} borderRadius={18} bg="$white">
-                      <Text style={{ fontSize: 32 }}>🏆</Text>
+                      <Text style={atoms.fontSize32}>🏆</Text>
                     </Center>
-                    <VStack style={{ flex: 1 }}>
+                    <VStack style={atoms.flex1}>
                       <Text size="lg" weight="bold" color="$success800">
                         
                         {t.audiometryConditioned.granViajeCompletado}
@@ -645,13 +646,13 @@ export default function AudiometryConditionedScreen({ navigation }: Props) {
                 {needsReferral ? (
                   <Card bgColor="$warning50" borderRadius={20} borderWidth={1} borderColor="$warning200" p="$4">
                     <HStack space="sm" alignItems="flex-start">
-                      <Icon as={AlertTriangle} size="sm" color="$warning600" style={{ marginTop: 2 }} />
-                      <VStack style={{ flex: 1 }}>
+                      <Icon as={AlertTriangle} size="sm" color="$warning600" style={atoms.marginTop2} />
+                      <VStack style={atoms.flex1}>
                         <Text size="sm" weight="bold" color="$warning800">
                           
                           {t.audiometryConditioned.indiciosHipoacusiaDerivacionRecomendada}
                         </Text>
-                        <Text size="xs" color="$warning800" style={{ lineHeight: 17 }}>
+                        <Text size="xs" color="$warning800" style={atoms.lineHeight17}>
                           
                           {t.audiometryConditioned.cribadoCampoLibreSugiereAudicion}
                           {a.ptaCL !== null ? t.audiometryConditioned.ptaDbHl(a.ptaCL) : t.audiometryConditioned.respuestasInsuficientes}{t.audiometryConditioned.aconsejaDerivacionOrlAudiologiaAudiometria}
@@ -661,7 +662,7 @@ export default function AudiometryConditionedScreen({ navigation }: Props) {
                   </Card>
                 ) : (
                   <Card bgColor="$primary0" borderRadius={20} borderWidth={1} borderColor="$primary100" p="$4">
-                    <Text size="xs" color="$primary800" style={{ lineHeight: 17 }}>
+                    <Text size="xs" color="$primary800" style={atoms.lineHeight17}>
                       
                       {t.audiometryConditioned.cribadoDentroNormalidadCampoLibre}
                     </Text>
@@ -672,7 +673,7 @@ export default function AudiometryConditionedScreen({ navigation }: Props) {
                 <Card bgColor="$white" borderRadius={22} p="$4">
                   <HStack justifyContent="space-between" alignItems="center" mb="$2">
                     <Text size="sm" weight="bold" color="$textLight900">{t.audiometryConditioned.audiogramaCribado}</Text>
-                    <Text size="2xs" style={{ color: '#0066B3', fontWeight: 'bold' }}>{t.audiometryConditioned.campoLibreBinaural}</Text>
+                    <Text size="2xs" style={atoms.color0066B3FontWeightBold}>{t.audiometryConditioned.campoLibreBinaural}</Text>
                   </HStack>
                   <Box h={250} borderRadius={14} borderWidth={1} borderColor="$borderLight100" bg="$backgroundLight50">
                     <Audiogram thresholds={a.thresholds} cursor={null} cursorColor="#0066B3" />
@@ -684,15 +685,15 @@ export default function AudiometryConditionedScreen({ navigation }: Props) {
                   <Text size="sm" weight="bold" color="$textLight900" mb="$2">{t.audiometryConditioned.umbralesRegistradosDbHl}</Text>
                   <VStack space="xs">
                     <HStack>
-                      <Text size="xs" color="$textLight400" style={{ width: 90 }}>{t.audiometryConditioned.canal}</Text>
+                      <Text size="xs" color="$textLight400" style={atoms.width90}>{t.audiometryConditioned.canal}</Text>
                       {FREQS.map(f => (
-                        <Text key={f} size="xs" color="$textLight400" style={{ flex: 1, textAlign: 'center' }}>{FREQ_LABEL[String(f)]}</Text>
+                        <Text key={f} size="xs" color="$textLight400" style={atoms.flex1TextAlignCenter}>{FREQ_LABEL[String(f)]}</Text>
                       ))}
                     </HStack>
                     <HStack alignItems="center">
-                      <Text size="sm" weight="bold" style={{ width: 90, color: '#0066B3' }}>{t.audiometryConditioned.campoLibre}</Text>
+                      <Text size="sm" weight="bold" style={atoms.width90Color0066B3}>{t.audiometryConditioned.campoLibre}</Text>
                       {FREQS.map(f => (
-                        <Text key={f} size="sm" weight="semiBold" color="$textLight700" style={{ flex: 1, textAlign: 'center', fontVariant: ['tabular-nums'] }}>
+                        <Text key={f} size="sm" weight="semiBold" color="$textLight700" style={[atoms.flex1TextAlignCenter, atoms.tabularNums]}>
                           {a.thresholds.CL?.[f] ?? '—'}
                         </Text>
                       ))}
@@ -701,7 +702,7 @@ export default function AudiometryConditionedScreen({ navigation }: Props) {
                   <HStack space="sm" mt="$3">
                     <Box flex={1} bg="$backgroundLight50" borderRadius={12} p="$2.5" alignItems="center">
                       <Text size="2xs" color="$textLight400">{t.audiometryConditioned.ptaCampoLibre}</Text>
-                      <Text size="lg" weight="bold" style={{ color: '#0066B3' }}>{a.ptaCL ?? '—'}</Text>
+                      <Text size="lg" weight="bold" style={atoms.color0066B3}>{a.ptaCL ?? '—'}</Text>
                       {sevCL ? <Text size="2xs" color="$textLight500">{sevCL.label}</Text> : null}
                     </Box>
                     <Box flex={1} bg="$backgroundLight50" borderRadius={12} p="$2.5" alignItems="center">
@@ -717,15 +718,15 @@ export default function AudiometryConditionedScreen({ navigation }: Props) {
                 <Card bgColor="$white" borderRadius={22} p="$4">
                   <Text size="sm" weight="bold" color="$textLight700" mb="$2">{t.audiometryConditioned.evaluadorResponsable}</Text>
                   <HStack space="sm" mb="$3">
-                    <Input variant="outline" borderRadius={12} style={{ flex: 2 }}>
+                    <Input variant="outline" borderRadius={12} style={atoms.flex2}>
                       <InputField placeholder={t.audiometryConditioned.nombre} value={evaluatorName} onChangeText={setEvaluatorName} />
                     </Input>
-                    <Input variant="outline" borderRadius={12} style={{ flex: 1 }}>
+                    <Input variant="outline" borderRadius={12} style={atoms.flex1}>
                       <InputField placeholder={t.audiometryConditioned.colegiado} value={evaluatorLicense} onChangeText={setEvaluatorLicense} />
                     </Input>
                   </HStack>
                   <Input variant="outline" borderRadius={12} h={64} mb="$3">
-                    <InputField multiline placeholder={t.audiometryConditioned.observacionesClinicas} value={notes} onChangeText={setNotes} style={{ textAlignVertical: 'top' }} />
+                    <InputField multiline placeholder={t.audiometryConditioned.observacionesClinicas} value={notes} onChangeText={setNotes} style={atoms.textAlignVerticalTop} />
                   </Input>
                   <Button
                     action="primary"
@@ -740,7 +741,7 @@ export default function AudiometryConditionedScreen({ navigation }: Props) {
                       <Text size="md" weight="bold" color="$white">{t.audiometryConditioned.guardarAudiometria}</Text>
                     </HStack>
                   </Button>
-                  <Pressable onPress={restartAll} style={{ marginTop: 10 }}>
+                  <Pressable onPress={restartAll} style={atoms.marginTop10}>
                     <Center py="$2.5" borderRadius={12} borderWidth={1} borderColor="$borderLight200" bg="$white">
                       <HStack space="xs" alignItems="center">
                         <Icon as={RotateCcw} size="xs" color="$textLight500" />

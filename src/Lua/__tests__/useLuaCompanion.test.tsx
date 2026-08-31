@@ -116,7 +116,9 @@ describe('el premio del módulo se deja ver', () => {
 
     const insignia = LUA_CLINICAL_BADGES.verbal_audiometry;
     const [trama] = opsOf(LUA_OP.AWARD);
+    // eslint-disable-next-line no-bitwise -- desempaqueta el parámetro de 16 bits de la trama para comprobarlo.
     expect(trama.param & 0xff).toBe(insignia.glyph);
+    // eslint-disable-next-line no-bitwise -- desempaqueta el parámetro de 16 bits de la trama para comprobarlo.
     expect(trama.param >> 8).toBe(insignia.rank);
   });
 
