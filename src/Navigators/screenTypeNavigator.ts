@@ -14,6 +14,7 @@ export type RootStackParamList = {
   Consentimiento: { next?: 'cap' | 'dysphagia' } | undefined;
   RegistroProfesional: undefined;
   Creditos: undefined;
+  PresentacionLua: undefined;
 
   // Module routes (Contrato de Compilación §2)
   ClinicalAssessment: undefined;

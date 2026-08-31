@@ -64,7 +64,7 @@ export const EN: UiStrings = {
     sealSubtitle: 'Technological innovation in healthcare',
     chipSamd: 'SaMD Class IIa',
     chipLocation: 'Lugo, Galicia',
-    dockButton: 'Start Professional Selection',
+    dockButton: 'Meet Lúa',
 
     langEs: 'Base language of the clinical assessment battery',
     langGl: 'Celtia neural voice, word bank endorsed by ACOPROS',
@@ -75,6 +75,38 @@ export const EN: UiStrings = {
     langEn: 'American English interface and voice · Piper LJSpeech (public domain)',
     enginePiper: 'VITS neural voices for Spanish, English and their varieties',
     engineEspeak: 'Offline fallback synthesis, no neural weights',
+  },
+  luaIntro: {
+    /* Siglas técnicas: Bluetooth Low Energy y el término del proyecto. Se
+     * escriben igual en las siete variedades, pero viven aquí y no como
+     * literal en la pantalla porque el gate no admite pragma dentro de JSX. */
+    badgeBle: 'BLE',
+    badgeZeroPhi: 'Zero-PHI',
+    navBackA11y: 'Back to credits',
+    navTitle: 'Lúa · Mascot and Peripheral',
+    emblemHeading: 'PEDIATRIC COMPANION',
+    emblemFootnote: 'Optional companion device',
+    cardTitle: 'OPTIONAL PHYSICAL DEVICE',
+    empathyName: 'Empathy and Clinical Calm',
+    empathyDesc:
+      "Eases the child's anxiety through friendly expressions and guided breathing while the tests run.",
+    bleName: 'Secure Wireless Connection',
+    bleDesc:
+      'Automatic BLE link (ESP32-C3). Responds to the software with no cables and no complex setup.',
+    privacyName: 'Strict Privacy (Zero-PHI)',
+    privacyDesc:
+      'It neither records nor stores audio. The microphone is locked in firmware to preserve medical certification.',
+    highlightTitle: 'Would you like to bring Lúa into your practice?',
+    highlightText:
+      'Clinical assessment in VIA+ is entirely self-contained. Lúa is nevertheless available separately if you want to strengthen your pediatric patients\u2019 engagement.',
+    infoA11y: 'More Information button',
+    infoLabel: 'More Information',
+    contactA11y: 'Contact button',
+    contactLabel: 'Contact',
+    dockButton: 'Start Professional Selection',
+    webFailed: 'The browser could not be opened. The address is earlify.health',
+    emailFailed:
+      'No mail app is set up on this device. The address is contacto@earlify.health',
   },
 
   components: {

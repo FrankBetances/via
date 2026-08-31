@@ -68,7 +68,7 @@ export const EU: UiStrings = {
     sealSubtitle: 'Berrikuntza teknologikoa osasunean',
     chipSamd: 'SaMD IIa Klasea',
     chipLocation: 'Lugo, Galizia',
-    dockButton: 'Hasi Profesionalaren Hautaketa',
+    dockButton: 'Lúa ezagutu',
 
     langEs: 'Ebaluazio klinikoaren baterien oinarrizko hizkuntza',
     langGl: 'Celtia ahots neuronala, ACOPROSek onartutako bankua',
@@ -79,6 +79,38 @@ export const EU: UiStrings = {
     langEn: 'Interfazea eta ahotsa ingeles amerikarrez · Piper LJSpeech (jabetza publikoa)',
     enginePiper: 'VITS ahots neuronalak gaztelaniarako, ingeleserako eta aldaeretarako',
     engineEspeak: 'Lineaz kanpoko ordezko sintesia, pisu neuronalik gabe',
+  },
+  luaIntro: {
+    /* Siglas técnicas: Bluetooth Low Energy y el término del proyecto. Se
+     * escriben igual en las siete variedades, pero viven aquí y no como
+     * literal en la pantalla porque el gate no admite pragma dentro de JSX. */
+    badgeBle: 'BLE',
+    badgeZeroPhi: 'Zero-PHI',
+    navBackA11y: 'Kredituetara itzuli',
+    navTitle: 'Lúa · Maskota eta Periferikoa',
+    emblemHeading: 'LAGUNTZAILE PEDIATRIKOA',
+    emblemFootnote: 'Gailu osagarri aukerakoa',
+    cardTitle: 'GAILU FISIKO AUKERAKOA',
+    empathyName: 'Enpatia eta Lasaitasun Klinikoa',
+    empathyDesc:
+      'Haurraren antsietatea murrizten du adierazpen atseginen eta arnasketa gidatuaren bidez, probak egin bitartean.',
+    bleName: 'Hari Gabeko Konexio Segurua',
+    bleDesc:
+      'BLE lotura automatikoa (ESP32-C3). Softwareari erantzuten dio, kablerik eta konfigurazio konplexurik gabe.',
+    privacyName: 'Pribatutasun Zorrotza (Zero-PHI)',
+    privacyDesc:
+      'Ez du audiorik grabatzen ez gordetzen. Mikrofonoa firmwarez blokeatuta dago homologazio medikoa babesteko.',
+    highlightTitle: 'Lúa zure kontsultan integratu nahi zenuke?',
+    highlightText:
+      'VIA+ aplikazioko ebaluazio klinikoa erabat autonomoa da. Hala ere, Lúa bereizita eros daiteke zure paziente pediatrikoen konpromisoa indartu nahi baduzu.',
+    infoA11y: 'Informazio Gehiago botoia',
+    infoLabel: 'Informazio Gehiago',
+    contactA11y: 'Harremanetarako botoia',
+    contactLabel: 'Harremanetan jarri',
+    dockButton: 'Hasi Profesionalaren Hautaketa',
+    webFailed: 'Ezin izan da nabigatzailea ireki. Helbidea earlify.health da',
+    emailFailed:
+      'Gailu honetan ez dago posta-aplikaziorik konfiguratuta. Helbidea contacto@earlify.health da',
   },
 
   components: {

@@ -73,7 +73,7 @@ describe('CreditosScreen', () => {
       'AUTORÍA Y DIRECCIÓN CLÍNICA',
       'COLABORADORES',
       'CALIDAD Y REGULACIÓN SANITARIA',
-      'Comenzar',
+      'Conocer a Lúa',
     ].forEach(texto => expect(json).toContain(texto));
 
     // Las menciones institucionales y regulatorias no se pierden en un

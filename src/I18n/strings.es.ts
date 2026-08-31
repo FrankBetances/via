@@ -80,7 +80,7 @@ export const ES = {
     sealSubtitle: 'Innovación tecnológica en salud',
     chipSamd: 'SaMD Clase IIa',
     chipLocation: 'Lugo, Galicia',
-    dockButton: 'Comenzar Selección Profesional',
+    dockButton: 'Conocer a Lúa',
 
     /* Créditos de voz y localización, uno por variedad. Se listan aquí —y no
      * como datos sueltos en la pantalla— porque son texto que se lee y por
@@ -96,6 +96,47 @@ export const ES = {
     langEn: 'Interfaz y voz en inglés americano · Piper LJSpeech (dominio público)',
     enginePiper: 'Voces neuronales VITS para castellano, inglés y variantes',
     engineEspeak: 'Síntesis de respaldo offline sin pesos neuronales',
+  },
+  /* Presentación de Lúa, entre Créditos y la selección de profesional.
+   *
+   * OJO CON LO QUE AFIRMA. Estos textos describen el PERIFÉRICO, y hoy la app
+   * no lo pilota: `src/Lua/installLua.ts` lo dice en su propia cabecera —sin
+   * un `BleManager`, que nadie crea, todo `src/Lua/` es no-op—. Traducirlos no
+   * los convierte en ciertos; qué se afirma aquí lo decide Frank. Mientras la
+   * afirmación exista, se lee en las siete variedades como el resto. */
+  luaIntro: {
+    /* Siglas técnicas: Bluetooth Low Energy y el término del proyecto. Se
+     * escriben igual en las siete variedades, pero viven aquí y no como
+     * literal en la pantalla porque el gate no admite pragma dentro de JSX. */
+    badgeBle: 'BLE',
+    badgeZeroPhi: 'Zero-PHI',
+    navBackA11y: 'Volver a créditos',
+    navTitle: 'Lúa · Mascota y Periférico',
+    emblemHeading: 'ACOMPAÑANTE PEDIÁTRICO',
+    emblemFootnote: 'Dispositivo complementario opcional',
+    cardTitle: 'DISPOSITIVO FÍSICO OPCIONAL',
+    empathyName: 'Empatía y Calma Clínica',
+    empathyDesc:
+      'Reduce la ansiedad del niño mediante expresiones amigables y respiración pautada durante las pruebas.',
+    bleName: 'Conexión Segura Inalámbrica',
+    bleDesc:
+      'Enlace automático BLE (ESP32-C3). Reacciona al software sin cables ni configuraciones complejas.',
+    privacyName: 'Privacidad Estricta (Zero-PHI)',
+    privacyDesc:
+      'No graba ni almacena audio. Micrófono bloqueado por firmware para preservar la homologación médica.',
+    highlightTitle: '¿Te gustaría integrar a Lúa en tu consulta?',
+    highlightText:
+      'La evaluación clínica en VIA+ es totalmente autónoma. Sin embargo, Lúa está disponible para adquirir por separado si deseas potenciar el compromiso de tus pacientes pediátricos.',
+    infoA11y: 'Botón Más Información',
+    infoLabel: 'Más Información',
+    contactA11y: 'Botón Contactar',
+    contactLabel: 'Contactar',
+    dockButton: 'Comenzar Selección Profesional',
+    /* Regla 4: si el enlace no abre —en el emulador NO hay cliente de correo—,
+     * la pantalla lo dice y deja el dato a mano para seguir por otra vía. */
+    webFailed: 'No se ha podido abrir el navegador. La dirección es earlify.health',
+    emailFailed:
+      'No hay ninguna aplicación de correo configurada en este dispositivo. La dirección es contacto@earlify.health',
   },
 
   /* Componentes compartidos entre pantallas: cabecera, firma, control de

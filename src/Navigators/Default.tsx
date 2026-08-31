@@ -10,6 +10,7 @@ import PacientesScreen from '@/Screens/Pacientes/PacientesScreen';
 import RegistroPacienteScreen from '@/Screens/RegistroPaciente/RegistroPacienteScreen';
 import RegistroProfesionalScreen from '@/Screens/RegistroProfesional/RegistroProfesionalScreen';
 import CreditosScreen from '@/Screens/Creditos/CreditosScreen';
+import { PresentacionLuaScreen } from '@/Screens/PresentacionLua';
 import { ConsentimientoScreen } from '@/Screens/Consentimiento';
 
 import { ClinicalAssessmentScreen } from '@/Screens/ClinicalAssessment';
@@ -58,6 +59,7 @@ export default function DefaultNavigator() {
         <RootStack.Group>
           <RootStack.Screen name="Bienvenida" component={BienvenidaScreen} />
           <RootStack.Screen name="Creditos" component={CreditosScreen} />
+          <RootStack.Screen name="PresentacionLua" component={PresentacionLuaScreen} />
           <RootStack.Screen name="SeleccionProfesional" component={SeleccionProfesionalScreen} />
           <RootStack.Screen name="RegistroProfesional" component={RegistroProfesionalScreen} />
         </RootStack.Group>

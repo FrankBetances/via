@@ -68,7 +68,7 @@ export const CA: UiStrings = {
     sealSubtitle: 'Innovació tecnològica en salut',
     chipSamd: 'SaMD Classe IIa',
     chipLocation: 'Lugo, Galícia',
-    dockButton: 'Començar Selecció Professional',
+    dockButton: 'Conèixer la Lúa',
 
     langEs: "Idioma base de la bateria d'avaluació clínica",
     langGl: 'Veu neuronal Celtia, banc aprovat per ACOPROS',
@@ -79,6 +79,38 @@ export const CA: UiStrings = {
     langEn: 'Interfície i veu en anglès americà · Piper LJSpeech (domini públic)',
     enginePiper: 'Veus neuronals VITS per a castellà, anglès i variants',
     engineEspeak: 'Síntesi de reserva fora de línia, sense pesos neuronals',
+  },
+  luaIntro: {
+    /* Siglas técnicas: Bluetooth Low Energy y el término del proyecto. Se
+     * escriben igual en las siete variedades, pero viven aquí y no como
+     * literal en la pantalla porque el gate no admite pragma dentro de JSX. */
+    badgeBle: 'BLE',
+    badgeZeroPhi: 'Zero-PHI',
+    navBackA11y: 'Tornar als crèdits',
+    navTitle: 'Lúa · Mascota i Perifèric',
+    emblemHeading: 'ACOMPANYANT PEDIÀTRIC',
+    emblemFootnote: 'Dispositiu complementari opcional',
+    cardTitle: 'DISPOSITIU FÍSIC OPCIONAL',
+    empathyName: 'Empatia i Calma Clínica',
+    empathyDesc:
+      "Redueix l'ansietat de l'infant mitjançant expressions amigables i respiració pautada durant les proves.",
+    bleName: 'Connexió Segura Sense Fils',
+    bleDesc:
+      'Enllaç automàtic BLE (ESP32-C3). Reacciona al programari sense cables ni configuracions complexes.',
+    privacyName: 'Privacitat Estricta (Zero-PHI)',
+    privacyDesc:
+      "No grava ni emmagatzema àudio. Micròfon bloquejat per firmware per preservar l'homologació mèdica.",
+    highlightTitle: "T'agradaria integrar la Lúa a la teva consulta?",
+    highlightText:
+      "L'avaluació clínica a VIA+ és totalment autònoma. Tanmateix, la Lúa està disponible per adquirir per separat si vols potenciar el compromís dels teus pacients pediàtrics.",
+    infoA11y: 'Botó Més Informació',
+    infoLabel: 'Més Informació',
+    contactA11y: 'Botó Contactar',
+    contactLabel: 'Contactar',
+    dockButton: 'Començar Selecció Professional',
+    webFailed: "No s'ha pogut obrir el navegador. L'adreça és earlify.health",
+    emailFailed:
+      "En aquest dispositiu no hi ha cap aplicació de correu configurada. L'adreça és contacto@earlify.health",
   },
 
   components: {

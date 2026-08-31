@@ -321,7 +321,7 @@ export default function CreditosScreen({ navigation }: Props) {
   };
 
   const handleContinue = () => {
-    navigation.navigate('SeleccionProfesional');
+    navigation.navigate('PresentacionLua');
   };
 
   return (

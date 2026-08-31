@@ -64,7 +64,7 @@ export const GL: UiStrings = {
     sealSubtitle: 'Innovación tecnolóxica en saúde',
     chipSamd: 'SaMD Clase IIa',
     chipLocation: 'Lugo, Galicia',
-    dockButton: 'Comezar Selección Profesional',
+    dockButton: 'Coñecer a Lúa',
 
     langEs: 'Idioma base da batería de avaliación clínica',
     langGl: 'Voz neuronal Celtia, banco aprobado por ACOPROS',
@@ -75,6 +75,38 @@ export const GL: UiStrings = {
     langEn: 'Interface e voz en inglés americano · Piper LJSpeech (dominio público)',
     enginePiper: 'Voces neuronais VITS para castelán, inglés e variantes',
     engineEspeak: 'Síntese de apoio sen conexión, sen pesos neuronais',
+  },
+  luaIntro: {
+    /* Siglas técnicas: Bluetooth Low Energy y el término del proyecto. Se
+     * escriben igual en las siete variedades, pero viven aquí y no como
+     * literal en la pantalla porque el gate no admite pragma dentro de JSX. */
+    badgeBle: 'BLE',
+    badgeZeroPhi: 'Zero-PHI',
+    navBackA11y: 'Volver aos créditos',
+    navTitle: 'Lúa · Mascota e Periférico',
+    emblemHeading: 'ACOMPAÑANTE PEDIÁTRICO',
+    emblemFootnote: 'Dispositivo complementario opcional',
+    cardTitle: 'DISPOSITIVO FÍSICO OPCIONAL',
+    empathyName: 'Empatía e Calma Clínica',
+    empathyDesc:
+      'Reduce a ansiedade do neno mediante expresións amigables e respiración pautada durante as probas.',
+    bleName: 'Conexión Segura Sen Fíos',
+    bleDesc:
+      'Ligazón automática BLE (ESP32-C3). Reacciona ao software sen cables nin configuracións complexas.',
+    privacyName: 'Privacidade Estrita (Zero-PHI)',
+    privacyDesc:
+      'Non grava nin almacena audio. Micrófono bloqueado por firmware para preservar a homologación médica.',
+    highlightTitle: 'Gustaríache integrar a Lúa na túa consulta?',
+    highlightText:
+      'A avaliación clínica en VIA+ é totalmente autónoma. Porén, Lúa está dispoñible para adquirir por separado se desexas potenciar o compromiso dos teus pacientes pediátricos.',
+    infoA11y: 'Botón Máis Información',
+    infoLabel: 'Máis Información',
+    contactA11y: 'Botón Contactar',
+    contactLabel: 'Contactar',
+    dockButton: 'Comezar Selección Profesional',
+    webFailed: 'Non se puido abrir o navegador. O enderezo é earlify.health',
+    emailFailed:
+      'Non hai ningunha aplicación de correo configurada neste dispositivo. O enderezo é contacto@earlify.health',
   },
 
   components: {
