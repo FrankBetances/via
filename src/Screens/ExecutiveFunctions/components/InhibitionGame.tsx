@@ -5,6 +5,7 @@ import { Text } from '@/Components/Common';
 import GameCard from './GameCard';
 import { InhibitionPlan, InhibitionResult } from '../executiveFunctionsGame';
 
+import { useT } from '@/I18n';
 /* -------------------------------------------------------------------------- */
 /*  «No despiertes al lobo» — inhibición (go/no-go).                           */
 /*  Las tarjetas aparecen UNA A UNA con ventana de respuesta cronometrada:     */
@@ -22,6 +23,7 @@ export default function InhibitionGame({
   plan: InhibitionPlan;
   onFinish: (result: InhibitionResult) => void;
 }) {
+  const t = useT();
   const [trialIndex, setTrialIndex] = useState(0);
   const [visible, setVisible] = useState(false);
   const [feedback, setFeedback] = useState<'hit' | 'oops' | null>(null);
@@ -93,7 +95,8 @@ export default function InhibitionGame({
     <VStack space="md" alignItems="center">
       <Center bg="$primary0" borderRadius={14} px="$4" py="$2">
         <Text size="md" weight="bold" color="$primary800">
-          Toca los animales… ¡pero al {plan.nogoGlyph} ni tocarlo!
+          
+          {t.efGames.tocaAnimalesPero} {plan.nogoGlyph}  {t.efGames.niTocarlo}
         </Text>
       </Center>
 
@@ -114,11 +117,13 @@ export default function InhibitionGame({
 
       {feedback === 'oops' ? (
         <Text size="md" weight="bold" color="$error600">
-          ¡Shhh, era el lobo! 🤫
+          
+          {t.efGames.shhhEraLobo}
         </Text>
       ) : feedback === 'hit' ? (
         <Text size="md" weight="bold" color="$success700">
-          ¡Bien! ✓
+          
+          {t.efGames.bien}
         </Text>
       ) : (
         <Text size="md" color="$textLight400">

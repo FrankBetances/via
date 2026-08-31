@@ -13,6 +13,7 @@ import {
 } from '../executiveFunctionsGame';
 import { speakRuleConsigna } from '../efSpeech';
 
+import { useT } from '@/I18n';
 /* -------------------------------------------------------------------------- */
 /*  «El juego de las normas» — flexibilidad cognitiva (DCCS).                  */
 /*  Arriba la tarjeta estímulo (forma sobre color); abajo las dos tarjetas     */
@@ -33,6 +34,7 @@ export default function FlexibilityGame({
   /** Lengua de sesión: los anuncios de norma se dictaban siempre en castellano. */
   lang?: string;
 }) {
+  const t = useT();
   const [trialIndex, setTrialIndex] = useState(0);
   const [chosen, setChosen] = useState<0 | 1 | null>(null);
   const [showRuleChange, setShowRuleChange] = useState(false);
@@ -116,10 +118,12 @@ export default function FlexibilityGame({
       {showRuleChange ? (
         <Center bg="$error50" borderRadius={16} px="$5" py="$3">
           <Text size="lg" weight="bold" color="$error600">
-            ¡La norma ha cambiado! 🔄
+            
+            {t.efGames.normaHaCambiado}
           </Text>
           <Text size="md" weight="bold" color="$textLight800" mt="$1">
-            Ahora se juega {trial.rule === 'color' ? 'por COLOR' : 'por FORMA'}
+            
+            {t.efGames.ahoraJuega} {trial.rule === 'color' ? t.efGames.color : t.efGames.forma}
           </Text>
         </Center>
       ) : (
@@ -133,7 +137,8 @@ export default function FlexibilityGame({
       {/* estímulo */}
       <VStack alignItems="center" space="xs">
         <Text size="2xs" color="$textLight400">
-          ¿DÓNDE VA ESTA TARJETA?
+          
+          {t.efGames.dondeVaEstaTarjeta}
         </Text>
         <GameCard
           glyph={EF_SHAPE_GLYPH[trial.stimulus.shape]}
@@ -175,7 +180,7 @@ export default function FlexibilityGame({
 
       {chosen !== null ? (
         <Text size="md" weight="bold" color={wasCorrect ? '$success700' : '$error600'}>
-          {wasCorrect ? '¡Muy bien! 🎉' : '¡Casi! Sigue así 💪'}
+          {wasCorrect ? t.efGames.muyBien : t.efGames.casiSigueAsi}
         </Text>
       ) : (
         <Text size="md" color="$textLight400">

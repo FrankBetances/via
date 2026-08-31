@@ -123,4 +123,23 @@ export const ES_419: UiStrings = {
   startup: {
     ...ES.startup,
   },
+  executiveFunctions: {
+    ...ES.executiveFunctions,
+    ninoJuegaSoloApoyoMinimo: '. El niño juega solo (o con apoyo mínimo en los más pequeños): cada juego explica su consigna con una pantalla amable y avanza automáticamente. Duración total ≈ 8–12 min.',
+    edadGraduaDificultadNTarjetas: 'La edad gradúa la dificultad: número de tarjetas, velocidad, longitud de secuencias y cambio de reglas.',
+    peroMiniJuegosAunTienen: ', pero los mini-juegos aún no tienen consigna revisada en esa lengua: se dictarán en castellano y con voz castellana. Traducirlos sin revisión de un fonoaudiólogo sería inventar el estímulo.',
+    colegiado: 'Registro profesional',
+    cribadoOrientativoJuegoSustituyeInstrumentos: 'Cribado orientativo por juego. No sustituye instrumentos estandarizados ni constituye diagnóstico.',
+  },
+
+  efGames: {
+    ...ES.efGames,
+    normaHaCambiado: '¡La regla cambió! 🔄',
+  },
+
+  prosody: {
+    ...ES.prosody,
+    valoresDescriptivosSinBaremoPoblacional: 'Valores descriptivos, sin baremo poblacional: no se emite juicio de normalidad. La comparación válida es con tomas anteriores del mismo niño en la misma tarea. Las medidas acústicas no sustituyen la valoración perceptiva del fonoaudiólogo.',
+    nColegiado: 'N.º de registro profesional',
+  },
 };

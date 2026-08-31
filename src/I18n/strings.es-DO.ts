@@ -108,4 +108,21 @@ export const ES_DO: UiStrings = {
   startup: {
     ...ES.startup,
   },
+  executiveFunctions: {
+    ...ES.executiveFunctions,
+    peroMiniJuegosAunTienen: ', pero los mini-juegos aún no tienen consigna revisada en esa lengua: se dictarán en castellano y con voz castellana. Traducirlos sin revisión de un terapeuta del habla sería inventar el estímulo.',
+    colegiado: 'Exequátur',
+    cribadoOrientativoJuegoSustituyeInstrumentos: 'Cribado orientativo por juego. No sustituye instrumentos estandarizados ni constituye diagnóstico.',
+  },
+
+  efGames: {
+    ...ES.efGames,
+    normaHaCambiado: '¡La regla cambió! 🔄',
+  },
+
+  prosody: {
+    ...ES.prosody,
+    valoresDescriptivosSinBaremoPoblacional: 'Valores descriptivos, sin baremo poblacional: no se emite juicio de normalidad. La comparación válida es con tomas anteriores del mismo niño en la misma tarea. Las medidas acústicas no sustituyen la valoración perceptiva del terapeuta del habla.',
+    nColegiado: 'N.º de exequátur',
+  },
 };

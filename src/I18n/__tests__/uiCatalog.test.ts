@@ -63,9 +63,13 @@ describe('catálogos de interfaz · cobertura', () => {
 
 describe('catálogos de interfaz · sin contaminación entre lenguas', () => {
   /* Palabras función que NO existen en euskera. Si aparecen en el catálogo
-   * vasco, la cadena viene copiada de una lengua romance. */
+   * vasco, la cadena viene copiada de una lengua romance.
+   *
+   * OJO con dos que estuvieron aquí y NO deben estar: «non» es euskera («non
+   * doa» = adónde va) y «banda» es préstamo asentado («adin-banda»). Una lista
+   * que marca euskera correcto se acaba desactivando, y entonces no caza nada. */
   const ROMANCE_IN_EU =
-    /\b(de|del|la|el|los|las|que|para|con|una|por|se|ata|non|nivel|voz|palabra|descende|banda|però|amb|dels|nivell)\b/i;
+    /\b(de|del|la|el|los|las|que|para|con|una|por|se|ata|nivel|voz|palabra|descende|però|amb|dels|nivell)\b/i;
 
   it('el catálogo euskera no arrastra palabras romances (el fallo de mejora2)', () => {
     const offenders: string[] = [];
@@ -90,7 +94,9 @@ describe('catálogos de interfaz · sin contaminación entre lenguas', () => {
     // normativo (a RAG admíteo xunto a «dende»), así que non entra aquí.
     gl: /\b(y|del|de la|la|los|las|el|hasta|calidad|hallazgos)\b/i,
     // El català fa servir «i», «els», «les», «amb», «per», «veu».
-    ca: /\b(y|los|las|con|para|por|desde|hasta|voz|selección|calidad)\b/i,
+    // El lookbehind evita els pronoms enclítics: «Traduir-los» és català
+    // correcte i el límit de paraula el partia just abans del «los».
+    ca: /(?<![-'’])\b(y|los|las|con|para|por|desde|hasta|voz|selección|calidad)\b/i,
     // English keeps none of these.
     en: /\b(de|del|la|el|los|las|y|con|para|por|voz|banco|neuronal|calidad)\b/i,
   };

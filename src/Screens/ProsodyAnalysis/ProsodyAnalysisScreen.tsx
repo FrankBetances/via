@@ -43,6 +43,7 @@ import ProsodyStimulusScene from './ProsodyStimulusScene';
 import { LuaCompanionWidget } from '@/Components/Mascot/LuaCompanionWidget';
 import { useLuaCompanion, LuaEmotion } from '@/Lua';
 
+import { useT } from '@/I18n';
 type Props = NativeStackScreenProps<RootStackParamList, 'ProsodyAnalysis'>;
 
 /* -------------------------------------------------------------------------- */
@@ -73,6 +74,7 @@ const MIC_HEALTH_LABEL: Record<RecorderHealth, string> = {
 };
 
 export default function ProsodyAnalysisScreen({ navigation }: Props) {
+  const t = useT();
   const activeEvaluation = useClassSelector(
     Evaluation,
     (state: RootState) => state.activeEvaluation.evaluation,
@@ -236,11 +238,13 @@ export default function ProsodyAnalysisScreen({ navigation }: Props) {
             <VStack>
               <HStack alignItems="center" space="sm">
                 <Text size="2xl" weight="bold" color="$textLight900">
-                  Análisis prosódico
+                  
+                  {t.prosody.analisisProsodico}
                 </Text>
                 <Box bg="$primary50" px="$2" py="$0.5" borderRadius="$full">
                   <Text size="2xs" weight="bold" color="$primary800" style={{ letterSpacing: 0.4 }}>
-                    HABLA CONECTADA
+                    
+                    {t.prosody.hablaConectada}
                   </Text>
                 </Box>
               </HStack>
@@ -270,7 +274,8 @@ export default function ProsodyAnalysisScreen({ navigation }: Props) {
                 <HStack space="sm" alignItems="center">
                   <Icon as={AlertTriangle} size="sm" color="$warning700" />
                   <Text size="sm" color="$warning800" flex={1}>
-                    No hay micrófono disponible en este dispositivo. La prueba no puede realizarse.
+                    
+                    {t.prosody.hayMicrofonoDisponibleEsteDispositivo}
                   </Text>
                 </HStack>
               </Card>
@@ -280,7 +285,8 @@ export default function ProsodyAnalysisScreen({ navigation }: Props) {
             <Card p="$4" borderRadius={16}>
               <VStack space="sm">
                 <Text size="sm" weight="bold" color="$textLight800">
-                  Tarea
+                  
+                  {t.prosody.tarea}
                 </Text>
                 <HStack space="sm">
                   {PROSODY_AGE_BANDS.map(band => (
@@ -321,14 +327,15 @@ export default function ProsodyAnalysisScreen({ navigation }: Props) {
                   isDisabled={recording || analysing || !voiceAvailable}
                   onPress={speakConsigna}>
                   <Icon as={Volume2} size="sm" />
-                  {'  Reproducir la consigna'}
+                  {t.prosody.reproducirConsigna}
                 </Button>
                 <Text size="xs" color="$textLight600">
                   «{stimulus.consigna.es}»
                 </Text>
                 {!voiceAvailable ? (
                   <Text size="xs" color="$warning800">
-                    Sin voz disponible: lea la consigna en voz alta ANTES de iniciar la toma.
+                    
+                    {t.prosody.sinVozDisponibleLeaConsigna}
                   </Text>
                 ) : null}
 
@@ -336,8 +343,8 @@ export default function ProsodyAnalysisScreen({ navigation }: Props) {
                     entraría en el recuento de sílabas y en las pausas. */}
                 <Box bg="$backgroundLight50" p="$3" borderRadius={12}>
                   <Text size="xs" color="$textLight600">
-                    Reproduzca la consigna ANTES de iniciar la toma y guarde silencio mientras el
-                    niño habla: su voz se sumaría a la medida.
+                    
+                    {t.prosody.reproduzcaConsignaAntesIniciarToma}
                   </Text>
                 </Box>
 
@@ -350,7 +357,8 @@ export default function ProsodyAnalysisScreen({ navigation }: Props) {
                     variant="outline"
                     size="sm"
                     onPress={() => navigation.navigate('RoomNoiseCheck')}>
-                    Comprobar ruido de sala
+                    
+                    {t.prosody.comprobarRuidoSala}
                   </Button>
                 ) : null}
               </VStack>
@@ -361,10 +369,11 @@ export default function ProsodyAnalysisScreen({ navigation }: Props) {
               <VStack space="md">
                 <HStack alignItems="center" justifyContent="space-between">
                   <Text size="sm" weight="bold" color="$textLight800">
-                    Muestra
+                    
+                    {t.prosody.muestra}
                   </Text>
                   <Text size="xs" color="$textLight600">
-                    {secs(prosody.speechSec)} de habla · {secs(prosody.elapsedSec)} totales
+                    {secs(prosody.speechSec)}  {t.prosody.habla} {secs(prosody.elapsedSec)}  {t.prosody.totales}
                   </Text>
                 </HStack>
 
@@ -378,14 +387,16 @@ export default function ProsodyAnalysisScreen({ navigation }: Props) {
                   />
                 </Box>
                 <Text size="xs" color="$textLight600">
-                  Objetivo: {TARGET_SPEECH_SEC} s de habla (mínimo {MIN_SPEECH_SEC} s).
+                  
+                  {t.prosody.objetivo} {TARGET_SPEECH_SEC}  {t.prosody.sHablaMinimo} {MIN_SPEECH_SEC} s).
                 </Text>
 
                 {prosody.clipping ? (
                   <HStack space="sm" alignItems="center">
                     <Icon as={AlertTriangle} size="sm" color="$warning700" />
                     <Text size="xs" color="$warning800" flex={1}>
-                      La señal satura: aleje el dispositivo o baje la ganancia y repita la toma.
+                      
+                      {t.prosody.senalSaturaAlejeDispositivoBaje}
                     </Text>
                   </HStack>
                 ) : null}
@@ -397,12 +408,12 @@ export default function ProsodyAnalysisScreen({ navigation }: Props) {
                       isDisabled={!prosody.available || analysing}
                       onPress={() => void prosody.start()}>
                       <Icon as={Mic} size="sm" color="$white" />
-                      {done || prosody.phase === 'error' ? '  Repetir toma' : '  Iniciar toma'}
+                      {done || prosody.phase === 'error' ? t.prosody.repetirToma : t.prosody.iniciarToma}
                     </Button>
                   ) : (
                     <Button flex={1} action="secondary" onPress={() => void prosody.stop()}>
                       <Icon as={Square} size="sm" color="$white" />
-                      {'  Detener'}
+                      {t.prosody.detener}
                     </Button>
                   )}
                   {done || prosody.phase === 'error' ? (
@@ -416,7 +427,8 @@ export default function ProsodyAnalysisScreen({ navigation }: Props) {
                   <HStack space="sm" alignItems="center">
                     <Spinner size="small" />
                     <Text size="sm" color="$textLight600">
-                      Procesando análisis prosódico…
+                      
+                      {t.prosody.procesandoAnalisisProsodico}
                     </Text>
                   </HStack>
                 ) : null}
@@ -434,8 +446,8 @@ export default function ProsodyAnalysisScreen({ navigation }: Props) {
             {done && prosody.issues.tooLittleSpeech ? (
               <Card p="$4" borderRadius={16} bg="$warning50" borderWidth={1} borderColor="$warning200">
                 <Text size="sm" color="$warning800">
-                  Muestra corta ({secs(prosody.speechSec)} de habla). Las medidas de ritmo pierden
-                  fiabilidad; considere repetir la toma.
+                  
+                  {t.prosody.muestraCorta}{secs(prosody.speechSec)}  {t.prosody.hablaMedidasRitmoPierdenFiabilidad}
                 </Text>
               </Card>
             ) : null}
@@ -447,7 +459,8 @@ export default function ProsodyAnalysisScreen({ navigation }: Props) {
                   <HStack alignItems="center" space="sm">
                     <Icon as={AudioWaveform} size="sm" color="$primary600" />
                     <Text size="sm" weight="bold" color="$textLight800">
-                      Parámetros medidos
+                      
+                      {t.prosody.parametrosMedidos}
                     </Text>
                   </HStack>
 
@@ -464,7 +477,7 @@ export default function ProsodyAnalysisScreen({ navigation }: Props) {
                           {row.label}
                         </Text>
                         <Text size="sm" weight="bold" color={row.value === null ? '$textLight400' : '$textLight900'}>
-                          {row.value === null ? 'no medido' : `${row.value} ${row.unit}`.trim()}
+                          {row.value === null ? t.prosody.medido : `${row.value} ${row.unit}`.trim()}
                         </Text>
                       </HStack>
                       <Text size="2xs" color="$textLight500">
@@ -477,9 +490,8 @@ export default function ProsodyAnalysisScreen({ navigation }: Props) {
                       constar en pantalla, no solo en el PDF. */}
                   <Box bg="$backgroundLight50" p="$3" borderRadius={12}>
                     <Text size="xs" color="$textLight600">
-                      Valores descriptivos, sin baremo poblacional: no se emite juicio de normalidad.
-                      La comparación válida es con tomas anteriores del mismo niño en la misma tarea.
-                      Las medidas acústicas no sustituyen la valoración perceptiva del logopeda.
+                      
+                      {t.prosody.valoresDescriptivosSinBaremoPoblacional}
                     </Text>
                   </Box>
                 </VStack>
@@ -491,31 +503,33 @@ export default function ProsodyAnalysisScreen({ navigation }: Props) {
               <Card p="$4" borderRadius={16}>
                 <VStack space="sm">
                   <Text size="sm" weight="bold" color="$textLight800">
-                    Observaciones
+                    
+                    {t.prosody.observaciones}
                   </Text>
                   <Input>
                     <InputField
-                      placeholder="Colaboración, fatiga, incidencias…"
+                      placeholder={t.prosody.colaboracionFatigaIncidencias}
                       value={notes}
                       onChangeText={setNotes}
                     />
                   </Input>
                   <Text size="sm" weight="bold" color="$textLight800">
-                    Explorador
+                    
+                    {t.prosody.explorador}
                   </Text>
                   <Input>
-                    <InputField placeholder="Nombre" value={evaluatorName} onChangeText={setEvaluatorName} />
+                    <InputField placeholder={t.prosody.nombre} value={evaluatorName} onChangeText={setEvaluatorName} />
                   </Input>
                   <Input>
                     <InputField
-                      placeholder="Nº de colegiado"
+                      placeholder={t.prosody.nColegiado}
                       value={evaluatorLicense}
                       onChangeText={setEvaluatorLicense}
                     />
                   </Input>
                   <Button isDisabled={!canSave || isSaving} onPress={() => void handleSave()}>
                     <Icon as={Save} size="sm" color="$white" />
-                    {'  Guardar muestra'}
+                    {t.prosody.guardarMuestra}
                   </Button>
                 </VStack>
               </Card>

@@ -52,6 +52,7 @@ import { speakConsigna, stopConsigna } from './efSpeech';
 import { LuaCompanionWidget } from '@/Components/Mascot/LuaCompanionWidget';
 import { useLuaCompanion, LuaEmotion } from '@/Lua';
 
+import { useT } from '@/I18n';
 type Props = NativeStackScreenProps<RootStackParamList, 'ExecutiveFunctions'>;
 
 /* -------------------------------------------------------------------------- */
@@ -71,6 +72,7 @@ type Props = NativeStackScreenProps<RootStackParamList, 'ExecutiveFunctions'>;
 type Phase = 'setup' | 'intro' | 'play' | 'results';
 
 export default function ExecutiveFunctionsScreen({ navigation }: Props) {
+  const t = useT();
   const activeEvaluation = useClassSelector(Evaluation, (state: RootState) => state.activeEvaluation.evaluation);
   const [createExecutiveFunctions, { isLoading: isSaving }] = useCreateExecutiveFunctionsMutation();
   const tracker = useTelemetryTracker(); // telemetría silenciosa (useRef, sin re-render)
@@ -236,11 +238,13 @@ export default function ExecutiveFunctionsScreen({ navigation }: Props) {
       <VStack>
         <HStack alignItems="center" space="sm">
           <Text size="2xl" weight="bold" color="$textLight900">
-            Funciones ejecutivas
+            
+            {t.executiveFunctions.funcionesEjecutivas}
           </Text>
           <Box bg="$primary50" px="$2" py="$0.5" borderRadius="$full">
             <Text size="2xs" weight="bold" color="$primary800" style={{ letterSpacing: 0.4 }}>
-              JUEGO DE TARJETAS
+              
+              {t.executiveFunctions.juegoTarjetas}
             </Text>
           </Box>
         </HStack>
@@ -260,9 +264,8 @@ export default function ExecutiveFunctionsScreen({ navigation }: Props) {
 
       <Card bgColor="$white" borderRadius={20} p="$4">
         <Text size="sm" color="$textLight700" style={{ lineHeight: 20 }}>
-          Cinco mini-juegos cortos, <Text size="sm" weight="bold" color="$textLight900">uno por dominio ejecutivo</Text>.
-          El niño juega solo (o con apoyo mínimo en los más pequeños): cada juego explica su
-          consigna con una pantalla amable y avanza automáticamente. Duración total ≈ 8–12 min.
+          
+          {t.executiveFunctions.cincoMiniJuegosCortos} <Text size="sm" weight="bold" color="$textLight900">{t.executiveFunctions.unoDominioEjecutivo}</Text>{t.executiveFunctions.ninoJuegaSoloApoyoMinimo}
         </Text>
         <HStack flexWrap="wrap" mt="$3" style={{ gap: 6 }}>
           {EF_DOMAIN_ORDER.map(d => (
@@ -278,11 +281,12 @@ export default function ExecutiveFunctionsScreen({ navigation }: Props) {
       {/* selección de banda de edad → variante de dificultad */}
       <Card bgColor="$white" borderRadius={20} p="$4">
         <Text size="md" weight="bold" color="$textLight900" mb="$1">
-          ¿Qué edad tiene el paciente?
+          
+          {t.executiveFunctions.edadTienePaciente}
         </Text>
         <Text size="2xs" color="$textLight500" mb="$3">
-          La edad gradúa la dificultad: nº de tarjetas, velocidad, longitud de secuencias y cambio
-          de normas.
+          
+          {t.executiveFunctions.edadGraduaDificultadNTarjetas}
         </Text>
         <VStack space="sm">
           {EF_BANDS.map(b => {
@@ -329,12 +333,13 @@ export default function ExecutiveFunctionsScreen({ navigation }: Props) {
         <HStack alignItems="center" space="sm" mb="$1">
           <Icon as={Languages} size="sm" color="$primary500" />
           <Text size="sm" weight="bold" color="$textLight800" style={{ textTransform: 'uppercase', letterSpacing: 0.4 }}>
-            Voz de las consignas
+            
+            {t.executiveFunctions.vozConsignas}
           </Text>
         </HStack>
         <Text size="xs" color="$textLight600" mb="$3">
-          Con qué voz se dicta la consigna de cada mini-juego. Es el idioma de la sesión: cambiarlo
-          aquí lo cambia en toda la batería.
+          
+          {t.executiveFunctions.vozDictaConsignaCadaMini}
         </Text>
         <HStack space="sm" flexWrap="wrap" style={{ rowGap: 8 }}>
           {EF_CONSIGNA_LANGS.map(l => {
@@ -357,7 +362,8 @@ export default function ExecutiveFunctionsScreen({ navigation }: Props) {
           })}
         </HStack>
         <Text size="2xs" color="$textLight400" mt="$3" style={{ lineHeight: 15 }}>
-          Los juegos son los mismos en todas las lenguas: lo que cambia es la voz que los explica.
+          
+          {t.executiveFunctions.juegosSonMismosTodasLenguas}
         </Text>
 
         {/* El selector solo ofrece las lenguas en las que las consignas EXISTEN
@@ -367,9 +373,8 @@ export default function ExecutiveFunctionsScreen({ navigation }: Props) {
         {!EF_CONSIGNA_LANGS.includes(sessionLanguage as never) ? (
           <HStack space="xs" alignItems="flex-start" mt="$3" p="$2.5" borderRadius={12} bg="$warning50">
             <Text size="2xs" color="$warning800" style={{ flex: 1, lineHeight: 15 }}>
-              La sesión está en {SESSION_LANG_LABEL[sessionLanguage as SessionLang] ?? sessionLanguage}, pero
-              los mini-juegos aún no tienen consigna revisada en esa lengua: se dictarán en castellano y con
-              voz castellana. Traducirlos sin revisión de un logopeda sería inventar el estímulo.
+              
+              {t.executiveFunctions.sesionEsta} {SESSION_LANG_LABEL[sessionLanguage as SessionLang] ?? sessionLanguage}{t.executiveFunctions.peroMiniJuegosAunTienen}
             </Text>
           </HStack>
         ) : null}
@@ -377,8 +382,8 @@ export default function ExecutiveFunctionsScreen({ navigation }: Props) {
 
       <Box bg="$warning50" borderRadius={12} p="$2.5">
         <Text size="2xs" color="$warning800" style={{ lineHeight: 15 }}>
-          ⚠️ Cribado orientativo mediante juego: los cortes por dominio son provisionales y no
-          constituyen diagnóstico (no sustituye instrumentos estandarizados).
+          
+          {t.executiveFunctions.cribadoOrientativoMedianteJuegoCortes}
         </Text>
       </Box>
 
@@ -386,14 +391,16 @@ export default function ExecutiveFunctionsScreen({ navigation }: Props) {
         <HStack space="sm" alignItems="center">
           <Icon as={Play} size="sm" color="$white" />
           <Text size="md" weight="bold" color="$white">
-            Empezar los juegos
+            
+            {t.executiveFunctions.empezarJuegos}
           </Text>
         </HStack>
       </Button>
       {overall !== null ? (
         <Button action="secondary" variant="outline" rounded="$full" onPress={() => setPhase('results')}>
           <Text size="sm" weight="bold" color="$primary500">
-            Ver resultados
+            
+            {t.executiveFunctions.verResultados}
           </Text>
         </Button>
       ) : null}
@@ -424,7 +431,8 @@ export default function ExecutiveFunctionsScreen({ navigation }: Props) {
         <Center>
           <Text style={{ fontSize: 64, lineHeight: 76 }}>{meta.emoji}</Text>
           <Text size="2xs" weight="bold" color="$textLight400" mt="$2" style={{ letterSpacing: 1 }}>
-            JUEGO {gameIndex + 1} DE {EF_DOMAIN_ORDER.length}
+            
+            {t.executiveFunctions.juego} {gameIndex + 1} DE {EF_DOMAIN_ORDER.length}
           </Text>
           <Text size="2xl" weight="bold" color="$textLight900" mt="$1">
             {meta.game}
@@ -436,7 +444,8 @@ export default function ExecutiveFunctionsScreen({ navigation }: Props) {
             <HStack space="xs" alignItems="center" bg="$primary50" borderRadius="$full" px="$4" py="$2" mt="$4">
               <Icon as={Volume2} size="sm" color="$primary600" />
               <Text size="sm" weight="bold" color="$primary600">
-                Oír la consigna otra vez
+                
+                {t.executiveFunctions.oirConsignaOtraVez}
               </Text>
             </HStack>
           </Pressable>
@@ -445,11 +454,13 @@ export default function ExecutiveFunctionsScreen({ navigation }: Props) {
 
       <Button action="primary" variant="solid" rounded="$full" onPress={() => setPhase('play')}>
         <Text size="lg" weight="bold" color="$white">
-          ¡A jugar! 🎮
+          
+          {t.executiveFunctions.jugar}
         </Text>
       </Button>
       <Text size="2xs" color="$textLight400" style={{ textAlign: 'center' }}>
-        Dominio evaluado: {meta.title}
+        
+        {t.executiveFunctions.dominioEvaluado} {meta.title}
       </Text>
     </VStack>
   );
@@ -519,10 +530,11 @@ export default function ExecutiveFunctionsScreen({ navigation }: Props) {
         </Pressable>
         <VStack style={{ flex: 1 }}>
           <Text size="2xl" weight="bold" color="$textLight900">
-            Perfil ejecutivo
+            
+            {t.executiveFunctions.perfilEjecutivo}
           </Text>
           <Text size="xs" color="$textLight500">
-            {patientName ?? 'Funciones ejecutivas'} · Banda {band}
+            {patientName ?? 'Funciones ejecutivas'}  {t.executiveFunctions.banda} {band}
           </Text>
         </VStack>
         {overall !== null ? (
@@ -536,7 +548,8 @@ export default function ExecutiveFunctionsScreen({ navigation }: Props) {
 
       <Card bgColor="$white" borderRadius={20} p="$4">
         <Text size="sm" weight="bold" color="$textLight900" mb="$3">
-          Puntuación por dominio (0–100, orientativa)
+          
+          {t.executiveFunctions.puntuacionDominio0100Orientativa}
         </Text>
         <VStack space="md">
           {EF_DOMAIN_ORDER.map(d => {
@@ -551,7 +564,7 @@ export default function ExecutiveFunctionsScreen({ navigation }: Props) {
                     {m.emoji} {m.title}
                   </Text>
                   <Text size="xs" weight="bold" color={st === 'ok' ? '$success600' : st === 'warn' ? '$warning600' : st === 'alt' ? '$error600' : '$textLight400'}>
-                    {s !== null ? `${s}/100` : 'no jugado'}
+                    {s !== null ? `${s}/100` : t.executiveFunctions.jugado}
                   </Text>
                 </HStack>
                 <Box h={8} borderRadius="$full" bg="$backgroundLight100" style={{ overflow: 'hidden' }}>
@@ -565,7 +578,8 @@ export default function ExecutiveFunctionsScreen({ navigation }: Props) {
 
       <Card bgColor="$white" borderRadius={20} p="$4">
         <Text size="sm" weight="bold" color="$textLight700" mb="$2" style={{ letterSpacing: 0.3 }}>
-          INTERPRETACIÓN ORIENTATIVA
+          
+          {t.executiveFunctions.interpretacionOrientativa}
         </Text>
         <Text size="sm" color="$textLight700" style={{ lineHeight: 21 }}>
           {interpretExecutiveFunctions(band, scores)}
@@ -574,19 +588,22 @@ export default function ExecutiveFunctionsScreen({ navigation }: Props) {
 
       <Card bgColor="$white" borderRadius={20} p="$4">
         <Text size="sm" weight="bold" color="$textLight900" mb="$2">
-          Repetir
+          
+          {t.executiveFunctions.repetir}
         </Text>
         <HStack space="sm" flexWrap="wrap" style={{ gap: 6 }}>
           <Button action="secondary" variant="outline" rounded="$full" onPress={startBattery}>
             <Text size="sm" weight="bold" color="$primary500">
-              ▶ Repetir los juegos
+              
+              {t.executiveFunctions.repetirJuegos}
             </Text>
           </Button>
           <Button action="secondary" variant="outline" rounded="$full" onPress={restartAll}>
             <HStack space="xs" alignItems="center">
               <Icon as={RotateCcw} size="xs" color="$textLight500" />
               <Text size="sm" weight="bold" color="$textLight500">
-                Cambiar edad
+                
+                {t.executiveFunctions.cambiarEdad}
               </Text>
             </HStack>
           </Button>
@@ -594,17 +611,17 @@ export default function ExecutiveFunctionsScreen({ navigation }: Props) {
       </Card>
 
       <Card bgColor="$white" borderRadius={20} p="$4">
-        <Text size="sm" weight="bold" color="$textLight700" mb="$2">Evaluador responsable</Text>
+        <Text size="sm" weight="bold" color="$textLight700" mb="$2">{t.executiveFunctions.evaluadorResponsable}</Text>
         <HStack space="sm" mb="$3">
           <Input variant="outline" borderRadius={12} style={{ flex: 2 }}>
-            <InputField placeholder="Nombre" value={evaluatorName} onChangeText={setEvaluatorName} />
+            <InputField placeholder={t.executiveFunctions.nombre} value={evaluatorName} onChangeText={setEvaluatorName} />
           </Input>
           <Input variant="outline" borderRadius={12} style={{ flex: 1 }}>
-            <InputField placeholder="Colegiado" value={evaluatorLicense} onChangeText={setEvaluatorLicense} />
+            <InputField placeholder={t.executiveFunctions.colegiado} value={evaluatorLicense} onChangeText={setEvaluatorLicense} />
           </Input>
         </HStack>
         <Input variant="outline" borderRadius={12} h={64} mb="$3">
-          <InputField multiline placeholder="Observaciones clínicas…" value={notes} onChangeText={setNotes} style={{ textAlignVertical: 'top' }} />
+          <InputField multiline placeholder={t.executiveFunctions.observacionesClinicas} value={notes} onChangeText={setNotes} style={{ textAlignVertical: 'top' }} />
         </Input>
         <Button
           action="primary"
@@ -615,13 +632,14 @@ export default function ExecutiveFunctionsScreen({ navigation }: Props) {
           onPress={handleSave}>
           <HStack space="sm" alignItems="center">
             <Icon as={Save} size="sm" color="$white" />
-            <Text size="sm" weight="bold" color="$white">Guardar exploración</Text>
+            <Text size="sm" weight="bold" color="$white">{t.executiveFunctions.guardarExploracion}</Text>
           </HStack>
         </Button>
         <HStack space="xs" alignItems="center" justifyContent="center" mt="$2">
           <Icon as={Check} size="2xs" color="$textLight400" />
           <Text size="2xs" color="$textLight400" style={{ textAlign: 'center' }}>
-            Cribado orientativo por juego. No sustituye instrumentos estandarizados ni constituye diagnóstico.
+            
+            {t.executiveFunctions.cribadoOrientativoJuegoSustituyeInstrumentos}
           </Text>
         </HStack>
       </Card>
