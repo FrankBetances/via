@@ -46,24 +46,36 @@ export const VERBAL_BANK_BASE: Record<VerbalLang, VerbalLang | null> = {
  * `es-419` heredan el castellano sin sustituciones (Q3), `gl` lo dio por bueno ACOPROS
  * y `eu` lo firmó la logopeda euskaldun de Ulertuz (31/07/2026).
  *
- * `ca`, `es-419` y `en` entran como provisionales hasta que tengan su acta
- * clínica correspondiente.
+ * `es-419` SALIÓ de esta lista el 31/8/2026, cuando Quisqueya Habla firmó su
+ * audio (`assets/verbal-approval.es-419.json`). Su banco es el castellano
+ * heredado sin sustituciones —exactamente la situación de `es-DO`, que nunca
+ * estuvo aquí—, así que mantenerlo marcado como provisional después de la firma
+ * habría hecho que la pantalla dijese a la vez «banco propio de la lengua» y
+ * «banco PROVISIONAL», que es la contradicción que ya se corrigió una vez.
  *
- * OJO con `ca` y `en`: además de provisionales, su banco es PRESTADO
- * (`VERBAL_BANK_BORROWED`), y eso es lo que la pantalla les advierte, porque
- * es lo más grave de los dos. Decirles «banco provisional» sería impreciso en
- * la dirección equivocada: el banco que se les presenta —el castellano— sí
- * está firmado; lo que no está validado es presentárselo A ELLOS.
+ * Quedan `ca` y `en`, y por un motivo que NO es la falta de firma: sus voces
+ * las firmaron María (otorrinolaringóloga catalana) y Miguelina el 31/8/2026,
+ * pero esas actas cubren SOLO el audio de las consignas del corpus. Su banco
+ * verbal es PRESTADO (`VERBAL_BANK_BORROWED`): se les presentan las palabras
+ * castellanas, y eso es lo que la pantalla les advierte, porque es lo más grave
+ * de los dos. Decirles «banco provisional» sería impreciso en la dirección
+ * equivocada: el banco que se les presenta —el castellano— sí está firmado; lo
+ * que no está validado es presentárselo A ELLOS.
  */
-export const VERBAL_BANK_PROVISIONAL: readonly VerbalLang[] = ['ca', 'es-419', 'en'];
+export const VERBAL_BANK_PROVISIONAL: readonly VerbalLang[] = ['ca', 'en'];
 
 /**
  * Idiomas SIN locuciones propias empaquetadas en disco.
  *
- * `es-419` está aquí AUNQUE ya tenga sus 37 locuciones en disco: las generó el
- * workflow de voz el 31/8/2026 y NADIE las ha firmado. Lo que hace definitivo a
- * un estímulo no son los bytes, es la firma del expediente clínico, y mientras
- * no exista la pantalla debe seguir advirtiéndolo.
+ * HOY ESTÁ VACÍA, y eso no la hace inútil: es la lista que hay que volver a
+ * llenar en cuanto se dé de alta una lengua con banco propio antes de tener sus
+ * recortes firmados.
+ *
+ * `es-419` estuvo aquí hasta el 31/8/2026 teniendo ya sus 37 locuciones en
+ * disco: las generó el workflow de voz y NADIE las había firmado. Lo que hace
+ * definitivo a un estímulo no son los bytes, es la firma del expediente
+ * clínico. Salió cuando Quisqueya Habla firmó su audio, no cuando aparecieron
+ * los ficheros.
  *
  * `ca` y `en` no entran aquí porque su banco es PRESTADO — no es que les falten
  * locuciones, es que no les tocan (ver `VERBAL_BANK_BORROWED`).
@@ -74,7 +86,7 @@ export const VERBAL_BANK_PROVISIONAL: readonly VerbalLang[] = ['ca', 'es-419', '
  * suena con las locuciones de la lengua que le presta las palabras, que sí
  * existen. Quien decide qué se oye es `verbalStimulusLang`.
  */
-export const VERBAL_AUDIO_PENDING: readonly VerbalLang[] = ['es-419'];
+export const VERBAL_AUDIO_PENDING: readonly VerbalLang[] = [];
 
 /* -------------------------------------------------------------------------- */
 /*  BANCO PRESTADO — la distinción que faltaba, y que la pantalla mentía.      */

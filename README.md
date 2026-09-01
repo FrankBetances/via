@@ -305,10 +305,10 @@ consulta.
 | **es** — Español (España) | ✅ catálogo | Base: 38 láminas, bandas A–D | ✅ 97 entradas | 🟢 Audio aprobado por **ACOPROS** (2026-07-31, receta `sharvard`) |
 | **gl** — Galego | ✅ catálogo | Banco propio, 38 láminas (Proxecto Nós) | ✅ 97 entradas · voz Celtia | 🟢 Banco y audio aprobados por **ACOPROS** |
 | **eu** — Euskara | ✅ catálogo | Banco propio, 37 láminas (sibilantes, vibrante múltiple, diptongos decrecientes) | ✅ 97 entradas · voz AhoTTS Maider | 🟢 Firmado por la logopeda euskaldun de **Ulertuz** (2026-07-31) |
-| **es-DO** — Español dominicano · *Quisqueya Habla* | ✅ catálogo | Hereda el banco `es` con auditoría fonética caribeña (hoy **0 sustituciones firmadas**) | ✅ 97 entradas | 🟢 Audio aprobado por **ACOPROS** (2026-07-31) |
-| **ca** — Català | ✅ catálogo | ⚠️ **Prestado**: se le presentan las palabras castellanas, locutadas con voz castellana | 🟡 11 entradas de consigna (sin T.A.R.) · voz Matxa-TTS | 🟡 **Provisional** — sin acta clínica, sin diseño fonológico catalán |
-| **es-419** — Español (Latinoamérica) | ✅ catálogo | Hereda el banco `es` · 37/37 recortes presentes, **audio declarado pendiente** (`VERBAL_AUDIO_PENDING`) | 🟡 11 entradas de consigna (sin T.A.R.) | 🟡 **Provisional** — sin acta clínica |
-| **en** — English (US) | ✅ catálogo | ⚠️ **Prestado**: se le presentan las palabras castellanas, locutadas con voz castellana | 🟡 11 entradas de consigna (sin T.A.R.) · voz Piper LJSpeech | 🟡 **Provisional** — sin acta clínica, sin diseño fonológico inglés |
+| **es-DO** — Español dominicano · *Quisqueya Habla* | ✅ catálogo | Hereda el banco `es` con auditoría fonética caribeña (hoy **0 sustituciones firmadas**) | ✅ 97 entradas | 🟢 Audio aprobado por **Quisqueya Habla** (2026-08-31) |
+| **ca** — Català | ✅ catálogo | ⚠️ **Prestado**: se le presentan las palabras castellanas, locutadas con voz castellana | 🟡 11 entradas de consigna (sin T.A.R.) · voz Matxa-TTS | 🟡 Voz firmada por **María** (otorrinolaringóloga catalana, 2026-08-31); el banco sigue prestado |
+| **es-419** — Español (Latinoamérica) | ✅ catálogo | Hereda el banco `es` · 37/37 recortes propios | 🟡 11 entradas de consigna (sin T.A.R.) | 🟢 Audio aprobado por **Quisqueya Habla** (2026-08-31) |
+| **en** — English (US) | ✅ catálogo | ⚠️ **Prestado**: se le presentan las palabras castellanas, locutadas con voz castellana | 🟡 11 entradas de consigna (sin T.A.R.) · voz Piper LJSpeech | 🟡 Voz firmada por **Miguelina** (2026-08-31); el banco sigue prestado |
 
 > **Banco prestado no es lo mismo que banco provisional, y la pantalla lo distingue.** A `ca` y `en`
 > se les presenta el banco castellano —que sí está firmado—: lo que no está validado es
@@ -322,12 +322,22 @@ consulta.
 > **sanea** el idioma recibido (`resolveVerbalLang`): un valor persistido de una versión anterior
 > degrada a castellano en vez de tumbar la pantalla.
 
+<!-- Separador: dos notas independientes, no una continuación. -->
+
+> **Una firma de VOZ no es una firma de BANCO, y en `ca` y `en` solo hay la primera.** María y
+> Miguelina avalan la voz con la que se dictan sus **consignas** (11 entradas del corpus). No avalan
+> —porque no se les preguntó eso— presentar a un niño catalán o inglés las palabras castellanas, que
+> es lo que hoy hace la audiometría verbal en esas dos lenguas. Por eso siguen en
+> `VERBAL_BANK_PROVISIONAL`, su acta vive en `tools/nos/voices.json` y **no existe**
+> `assets/verbal-approval.ca.json`: crear ese registro dejaría firmadas por adelantado unas
+> locuciones verbales que no existen todavía. Hay una prueba que lo impide.
+
 Cobertura de recortes del banco verbal, tal como la informa `node scripts/check-verbal-coverage.js`
 (ejecutado el 31/8/2026):
 
 ```
   ✓ es      37/37        ✓ es-DO   37/37
-  ✓ gl      37/37        ✓ es-419  37/37  (audio declarado pendiente)
+  ✓ gl      37/37        ✓ es-419  37/37
   ✓ eu      32/32        · ca / en  —     (banco PRESTADO de 'es')
 ```
 
@@ -362,10 +372,10 @@ sigue siendo offline-first y no incorpora inferencia de IA como parte del dispos
 | `es` | Piper (VITS/ONNX) | `es_ES-sharvard-medium` (`lengthScale` 1.1) | rhasspy/piper-voices | 🟢 ACOPROS |
 | `gl` | Coqui TTS (VITS grafemas) | **Celtia** | **Proxecto Nós / ILENIA** | 🟢 ACOPROS |
 | `eu` | **AhoTTS** (VITS + frontend vasco) | **Maider** (respaldo Antton) | **HiTZ/Aholab · UPV/EHU** (ILENIA / NEL-GAITU) | 🟢 Ulertuz |
-| `es-DO` | Piper (VITS/ONNX) | `es_MX-claude-high` (neutra LatAm) | rhasspy/piper-voices | 🟢 ACOPROS |
-| `ca` | **Matxa-TTS** | `matxa-tts-cat-multiaccent` | **Projecte AINA / BSC** | 🔴 Pendiente |
-| `es-419` | Piper (VITS/ONNX) | `es_MX-claude-high` (la misma neutra LatAm) | rhasspy/piper-voices | 🔴 Pendiente |
-| `en` | Piper (VITS/ONNX) | `en_US-ljspeech-high` | rhasspy/piper-voices | 🔴 Pendiente |
+| `es-DO` | Piper (VITS/ONNX) | `es_MX-claude-high` (neutra LatAm) | rhasspy/piper-voices | 🟢 Quisqueya Habla |
+| `ca` | **Matxa-TTS** | `matxa-tts-cat-multiaccent` | **Projecte AINA / BSC** | 🟢 María (ORL catalana) · solo consignas |
+| `es-419` | Piper (VITS/ONNX) | `es_MX-claude-high` (la misma neutra LatAm) | rhasspy/piper-voices | 🟢 Quisqueya Habla |
+| `en` | Piper (VITS/ONNX) | `en_US-ljspeech-high` | rhasspy/piper-voices | 🟢 Miguelina · solo consignas |
 
 > La voz **neural es la vía por defecto de todos los idiomas**, castellano incluido.
 > `VERBAL_TTS=espeak` queda solo como degradación explícita para entornos sin acceso a los pesos
@@ -851,7 +861,7 @@ npx expo export:embed --platform android --dev false --entry-file index.js \
 
 - **Dominio:** Logoaudiometría en campo libre (altavoz del dispositivo, sin audífonos)
 - **Objetivo:** Reconocimiento de conjunto cerrado por selección de tarjetas (`WordCard`), con listas de estímulos por franja de edad (A–D); modos discriminación y umbral (URV/SRT estimado)
-- **Idiomas:** siete bancos registrados (`VERBAL_BANK_LANGS`) con tres situaciones distintas — banco propio (`es` · `gl`, del Proxecto Nós y aprobado por ACOPROS · `eu`, firmado por Ulertuz), banco heredado del castellano (`es-DO` de *Quisqueya Habla*, con locución propia · `es-419`) y **banco prestado** (`ca` · `en`: se les presentan las palabras castellanas, la pantalla lo advierte y se locutan con voz castellana). Ver [Idiomas y Voz Neuronal](#idiomas-y-voz-neuronal)
+- **Idiomas:** siete bancos registrados (`VERBAL_BANK_LANGS`) con tres situaciones distintas — banco propio (`es` · `gl`, del Proxecto Nós y aprobado por ACOPROS · `eu`, firmado por Ulertuz), banco heredado del castellano con locución propia firmada por Quisqueya Habla (`es-DO` de *Quisqueya Habla* · `es-419`) y **banco prestado** (`ca` · `en`: se les presentan las palabras castellanas, la pantalla lo advierte y se locutan con voz castellana). Ver [Idiomas y Voz Neuronal](#idiomas-y-voz-neuronal)
 - **Nativo:** **recortes de locución pre-sintetizados** como vía primaria (empaquetados por idioma, decodificados desde base64 sobre el `AudioContext` compartido y reproducidos por `BufferSource`), con la voz del sistema como degradación; presentados por el altavoz binaural. Degrada con placeholders si falta imagen
 - **Datos:** entidad `VerbalAudiometryTest` (tabla `verbal_audiometry_test`) · informe PDF
 
@@ -1307,7 +1317,7 @@ Earlify Health
 | Resultados de sesión e historial del paciente | 🟢 Integrado |
 | Telemetría de usabilidad Zero-PHI (Likert → QR) | 🟢 Integrado |
 | Capa de voz neuronal multi-idioma (es · gl · eu · es-DO) | 🟢 Integrada · **locución confirmada en emulador el 27/8/2026** |
-| Tres variedades añadidas (ca · es-419 · en) | 🟡 Interfaz y consignas sí; **sin T.A.R., sin acta clínica** y con banco prestado en `ca`/`en` |
+| Tres variedades añadidas (ca · es-419 · en) | 🟡 Voces firmadas el 31/8/2026 (María · Quisqueya Habla · Miguelina), pero **sin T.A.R.**; en `ca`/`en` el acta cubre solo las consignas y el banco sigue prestado |
 | Interfaz traducida (catálogo `src/I18n` + gate `check-ui-strings`) | 🟢 Integrada · 7 variedades, cambio de idioma en caliente |
 | Pantalla **Comprobar audio** (diagnóstico de la cadena de audio) | 🟢 Integrada · cuatro escuchas, sin veredicto favorable por omisión |
 | Barrera de error e informe de arranque (`@/Startup`) | 🟢 Integrada · el fallo se lee en el dispositivo, no en `console.error` |
@@ -1372,7 +1382,8 @@ ya costó ciclos de desarrollo enteros. El registro completo, con el coste de ca
 | **El veredicto de ruido de sala no llega al informe** | No se persiste en ningún modelo ni aparece en el PDF: un informe de audiometría no deja constancia de las condiciones acústicas ni de si la sala se saltó. Decisión de producto pendiente |
 | **Repositorio de referencia del análisis prosódico** | Existe uno indicado por la dirección y **su URL no consta en el repositorio**. Hasta que esté registrada, `src/Screens/ProsodyAnalysis/` no se toca |
 | **`react-native-ble-plx` en esta versión** | Autolinkada y compilada en cada build, con los dos adaptadores que la usarían esperando un `BleManager` que nadie instancia. Es decisión de producto, no limpieza |
-| **Actas clínicas de `ca`, `es-419` y `en`** | Sin firmar. Y `ca`/`en` presentan banco castellano prestado |
+| **Banco propio para `ca` y `en`** | Sus VOCES ya están firmadas (31/8/2026), pero siguen sin listas propias: se les presentan las palabras castellanas. Diseñar la rejilla fonológica catalana e inglesa es lo que falta, y hasta entonces la pantalla lo advierte |
+| **Identidad completa de dos firmantes** | Las actas de `ca` y `en` constan como «María (otorrinolaringóloga catalana)» y «Miguelina». Falta nombre completo, colegiación y acta de la sesión de escucha para el expediente |
 
 ---
 

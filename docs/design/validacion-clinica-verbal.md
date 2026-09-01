@@ -111,7 +111,7 @@ Inventario generado por `node scripts/verbal-assets.js manifest`
 | Asset | Estado | Firma |
 |---|---|---|
 | Dictado (motor por defecto) | **Recortes empaquetados** (`engine: 'assets'`, `preferTts: false`): emisión determinista e idéntica en todos los equipos. El TTS del dispositivo queda como degradación | — |
-| Locuciones `assets/audio/verbal/**` (es 37 · gl 37 · eu 32 · es-DO 37) | **Voz neuronal APROBADA PARA PRODUCCIÓN**, loudnorm −20 LUFS, suelo de duración 350 ms | ACOPROS (es · gl · es-DO) y Ulertuz (eu), 31/07/2026 — `assets/verbal-approval.<lang>.json` |
+| Locuciones `assets/audio/verbal/**` (es 37 · gl 37 · eu 32 · es-DO 37 · es-419 37) | **Voz neuronal APROBADA PARA PRODUCCIÓN**, loudnorm −20 LUFS, suelo de duración 350 ms | ACOPROS (es · gl) y Ulertuz (eu), 31/07/2026 · **Quisqueya Habla (es-DO · es-419), 31/08/2026** — `assets/verbal-approval.<lang>.json` |
 | 97 ilustraciones `assets/img/verbal/*.png` | Pictograma emoji o tile de inicial — **provisionales** | Ilustrador, estilo homogéneo, validadas con niños, misma clave |
 
 Lo aprobado es la voz **con su receta** (modelo + parámetros + post-proceso),
@@ -122,10 +122,28 @@ estímulos nuevos y necesitan reescucha — hoy, tres del castellano: «pan», �
 e «higo».
 
 El **banco de estímulos** es una firma distinta de la del audio: el gallego lo
-tiene desde el 28/07; el castellano y el dominicano lo heredan del inventario
-castellano; el **vasco sigue pendiente** de validación clínica de las listas por
-logopeda euskaldun, y por eso la pantalla lo etiqueta como provisional aunque su
-audio esté firmado.
+tiene desde el 28/07; el vasco desde el 31/07, firmado por la logopeda
+euskaldun de Ulertuz (`assets/verbal-approval.eu.json`, scope `bank`); el
+castellano, el dominicano y el latinoamericano lo heredan del inventario
+castellano y por eso no llevan registro propio.
+
+Quedan `ca` y `en`, y su etiqueta de provisional **no es por falta de firma**:
+sus voces las firmaron María (otorrinolaringóloga catalana) y Miguelina el
+31/08/2026, pero esas actas cubren solo el audio de las consignas del corpus y
+viven en `tools/nos/voices.json`. Su banco verbal es PRESTADO —se les presentan
+las palabras castellanas, locutadas con voz castellana—, así que **no existe ni
+debe existir** `assets/verbal-approval.ca.json` ni `…en.json`: firmar unas
+locuciones verbales que no existen dejaría aprobadas por adelantado las del día
+que esas lenguas tengan banco propio. Lo vigila una prueba de
+`verbalAudiometryBanks.test.ts`.
+
+Una firma RETIRADA (`status: "superseded"`) se queda en el registro a propósito
+—el castellano conserva la de davefx, el dominicano la de ACOPROS— para que el
+expediente cuente qué cambió y por qué. Lo que **no** puede hacer es viajar en
+el manifiesto como si fuera la vigente: `verbal-assets.js` las descarta al
+generar, y una prueba comprueba que ningún manifiesto cite una firma retirada.
+Ocurrió: el manifiesto castellano declaró `audioProvisional: false` citando a
+davefx cuando el banco ya era sharvard.
 
 La sustitución es archivo a archivo (misma clave = mismo nombre): no requiere
 tocar código. Tras sustituir, ejecutar `node scripts/verbal-assets.js manifest`

@@ -213,7 +213,17 @@ function cmdManifest({ bands, inventory }, lang) {
   const approvals = fs.existsSync(approvalPath)
     ? [JSON.parse(fs.readFileSync(approvalPath, 'utf8'))].flat()
     : [];
-  const approvalOf = scope => approvals.find(a => (a.scope ?? 'audio') === scope) ?? null;
+  // OJO con `superseded`: las firmas retiradas se quedan en el registro a
+  // propósito —el castellano conserva la de davefx, el dominicano la de
+  // ACOPROS— para que el expediente cuente por qué se cambió. Buscar «la
+  // primera con este scope» cogía justamente esa: el manifiesto castellano
+  // viajaba declarando `audioProvisional: false` con la firma de una voz
+  // RETIRADA (davefx) mientras el banco ya era sharvard. Un manifiesto es lo
+  // que acompaña al asset en el expediente: solo puede citar la firma VIGENTE.
+  const approvalOf = scope =>
+    approvals.find(
+      a => (a.scope ?? 'audio') === scope && a.status !== 'superseded',
+    ) ?? null;
   const audioApproval = approvalOf('audio');
   const bankApproval = approvalOf('bank');
 

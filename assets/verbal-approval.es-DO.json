@@ -1,7 +1,7 @@
 [
   {
     "scope": "audio",
-    "status": "aprobado-produccion",
+    "status": "superseded",
     "appliesTo": "voice",
     "date": "2026-07-31",
     "approvedBy": "ACOPROS",
@@ -20,6 +20,37 @@
       "voice": "espeak-ng es-419",
       "why": "aquel registro aplicaba a los archivos de espeak-ng y él mismo exigía nueva aprobación al regenerar con la voz neural Piper es_MX (ADR Q4.3). Los recortes actuales son ya los de Piper."
     },
-    "notes": "Aprobación para producción de la voz neuronal DOMINICANA por ACOPROS, comunicada por el responsable del proyecto. Sustituye al registro del 19/07/2026, que cubría los recortes de espeak-ng. Este banco es además la REFERENCIA DE RITMO del pipeline: su recorte más corto (376 ms) fija el suelo de duración de todas las lenguas. Adjuntar al expediente el acta de la sesión de revisión y la checklist de escucha firmada. `appliesTo: \"voice\"` significa que lo aprobado es la PRODUCCIÓN de esta voz con esta receta (modelo + parámetros + post-proceso): regenerar el banco con la misma receta conserva la aprobación; cambiar de modelo, de parámetros o de post-proceso la invalida y exige nueva firma."
+    "notes": "Aprobación para producción de la voz neuronal DOMINICANA por ACOPROS, comunicada por el responsable del proyecto. Sustituye al registro del 19/07/2026, que cubría los recortes de espeak-ng. Este banco es además la REFERENCIA DE RITMO del pipeline: su recorte más corto (376 ms) fija el suelo de duración de todas las lenguas. Adjuntar al expediente el acta de la sesión de revisión y la checklist de escucha firmada. `appliesTo: \"voice\"` significa que lo aprobado es la PRODUCCIÓN de esta voz con esta receta (modelo + parámetros + post-proceso): regenerar el banco con la misma receta conserva la aprobación; cambiar de modelo, de parámetros o de post-proceso la invalida y exige nueva firma.",
+    "supersededBy": "Quisqueya Habla, 2026-08-31",
+    "supersededReason": "La firma de la voz dominicana corresponde a Quisqueya Habla, que es quien avala la variante; este registro atribuía la aprobación a ACOPROS. Corregido el 31/08/2026 por indicación del responsable del proyecto. La RECETA no cambia (misma voz, mismos parámetros, mismo post-proceso): lo que se corrige es quién firma, no qué se firmó, así que los recortes en disco siguen siendo válidos y no hay que regenerar el banco."
+  },
+  {
+    "scope": "audio",
+    "status": "aprobado-produccion",
+    "appliesTo": "voice",
+    "date": "2026-08-31",
+    "approvedBy": "Quisqueya Habla",
+    "communicatedBy": "F. A. Betances (responsable del proyecto)",
+    "voice": "Piper es_MX-claude-high (Quisqueya Habla · variante dominicana) · 37/37 locuciones",
+    "recipe": {
+      "engine": "piper",
+      "model": "es_MX-claude-high",
+      "lengthScale": 1.1,
+      "postprocess": "loudnorm I=-20:TP=-3:LRA=7 · silenceremove start_threshold=-45dB · m4a AAC mono 44.1k",
+      "minClipMs": 350
+    },
+    "covers": [
+      "locuciones es-DO (audio)"
+    ],
+    "excludes": [
+      "listas de estímulos: es-DO HEREDA el banco castellano con auditoría fonética caribeña y 0 sustituciones firmadas, así que su validación de banco es la del castellano",
+      "ilustraciones (heredadas de es, provisionales)"
+    ],
+    "supersedes": {
+      "date": "2026-07-31",
+      "approvedBy": "ACOPROS",
+      "why": "la aprobación de la variante dominicana la firma Quisqueya Habla. El registro anterior queda en el expediente marcado como superseded, no se borra: el historial de quién firmó qué y cuándo es parte de la trazabilidad."
+    },
+    "notes": "Aprobación para producción de la voz neuronal DOMINICANA por Quisqueya Habla, comunicada por el responsable del proyecto. Sustituye en la AUTORÍA de la firma al registro del 31/07/2026 (ACOPROS), que a su vez sustituía al del 19/07/2026 (recortes de espeak-ng). Este banco es además la REFERENCIA DE RITMO del pipeline: su recorte más corto (376 ms) fija el suelo de duración de todas las lenguas. Adjuntar al expediente el acta de la sesión de revisión y la checklist de escucha firmada. `appliesTo: \"voice\"` significa que lo aprobado es la PRODUCCIÓN de esta voz con esta receta (modelo + parámetros + post-proceso): regenerar el banco con la misma receta conserva la aprobación; cambiar de modelo, de parámetros o de post-proceso la invalida y exige nueva firma."
   }
 ]
