@@ -1,0 +1,27 @@
+[
+  {
+    "scope": "audio",
+    "status": "aprobado-produccion",
+    "appliesTo": "voice",
+    "date": "2026-08-31",
+    "approvedBy": "Quisqueya Habla",
+    "communicatedBy": "F. A. Betances (responsable del proyecto)",
+    "voice": "Piper es_MX-claude-high (neutra LatAm) · 37/37 locuciones del banco verbal + 11 consignas del corpus",
+    "recipe": {
+      "engine": "piper",
+      "model": "es_MX-claude-high",
+      "lengthScale": 1.1,
+      "postprocess": "loudnorm I=-20:TP=-3:LRA=7 · silenceremove start_threshold=-45dB · m4a AAC mono 44.1k",
+      "minClipMs": 350
+    },
+    "covers": [
+      "locuciones es-419 (audio)"
+    ],
+    "excludes": [
+      "listas de estímulos: es-419 HEREDA el banco castellano sin sustituciones, así que su validación de banco es la del castellano (docs/design/validacion-clinica-verbal.md), no un registro propio",
+      "ilustraciones (heredadas de es, provisionales)",
+      "cortes de interpretación (§4 de validacion-clinica-verbal.md, comunes al módulo)"
+    ],
+    "notes": "Aprobación para producción de la voz neutra LatAm en la variante es-419, por Quisqueya Habla, comunicada por el responsable del proyecto. Es la misma voz, la misma receta y la misma entidad firmante que el dominicano. Las 37 locuciones existían en disco desde el run 25 del workflow de voz y NO estaban aprobadas: por eso es-419 seguía en VERBAL_AUDIO_PENDING y la pantalla advertía que el estímulo no era el definitivo. Con esta firma sale de esa lista — generar los bytes no aprueba el estímulo; lo aprueba la firma. Adjuntar al expediente el acta de la sesión de revisión y la checklist de escucha firmada. `appliesTo: \"voice\"` significa que lo aprobado es la PRODUCCIÓN de esta voz con esta receta (modelo + parámetros + post-proceso): regenerar el banco con la misma receta conserva la aprobación; cambiar de modelo, de parámetros o de post-proceso la invalida y exige nueva firma."
+  }
+]

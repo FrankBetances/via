@@ -379,6 +379,55 @@ describe('aprobación clínica · el código no puede adelantarse al registro', 
     }
   });
 
+  it('es-419 salió de VERBAL_AUDIO_PENDING con la firma de Quisqueya Habla (31/8/2026)', () => {
+    // Los 37 recortes existían desde el run 25 del workflow y no bastaban: lo
+    // que saca a un idioma de la lista es la FIRMA, no los bytes. Esta prueba
+    // ata las dos mitades — si alguien devuelve es-419 a la lista sin retirar
+    // el acta, o retira el acta sin devolverlo, salta aquí.
+    expect(VERBAL_AUDIO_PENDING).not.toContain('es-419');
+    const vigentes = approvalsOf('es-419')
+      .filter(a => scopeOf(a) === 'audio' && a.status !== 'superseded');
+    expect(vigentes).toHaveLength(1);
+    expect(vigentes[0].approvedBy).toMatch(/Quisqueya Habla/);
+    expect(vigentes[0].recipe?.model).toBe('es_MX-claude-high');
+  });
+
+  it('un banco PRESTADO no tiene registro de aprobación propio, ni siquiera firmada la voz', () => {
+    // `ca` y `en` tienen su voz firmada (María y Miguelina, 31/8/2026), pero eso
+    // vive en tools/nos/voices.json y cubre SOLO las consignas del corpus. Crear
+    // aquí un assets/verbal-approval.<lang>.json daría por firmadas unas
+    // locuciones verbales que NO EXISTEN, y el día que esa lengua tenga banco
+    // propio el gate de cobertura las daría por aprobadas sin que nadie las
+    // escuche. Mientras el banco sea prestado, este registro no debe existir.
+    for (const lang of VERBAL_BANK_LANGS) {
+      if (!VERBAL_BANK_BORROWED[lang]) continue;
+      expect({ lang, registros: approvalsOf(lang).length }).toEqual({ lang, registros: 0 });
+    }
+  });
+
+  it('ningún manifiesto cita una firma RETIRADA como si fuera la vigente', () => {
+    // Fallo real, encontrado el 31/8/2026: `verbal-assets.js` cogía «la primera
+    // firma con este scope» y las retiradas se quedan en el registro a
+    // propósito. El manifiesto castellano viajaba declarando
+    // `audioProvisional: false` citando a davefx —voz RETIRADA— cuando el banco
+    // ya era sharvard. Un manifiesto acompaña al asset en el expediente.
+    const manifests = fs
+      .readdirSync(path.join(ROOT, 'assets'))
+      .filter((f: string) => /^verbal-manifest(\..+)?\.json$/.test(f));
+    expect(manifests.length).toBeGreaterThan(0);
+    for (const file of manifests) {
+      const m = JSON.parse(fs.readFileSync(path.join(ROOT, 'assets', file), 'utf8'));
+      for (const key of ['audioApproval', 'bankApproval'] as const) {
+        if (!m[key]) continue;
+        expect({ file, key, status: m[key].status }).toEqual({
+          file,
+          key,
+          status: 'aprobado-produccion',
+        });
+      }
+    }
+  });
+
   it('el banco firmado coincide en tamaño con el que se compila (la firma no queda huérfana)', () => {
     const items = getVerbalBands('gl').flatMap(b => b.items);
     const scored = items.filter(i => !i.practice);

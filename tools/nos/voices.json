@@ -1,5 +1,5 @@
 {
-  "note": "Registro declarativo del motor de voz neural (ILENIA / Proxecto Nós + Piper). Una voz por idioma/variante de la batería VIA+. Los modelos se ejecutan SOLO en build-time (tools/nos/tts.py + scripts/verbal-assets.js); la app no incorpora IA en runtime y sigue siendo offline-first. ESTADO: gallego y dominicano (ACOPROS) y euskera (Ulertuz) están APROBADOS PARA PRODUCCIÓN. El CASTELLANO también, ya sobre su receta NUEVA: la voz pasó de es_ES-davefx-medium a es_ES-sharvard-medium (la de Valeria+) porque davefx desplomaba los monosílabos por debajo del suelo de 350 ms; el banco se regeneró entero y la firma se anotó después de comprobarlo, no antes. Lo aprobado es la voz CON SU RECETA (modelo + params + post-proceso): tocar cualquiera de los tres invalida la firma y exige nueva escucha. El registro firmado de cada lengua vive en assets/verbal-approval.<lang>.json, que es lo que lee el manifiesto; este archivo solo lo refleja.",
+  "note": "Registro declarativo del motor de voz neural (ILENIA / Proxecto Nós + Piper). Una voz por idioma/variante de la batería VIA+. Los modelos se ejecutan SOLO en build-time (tools/nos/tts.py + scripts/verbal-assets.js); la app no incorpora IA en runtime y sigue siendo offline-first. ESTADO (31/08/2026): las SIETE voces están APROBADAS PARA PRODUCCIÓN — gallego y castellano por ACOPROS, euskera por Ulertuz, dominicano y latinoamericano por Quisqueya Habla, catalán por María (otorrinolaringóloga catalana) e inglés por Miguelina. OJO con el alcance: en `ca` y `en` lo firmado es SOLO la voz de las consignas del corpus, porque esas dos variantes no tienen banco verbal propio (usan el castellano prestado) y siguen en VERBAL_BANK_PROVISIONAL. El CASTELLANO también, ya sobre su receta NUEVA: la voz pasó de es_ES-davefx-medium a es_ES-sharvard-medium (la de Valeria+) porque davefx desplomaba los monosílabos por debajo del suelo de 350 ms; el banco se regeneró entero y la firma se anotó después de comprobarlo, no antes. Lo aprobado es la voz CON SU RECETA (modelo + params + post-proceso): tocar cualquiera de los tres invalida la firma y exige nueva escucha. El registro firmado de cada lengua vive en assets/verbal-approval.<lang>.json, que es lo que lee el manifiesto; este archivo solo lo refleja.",
   "modelsDir": "tools/nos/models",
   "postprocess": {
     "note": "El post-proceso (loudnorm, recorte de silencios, m4a 44.1k mono) NO es del motor: lo aplica scripts/verbal-assets.js con ffmpeg, idéntico para todas las voces, para garantizar sonoridad homogénea entre idiomas (mismo objetivo LUFS). El SUELO DE DURACIÓN (350 ms por locución) también se aplica aquí, después de codificar: ver scripts/voice-clip-tempo.js.",
@@ -56,10 +56,16 @@
       "notes": "Quisqueya Habla · Q4.1: no existe voz abierta es-DO, se usa la voz Piper neutra LatAm es_MX-claude-high. APROBADA PARA PRODUCCIÓN por ACOPROS (31/07/2026), así que deja de ser una elección provisional a la espera del ADR Q4.3; un locutor dominicano propio sería una mejora posterior, no un requisito pendiente. Este banco es además la REFERENCIA DE RITMO del pipeline: su recorte más corto (376 ms) fija el suelo de duración de todas las lenguas.",
       "clinicalApproval": {
         "status": "aprobado-produccion",
-        "approvedBy": "ACOPROS",
-        "date": "2026-07-31",
+        "approvedBy": "Quisqueya Habla",
+        "date": "2026-08-31",
+        "communicatedBy": "F. A. Betances (responsable del proyecto)",
         "scope": "audio",
-        "record": "assets/verbal-approval.es-DO.json"
+        "record": "assets/verbal-approval.es-DO.json",
+        "supersedes": {
+          "approvedBy": "ACOPROS",
+          "date": "2026-07-31",
+          "why": "la firma de la voz dominicana corresponde a Quisqueya Habla, que es quien la avala; el registro de ACOPROS del 31/07/2026 queda como superseded en assets/verbal-approval.es-DO.json, no se borra. Corregido el 31/08/2026 por indicación del responsable del proyecto."
+        }
       }
     },
     "eu": {
@@ -135,8 +141,13 @@
       "accent": "central",
       "notes": "PORTE de Valeria+ (`scripts/generate-voice-assets.py`, VOICES['ca']). NO es Piper: es Matcha-TTS (flow matching) con el vocóder DENTRO del export ONNX, y su frontend es FONÉMICO (espeak-ng vía phonemizer, idioma `ca`), no de grafemas. Meterle letras produce ruido, no acento, y `scales` son DOS valores (temperatura y length_scale), no los tres de VITS. Por eso no puede ir por el motor `piper` aunque el fichero acabe en .onnx. La variante MULTIACCENT trae central, balear, nord-occidental y valencià; el índice de hablante se elige OYENDO las muestras que deja el canario.",
       "clinicalApproval": {
-        "status": "pendiente",
-        "scope": "audio"
+        "status": "aprobado-produccion",
+        "approvedBy": "María (otorrinolaringóloga catalana)",
+        "date": "2026-08-31",
+        "communicatedBy": "F. A. Betances (responsable del proyecto)",
+        "scope": "audio",
+        "record": null,
+        "note": "Aprobación para producción de la VOZ catalana (Matxa-TTS multiaccent), comunicada por el responsable del proyecto el 31/08/2026. ALCANCE: el audio, y solo el del CORPUS DE CONSIGNAS (11 entradas). El catalán NO tiene banco verbal propio: la audiometría verbal le presenta las palabras castellanas y las locuta con la voz castellana (VERBAL_BANK_BORROWED), así que no hay locuciones verbales catalanas que firmar. Por eso NO existe assets/verbal-approval.ca.json y el campo `record` va a null: crear ese registro dejaría firmadas por adelantado unas locuciones que no existen, y el día que el catalán tenga banco propio el gate check-verbal-coverage las daría por aprobadas sin que nadie las escuche. `ca` sigue en VERBAL_BANK_PROVISIONAL y la pantalla sigue advirtiendo del banco prestado. PENDIENTE de adjuntar al expediente: nombre completo, colegiación y acta de la sesión de escucha."
       }
     },
     "es-419": {
@@ -157,8 +168,13 @@
       },
       "notes": "Variedad PROPIA de VIA+: Valeria+ no tiene `es-419`, así que aquí no hay camino demostrado que copiar. Se declaraba «CC BY 4.0» sin que nadie lo hubiese comprobado; hasta que la auditoría T0.2 la firme, se dice lo que se sabe. Además le faltaba el bloque `files`, así que el motor Piper reventaba al construirse: estaba declarada, no cableada.",
       "clinicalApproval": {
-        "status": "pendiente",
-        "scope": "audio"
+        "status": "aprobado-produccion",
+        "approvedBy": "Quisqueya Habla",
+        "date": "2026-08-31",
+        "communicatedBy": "F. A. Betances (responsable del proyecto)",
+        "scope": "audio",
+        "record": "assets/verbal-approval.es-419.json",
+        "note": "Aprobación para producción de la voz neutra LatAm en la variante es-419, comunicada por el responsable del proyecto el 31/08/2026. Cubre las 37/37 locuciones del banco verbal (que es el castellano heredado sin sustituciones) y las 11 consignas del corpus. Con esta firma es-419 SALE de VERBAL_AUDIO_PENDING: sus recortes dejan de ser provisionales y la pantalla deja de advertir que el estímulo no es el definitivo. Es la misma voz y la misma receta que el dominicano, firmada por la misma entidad. PENDIENTE de adjuntar al expediente: acta de la sesión de escucha."
       }
     },
     "en": {
@@ -177,8 +193,13 @@
       },
       "notes": "LICENCIA AUDITADA VOZ POR VOZ, copiada de Valeria+: rhasspy/piper-voices NO es uniforme. · en_US-hfc_female-medium → Hi-Fi Captain (NICT), CC BY-NC-SA 4.0 ⇒ NO COMERCIAL, descartada. · en_US-lessac-medium → Blizzard Challenge 2013 (Lessac/C. Byers), licencia de INVESTIGACIÓN ⇒ descartada. · en_US-ljspeech-high → LJSpeech, LibriVox en dominio público, modelo MIT ⇒ ELEGIDA. · en_US-amy-medium → MIT, alternativa válida. VIA+ declaraba `en_US-lessac-medium` como «Public Domain»: las dos cosas eran falsas.",
       "clinicalApproval": {
-        "status": "pendiente",
-        "scope": "audio"
+        "status": "aprobado-produccion",
+        "approvedBy": "Miguelina",
+        "date": "2026-08-31",
+        "communicatedBy": "F. A. Betances (responsable del proyecto)",
+        "scope": "audio",
+        "record": null,
+        "note": "Aprobación para producción de la VOZ inglesa (Piper en_US-ljspeech-high), comunicada por el responsable del proyecto el 31/08/2026. ALCANCE: el audio, y solo el del CORPUS DE CONSIGNAS (11 entradas). El inglés NO tiene banco verbal propio: la audiometría verbal le presenta las palabras castellanas y las locuta con la voz castellana (VERBAL_BANK_BORROWED). Mismo motivo que en `ca` para que `record` vaya a null y no exista assets/verbal-approval.en.json. `en` sigue en VERBAL_BANK_PROVISIONAL. PENDIENTE de adjuntar al expediente: nombre completo, cualificación y acta de la sesión de escucha."
       }
     }
   }

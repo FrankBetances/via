@@ -33,6 +33,7 @@ import { VERBAL_BANDS } from './verbalAudiometryLists';
 import {
   resolveVerbalLang,
   VERBAL_AUDIO_PENDING,
+  VERBAL_BANK_BASE,
   VERBAL_BANK_LANGS,
   VERBAL_BANK_PROVISIONAL,
   usesBorrowedBank,
@@ -365,10 +366,18 @@ export default function VerbalAudiometryScreen({ navigation }: Props) {
               )}
             </Text>
           </HStack>
-        ) : v.lang !== 'es' && !VERBAL_AUDIO_PENDING.includes(v.lang) ? (
-          /* «Banco y locuciones PROPIOS» solo donde las dos cosas son ciertas.
-             `es-419` no tiene locuciones propias, y afirmarlo aquí chocaba con
-             el aviso de tres líneas más abajo, que dice justo lo contrario. */
+        ) : v.lang !== 'es' &&
+          !VERBAL_AUDIO_PENDING.includes(v.lang) &&
+          !VERBAL_BANK_BASE[v.lang] ? (
+          /* «Banco y locuciones PROPIOS» solo donde las DOS cosas son ciertas.
+             Antes bastaba con tener locuciones firmadas, y eso metía aquí a las
+             variantes que HEREDAN el banco castellano (`es-DO`, y `es-419` en
+             cuanto Quisqueya Habla firmó su audio el 31/8/2026): a esas la
+             pantalla les afirmaba un banco propio que no tienen. Sus palabras
+             son las castellanas; lo propio es la locución. Mientras no exista
+             una línea redactada y revisada para ese caso, aquí no se dice nada:
+             una casilla vacía es recuperable, una afirmación falsa sobre el
+             estímulo no. */
           <Text size="2xs" color="$textLight400" mt="$2">
             {t.verbalAudiometry.bancoEstimulosLocucionesPropiosLengua}
           </Text>
