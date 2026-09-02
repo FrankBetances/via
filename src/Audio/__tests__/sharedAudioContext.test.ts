@@ -37,6 +37,14 @@ jest.mock('react-native-audio-api', () => {
       this.state = 'running';
       return Promise.resolve(true);
     }
+    /* El motor real NO se levanta con `resume()` cuando el stream nunca abrió:
+     * `AudioContext::resume()` acaba en `mStream_->requestStart()` con
+     * `mStream_` nulo. Este doble lo reproduce con `deadStream`: el contexto
+     * existe, responde «suspended» y `resume()` no lo cambia. */
+    markDeadStream() {
+      this.state = 'suspended';
+      this.resume = () => Promise.resolve(false);
+    }
   }
   return {
     AudioContext: FakeAudioContext,
@@ -54,7 +62,10 @@ import {
   AUDIO_SAMPLE_RATE,
   isRecordingSessionActive,
   onRecordingSessionChange,
+  isOutputDriverRunning,
+  onAudioContextChange,
   peekAudioContext,
+  recoverAudioContext,
   releaseAudioContext,
   resumeAudioContext,
   __resetSharedAudioContextForTests,
@@ -280,5 +291,92 @@ describe('reactivación del contexto (resumeAudioContext)', () => {
       throw new Error('resume failed');
     };
     expect(() => resumeAudioContext()).not.toThrow();
+  });
+});
+
+
+describe('recuperación de un contexto muerto (recoverAudioContext)', () => {
+  /* El fallo que esto cubre: `openAudioStream()` falla, `mStream_` queda nulo y
+   * el constructor de `AudioContext` pone `state_ = RUNNING` ignorando el
+   * `false` de `start()`. El objeto existe, no lanza y NO SUENA NADA. Como el
+   * contexto se abre al arrancar la app y no se suelta jamás, la sesión entera
+   * se queda muda sin reintento y sin mensaje. */
+
+  it('sustituye el contexto cuyo stream nativo no arrancó', () => {
+    const dead = acquireAudioContext() as any;
+    dead.markDeadStream();
+
+    const revived = recoverAudioContext() as any;
+
+    expect(revived).not.toBeNull();
+    expect(revived).not.toBe(dead);
+    expect(dead.closed).toBe(true);
+    expect(mockCreated).toHaveLength(2);
+    expect(peekAudioContext()).toBe(revived);
+  });
+
+  it('conserva el recuento de reservas: nadie se queda sin contexto', () => {
+    acquireAudioContext();
+    acquireAudioContext();
+    (peekAudioContext() as any).markDeadStream();
+
+    recoverAudioContext();
+
+    expect(audioContextRefCount()).toBe(2);
+    // Y soltar las dos reservas sigue cerrando el contexto NUEVO.
+    releaseAudioContext();
+    releaseAudioContext();
+    expect(peekAudioContext()).toBeNull();
+  });
+
+  it('no toca nada si el driver ya está corriendo', () => {
+    const live = acquireAudioContext();
+
+    expect(recoverAudioContext()).toBe(live);
+    expect(mockCreated).toHaveLength(1);
+  });
+
+  it('avisa a los adaptadores para que suelten la referencia muerta', () => {
+    const visto: Array<unknown> = [];
+    const baja = onAudioContextChange(next => visto.push(next));
+
+    const dead = acquireAudioContext() as any;
+    dead.markDeadStream();
+    const revived = recoverAudioContext();
+
+    expect(visto).toEqual([revived]);
+    baja();
+
+    (peekAudioContext() as any).markDeadStream();
+    recoverAudioContext();
+    expect(visto).toHaveLength(1);
+  });
+
+  it('un oyente que lanza no impide la recuperación', () => {
+    const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
+    onAudioContextChange(() => {
+      throw new Error('oyente roto');
+    });
+    let visto: unknown = 'sin avisar';
+    onAudioContextChange(next => {
+      visto = next;
+    });
+
+    (acquireAudioContext() as any).markDeadStream();
+    const revived = recoverAudioContext();
+
+    expect(revived).not.toBeNull();
+    expect(visto).toBe(revived);
+    warn.mockRestore();
+  });
+
+  it('isOutputDriverRunning distingue el contexto vivo del muerto', () => {
+    expect(isOutputDriverRunning()).toBe(false); // sin contexto
+
+    const ctx = acquireAudioContext() as any;
+    expect(isOutputDriverRunning()).toBe(true);
+
+    ctx.markDeadStream();
+    expect(isOutputDriverRunning()).toBe(false);
   });
 });

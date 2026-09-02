@@ -110,6 +110,35 @@ frames de verdad. Eso es el eslabón **«Reloj del hardware de salida»**
 motor está muerto» de «el motor va y no lo oigo», que hasta entonces solo podía
 distinguir el oído del profesional.
 
+**De un stream que no abrió NO se sale con `resume()`.** Es el mecanismo por el
+que la app entera puede salir muda de un build sin que haya cambiado una línea
+de la capa de audio:
+
+1. `AudioPlayer` abre el stream **en su constructor**
+   (`isInitialized_ = openAudioStream()`). Si Oboe no lo abre —otra app con el
+   dispositivo en exclusiva, el arranque pillando la salida ocupada—, `mStream_`
+   queda **nulo** y el error solo va al log de Android.
+2. `AudioContext` llama a `audioPlayer_->start()`, **ignora su `false`** y deja
+   `playerHasBeenStarted_ = true`.
+3. `AudioContext::resume()` reabre el stream **solo** en la rama
+   `if (!playerHasBeenStarted_)`, que ese `true` deja muerta. Lo que ejecuta es
+   `audioPlayer_->resume()` → `mStream_->requestStart()` con `mStream_` nulo →
+   `false`, para siempre.
+
+El contexto se abre **al arrancar la app** (`installAudiometryToneAdapter` en
+`src/App.tsx`) y no se suelta nunca, así que una apertura fallida deja **toda la
+sesión muda**, sin reintento y sin mensaje. Por eso existe
+`recoverAudioContext()`: cierra el contexto muerto y construye uno nuevo —otro
+`AudioPlayer`, otro `openAudioStream()`—, conservando el recuento de reservas y
+avisando por `onAudioContextChange()` a los adaptadores, que guardan su propia
+referencia y si no seguirían usando el objeto muerto. La pantalla *Comprobar
+audio* lo intenta sola cuando el reloj no avanza y el driver no está arrancado,
+y dice si funcionó.
+
+Un caso distinto, con arreglo distinto: si el driver **sí** dice `running` y el
+reloj no avanza, el stream está abierto y su callback atascado. Reabrir no es la
+cura y el diagnóstico no lo intenta — lo nombra.
+
 **La sesión de audio es una capa iOS.** En Android
 `AudioAPIModule.kt:66` implementa `setAudioSessionOptions` como
 `// noting to do here` y `setAudioSessionActivity` solo resuelve la promesa. Un

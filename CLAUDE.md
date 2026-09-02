@@ -349,6 +349,17 @@ causas con arreglos completamente distintos.
     `// noting to do here` y `setAudioSessionActivity` solo resuelve la
     promesa. Un arreglo de sonido para el emulador de Frank que consista en
     reconfigurar la sesión está tocando una capa que ahí no existe.
+  · **Un motor de salida que no arranca deja la app muda PARA SIEMPRE, y hasta
+    el 2/9/2026 no había forma de salir de ahí.** `AudioPlayer` abre el stream
+    en su constructor; si Oboe falla, `mStream_` queda nulo. `AudioContext`
+    ignora el `false` de `start()` y deja `playerHasBeenStarted_ = true`, que es
+    justo el booleano del que cuelga la única rama de `resume()` que reabriría
+    el stream. El contexto se abre al ARRANCAR la app (`src/App.tsx`) y no se
+    suelta jamás: una apertura fallida = sesión entera muda, sin reintento y sin
+    mensaje. Ahora `recoverAudioContext()` construye uno nuevo y avisa por
+    `onAudioContextChange()` a los adaptadores (que cachean su referencia);
+    «Comprobar audio» lo intenta solo. **Cuando algo salga mudo, esta es la
+    primera hipótesis, y no exige que haya cambiado ninguna línea de audio.**
   · **Si hay tres motores de salida, hay tres pruebas de escucha.** Había una
     (el tono) y cerraba el veredicto de los tres. Ahora son cuatro emisiones
     —tono, recorte verbal, locución empaquetada, voz del sistema— y mientras
@@ -537,6 +548,19 @@ descargado, y las imágenes de AVD no lo traen. **Eso no es una avería.**
   que enmudecieron en agosto no eran la de `expo-speech`. Hasta que las cuatro
   escuchas de **Comprobar audio** estén contestadas, no se escribe ni se dice
   «el audio funciona».
+- **El build mudo del 2/9/2026 sigue SIN causa confirmada.** Frank informa de
+  que el último build salió mudo y pidió una revisión a Gemini, de la que salió
+  la rama `sonido`; ese arreglo es inerte en Android (ver la corrección de la
+  regla 4). Lo comprobado desde aquí, sin emulador: **ninguna línea de
+  `src/Audio/` cambió** entre el build que hablaba (27/8, commit `6929c47`) y
+  hoy; `npx expo export:embed` construye el bundle sin error y empaqueta 458
+  `.m4a`; los 421 `require` del mapa de voz apuntan a ficheros que existen y
+  ninguno está vacío. Es decir: **no hay regresión en el código de audio ni un
+  fallo de empaquetado**, lo que deja arriba la hipótesis del stream que no
+  abre. Lo que falta para cerrarlo es una corrida de «Comprobar audio» en el
+  emulador: el eslabón **Reloj del hardware de salida** distingue las tres
+  causas (stream que no abrió · callback atascado · motor vivo que no se oye) y
+  reabre el motor si la avería es la primera.
 - **El micrófono no cambia de nivel al acercarse (25/8/2026).** Frank lo
   reporta como duda, no como avería, y no está resuelto. La toma de prueba
   publica ahora el **recorrido** (bloque más flojo → más fuerte) para que la

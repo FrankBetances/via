@@ -5,8 +5,10 @@ import {
   acquireRecorder,
   acquireRecordingSession,
   isAudioEngineAvailable,
+  isOutputDriverRunning,
   isRecordingSessionActive,
   recorderHealth,
+  recoverAudioContext,
   releaseAudioContext,
   resumeAudioContext,
   setRecorderPermissionGranted,
@@ -467,6 +469,29 @@ export async function checkOutputClock(): Promise<CheckResult> {
     };
   }
 
+  // La reserva se mantiene durante TODA la comprobación. Sin ella, la sonda
+  // suelta la última referencia, el contexto se cierra entre medida y medida y
+  // no queda nada que reabrir cuando toca recuperar.
+  const held = acquireAudioContext();
+  if (!held) {
+    return {
+      ...base,
+      status: 'fail',
+      detail: 'No hay contexto de salida con el que medir el reloj.',
+      hint: 'Sin AudioContext no suena nada: mire antes el eslabón «Contexto de salida».',
+    };
+  }
+  try {
+    return await measureOutputClock(base);
+  } finally {
+    releaseAudioContext();
+  }
+}
+
+async function measureOutputClock(
+  base: { readonly id: string; readonly label: string },
+): Promise<CheckResult> {
+
   /* La sesión de grabación no invalida la medida, pero sí la explica: en iOS
    * `playAndRecord` atenúa la salida. En Android no cambia nada —
    * `AudioAPIModule.kt:66` implementa `setAudioSessionOptions` como
@@ -490,15 +515,53 @@ export async function checkOutputClock(): Promise<CheckResult> {
     : '';
 
   if (!probe.advancing) {
+    /* Dos averías distintas se esconden bajo «el reloj no avanza», y tienen
+     * arreglos distintos. Las separa `ctx.state`, que en esta versión del motor
+     * SÍ dice si el stream de Oboe está `Started` (BaseAudioContext.cpp:31). */
+    if (isOutputDriverRunning()) {
+      return {
+        ...base,
+        status: 'fail',
+        detail:
+          `El motor declara el stream ARRANCADO pero no pidió una sola muestra en ${probe.windowMs} ms.` + nota,
+        hint:
+          'El hilo de audio está atascado: el stream figura abierto y su callback no corre. ' +
+          'Cierre las demás aplicaciones con sonido y reinicie VIA+; si se repite, anótelo con esta pantalla copiada.',
+      };
+    }
+
+    /* Stream que nunca abrió. NO se levanta con `resume()`: la rama que reabre
+     * cuelga de `!playerHasBeenStarted_` y ese booleano ya vale `true` desde el
+     * constructor (ver `recoverAudioContext` en `src/Audio`). El único camino de
+     * vuelta es un AudioContext nuevo, así que aquí se INTENTA en vez de dejar
+     * al profesional con un «reinicie la app». */
+    const recovered = recoverAudioContext();
+    const second = recovered ? await probeOutputClock() : null;
+
+    if (second?.advancing) {
+      return {
+        ...base,
+        status: 'warn',
+        detail:
+          `El motor estaba MUERTO (el stream nunca arrancó) y se ha reabierto: ahora corre a ${(
+            second.ratio * 100
+          ).toFixed(0)} %.` + nota,
+        hint:
+          'La salida vuelve a estar viva. Si vuelve a caerse, hay otra aplicación disputando el altavoz: ' +
+          'ciérrelas y repita la comprobación antes de dar por válida una prueba.',
+      };
+    }
+
     return {
       ...base,
       status: 'fail',
       detail:
-        `El reloj del contexto NO avanzó en ${probe.windowMs} ms (se quedó en ${probe.initialTime.toFixed(2)} s).` +
+        `El stream nativo de salida no está arrancado y el reloj no avanzó en ${probe.windowMs} ms` +
+        `${recovered ? ', tampoco tras reabrir el motor' : ' y el motor no se pudo reabrir'}.` +
         nota,
       hint:
-        'El stream nativo no está entregando muestras: el motor no pide audio y NADA de la app va a sonar. ' +
-        'Suele ser el stream de Oboe que no abrió (otra app con el dispositivo en exclusiva). Reinicie VIA+.',
+        'El motor no pide audio: NADA de la app va a sonar. Suele ser el stream de Oboe que no abrió ' +
+        '(otra aplicación tiene el altavoz en modo exclusivo). Ciérrelas y reinicie VIA+.',
     };
   }
 
