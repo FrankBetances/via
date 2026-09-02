@@ -105,6 +105,36 @@ export const ES = {
    * los convierte en ciertos; qué se afirma aquí lo decide Frank. Mientras la
    * afirmación exista, se lee en las siete variedades como el resto. */
   luaIntro: {
+    /* ESTA PANTALLA DESCRIBE UN APARATO QUE LA APP TODAVÍA NO PUEDE USAR, y por
+     * eso sus textos están redactados con cuidado. Cuatro decían de más y se
+     * corrigieron el 2/9/2026; si alguien los reescribe «para que vendan más»,
+     * vuelven a decir de más. El motivo de cada uno:
+     *
+     * · `bleDesc` decía «Enlace automático BLE. Reacciona al software». Era
+     *   falso, no incompleto: NADIE instancia un `BleManager` en todo `src/`
+     *   —las apariciones de `react-native-ble-plx` están dentro de bloques de
+     *   comentario— y `installLua()` no se llama desde ninguna parte, así que
+     *   todo `src/Lua/` es *no-op* por diseño (`docs/design/integracion-lua.md`
+     *   §9.1). Cuando se cree el `BleManager` compartido, esta cadena se
+     *   actualiza en el MISMO commit.
+     * · `privacyDesc` decía «para preservar la homologación médica». VIA+ no
+     *   tiene ninguna homologación, y el art. 7 del MDR prohíbe expresamente el
+     *   texto que induzca a error sobre la certificación. El bloqueo del
+     *   micrófono es una decisión de diseño del firmware; eso sí se puede
+     *   afirmar, y es lo que dice ahora.
+     * · `highlightText` ofrecía a Lúa «disponible para adquirir por separado».
+     *   El §9.2 del mismo documento dice que el aparato no se ha probado nunca
+     *   contra la placa real: no se ofrece en venta lo que no está verificado.
+     * · `empathyDesc` afirmaba que Lúa «reduce la ansiedad del niño». Es un
+     *   beneficio clínico sin un solo dato detrás, dentro de un SaMD Clase IIa.
+     *   Lo que Lúa hace —expresiones y respiración pautada, `RELAX`/`SERENE` en
+     *   `src/Lua/protocol.json`— sí se puede describir; el efecto, no.
+     *
+     * La regla de la que salen las cuatro: se describe lo que el aparato HACE,
+     * nunca lo que se espera que consiga ni un estado regulatorio que no tiene.
+     *
+     * `es-419` y `es-DO` son deltas sobre este fichero y no sobrescriben
+     * `luaIntro`: heredan estos textos solos. */
     /* Siglas técnicas: Bluetooth Low Energy y el término del proyecto. Se
      * escriben igual en las siete variedades, pero viven aquí y no como
      * literal en la pantalla porque el gate no admite pragma dentro de JSX. */
@@ -113,20 +143,20 @@ export const ES = {
     navBackA11y: 'Volver a créditos',
     navTitle: 'Lúa · Mascota y Periférico',
     emblemHeading: 'ACOMPAÑANTE PEDIÁTRICO',
-    emblemFootnote: 'Dispositivo complementario opcional',
+    emblemFootnote: 'Dispositivo complementario · en desarrollo',
     cardTitle: 'DISPOSITIVO FÍSICO OPCIONAL',
     empathyName: 'Empatía y Calma Clínica',
     empathyDesc:
-      'Reduce la ansiedad del niño mediante expresiones amigables y respiración pautada durante las pruebas.',
+      'Acompaña al niño durante las pruebas con expresiones amigables y respiración pautada.',
     bleName: 'Conexión Segura Inalámbrica',
     bleDesc:
-      'Enlace automático BLE (ESP32-C3). Reacciona al software sin cables ni configuraciones complejas.',
+      'Enlace BLE (ESP32-C3), sin cables. En desarrollo: la conexión con el aparato no está disponible en esta versión.',
     privacyName: 'Privacidad Estricta (Zero-PHI)',
     privacyDesc:
-      'No graba ni almacena audio. Micrófono bloqueado por firmware para preservar la homologación médica.',
+      'No graba ni almacena audio: el micrófono está bloqueado en el firmware por diseño.',
     highlightTitle: '¿Te gustaría integrar a Lúa en tu consulta?',
     highlightText:
-      'La evaluación clínica en VIA+ es totalmente autónoma. Sin embargo, Lúa está disponible para adquirir por separado si deseas potenciar el compromiso de tus pacientes pediátricos.',
+      'La evaluación clínica en VIA+ es totalmente autónoma y no necesita a Lúa. El aparato está en desarrollo: escríbenos si quieres participar en su evaluación.',
     infoA11y: 'Botón Más Información',
     infoLabel: 'Más Información',
     contactA11y: 'Botón Contactar',
