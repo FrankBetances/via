@@ -56,6 +56,7 @@ jest.mock('react-native-audio-api', () => {
 import {
   __resetSharedAudioContextForTests,
   __resetSharedAudioRecorderForTests,
+  acquireRecordingSession,
   setRecorderPermissionGranted,
 } from '@/Audio';
 import {
@@ -65,6 +66,7 @@ import {
   checkNativeEngine,
   checkOutputContext,
   playTestTone,
+  probeOutputClock,
 } from '../audioSelfTest';
 
 /** Entrega un bloque de audio como haría el motor nativo. */
@@ -109,6 +111,22 @@ describe('comprobación del motor y la salida', () => {
     const r = checkOutputContext();
     expect(r.status).toBe('ok');
     expect(r.detail).toMatch(/48000 Hz/);
+  });
+
+  it('advierte cuando la sesión de grabación está activa (bloqueo playAndRecord)', () => {
+    const release = acquireRecordingSession();
+    const r = checkOutputContext();
+    expect(r.status).toBe('warn');
+    expect(r.detail).toMatch(/playAndRecord/);
+    release();
+  });
+
+  it('sonda de reloj probeOutputClock mide el delta de tiempo', async () => {
+    const promise = probeOutputClock(50);
+    jest.advanceTimersByTime(60);
+    const probe = await promise;
+    expect(typeof probe.advancing).toBe('boolean');
+    expect(typeof probe.deltaTime).toBe('number');
   });
 
   it('el tono de prueba llega a programarse', () => {

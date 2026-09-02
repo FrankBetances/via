@@ -56,6 +56,7 @@ import {
   onRecordingSessionChange,
   peekAudioContext,
   releaseAudioContext,
+  resumeAudioContext,
   __resetSharedAudioContextForTests,
 } from '..';
 
@@ -225,3 +226,43 @@ describe('observador de sesión de grabación', () => {
     warn.mockRestore();
   });
 });
+
+describe('reactivación del contexto (resumeAudioContext)', () => {
+  it('llama a ctx.resume() de forma incondicional aunque ctx.state sea "running"', () => {
+    const ctx = acquireAudioContext() as any;
+    expect(ctx.state).toBe('running');
+    const resumeSpy = jest.spyOn(ctx, 'resume');
+
+    resumeAudioContext();
+    expect(resumeSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it('reasegura la sesión en modo playback si no hay grabación activa', () => {
+    acquireAudioContext();
+    mockSessionOptions.length = 0;
+
+    resumeAudioContext();
+    expect(mockSessionOptions.map(o => o.iosCategory)).toContain('playback');
+  });
+
+  it('no sobreescribe la sesión si hay una grabación activa', () => {
+    acquireAudioContext();
+    acquireRecordingSession();
+    mockSessionOptions.length = 0;
+
+    resumeAudioContext();
+    // No debe haber enviado 'playback'
+    expect(mockSessionOptions.map(o => o.iosCategory)).not.toContain('playback');
+  });
+
+  it('no falla si el contexto es nulo o resume lanza', () => {
+    expect(() => resumeAudioContext()).not.toThrow();
+
+    const ctx = acquireAudioContext() as any;
+    ctx.resume = () => {
+      throw new Error('resume failed');
+    };
+    expect(() => resumeAudioContext()).not.toThrow();
+  });
+});
+

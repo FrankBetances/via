@@ -245,14 +245,21 @@ export const peekAudioContext = (): SharedAudioContext | null => ctx;
 
 /**
  * Reactiva el contexto si el sistema lo suspendió (interrupción de llamada,
- * cambio de ruta de audio, vuelta de segundo plano). Un contexto suspendido
- * reproduce SILENCIO sin dar ningún error, así que conviene llamarlo justo
- * antes de programar un estímulo.
+ * cambio de ruta de audio, vuelta de segundo plano) y reasegura la sesión
+ * en modo `playback`.
+ *
+ * En `react-native-audio-api`, `AudioContext.cpp` inicializa `state_ = ContextState::RUNNING`
+ * incondicionalmente aunque `AudioPlayer::start()` falle al abrir el stream de Oboe
+ * o el stream haya sido pausado por el sistema. Por tanto, `ctx.resume?.()` DEBE
+ * llamarse de forma incondicional cuando `ctx` existe (sin condicionar a `ctx.state !== 'running'`).
  */
 export function resumeAudioContext(): void {
   if (!ctx) return;
   try {
-    if (ctx.state && ctx.state !== 'running') void ctx.resume?.();
+    if (!isRecordingSessionActive()) {
+      applyPlaybackSession();
+    }
+    void ctx.resume?.();
   } catch {
     /* state/resume no disponibles en algunos targets */
   }
