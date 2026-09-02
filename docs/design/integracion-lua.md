@@ -548,6 +548,9 @@ gata que guía la terapia», ni que acompaña, mejora o sostiene el tratamiento.
    del sistema en el arranque. Se decide con la placa delante y de una vez para
    los dos periféricos. No corre prisa: el aparato solo anuncia 120 s tras pulsar
    su botón físico, así que ni un escaneo permanente lo encontraría solo.
+   **Cuando se haga, va en el MISMO commit la cadena `luaIntro.bleDesc` de
+   `src/I18n/`**, que hoy dice «En desarrollo: la conexión con el aparato no
+   está disponible en esta versión» precisamente porque es verdad.
 2. **Probar contra el aparato de verdad.** Todo lo de aquí está verificado contra
    el firmware **leyéndolo**, que es mejor que inventarlo pero no es lo mismo que
    conectar. Pendiente: emparejamiento, `BENCH` para el presupuesto de latencia
@@ -577,6 +580,14 @@ gata que guía la terapia», ni que acompaña, mejora o sostiene el tratamiento.
    como fila nueva en `protocol.json`, que es donde se decide; **no se arregla
    aquí**. Comprobado el 27/8/2026 contra `core/src/device.cpp` de
    `lua-firmware`.
+8. **Decidir qué es la foto de `PresentacionLuaScreen`.**
+   `assets/img/lua_mascot_device.jpg` parece un render de producto, no una
+   fotografía de la placa ESP32-C3. Presentar un render junto a un botón de
+   contacto, en un SaMD Clase IIa, afirma disponibilidad aunque no lleve texto.
+   Los cuatro textos de esa tarjeta se corrigieron el 2/9/2026 —el motivo de cada
+   uno está escrito en `src/I18n/strings.es.ts`—, pero **la imagen sigue sin pie
+   que diga si es una representación**. Si hay placa, se fotografía; si no, el pie
+   lo dice. Lo decide el responsable, no un `.md`.
 
 Lo que **no** hay que decidir otra vez: el protocolo no se negocia —se genera—, y
 la postura regulatoria de VIA+ está fijada en el §8 del plan de Valeria+, no aquí.

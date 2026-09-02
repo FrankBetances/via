@@ -85,20 +85,20 @@ export const GL: UiStrings = {
     navBackA11y: 'Volver aos créditos',
     navTitle: 'Lúa · Mascota e Periférico',
     emblemHeading: 'ACOMPAÑANTE PEDIÁTRICO',
-    emblemFootnote: 'Dispositivo complementario opcional',
+    emblemFootnote: 'Dispositivo complementario · en desenvolvemento',
     cardTitle: 'DISPOSITIVO FÍSICO OPCIONAL',
     empathyName: 'Empatía e Calma Clínica',
     empathyDesc:
-      'Reduce a ansiedade do neno mediante expresións amigables e respiración pautada durante as probas.',
+      'Acompaña ao neno durante as probas con expresións amigables e respiración pautada.',
     bleName: 'Conexión Segura Sen Fíos',
     bleDesc:
-      'Ligazón automática BLE (ESP32-C3). Reacciona ao software sen cables nin configuracións complexas.',
+      'Ligazón BLE (ESP32-C3), sen cables. En desenvolvemento: a conexión co aparello non está dispoñible nesta versión.',
     privacyName: 'Privacidade Estrita (Zero-PHI)',
     privacyDesc:
-      'Non grava nin almacena audio. Micrófono bloqueado por firmware para preservar a homologación médica.',
+      'Non grava nin almacena audio: o micrófono está bloqueado no firmware por deseño.',
     highlightTitle: 'Gustaríache integrar a Lúa na túa consulta?',
     highlightText:
-      'A avaliación clínica en VIA+ é totalmente autónoma. Porén, Lúa está dispoñible para adquirir por separado se desexas potenciar o compromiso dos teus pacientes pediátricos.',
+      'A avaliación clínica en VIA+ é totalmente autónoma e non precisa de Lúa. O aparello está en desenvolvemento: escríbenos se queres participar na súa avaliación.',
     infoA11y: 'Botón Máis Información',
     infoLabel: 'Máis Información',
     contactA11y: 'Botón Contactar',

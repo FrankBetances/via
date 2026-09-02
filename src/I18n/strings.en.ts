@@ -85,20 +85,20 @@ export const EN: UiStrings = {
     navBackA11y: 'Back to credits',
     navTitle: 'Lúa · Mascot and Peripheral',
     emblemHeading: 'PEDIATRIC COMPANION',
-    emblemFootnote: 'Optional companion device',
+    emblemFootnote: 'Companion device · in development',
     cardTitle: 'OPTIONAL PHYSICAL DEVICE',
     empathyName: 'Empathy and Clinical Calm',
     empathyDesc:
-      "Eases the child's anxiety through friendly expressions and guided breathing while the tests run.",
+      'Keeps the child company through the tests with friendly expressions and guided breathing.',
     bleName: 'Secure Wireless Connection',
     bleDesc:
-      'Automatic BLE link (ESP32-C3). Responds to the software with no cables and no complex setup.',
+      'BLE link (ESP32-C3), no cables. In development: connecting to the device is not available in this version.',
     privacyName: 'Strict Privacy (Zero-PHI)',
     privacyDesc:
-      'It neither records nor stores audio. The microphone is locked in firmware to preserve medical certification.',
+      'It neither records nor stores audio: the microphone is locked in firmware by design.',
     highlightTitle: 'Would you like to bring Lúa into your practice?',
     highlightText:
-      'Clinical assessment in VIA+ is entirely self-contained. Lúa is nevertheless available separately if you want to strengthen your pediatric patients\u2019 engagement.',
+      'Clinical assessment in VIA+ is entirely self-contained and does not need Lúa. The device is in development: write to us if you would like to take part in its evaluation.',
     infoA11y: 'More Information button',
     infoLabel: 'More Information',
     contactA11y: 'Contact button',

@@ -89,20 +89,20 @@ export const EU: UiStrings = {
     navBackA11y: 'Kredituetara itzuli',
     navTitle: 'Lúa · Maskota eta Periferikoa',
     emblemHeading: 'LAGUNTZAILE PEDIATRIKOA',
-    emblemFootnote: 'Gailu osagarri aukerakoa',
+    emblemFootnote: 'Gailu osagarria · garatzen',
     cardTitle: 'GAILU FISIKO AUKERAKOA',
     empathyName: 'Enpatia eta Lasaitasun Klinikoa',
     empathyDesc:
-      'Haurraren antsietatea murrizten du adierazpen atseginen eta arnasketa gidatuaren bidez, probak egin bitartean.',
+      'Haurrari laguntzen dio probak egin bitartean, adierazpen atseginen eta arnasketa gidatuaren bidez.',
     bleName: 'Hari Gabeko Konexio Segurua',
     bleDesc:
-      'BLE lotura automatikoa (ESP32-C3). Softwareari erantzuten dio, kablerik eta konfigurazio konplexurik gabe.',
+      'BLE lotura (ESP32-C3), kablerik gabe. Garatzen ari da: gailuarekiko konexioa ez dago erabilgarri bertsio honetan.',
     privacyName: 'Pribatutasun Zorrotza (Zero-PHI)',
     privacyDesc:
-      'Ez du audiorik grabatzen ez gordetzen. Mikrofonoa firmwarez blokeatuta dago homologazio medikoa babesteko.',
+      'Ez du audiorik grabatzen ez gordetzen: mikrofonoa firmwarean blokeatuta dago, diseinuz.',
     highlightTitle: 'Lúa zure kontsultan integratu nahi zenuke?',
     highlightText:
-      'VIA+ aplikazioko ebaluazio klinikoa erabat autonomoa da. Hala ere, Lúa bereizita eros daiteke zure paziente pediatrikoen konpromisoa indartu nahi baduzu.',
+      'VIA+ aplikazioko ebaluazio klinikoa erabat autonomoa da eta ez du Lúa behar. Gailua garatzen ari da: idatzi iezaguzu haren ebaluazioan parte hartu nahi baduzu.',
     infoA11y: 'Informazio Gehiago botoia',
     infoLabel: 'Informazio Gehiago',
     contactA11y: 'Harremanetarako botoia',
