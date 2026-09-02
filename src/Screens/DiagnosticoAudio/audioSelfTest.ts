@@ -31,6 +31,7 @@ import {
   probeSystemVoice,
   probeVoiceAsset,
   stopVoiceAsset,
+  voiceAudioModeStatus,
   voiceStatus,
 } from '@/Voice';
 
@@ -302,33 +303,11 @@ export function checkNativeEngine(): CheckResult {
   };
 }
 
-/**
- * Resultado de la comprobación del reloj hardware del contexto de salida.
- */
-export interface OutputClockProbe {
-  /** ¿El reloj hardware (`ctx.currentTime`) avanzó en la ventana medida? */
-  advancing: boolean;
-  /** Valor inicial de `currentTime`. */
-  initialTime: number;
-  /** Valor tras la ventana de medida. */
-  finalTime: number;
-  /** Incremento medido en segundos. */
-  deltaTime: number;
-}
-
-/** 2 · ¿Abre el contexto de SALIDA compartido y responde su reloj hardware? */
+/** 2 · ¿Abre el contexto de SALIDA compartido? */
 export function checkOutputContext(): CheckResult {
   const base = { id: 'output', label: 'Contexto de salida (altavoz)' } as const;
   if (!isAudioEngineAvailable()) {
     return { ...base, status: 'fail', detail: 'El motor de salida se marcó como no disponible en este arranque.' };
-  }
-  if (isRecordingSessionActive()) {
-    return {
-      ...base,
-      status: 'warn',
-      detail: 'La sesión de grabación (`playAndRecord`) está activa y puede atenuar o desviar la salida al auricular.',
-      hint: 'Cierre cualquier prueba que mantenga el micrófono abierto para liberar la sesión de reproducción.',
-    };
   }
   const ctx = acquireAudioContext();
   if (!ctx) {
@@ -339,66 +318,210 @@ export function checkOutputContext(): CheckResult {
       hint: 'Otra aplicación puede tener el dispositivo de salida en modo exclusivo. Ciérrelas y reinicie VIA+.',
     };
   }
-
   resumeAudioContext();
   const state = ctx.state ?? 'desconocido';
-  const currentTime = Number(ctx.currentTime) || 0;
-
+  const rate = ctx.sampleRate;
   releaseAudioContext();
 
-  /* «running» NO PRUEBA QUE EL ALTAVOZ EMITA, y decirlo aquí es la diferencia
-   * entre un diagnóstico y un adorno. Demostrado en el propio motor:
-   * `AudioContext::AudioContext` (node_modules/react-native-audio-api/common/
-   * cpp/audioapi/core/AudioContext.cpp) hace
+  /* QUÉ SIGNIFICA «running» AQUÍ, versión comprobada contra el motor instalado
+   * (react-native-audio-api 0.8.4, leído en `node_modules`).
+   *
+   * Es verdad que el constructor `AudioContext::AudioContext` hace
    *
    *     audioPlayer_->start();
    *     state_ = ContextState::RUNNING;
    *
-   * IGNORANDO el booleano que devuelve `start()`; y ese `start()` devuelve
-   * `false` cuando `mStream_` es nulo, que es justo lo que pasa si
-   * `openAudioStream()` no pudo abrir el stream de Oboe (AudioPlayer.cpp solo
-   * lo escribe en el log de Android). O sea: un contexto cuyo stream nativo
-   * nunca se abrió se declara «running» igual. La única comprobación válida de
-   * la salida es la prueba de escucha. */
+   * IGNORANDO el booleano de `start()`. Pero lo que este código lee NO es
+   * `state_`: `ctx.state` cruza el puente por `BaseAudioContextHostObject`, que
+   * llama a `BaseAudioContext::getState()` (BaseAudioContext.cpp:31):
+   *
+   *     if (isDriverRunning()) return toString(state_);
+   *     if (state_ == CLOSED)  return "closed";
+   *     return "suspended";
+   *
+   * y `isDriverRunning()` termina en `AudioPlayer::isRunning()`
+   * (AudioPlayer.cpp:79) = `mStream_ && mStream_->getState() == Started`. Es
+   * decir: en esta versión un contexto cuyo stream de Oboe no abrió responde
+   * «suspended», no «running».
+   *
+   * Consecuencia para el diagnóstico: «running» SÍ demuestra que el stream
+   * nativo está abierto y arrancado. Lo que sigue sin demostrar es que salga
+   * sonido audible —volumen a cero, ruta a un Bluetooth desconectado, ganancia
+   * de la app en silencio—, y por eso el eslabón que cierra la salida sigue
+   * siendo la prueba de escucha. Lo que este eslabón ya no hace es despreciar
+   * una señal buena: distingue «el motor está vivo» de «el motor está muerto».
+   *
+   * NOTA DE MANTENIMIENTO: esta lectura vale para la 0.8.4. Si sube la versión
+   * de `react-native-audio-api`, vuelve a leer `BaseAudioContext::getState()`
+   * antes de dar por buena esta explicación. */
   const isStateOk = state === 'running' || state === 'desconocido';
   return {
     ...base,
     status: isStateOk ? 'ok' : 'warn',
     detail:
-      `El contexto responde «${state}» a ${ctx.sampleRate} Hz (currentTime: ${currentTime.toFixed(2)} s). ` +
-      'NO prueba que el altavoz emita: el motor marca «running» sin comprobar que el stream nativo llegara a abrirse.',
+      `El contexto responde «${state}» a ${rate} Hz. ` +
+      (state === 'running'
+        ? 'En esta versión del motor eso implica que el stream nativo está abierto y arrancado; no implica que se OIGA.'
+        : 'No prueba por sí solo que el altavoz emita.'),
     hint:
       state === 'suspended'
-        ? 'El sistema tiene el contexto suspendido: no sonará nada hasta que se reanude.'
+        ? 'El sistema tiene el contexto suspendido o el stream nativo no llegó a arrancar: no sonará nada así.'
         : 'Quien cierra este eslabón es la prueba de escucha del final de la pantalla.',
   };
 }
 
+/* -------------------------------------------------------------------------- */
+/*  2 bis · EL RELOJ DEL HARDWARE, que es la única prueba máquina de que el     */
+/*  motor de salida está VIVO.                                                 */
+/*                                                                             */
+/*  `ctx.currentTime` no es un reloj de pared: sale de                          */
+/*  `AudioDestinationNode::getCurrentTime()` = `currentSampleFrame_ /           */
+/*  sampleRate`, y `currentSampleFrame_` solo crece dentro de                   */
+/*  `AudioDestinationNode::renderAudio` (AudioDestinationNode.cpp:44), a la que */
+/*  únicamente se llega desde `AudioPlayer::onAudioReady`, el callback con el   */
+/*  que Oboe PIDE muestras. Y ese callback sale por la puerta de atrás sin      */
+/*  renderizar nada cuando `isInitialized_` es `false` —el caso del stream que  */
+/*  no abrió—.                                                                  */
+/*                                                                             */
+/*  Por tanto: si `currentTime` avanza, el hardware está tirando de frames de   */
+/*  verdad. Es lo más cerca de «el motor emite» a lo que se puede llegar sin    */
+/*  un oído delante, y no cuesta ni un cuarto de segundo medirlo.               */
+/* -------------------------------------------------------------------------- */
+
+/** Resultado de la medida del reloj hardware del contexto de salida. */
+export interface OutputClockProbe {
+  /** ¿El reloj (`ctx.currentTime`) avanzó en la ventana medida? */
+  advancing: boolean;
+  /** Valor inicial de `currentTime`, en segundos. */
+  initialTime: number;
+  /** Valor tras la ventana de medida, en segundos. */
+  finalTime: number;
+  /** Incremento medido, en segundos. */
+  deltaTime: number;
+  /** Ventana pedida, en milisegundos. */
+  windowMs: number;
+  /** Fracción de la ventana que el reloj llegó a cubrir (1 = tiempo real). */
+  ratio: number;
+  /** `false` si no había contexto con el que medir. */
+  measured: boolean;
+}
+
+/** Ventana de medida del reloj: suficiente para varios bloques de Oboe. */
+export const CLOCK_PROBE_MS = 250;
+
 /**
- * Sonda asíncrona dedicada del reloj hardware del AudioContext.
- * Permite medir el avance de `currentTime` sobre un intervalo dado (por defecto 50 ms)
- * para detectar si el motor C++ está estancado o el stream de Oboe no abrió.
+ * Fracción mínima de la ventana que debe cubrir el reloj para darlo por sano.
+ * No se exige 1: el temporizador de JS y el del audio no son el mismo, y una
+ * ventana corta siempre pierde algo por los bordes del bloque de render.
  */
-export async function probeOutputClock(sampleDurationMs = 50): Promise<OutputClockProbe> {
+export const MIN_CLOCK_RATIO = 0.5;
+
+/**
+ * Mide el avance de `ctx.currentTime` sobre una ventana. Detecta el motor
+ * estancado: contexto abierto cuyo callback de audio no corre.
+ */
+export async function probeOutputClock(sampleDurationMs = CLOCK_PROBE_MS): Promise<OutputClockProbe> {
+  const empty: OutputClockProbe = {
+    advancing: false,
+    initialTime: 0,
+    finalTime: 0,
+    deltaTime: 0,
+    windowMs: sampleDurationMs,
+    ratio: 0,
+    measured: false,
+  };
   const ctx = acquireAudioContext();
-  if (!ctx) {
-    return { advancing: false, initialTime: 0, finalTime: 0, deltaTime: 0 };
-  }
+  if (!ctx) return empty;
   try {
     resumeAudioContext();
-    const initialTime = ctx.currentTime;
+    const initialTime = Number(ctx.currentTime) || 0;
     await new Promise<void>(resolve => setTimeout(() => resolve(), sampleDurationMs));
-    const finalTime = ctx.currentTime;
+    const finalTime = Number(ctx.currentTime) || 0;
     const deltaTime = finalTime - initialTime;
     return {
       advancing: deltaTime > 0,
       initialTime,
       finalTime,
       deltaTime,
+      windowMs: sampleDurationMs,
+      ratio: sampleDurationMs > 0 ? deltaTime / (sampleDurationMs / 1000) : 0,
+      measured: true,
     };
   } finally {
     releaseAudioContext();
   }
+}
+
+/**
+ * 2 bis · ¿Corre el reloj del hardware de salida? Es el eslabón que separa
+ * «el motor está muerto» de «el motor va y no lo oigo», que hasta ahora solo
+ * podía distinguir el oído del profesional.
+ */
+export async function checkOutputClock(): Promise<CheckResult> {
+  const base = { id: 'output-clock', label: 'Reloj del hardware de salida' } as const;
+  if (!isAudioEngineAvailable()) {
+    return {
+      ...base,
+      status: 'skip',
+      detail: 'Sin motor de salida no hay reloj que medir.',
+    };
+  }
+
+  /* La sesión de grabación no invalida la medida, pero sí la explica: en iOS
+   * `playAndRecord` atenúa la salida. En Android no cambia nada —
+   * `AudioAPIModule.kt:66` implementa `setAudioSessionOptions` como
+   * «noting to do here»—, así que se dice como contexto, no como veredicto. */
+  const recording = isRecordingSessionActive();
+  const probe = await probeOutputClock();
+
+  if (!probe.measured) {
+    return {
+      ...base,
+      status: 'fail',
+      detail: 'No hay contexto de salida con el que medir el reloj.',
+      hint: 'Sin AudioContext no suena nada: mire antes el eslabón «Contexto de salida».',
+    };
+  }
+
+  const ms = (probe.deltaTime * 1000).toFixed(0);
+  const pct = (probe.ratio * 100).toFixed(0);
+  const nota = recording
+    ? ' Hay una captura de micrófono abierta: en iOS eso atenúa la salida (en Android no la altera).'
+    : '';
+
+  if (!probe.advancing) {
+    return {
+      ...base,
+      status: 'fail',
+      detail:
+        `El reloj del contexto NO avanzó en ${probe.windowMs} ms (se quedó en ${probe.initialTime.toFixed(2)} s).` +
+        nota,
+      hint:
+        'El stream nativo no está entregando muestras: el motor no pide audio y NADA de la app va a sonar. ' +
+        'Suele ser el stream de Oboe que no abrió (otra app con el dispositivo en exclusiva). Reinicie VIA+.',
+    };
+  }
+
+  if (probe.ratio < MIN_CLOCK_RATIO) {
+    return {
+      ...base,
+      status: 'warn',
+      detail: `El reloj avanzó ${ms} ms en una ventana de ${probe.windowMs} ms (${pct} % del tiempo real).` + nota,
+      hint:
+        'El motor entrega muestras pero se queda corto: cortes o saturación del hilo de audio. ' +
+        'El estímulo puede salir troceado, y en audiometría eso invalida el umbral.',
+    };
+  }
+
+  return {
+    ...base,
+    status: 'ok',
+    detail:
+      `El reloj avanzó ${ms} ms en una ventana de ${probe.windowMs} ms (${pct} % del tiempo real): ` +
+      'el hardware está pidiendo muestras.' +
+      nota,
+    hint: 'Demuestra que el motor emite, no que se oiga: el volumen y la ruta los cierra la prueba de escucha.',
+  };
 }
 
 /**
@@ -463,10 +586,29 @@ export async function checkVoiceBank(): Promise<CheckResult> {
   }
   const probe = await probeVoiceAsset(VOICE_ASSETS[ids[0]]);
   const ok = probe.loaded && probe.advanced;
+
+  /* El modo de sesión de las locuciones falla en silencio por naturaleza: si no
+   * se aplicó, la voz no suena con la tableta en silencio y además PAUSA lo que
+   * estuviera sonando en vez de mezclarse. Se nombra aquí en vez de dejarlo en
+   * un `catch` mudo. */
+  const mode = voiceAudioModeStatus();
+  const modeNote = mode.applied
+    ? ''
+    : ` El modo de sesión de las locuciones NO se aplicó${mode.error ? ` («${mode.error}»)` : ''}.`;
+
+  if (ok && !mode.applied) {
+    return {
+      ...base,
+      status: 'warn',
+      detail: `${ids.length} locuciones empaquetadas (${VOICE_ASSETS_VERSION}); la primera ${probe.detail}.` + modeNote,
+      hint: 'Con el modo sin aplicar, la voz enmudece si la tableta está en silencio y puede cortar el estímulo en curso en vez de mezclarse con él.',
+    };
+  }
+
   return {
     ...base,
     status: ok ? 'ok' : 'fail',
-    detail: `${ids.length} locuciones empaquetadas (${VOICE_ASSETS_VERSION}); la primera ${probe.detail}.`,
+    detail: `${ids.length} locuciones empaquetadas (${VOICE_ASSETS_VERSION}); la primera ${probe.detail}.` + modeNote,
     hint: ok
       ? 'Que el reproductor avance no prueba que salga por el altavoz: conteste la prueba de escucha.'
       : 'Los ficheros .m4a están en el bundle pero el reproductor del sistema no los sirve. Compruebe que la compilación empaquetó `assets/voice/` y no solo el mapa.',

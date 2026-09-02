@@ -9,6 +9,10 @@
 
 const mockBlocks: Array<(ev: unknown) => void> = [];
 const mockState = { constructed: 0, started: 0 };
+/* Reloj del hardware simulado. En el motor real `currentTime` solo avanza
+ * dentro del callback con el que Oboe pide muestras, así que aquí es un valor
+ * que la prueba mueve a mano: un reloj parado ES el fallo que se busca. */
+const mockClock = { time: 0 };
 
 jest.mock('react-native-audio-api', () => {
   class FakeRecorder {
@@ -26,7 +30,9 @@ jest.mock('react-native-audio-api', () => {
   return {
     AudioRecorder: FakeRecorder,
     AudioContext: class {
-      currentTime = 0;
+      get currentTime() {
+        return mockClock.time;
+      }
       state = 'running';
       sampleRate = 48000;
       destination = {};
@@ -64,7 +70,9 @@ import {
   checkMicCapture,
   checkMicPermission,
   checkNativeEngine,
+  checkOutputClock,
   checkOutputContext,
+  CLOCK_PROBE_MS,
   playTestTone,
   probeOutputClock,
 } from '../audioSelfTest';
@@ -89,6 +97,7 @@ const runCapture = async (fill: ((i: number) => number) | null, blocks: number) 
 
 beforeEach(() => {
   jest.useFakeTimers();
+  mockClock.time = 0;
   mockBlocks.length = 0;
   mockState.constructed = 0;
   mockState.started = 0;
@@ -113,20 +122,85 @@ describe('comprobación del motor y la salida', () => {
     expect(r.detail).toMatch(/48000 Hz/);
   });
 
-  it('advierte cuando la sesión de grabación está activa (bloqueo playAndRecord)', () => {
+  it('una captura abierta no ciega la comprobación del contexto de salida', () => {
+    // En Android la sesión ni se toca (`AudioAPIModule.kt:66` es un no-op), y
+    // en iOS atenúa pero no apaga: quien lo menciona es el eslabón del reloj.
     const release = acquireRecordingSession();
     const r = checkOutputContext();
-    expect(r.status).toBe('warn');
-    expect(r.detail).toMatch(/playAndRecord/);
+    expect(r.status).toBe('ok');
     release();
   });
 
-  it('sonda de reloj probeOutputClock mide el delta de tiempo', async () => {
-    const promise = probeOutputClock(50);
-    jest.advanceTimersByTime(60);
+  /* -------------------------------------------------------------------- */
+  /*  El reloj del hardware: la única prueba MÁQUINA de que el motor emite. */
+  /*  `currentTime` sale de `currentSampleFrame_`, que solo crece dentro de */
+  /*  `AudioDestinationNode::renderAudio`, a la que solo se llega desde el  */
+  /*  callback de Oboe. Reloj parado = el hardware no pide muestras.        */
+  /* -------------------------------------------------------------------- */
+
+  it('probeOutputClock mide el avance real del reloj', async () => {
+    const promise = probeOutputClock(200);
+    // El motor entrega muestras mientras corre la ventana.
+    setTimeout(() => {
+      mockClock.time = 0.2;
+    }, 100);
+    jest.advanceTimersByTime(210);
     const probe = await promise;
-    expect(typeof probe.advancing).toBe('boolean');
-    expect(typeof probe.deltaTime).toBe('number');
+
+    expect(probe.measured).toBe(true);
+    expect(probe.advancing).toBe(true);
+    expect(probe.deltaTime).toBeCloseTo(0.2, 3);
+    expect(probe.ratio).toBeCloseTo(1, 1);
+  });
+
+  it('checkOutputClock FALLA cuando el reloj no avanza (stream de Oboe mudo)', async () => {
+    const promise = checkOutputClock();
+    jest.advanceTimersByTime(CLOCK_PROBE_MS + 10);
+    const r = await promise;
+
+    expect(r.id).toBe('output-clock');
+    expect(r.status).toBe('fail');
+    expect(r.detail).toMatch(/NO avanzó/);
+    expect(r.hint).toMatch(/no está entregando muestras/);
+  });
+
+  it('checkOutputClock da CORRECTO cuando el hardware pide muestras', async () => {
+    const promise = checkOutputClock();
+    setTimeout(() => {
+      mockClock.time = CLOCK_PROBE_MS / 1000;
+    }, 100);
+    jest.advanceTimersByTime(CLOCK_PROBE_MS + 10);
+    const r = await promise;
+
+    expect(r.status).toBe('ok');
+    expect(r.detail).toMatch(/pidiendo muestras/);
+  });
+
+  it('checkOutputClock AVISA si el reloj avanza a trompicones', async () => {
+    const promise = checkOutputClock();
+    // Un cuarto de la ventana: el motor entrega, pero se queda corto.
+    setTimeout(() => {
+      mockClock.time = CLOCK_PROBE_MS / 4000;
+    }, 100);
+    jest.advanceTimersByTime(CLOCK_PROBE_MS + 10);
+    const r = await promise;
+
+    expect(r.status).toBe('warn');
+    expect(r.hint).toMatch(/troceado/);
+  });
+
+  it('checkOutputClock nombra la captura abierta sin convertirla en veredicto', async () => {
+    const release = acquireRecordingSession();
+    const promise = checkOutputClock();
+    setTimeout(() => {
+      mockClock.time = CLOCK_PROBE_MS / 1000;
+    }, 100);
+    jest.advanceTimersByTime(CLOCK_PROBE_MS + 10);
+    const r = await promise;
+    release();
+
+    expect(r.status).toBe('ok');
+    expect(r.detail).toMatch(/captura de micrófono abierta/);
   });
 
   it('el tono de prueba llega a programarse', () => {

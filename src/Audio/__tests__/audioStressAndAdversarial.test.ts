@@ -226,15 +226,31 @@ describe('Adversarial Audio Subsystems Stress & Edge-Case Suite', () => {
       expect(peekAudioContext()).toBeNull();
     });
 
-    it('reactiva el stream Oboe incluso ante la mentira de state = "running"', () => {
+    /* El contrato REAL de react-native-audio-api 0.8.4 (leído en node_modules,
+     * no supuesto): `ctx.state` no es `state_`, sino `getState()`, que devuelve
+     * «suspended» siempre que el stream de Oboe no esté `Started`
+     * (BaseAudioContext.cpp:31). Así que «running» ya significa driver vivo, y
+     * reactivar es lo que toca justo cuando NO lo dice. */
+    it('reactiva el stream cuando el motor declara que el driver no corre', () => {
       const ctx = acquireAudioContext() as any;
-      expect(ctx).not.toBeNull();
-      expect(ctx.state).toBe('running');
-
       const resumeSpy = jest.spyOn(ctx, 'resume');
+
+      mockContextState = 'suspended';
       resumeAudioContext();
 
       expect(resumeSpy).toHaveBeenCalledTimes(1);
+    });
+
+    it('no gasta un salto por el puente cuando el driver ya corre', () => {
+      const ctx = acquireAudioContext() as any;
+      expect(ctx.state).toBe('running');
+      const resumeSpy = jest.spyOn(ctx, 'resume');
+
+      resumeAudioContext();
+
+      // `AudioContext::resume()` abre con `if (isRunning()) return true;`
+      // (AudioContext.cpp:59): llamarlo aquí sería un no-op por estímulo.
+      expect(resumeSpy).not.toHaveBeenCalled();
     });
 
     it('sobrevive a excepciones dentro de ctx.resume() sin tumbar la ejecución', () => {
@@ -502,19 +518,21 @@ describe('Adversarial Audio Subsystems Stress & Edge-Case Suite', () => {
       expect(probe.finalTime).toBe(1.05);
     });
 
-    it('checkOutputContext emite advertencia explícita si la sesión de grabación está retenida', () => {
+    it('checkOutputContext sigue midiendo con una sesión de grabación retenida', () => {
+      // La sesión de captura no ciega el contexto de salida, y en Android ni
+      // siquiera lo altera: `AudioAPIModule.kt:66` implementa
+      // `setAudioSessionOptions` como «noting to do here». Quien menciona la
+      // captura es el eslabón del reloj, y como contexto, no como veredicto.
       const releaseRec = acquireRecordingSession();
 
       const res = checkOutputContext();
-      expect(res.status).toBe('warn');
-      expect(res.detail).toMatch(/playAndRecord/);
-      expect(res.hint).toMatch(/micrófono abierto/);
+      expect(res.status).toBe('ok');
 
       releaseRec();
 
       const resAfter = checkOutputContext();
       expect(resAfter.status).toBe('ok');
-      expect(resAfter.detail).toMatch(/currentTime/);
+      expect(resAfter.detail).toMatch(/48000 Hz/);
     });
 
     it('checkOutputContext reporta fallo si el motor de salida se marcó como no disponible', () => {

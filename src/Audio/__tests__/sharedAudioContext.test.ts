@@ -228,41 +228,57 @@ describe('observador de sesión de grabación', () => {
 });
 
 describe('reactivación del contexto (resumeAudioContext)', () => {
-  it('llama a ctx.resume() de forma incondicional aunque ctx.state sea "running"', () => {
+  /* Lo que `ctx.state` significa de verdad en react-native-audio-api 0.8.4,
+   * leído en `node_modules` y no supuesto: el puente no expone `state_`, sino
+   * `BaseAudioContext::getState()` (BaseAudioContext.cpp:31), que devuelve
+   * «suspended» siempre que `isDriverRunning()` sea falso —es decir, siempre
+   * que el stream de Oboe no esté `Started` (AudioPlayer.cpp:79)—. Así que
+   * «running» YA implica driver vivo, y reactivar es lo que toca justo cuando
+   * el motor dice lo contrario. */
+  it('reactiva cuando el motor declara que el driver no está corriendo', () => {
+    const ctx = acquireAudioContext() as any;
+    const resumeSpy = jest.spyOn(ctx, 'resume');
+
+    ctx.state = 'suspended';
+    resumeAudioContext();
+
+    expect(resumeSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it('no llama a resume() cuando el driver ya corre', () => {
     const ctx = acquireAudioContext() as any;
     expect(ctx.state).toBe('running');
     const resumeSpy = jest.spyOn(ctx, 'resume');
 
     resumeAudioContext();
-    expect(resumeSpy).toHaveBeenCalledTimes(1);
+
+    // `AudioContext::resume()` (AudioContext.cpp:59) abre con
+    // `if (isRunning()) return true;`: llamarlo aquí es un no-op con un salto
+    // por el puente JSI en CADA estímulo de la audiometría.
+    expect(resumeSpy).not.toHaveBeenCalled();
   });
 
-  it('reasegura la sesión en modo playback si no hay grabación activa', () => {
-    acquireAudioContext();
+  it('no reconfigura la sesión de audio al reactivar', () => {
+    const ctx = acquireAudioContext() as any;
     mockSessionOptions.length = 0;
+    ctx.state = 'suspended';
 
     resumeAudioContext();
-    expect(mockSessionOptions.map(o => o.iosCategory)).toContain('playback');
-  });
 
-  it('no sobreescribe la sesión si hay una grabación activa', () => {
-    acquireAudioContext();
-    acquireRecordingSession();
-    mockSessionOptions.length = 0;
-
-    resumeAudioContext();
-    // No debe haber enviado 'playback'
-    expect(mockSessionOptions.map(o => o.iosCategory)).not.toContain('playback');
+    // La sesión se aplica al crear el contexto y al soltar la última captura.
+    // Reaplicarla por estímulo no arregla nada: en Android
+    // `AudioAPIModule.kt:66` la implementa como «noting to do here».
+    expect(mockSessionOptions).toHaveLength(0);
   });
 
   it('no falla si el contexto es nulo o resume lanza', () => {
     expect(() => resumeAudioContext()).not.toThrow();
 
     const ctx = acquireAudioContext() as any;
+    ctx.state = 'suspended';
     ctx.resume = () => {
       throw new Error('resume failed');
     };
     expect(() => resumeAudioContext()).not.toThrow();
   });
 });
-

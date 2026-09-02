@@ -20,6 +20,7 @@ import {
   stopVoiceAsset,
   probeVoiceAsset,
   disposeVoicePlayback,
+  voiceAudioModeStatus,
   __resetVoicePlaybackForTests,
 } from '../viaVoicePlayback';
 
@@ -59,6 +60,62 @@ describe('viaVoicePlayback', () => {
     expect(mockExpoAudio.createAudioPlayer).toHaveBeenCalledWith(1234);
     expect(fakePlayer.play).toHaveBeenCalledTimes(1);
     expect(fakePlayer.addListener).toHaveBeenCalledWith('playbackStatusUpdate', expect.any(Function));
+  });
+
+  /* -------------------------------------------------------------------- */
+  /*  El modo de sesión falla en silencio POR NATURALEZA: si no se aplica,  */
+  /*  la voz enmudece con la tableta en silencio y pausa el estímulo en     */
+  /*  curso en vez de mezclarse. Marcarlo como fijado ANTES de saber si la  */
+  /*  llamada funcionó dejaba el modo sin aplicar para toda la sesión, y    */
+  /*  sin nada que la pantalla pudiera enseñar (regla 4).                   */
+  /* -------------------------------------------------------------------- */
+
+  const makeFakePlayer = () => ({
+    play: jest.fn(),
+    pause: jest.fn(),
+    remove: jest.fn(),
+    addListener: jest.fn(() => ({ remove: jest.fn() })),
+  });
+
+  it('publica el modo de sesión como aplicado cuando la llamada funciona', async () => {
+    mockExpoAudio.createAudioPlayer.mockReturnValue(makeFakePlayer());
+    expect(voiceAudioModeStatus()).toEqual({ applied: false, error: null });
+
+    await playVoiceAsset(1234);
+
+    expect(voiceAudioModeStatus()).toEqual({ applied: true, error: null });
+  });
+
+  it('reintenta el modo de sesión y NOMBRA el fallo si la promesa rechaza', async () => {
+    mockExpoAudio.createAudioPlayer.mockReturnValue(makeFakePlayer());
+    mockExpoAudio.setAudioModeAsync.mockRejectedValueOnce(new Error('audio focus denied'));
+
+    await playVoiceAsset(1234);
+    // La promesa rechazada se resuelve en el siguiente tic del bucle.
+    await Promise.resolve();
+    await Promise.resolve();
+
+    expect(voiceAudioModeStatus()).toEqual({ applied: false, error: 'audio focus denied' });
+
+    // Y el intento siguiente vuelve a probar en vez de darlo por hecho.
+    mockExpoAudio.setAudioModeAsync.mockResolvedValueOnce(undefined);
+    await playVoiceAsset(5678);
+
+    expect(mockExpoAudio.setAudioModeAsync).toHaveBeenCalledTimes(2);
+    expect(voiceAudioModeStatus()).toEqual({ applied: true, error: null });
+  });
+
+  it('sigue locutando aunque el modo de sesión no se pueda fijar', async () => {
+    mockExpoAudio.createAudioPlayer.mockReturnValue(makeFakePlayer());
+    mockExpoAudio.setAudioModeAsync.mockImplementationOnce(() => {
+      throw new Error('sin AudioManager');
+    });
+
+    // Degradar en silencio delante del niño sigue siendo lo correcto: lo que
+    // no puede pasar es que nadie se entere.
+    expect(await playVoiceAsset(1234)).toBe(true);
+    expect(voiceAudioModeStatus().applied).toBe(false);
+    expect(voiceAudioModeStatus().error).toMatch(/sin AudioManager/);
   });
 
   it('detiene la locución anterior al arrancar una nueva (ranura única)', async () => {

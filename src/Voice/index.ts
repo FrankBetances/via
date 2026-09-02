@@ -59,6 +59,7 @@ export {
   probeVoiceAsset,
   stopVoiceAsset,
   disposeVoicePlayback,
+  voiceAudioModeStatus,
 } from './viaVoicePlayback';
 export type { VoiceAssetProbe } from './viaVoicePlayback';
 

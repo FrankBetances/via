@@ -316,11 +316,39 @@ causas con arreglos completamente distintos.
     distintas. Ahora `checkSystemVoiceSpeaks` DICTA una frase y espera
     `onStart`/`onDone`/`onError` con plazo — porque el motor también puede
     aceptar la locución y no emitir nada ni avisar.
-  · **`state === 'running'` del AudioContext no prueba nada.** Demostrado en
-    `AudioContext.cpp` del propio motor: el constructor hace
-    `audioPlayer_->start(); state_ = RUNNING;` **ignorando el booleano**, y ese
-    `start()` devuelve `false` si el stream de Oboe no abrió (AudioPlayer.cpp
-    solo lo escribe en el log). Un contexto sin stream se declara «running».
+  · **`state === 'running'` del AudioContext no prueba que se OIGA — pero sí
+    dice más de lo que esta guía afirmaba (corregido el 2/9/2026).** Lo que
+    decía aquí era: «el constructor hace `audioPlayer_->start(); state_ =
+    RUNNING;` **ignorando el booleano**, así que un contexto sin stream se
+    declara "running"». La primera mitad es cierta y sigue siéndolo. La
+    conclusión NO, porque lo que llega a JS no es `state_`: en la versión
+    instalada (`react-native-audio-api` **0.8.4**, leído en `node_modules`)
+    `ctx.state` cruza el puente por `BaseAudioContext::getState()`
+    (`BaseAudioContext.cpp:31`), que devuelve **«suspended»** siempre que
+    `isDriverRunning()` sea falso, e `isDriverRunning()` acaba en
+    `AudioPlayer::isRunning()` (`AudioPlayer.cpp:79`) =
+    `mStream_ && mStream_->getState() == Started`. Es decir: **«running»
+    implica que el stream de Oboe está abierto y arrancado**; lo que no implica
+    es que salga sonido audible (volumen, ruta, ganancia). Coste de haberlo
+    dado por perdido: la rama `sonido` (2/9/2026) construyó su arreglo sobre la
+    frase vieja y quitó la guarda de `resumeAudioContext()` «porque el motor
+    miente» — un no-op, ya que `AudioContext::resume()` (`AudioContext.cpp:59`)
+    abre con `if (isRunning()) return true;`. **Cuando una regla de aquí cite
+    código de una librería, comprueba la versión instalada antes de razonar
+    sobre ella.**
+  · **Lo que sí es una prueba máquina de que el motor emite: `currentTime`.**
+    `AudioDestinationNode::getCurrentTime()` = `currentSampleFrame_ /
+    sampleRate`, y `currentSampleFrame_` solo crece dentro de
+    `AudioDestinationNode::renderAudio` (`AudioDestinationNode.cpp:44`), a la
+    que únicamente se llega desde `AudioPlayer::onAudioReady`, el callback con
+    el que Oboe PIDE muestras — y que sale sin renderizar si `isInitialized_`
+    es `false`. Si el reloj avanza, el hardware está tirando de frames. Es el
+    eslabón **«Reloj del hardware de salida»** de Comprobar audio.
+  · **La sesión de audio (`AudioManager`) es una capa iOS: en Android no hace
+    nada.** `AudioAPIModule.kt:66` implementa `setAudioSessionOptions` como
+    `// noting to do here` y `setAudioSessionActivity` solo resuelve la
+    promesa. Un arreglo de sonido para el emulador de Frank que consista en
+    reconfigurar la sesión está tocando una capa que ahí no existe.
   · **Si hay tres motores de salida, hay tres pruebas de escucha.** Había una
     (el tono) y cerraba el veredicto de los tres. Ahora son cuatro emisiones
     —tono, recorte verbal, locución empaquetada, voz del sistema— y mientras
