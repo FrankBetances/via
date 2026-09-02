@@ -49,11 +49,20 @@ const ensureAudioMode = (ExpoAudio: any): void => {
   if (modeSet) return;
   modeSet = true;
   // Mezcla: la locución convive con lo que esté sonando, nunca lo pausa.
-  void ExpoAudio.setAudioModeAsync({
-    playsInSilentMode: true,
-    shouldPlayInBackground: false,
-    interruptionMode: 'mixWithOthers',
-  });
+  try {
+    const promise = ExpoAudio.setAudioModeAsync?.({
+      playsInSilentMode: true,
+      shouldPlayInBackground: false,
+      interruptionMode: 'mixWithOthers',
+    });
+    if (promise && typeof promise.catch === 'function') {
+      void promise.catch(() => {
+        /* noop */
+      });
+    }
+  } catch {
+    /* noop */
+  }
 };
 
 const sleep = (ms: number): Promise<void> => new Promise(resolve => setTimeout(resolve, ms));
@@ -229,3 +238,10 @@ export const probeVoiceAsset = async (
 export const disposeVoicePlayback = (): void => {
   stopVoiceAsset();
 };
+
+/** Solo para tests: reinicia el estado interno del reproductor de voz. */
+export const __resetVoicePlaybackForTests = (): void => {
+  cleanup();
+  modeSet = false;
+};
+

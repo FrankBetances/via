@@ -5,6 +5,7 @@ import {
   acquireRecorder,
   acquireRecordingSession,
   isAudioEngineAvailable,
+  isRecordingSessionActive,
   recorderHealth,
   releaseAudioContext,
   resumeAudioContext,
@@ -301,11 +302,33 @@ export function checkNativeEngine(): CheckResult {
   };
 }
 
-/** 2 · ¿Abre el contexto de SALIDA compartido? */
+/**
+ * Resultado de la comprobación del reloj hardware del contexto de salida.
+ */
+export interface OutputClockProbe {
+  /** ¿El reloj hardware (`ctx.currentTime`) avanzó en la ventana medida? */
+  advancing: boolean;
+  /** Valor inicial de `currentTime`. */
+  initialTime: number;
+  /** Valor tras la ventana de medida. */
+  finalTime: number;
+  /** Incremento medido en segundos. */
+  deltaTime: number;
+}
+
+/** 2 · ¿Abre el contexto de SALIDA compartido y responde su reloj hardware? */
 export function checkOutputContext(): CheckResult {
   const base = { id: 'output', label: 'Contexto de salida (altavoz)' } as const;
   if (!isAudioEngineAvailable()) {
     return { ...base, status: 'fail', detail: 'El motor de salida se marcó como no disponible en este arranque.' };
+  }
+  if (isRecordingSessionActive()) {
+    return {
+      ...base,
+      status: 'warn',
+      detail: 'La sesión de grabación (`playAndRecord`) está activa y puede atenuar o desviar la salida al auricular.',
+      hint: 'Cierre cualquier prueba que mantenga el micrófono abierto para liberar la sesión de reproducción.',
+    };
   }
   const ctx = acquireAudioContext();
   if (!ctx) {
@@ -316,8 +339,13 @@ export function checkOutputContext(): CheckResult {
       hint: 'Otra aplicación puede tener el dispositivo de salida en modo exclusivo. Ciérrelas y reinicie VIA+.',
     };
   }
+
+  resumeAudioContext();
   const state = ctx.state ?? 'desconocido';
+  const currentTime = Number(ctx.currentTime) || 0;
+
   releaseAudioContext();
+
   /* «running» NO PRUEBA QUE EL ALTAVOZ EMITA, y decirlo aquí es la diferencia
    * entre un diagnóstico y un adorno. Demostrado en el propio motor:
    * `AudioContext::AudioContext` (node_modules/react-native-audio-api/common/
@@ -332,17 +360,45 @@ export function checkOutputContext(): CheckResult {
    * lo escribe en el log de Android). O sea: un contexto cuyo stream nativo
    * nunca se abrió se declara «running» igual. La única comprobación válida de
    * la salida es la prueba de escucha. */
+  const isStateOk = state === 'running' || state === 'desconocido';
   return {
     ...base,
-    status: state === 'running' || state === 'desconocido' ? 'ok' : 'warn',
+    status: isStateOk ? 'ok' : 'warn',
     detail:
-      `El contexto responde «${state}» a ${ctx.sampleRate} Hz. ` +
+      `El contexto responde «${state}» a ${ctx.sampleRate} Hz (currentTime: ${currentTime.toFixed(2)} s). ` +
       'NO prueba que el altavoz emita: el motor marca «running» sin comprobar que el stream nativo llegara a abrirse.',
     hint:
       state === 'suspended'
         ? 'El sistema tiene el contexto suspendido: no sonará nada hasta que se reanude.'
         : 'Quien cierra este eslabón es la prueba de escucha del final de la pantalla.',
   };
+}
+
+/**
+ * Sonda asíncrona dedicada del reloj hardware del AudioContext.
+ * Permite medir el avance de `currentTime` sobre un intervalo dado (por defecto 50 ms)
+ * para detectar si el motor C++ está estancado o el stream de Oboe no abrió.
+ */
+export async function probeOutputClock(sampleDurationMs = 50): Promise<OutputClockProbe> {
+  const ctx = acquireAudioContext();
+  if (!ctx) {
+    return { advancing: false, initialTime: 0, finalTime: 0, deltaTime: 0 };
+  }
+  try {
+    resumeAudioContext();
+    const initialTime = ctx.currentTime;
+    await new Promise<void>(resolve => setTimeout(() => resolve(), sampleDurationMs));
+    const finalTime = ctx.currentTime;
+    const deltaTime = finalTime - initialTime;
+    return {
+      advancing: deltaTime > 0,
+      initialTime,
+      finalTime,
+      deltaTime,
+    };
+  } finally {
+    releaseAudioContext();
+  }
 }
 
 /**
