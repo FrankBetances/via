@@ -105,6 +105,80 @@ jobs:
         run: |
           echo "$RELEASE_KEYSTORE_BASE64" | base64 -d > android/app/viaplus-release.keystore
 
+      # EL NDK NO VIENE EN LA IMAGEN DEL RUNNER, y hasta el 2/9/2026 nadie lo
+      # sabía porque nadie lo había mirado: AGP lo detecta ausente en la fase de
+      # CONFIGURACIÓN de Gradle y se lo descarga solo, ~600 MB, en CADA
+      # ejecución. Eso son los ~3 min del paso de codegen de aquí abajo, y es
+      # también un punto de fallo externo dentro del build.
+      #
+      # Reventó en la ejecución 144, después de 143 seguidas en verde y sobre un
+      # commit que solo tocaba cinco ficheros de `src/I18n/`, un `.md` y un
+      # `.jpg`:
+      #
+      #   Preparing "Install NDK (Side by side) 27.1.12297006".
+      #   Warning: ... Error on ZipFile unknown archive
+      #   Caused by: java.util.zip.ZipException: Archive is not a ZIP archive
+      #   > Failed to install: ndk;27.1.12297006
+      #
+      # Lo que bajó no era un ZIP. El build murió a los 2 min 19 s, en la
+      # evaluación del proyecto raíz, sin haber compilado una línea — y el
+      # mensaje («Install the missing components using the SDK manager in
+      # Android Studio») manda a un sitio que en un runner no existe.
+      #
+      # Sacar la descarga FUERA de Gradle y ponerla aquí cambia tres cosas:
+      #   · se reintenta, que es lo único que cura una descarga corrupta;
+      #   · falla en un paso con nombre propio, no dentro de un stacktrace de
+      #     300 líneas de Gradle;
+      #   · si algún día la imagen del runner ya trae el NDK, se salta sola.
+      #
+      # La versión NO se escribe aquí: se LEE de android/build.gradle, que es
+      # donde se decide. Dos sitios con el mismo número se separan — es la misma
+      # razón por la que la tabla de opcodes de Lúa se genera en vez de
+      # copiarse.
+      - name: Install Android NDK (with retry)
+        run: |
+          set -u
+          SDK="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-/usr/local/lib/android/sdk}}"
+
+          NDK=$(sed -n 's/.*ndkVersion[[:space:]]*=[[:space:]]*"\([^"]*\)".*/\1/p' android/build.gradle | head -1)
+          if [ -z "$NDK" ]; then
+            echo "::error::No pude leer ndkVersion de android/build.gradle."
+            exit 1
+          fi
+          echo "El proyecto pide ndk;$NDK · SDK en $SDK"
+
+          if [ -d "$SDK/ndk/$NDK" ]; then
+            echo "Ya presente en la imagen del runner: no hay nada que descargar."
+            exit 0
+          fi
+
+          SDKMANAGER=""
+          for c in "$SDK/cmdline-tools/latest/bin/sdkmanager" \
+                   "$SDK/cmdline-tools/bin/sdkmanager" \
+                   "$SDK/tools/bin/sdkmanager"; do
+            [ -x "$c" ] && SDKMANAGER="$c" && break
+          done
+          if [ -z "$SDKMANAGER" ]; then
+            echo "::error::No encuentro sdkmanager bajo $SDK. Contenido de cmdline-tools:"
+            ls -la "$SDK/cmdline-tools" 2>&1 || true
+            exit 1
+          fi
+
+          for i in 1 2 3; do
+            echo "--- Intento $i de instalar ndk;$NDK"
+            if yes 2>/dev/null | "$SDKMANAGER" --sdk_root="$SDK" "ndk;$NDK"; then
+              echo "Instalado."
+              exit 0
+            fi
+            echo "Intento $i fallido. Borro la descarga a medias antes de reintentar."
+            rm -rf "$SDK/ndk/$NDK" "$SDK/.temp" "$SDK/.downloadIntermediates"
+            if [ "$i" -lt 3 ]; then sleep $((i * 20)); fi
+          done
+
+          echo "::error::No se pudo instalar ndk;$NDK tras 3 intentos. Si los tres fallan con"
+          echo "::error::'Archive is not a ZIP archive', el problema está aguas arriba (dl.google.com)."
+          exit 1
+
       - name: Pre-generate codegen artifacts for all native modules
         run: |
           cd android
