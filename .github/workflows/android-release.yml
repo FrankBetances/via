@@ -105,11 +105,19 @@ jobs:
         run: |
           echo "$RELEASE_KEYSTORE_BASE64" | base64 -d > android/app/viaplus-release.keystore
 
-      # EL NDK NO VIENE EN LA IMAGEN DEL RUNNER, y hasta el 2/9/2026 nadie lo
-      # sabía porque nadie lo había mirado: AGP lo detecta ausente en la fase de
-      # CONFIGURACIÓN de Gradle y se lo descarga solo, ~600 MB, en CADA
-      # ejecución. Eso son los ~3 min del paso de codegen de aquí abajo, y es
-      # también un punto de fallo externo dentro del build.
+      # EL NDK NO VIENE EN LA IMAGEN DEL RUNNER: AGP lo detecta ausente en la
+      # fase de CONFIGURACIÓN de Gradle y se lo descarga solo, en CADA ejecución,
+      # metiendo un punto de fallo externo dentro del build.
+      #
+      # CUÁNTO CUESTA, MEDIDO (ejecución 145, 2/9/2026): 23 s en total —unos 7 s
+      # de arranque de sdkmanager, ~2 s de descarga de android-ndk-r27b-linux y
+      # ~10 s de descompresión—. Al escribir este paso se afirmó aquí que eran
+      # «~600 MB y los ~3 min del codegen»: las dos cifras eran FALSAS y se
+      # dieron sin medirlas. Los ~3 min del paso de abajo son suyos y siguen
+      # igual con este paso puesto: son la descarga de gradle-8.14.1-bin.zip más
+      # la compilación en Kotlin de los plugins de Expo y React Native, que es
+      # justo lo que se lee en el log detrás de «Instalado.». Este paso NO
+      # acelera el build, y no se puso para eso.
       #
       # Reventó en la ejecución 144, después de 143 seguidas en verde y sobre un
       # commit que solo tocaba cinco ficheros de `src/I18n/`, un `.md` y un
@@ -125,7 +133,8 @@ jobs:
       # mensaje («Install the missing components using the SDK manager in
       # Android Studio») manda a un sitio que en un runner no existe.
       #
-      # Sacar la descarga FUERA de Gradle y ponerla aquí cambia tres cosas:
+      # Sacar la descarga FUERA de Gradle y ponerla aquí cambia tres cosas, y
+      # ninguna es la velocidad:
       #   · se reintenta, que es lo único que cura una descarga corrupta;
       #   · falla en un paso con nombre propio, no dentro de un stacktrace de
       #     300 líneas de Gradle;
