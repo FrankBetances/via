@@ -33,6 +33,8 @@ import { CatPixel } from '@/Components/Mascot/LuaPixel';
 import { Text } from '@/Components/Common';
 import { atoms } from '@/Theme/styleAtoms';
 
+import { computeLuaLayout } from './luaLayout';
+
 type Props = NativeStackScreenProps<RootStackParamList, 'PresentacionLua'>;
 
 const MONO = Platform.OS === 'ios' ? 'Courier' : 'monospace';
@@ -46,16 +48,14 @@ export default function PresentacionLuaScreen({ navigation }: Props) {
   const t = useT();
   const insets = useSafeAreaInsets();
   const { width: winW, height: winH } = useWindowDimensions();
-  const isLandscape = winW > winH;
-  const isTabletLandscape = (winW >= 850 && isLandscape) || winW >= 960;
-  const isMobileLandscape = isLandscape && winH < 520 && !isTabletLandscape;
-  const isMobile = winW < 600;
-  const isSmallPhone = winW < 380;
-
-  // Dimensiones adaptativas de la mascota Lúa y su halo de pulso
-  const showcaseSize = isSmallPhone ? 190 : isMobileLandscape ? 180 : isMobile ? 220 : 260;
-  const imageSize = Math.round(showcaseSize * 0.82);
-  const ringRadius = Math.round(showcaseSize / 2);
+  const {
+    twoColumns,
+    isMobile,
+    isSmallPhone,
+    showcaseSize,
+    imageSize,
+    ringRadius,
+  } = computeLuaLayout({ winW, winH });
 
   // Animaciones continuas de pulso y flotación
   const ring1 = useSharedValue(0);
@@ -242,13 +242,13 @@ export default function PresentacionLuaScreen({ navigation }: Props) {
             : isMobile
               ? styles.scrollMobile
               : undefined,
-          (isTabletLandscape || isMobileLandscape) && styles.scrollLandscape,
+          twoColumns && styles.scrollLandscape,
         ]}
         showsVerticalScrollIndicator={false}>
         <View
           style={[
             styles.contentContainer,
-            (isTabletLandscape || isMobileLandscape) && styles.contentContainerLandscape,
+            twoColumns && styles.contentContainerLandscape,
           ]}>
           {/* ================================================================== */}
           {/* COLUMNA IZQUIERDA: Showcase Fotográfico de la Mascota Lúa          */}
@@ -256,7 +256,7 @@ export default function PresentacionLuaScreen({ navigation }: Props) {
           <Animated.View
             style={[
               styles.leftColumn,
-              (isTabletLandscape || isMobileLandscape) && styles.columnHalf,
+              twoColumns && styles.columnHalf,
               introStyle,
             ]}>
             <View style={[styles.emblemCard, isMobile && styles.emblemCardMobile]}>
@@ -291,7 +291,10 @@ export default function PresentacionLuaScreen({ navigation }: Props) {
                     floatStyle,
                   ]}>
                   <Image
-                    source={require('@/../assets/img/lua_mascot_device.jpg')}
+                    /* El fichero es `lua_mascot_device@2x.png` —el sufijo lo
+                     * resuelve Metro y evita que Android reescale un mdpi—,
+                     * pero el `require` va sin él, como manda React Native. */
+                    source={require('@/../assets/img/lua_mascot_device.png')}
                     style={styles.deviceImage}
                     resizeMode="contain"
                   />
@@ -313,7 +316,7 @@ export default function PresentacionLuaScreen({ navigation }: Props) {
           <Animated.View
             style={[
               styles.rightColumn,
-              (isTabletLandscape || isMobileLandscape) && styles.columnHalf,
+              twoColumns && styles.columnHalf,
               introStyle,
             ]}>
             {/* Tarjeta 1: Acompañamiento y Gamificación */}
@@ -739,9 +742,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   deviceImage: {
+    /* Sin `borderRadius`: lo llevaba para suavizar el canto del JPG cuadrado y
+     * el PNG ya no tiene canto —el fondo se funde a transparente. */
     width: '100%',
     height: '100%',
-    borderRadius: 12,
   },
   catPixelRow: {
     flexDirection: 'row',

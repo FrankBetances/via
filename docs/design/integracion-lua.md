@@ -581,13 +581,25 @@ gata que guía la terapia», ni que acompaña, mejora o sostiene el tratamiento.
    aquí**. Comprobado el 27/8/2026 contra `core/src/device.cpp` de
    `lua-firmware`.
 8. **Decidir qué es la foto de `PresentacionLuaScreen`.**
-   `assets/img/lua_mascot_device.jpg` parece un render de producto, no una
+   `assets/img/lua_mascot_device.png` parece un render de producto, no una
    fotografía de la placa ESP32-C3. Presentar un render junto a un botón de
    contacto, en un SaMD Clase IIa, afirma disponibilidad aunque no lleve texto.
    Los cuatro textos de esa tarjeta se corrigieron el 2/9/2026 —el motivo de cada
    uno está escrito en `src/I18n/strings.es.ts`—, pero **la imagen sigue sin pie
    que diga si es una representación**. Si hay placa, se fotografía; si no, el pie
-   lo dice. Lo decide el responsable, no un `.md`.
+   lo dice. Lo decide el responsable, no un `.md`. **Lo que sí se hizo el
+   3/9/2026 es el fondo**: era un JPG de estudio gris (#E2E1E6) dentro de una
+   tarjeta blanca, así que se veía un cuadrado gris. El fondo NO se puede
+   recortar por umbral —el cuerpo blanco de Lúa mide 221 de luminancia y el
+   fondo 226, cinco niveles—, así que el PNG conserva la foto y funde el fondo
+   a transparente en una banda circular que sólo toca fondo (Lúa al 70 % del
+   lienzo de 512 px, banda entre r=186 y r=254). Se sirve en dos densidades
+   —`lua_mascot_device.png` a 256 px y `lua_mascot_device@2x.png` a 512— y el
+   sufijo no es decoración: un fichero sin densidad cae entero en
+   `drawable-mdpi` y Android lo reescala al decodificar (×3 en un teléfono
+   xxhdpi: 1536² en memoria para una foto decorativa). Comprobado con
+   `npx expo export:embed`: caen en `drawable-mdpi` y `drawable-xhdpi`. El original vive en el commit `cb656d8`. Sigue siendo un
+   render: el pie sigue pendiente.
 
 Lo que **no** hay que decidir otra vez: el protocolo no se negocia —se genera—, y
 la postura regulatoria de VIA+ está fijada en el §8 del plan de Valeria+, no aquí.
