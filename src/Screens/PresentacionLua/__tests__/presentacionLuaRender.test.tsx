@@ -13,6 +13,7 @@
 import React from 'react';
 import { act, create } from 'react-test-renderer';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import * as ReactNative from 'react-native';
 import { Linking } from 'react-native';
 
 import PresentacionLuaScreen from '../PresentacionLuaScreen';
@@ -128,6 +129,51 @@ describe('PresentacionLuaScreen', () => {
     expect(JSON.stringify(tree.toJSON())).toContain(ES.luaIntro.webFailed);
 
     openURL.mockRestore();
+    act(() => tree.unmount());
+  });
+
+  it('se adapta correctamente al viewport de un teléfono móvil estrecho (< 380)', () => {
+    const spy = jest.spyOn(ReactNative, 'useWindowDimensions').mockReturnValue({
+      width: 360,
+      height: 740,
+      scale: 2,
+      fontScale: 1,
+    });
+    const mobileMetrics = {
+      frame: { x: 0, y: 0, width: 360, height: 740 },
+      insets: { top: 38, left: 0, right: 0, bottom: 24 },
+    };
+    let tree: any;
+    act(() => {
+      tree = create(
+        <SafeAreaProvider initialMetrics={mobileMetrics}>
+          <PresentacionLuaScreen navigation={navMock()} route={{} as any} />
+        </SafeAreaProvider>,
+      );
+    });
+    const json = JSON.stringify(tree.toJSON());
+    expect(json).toContain(ES.luaIntro.navTitle);
+    expect(json).toContain(ES.luaIntro.dockButton);
+    expect(json).toContain(ES.luaIntro.emblemHeading);
+
+    spy.mockRestore();
+    act(() => tree.unmount());
+  });
+
+  it('se adapta correctamente al viewport apaisado de tableta (>= 850)', () => {
+    const spy = jest.spyOn(ReactNative, 'useWindowDimensions').mockReturnValue({
+      width: 1024,
+      height: 768,
+      scale: 2,
+      fontScale: 1,
+    });
+    const tree = mount(navMock());
+    const json = JSON.stringify(tree.toJSON());
+    expect(json).toContain(ES.luaIntro.navTitle);
+    expect(json).toContain(ES.luaIntro.dockButton);
+    expect(json).toContain(ES.luaIntro.emblemHeading);
+
+    spy.mockRestore();
     act(() => tree.unmount());
   });
 });

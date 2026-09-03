@@ -45,8 +45,17 @@ const EMAIL_URL = 'mailto:contacto@earlify.health?subject=Solicitud%20de%20Masco
 export default function PresentacionLuaScreen({ navigation }: Props) {
   const t = useT();
   const insets = useSafeAreaInsets();
-  const { width: winW } = useWindowDimensions();
-  const isTabletLandscape = winW >= 850;
+  const { width: winW, height: winH } = useWindowDimensions();
+  const isLandscape = winW > winH;
+  const isTabletLandscape = (winW >= 850 && isLandscape) || winW >= 960;
+  const isMobileLandscape = isLandscape && winH < 520 && !isTabletLandscape;
+  const isMobile = winW < 600;
+  const isSmallPhone = winW < 380;
+
+  // Dimensiones adaptativas de la mascota Lúa y su halo de pulso
+  const showcaseSize = isSmallPhone ? 190 : isMobileLandscape ? 180 : isMobile ? 220 : 260;
+  const imageSize = Math.round(showcaseSize * 0.82);
+  const ringRadius = Math.round(showcaseSize / 2);
 
   // Animaciones continuas de pulso y flotación
   const ring1 = useSharedValue(0);
@@ -153,35 +162,70 @@ export default function PresentacionLuaScreen({ navigation }: Props) {
       <StatusBar barStyle="dark-content" backgroundColor="#F5F2EC" />
       <View style={styles.blobTopRight} pointerEvents="none" />
       <View style={styles.blobBottomLeft} pointerEvents="none" />
-
-      {/* Top Navbar */}
-      <View style={[styles.topNavbar, { paddingTop: Math.max(insets.top, 12) }]}>
+      <View
+        style={[
+          styles.topNavbar,
+          { paddingTop: Math.max(insets.top, 12) },
+          isSmallPhone
+            ? styles.topNavbarSmall
+            : isMobile
+              ? styles.topNavbarMobile
+              : undefined,
+        ]}>
         <Pressable
           accessibilityRole="button"
           accessibilityLabel={t.luaIntro.navBackA11y}
+          hitSlop={8}
           style={({ pressed }) => [styles.navBackButton, pressed && styles.navButtonPressed]}
           onPress={handleBack}>
-          <ArrowLeft size={20} color="#2B2620" strokeWidth={2.4} />
+          <ArrowLeft size={isMobile ? 18 : 20} color="#2B2620" strokeWidth={2.4} />
           <View style={styles.navLogoRow}>
-            <ViaIcon size={24} variant="color" />
-            <Text style={styles.navLogoText}>
+            <ViaIcon size={isMobile ? 22 : 24} variant="color" />
+            <Text style={[styles.navLogoText, isMobile && styles.navLogoTextMobile]}>
               VIA<Text style={styles.navLogoPlus}>+</Text>
             </Text>
           </View>
         </Pressable>
 
-        <Text style={styles.navTitle}>{t.luaIntro.navTitle}</Text>
+        <Text
+          style={[
+            styles.navTitle,
+            isSmallPhone
+              ? styles.navTitleSmall
+              : isMobile
+                ? styles.navTitleMobile
+                : undefined,
+          ]}
+          numberOfLines={1}
+          ellipsizeMode="tail">
+          {t.luaIntro.navTitle}
+        </Text>
 
-        <View style={styles.navRightGroup}>
-          <View style={styles.samdBadgeNav}>
-            <Bluetooth size={13} color="#0284C7" strokeWidth={2.2} />
-            <Text style={[styles.samdBadgeNavText, styles.samdBadgeNavTextBle]}>
+        <View style={[styles.navRightGroup, isSmallPhone && styles.navRightGroupSmall]}>
+          <View style={[styles.samdBadgeNav, isSmallPhone && styles.samdBadgeNavSmall]}>
+            <Bluetooth size={isSmallPhone ? 11 : 13} color="#0284C7" strokeWidth={2.2} />
+            <Text
+              style={[
+                styles.samdBadgeNavText,
+                styles.samdBadgeNavTextBle,
+                isSmallPhone && styles.samdBadgeNavTextSmall,
+              ]}>
               {t.luaIntro.badgeBle}
             </Text>
           </View>
-          <View style={[styles.samdBadgeNav, styles.samdBadgeNavPhi]}>
-            <ShieldAlert size={13} color="#DC2626" strokeWidth={2.2} />
-            <Text style={[styles.samdBadgeNavText, styles.samdBadgeNavTextPhi]}>
+          <View
+            style={[
+              styles.samdBadgeNav,
+              styles.samdBadgeNavPhi,
+              isSmallPhone && styles.samdBadgeNavSmall,
+            ]}>
+            <ShieldAlert size={isSmallPhone ? 11 : 13} color="#DC2626" strokeWidth={2.2} />
+            <Text
+              style={[
+                styles.samdBadgeNavText,
+                styles.samdBadgeNavTextPhi,
+                isSmallPhone && styles.samdBadgeNavTextSmall,
+              ]}>
               {t.luaIntro.badgeZeroPhi}
             </Text>
           </View>
@@ -192,139 +236,259 @@ export default function PresentacionLuaScreen({ navigation }: Props) {
         style={atoms.flex1}
         contentContainerStyle={[
           styles.scroll,
-          { paddingBottom: 100 + Math.max(insets.bottom, 16) },
-          isTabletLandscape && styles.scrollLandscape,
+          { paddingBottom: (isMobile ? 86 : 100) + Math.max(insets.bottom, 16) },
+          isSmallPhone
+            ? styles.scrollSmall
+            : isMobile
+              ? styles.scrollMobile
+              : undefined,
+          (isTabletLandscape || isMobileLandscape) && styles.scrollLandscape,
         ]}
         showsVerticalScrollIndicator={false}>
-        
-        {/* ================================================================== */}
-        {/* COLUMNA IZQUIERDA: Showcase Fotográfico de la Mascota Lúa          */}
-        {/* ================================================================== */}
-        <Animated.View style={[styles.leftColumn, isTabletLandscape && styles.columnHalf, introStyle]}>
-          <View style={styles.emblemCard}>
-            <View style={styles.emblemHeaderRow}>
-              <View style={styles.emblemDotLive} />
-              <Text style={styles.emblemHeading}>{t.luaIntro.emblemHeading}</Text>
-            </View>
-            
-            <View style={styles.deviceShowcase}>
-              {/* Halos ambientales */}
-              <Animated.View style={[styles.deviceRing, ring1Style]} />
-              <Animated.View style={[styles.deviceRing, ring2Style]} />
-              
-              <Animated.View style={[styles.deviceImageContainer, floatStyle]}>
-                <Image 
-                  source={require('@/../assets/img/lua_mascot_device.jpg')} 
-                  style={styles.deviceImage} 
-                  resizeMode="contain" 
+        <View
+          style={[
+            styles.contentContainer,
+            (isTabletLandscape || isMobileLandscape) && styles.contentContainerLandscape,
+          ]}>
+          {/* ================================================================== */}
+          {/* COLUMNA IZQUIERDA: Showcase Fotográfico de la Mascota Lúa          */}
+          {/* ================================================================== */}
+          <Animated.View
+            style={[
+              styles.leftColumn,
+              (isTabletLandscape || isMobileLandscape) && styles.columnHalf,
+              introStyle,
+            ]}>
+            <View style={[styles.emblemCard, isMobile && styles.emblemCardMobile]}>
+              <View style={styles.emblemHeaderRow}>
+                <View style={styles.emblemDotLive} />
+                <Text style={[styles.emblemHeading, isSmallPhone && styles.emblemHeadingSmall]}>
+                  {t.luaIntro.emblemHeading}
+                </Text>
+              </View>
+
+              <View style={[styles.deviceShowcase, { width: showcaseSize, height: showcaseSize }]}>
+                {/* Halos ambientales */}
+                <Animated.View
+                  style={[
+                    styles.deviceRing,
+                    { width: showcaseSize, height: showcaseSize, borderRadius: ringRadius },
+                    ring1Style,
+                  ]}
                 />
-              </Animated.View>
-            </View>
+                <Animated.View
+                  style={[
+                    styles.deviceRing,
+                    { width: showcaseSize, height: showcaseSize, borderRadius: ringRadius },
+                    ring2Style,
+                  ]}
+                />
 
-            <View style={styles.catPixelRow}>
-               <CatPixel size={40} pose="head" />
-               <Text style={styles.emblemFootnote}>{t.luaIntro.emblemFootnote}</Text>
-            </View>
-          </View>
-        </Animated.View>
-
-        {/* ================================================================== */}
-        {/* COLUMNA DERECHA: Ficha Clínica y Botón de Contacto                 */}
-        {/* ================================================================== */}
-        <Animated.View style={[styles.rightColumn, isTabletLandscape && styles.columnHalf, introStyle]}>
-          {/* Tarjeta 1: Acompañamiento y Gamificación */}
-          <View style={styles.cardBlock}>
-            <Text style={styles.cardBlockTitle}>{t.luaIntro.cardTitle}</Text>
-            
-            <View style={styles.partnerList}>
-              <View style={styles.partnerItem}>
-                <View style={[styles.partnerIconBox, atoms.backgroundColorFEF3C7]}>
-                  <MessageCircle size={22} color="#D97706" />
-                </View>
-                <View style={atoms.flex1}>
-                  <Text style={styles.partnerName}>{t.luaIntro.empathyName}</Text>
-                  <Text style={styles.partnerSubtitle}>{t.luaIntro.empathyDesc}</Text>
-                </View>
+                <Animated.View
+                  style={[
+                    styles.deviceImageContainer,
+                    { width: imageSize, height: imageSize },
+                    floatStyle,
+                  ]}>
+                  <Image
+                    source={require('@/../assets/img/lua_mascot_device.jpg')}
+                    style={styles.deviceImage}
+                    resizeMode="contain"
+                  />
+                </Animated.View>
               </View>
 
-              <View style={styles.divider} />
-
-              <View style={styles.partnerItem}>
-                <View style={[styles.partnerIconBox, atoms.backgroundColorE0F2FE]}>
-                  <Bluetooth size={22} color="#0284C7" />
-                </View>
-                <View style={atoms.flex1}>
-                  <Text style={styles.partnerName}>{t.luaIntro.bleName}</Text>
-                  <Text style={styles.partnerSubtitle}>{t.luaIntro.bleDesc}</Text>
-                </View>
+              <View style={styles.catPixelRow}>
+                <CatPixel size={isMobile ? 32 : 40} pose="head" />
+                <Text style={[styles.emblemFootnote, isSmallPhone && styles.emblemFootnoteSmall]}>
+                  {t.luaIntro.emblemFootnote}
+                </Text>
               </View>
+            </View>
+          </Animated.View>
 
-              <View style={styles.divider} />
+          {/* ================================================================== */}
+          {/* COLUMNA DERECHA: Ficha Clínica y Botón de Contacto                 */}
+          {/* ================================================================== */}
+          <Animated.View
+            style={[
+              styles.rightColumn,
+              (isTabletLandscape || isMobileLandscape) && styles.columnHalf,
+              introStyle,
+            ]}>
+            {/* Tarjeta 1: Acompañamiento y Gamificación */}
+            <View style={[styles.cardBlock, isMobile && styles.cardBlockMobile]}>
+              <Text style={styles.cardBlockTitle}>{t.luaIntro.cardTitle}</Text>
 
-              <View style={styles.partnerItem}>
-                <View style={[styles.partnerIconBox, atoms.backgroundColorFEE2E2]}>
-                  <Shield size={22} color="#DC2626" />
+              <View style={styles.partnerList}>
+                <View style={styles.partnerItem}>
+                  <View
+                    style={[
+                      styles.partnerIconBox,
+                      isMobile && styles.partnerIconBoxMobile,
+                      atoms.backgroundColorFEF3C7,
+                    ]}>
+                    <MessageCircle size={isMobile ? 20 : 22} color="#D97706" />
+                  </View>
+                  <View style={atoms.flex1}>
+                    <Text style={[styles.partnerName, isMobile && styles.partnerNameMobile]}>
+                      {t.luaIntro.empathyName}
+                    </Text>
+                    <Text
+                      style={[
+                        styles.partnerSubtitle,
+                        isMobile && styles.partnerSubtitleMobile,
+                      ]}>
+                      {t.luaIntro.empathyDesc}
+                    </Text>
+                  </View>
                 </View>
-                <View style={atoms.flex1}>
-                  <Text style={styles.partnerName}>{t.luaIntro.privacyName}</Text>
-                  <Text style={styles.partnerSubtitle}>{t.luaIntro.privacyDesc}</Text>
+
+                <View style={styles.divider} />
+
+                <View style={styles.partnerItem}>
+                  <View
+                    style={[
+                      styles.partnerIconBox,
+                      isMobile && styles.partnerIconBoxMobile,
+                      atoms.backgroundColorE0F2FE,
+                    ]}>
+                    <Bluetooth size={isMobile ? 20 : 22} color="#0284C7" />
+                  </View>
+                  <View style={atoms.flex1}>
+                    <Text style={[styles.partnerName, isMobile && styles.partnerNameMobile]}>
+                      {t.luaIntro.bleName}
+                    </Text>
+                    <Text
+                      style={[
+                        styles.partnerSubtitle,
+                        isMobile && styles.partnerSubtitleMobile,
+                      ]}>
+                      {t.luaIntro.bleDesc}
+                    </Text>
+                  </View>
+                </View>
+
+                <View style={styles.divider} />
+
+                <View style={styles.partnerItem}>
+                  <View
+                    style={[
+                      styles.partnerIconBox,
+                      isMobile && styles.partnerIconBoxMobile,
+                      atoms.backgroundColorFEE2E2,
+                    ]}>
+                    <Shield size={isMobile ? 20 : 22} color="#DC2626" />
+                  </View>
+                  <View style={atoms.flex1}>
+                    <Text style={[styles.partnerName, isMobile && styles.partnerNameMobile]}>
+                      {t.luaIntro.privacyName}
+                    </Text>
+                    <Text
+                      style={[
+                        styles.partnerSubtitle,
+                        isMobile && styles.partnerSubtitleMobile,
+                      ]}>
+                      {t.luaIntro.privacyDesc}
+                    </Text>
+                  </View>
                 </View>
               </View>
             </View>
-          </View>
 
-          {/* Tarjeta 2: Adquisición / Pedidos */}
-          <View style={styles.cardBlockHighlight}>
-            <View style={styles.highlightHeader}>
-              <ShoppingCart size={20} color="#FF7F00" strokeWidth={2.4} />
-              <Text style={styles.highlightTitle}>{t.luaIntro.highlightTitle}</Text>
-            </View>
-            <Text style={styles.highlightText}>{t.luaIntro.highlightText}</Text>
-            
-            <View style={styles.contactButtonsRow}>
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel={t.luaIntro.infoA11y}
-                style={({ pressed }) => [styles.contactBtn, pressed && styles.navButtonPressed]}
-                onPress={handleContactWeb}>
-                <Info size={16} color="#FFFFFF" strokeWidth={2.4} />
-                <Text style={styles.contactBtnText}>{t.luaIntro.infoLabel}</Text>
-              </Pressable>
-
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel={t.luaIntro.contactA11y}
-                style={({ pressed }) => [styles.contactBtnOutline, pressed && styles.navButtonPressed]}
-                onPress={handleContactEmail}>
-                <Mail size={16} color="#FF7F00" strokeWidth={2.4} />
-                <Text style={styles.contactBtnTextOutline}>{t.luaIntro.contactLabel}</Text>
-              </Pressable>
-            </View>
-
-            {linkError ? (
-              <View style={styles.linkErrorRow} accessibilityLiveRegion="polite">
-                <ShieldAlert size={15} color="#B91C1C" strokeWidth={2.2} />
-                <Text style={styles.linkErrorText}>{linkError}</Text>
+            {/* Tarjeta 2: Adquisición / Pedidos */}
+            <View style={[styles.cardBlockHighlight, isMobile && styles.cardBlockHighlightMobile]}>
+              <View style={styles.highlightHeader}>
+                <ShoppingCart size={isMobile ? 18 : 20} color="#FF7F00" strokeWidth={2.4} />
+                <Text style={[styles.highlightTitle, isMobile && styles.highlightTitleMobile]}>
+                  {t.luaIntro.highlightTitle}
+                </Text>
               </View>
-            ) : null}
-          </View>
+              <Text style={[styles.highlightText, isMobile && styles.highlightTextMobile]}>
+                {t.luaIntro.highlightText}
+              </Text>
 
-        </Animated.View>
+              <View style={styles.contactButtonsRow}>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={t.luaIntro.infoA11y}
+                  style={({ pressed }) => [
+                    styles.contactBtn,
+                    isMobile && styles.contactBtnMobile,
+                    pressed && styles.navButtonPressed,
+                  ]}
+                  onPress={handleContactWeb}>
+                  <Info size={16} color="#FFFFFF" strokeWidth={2.4} />
+                  <Text style={[styles.contactBtnText, isMobile && styles.contactBtnTextMobile]}>
+                    {t.luaIntro.infoLabel}
+                  </Text>
+                </Pressable>
+
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={t.luaIntro.contactA11y}
+                  style={({ pressed }) => [
+                    styles.contactBtnOutline,
+                    isMobile && styles.contactBtnOutlineMobile,
+                    pressed && styles.navButtonPressed,
+                  ]}
+                  onPress={handleContactEmail}>
+                  <Mail size={16} color="#FF7F00" strokeWidth={2.4} />
+                  <Text
+                    style={[
+                      styles.contactBtnTextOutline,
+                      isMobile && styles.contactBtnTextOutlineMobile,
+                    ]}>
+                    {t.luaIntro.contactLabel}
+                  </Text>
+                </Pressable>
+              </View>
+
+              {linkError ? (
+                <View style={styles.linkErrorRow} accessibilityLiveRegion="polite">
+                  <ShieldAlert size={15} color="#B91C1C" strokeWidth={2.2} />
+                  <Text style={styles.linkErrorText}>{linkError}</Text>
+                </View>
+              ) : null}
+            </View>
+          </Animated.View>
+        </View>
       </ScrollView>
 
       {/* Action Dock Inferior con manejo dinámico de Safe Area */}
-      <View style={[styles.actionDock, { paddingBottom: Math.max(insets.bottom, 14) }]}>
-        <Animated.View style={btnAnimatedStyle}>
+      <View
+        style={[
+          styles.actionDock,
+          { paddingBottom: Math.max(insets.bottom, isMobile ? 12 : 14) },
+          isMobile && styles.actionDockMobile,
+        ]}>
+        <Animated.View style={[btnAnimatedStyle, styles.dockBtnWrapper]}>
           <Pressable
             accessibilityRole="button"
             accessibilityLabel={t.luaIntro.dockButton}
-            style={({ pressed }) => [styles.dockButton, pressed && styles.dockButtonPressed]}
+            style={({ pressed }) => [
+              styles.dockButton,
+              isMobile && styles.dockButtonMobile,
+              pressed && styles.dockButtonPressed,
+            ]}
             onPressIn={() => (btnScale.value = withSpring(0.97, { damping: 15, stiffness: 300 }))}
             onPressOut={() => (btnScale.value = withSpring(1, { damping: 15, stiffness: 300 }))}
             onPress={handleContinue}>
-            <Text style={styles.dockButtonText}>{t.luaIntro.dockButton}</Text>
+            <Text
+              style={[
+                styles.dockButtonText,
+                isSmallPhone
+                  ? styles.dockButtonTextSmall
+                  : isMobile
+                    ? styles.dockButtonTextMobile
+                    : undefined,
+              ]}
+              numberOfLines={1}
+              ellipsizeMode="tail">
+              {t.luaIntro.dockButton}
+            </Text>
             <View style={styles.dockArrowCircle}>
-              <ArrowRight size={18} color="#FF7F00" strokeWidth={2.6} />
+              <ArrowRight size={isMobile ? 16 : 18} color="#FF7F00" strokeWidth={2.6} />
             </View>
           </Pressable>
         </Animated.View>
@@ -366,6 +530,12 @@ const styles = StyleSheet.create({
     borderBottomColor: '#EDE7DC',
     backgroundColor: 'rgba(245, 242, 236, 0.94)',
   },
+  topNavbarMobile: {
+    paddingHorizontal: 16,
+  },
+  topNavbarSmall: {
+    paddingHorizontal: 12,
+  },
   navBackButton: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -373,6 +543,7 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
     paddingHorizontal: 6,
     borderRadius: 10,
+    minHeight: 44,
   },
   navButtonPressed: {
     opacity: 0.7,
@@ -388,15 +559,32 @@ const styles = StyleSheet.create({
     color: '#2B2620',
     letterSpacing: -0.5,
   },
+  navLogoTextMobile: {
+    fontSize: 16,
+  },
   navTitle: {
     fontSize: 17,
     fontWeight: '700',
     color: '#2B2620',
+    flexShrink: 1,
+    textAlign: 'center',
+    marginHorizontal: 12,
+  },
+  navTitleMobile: {
+    fontSize: 14.5,
+    marginHorizontal: 6,
+  },
+  navTitleSmall: {
+    fontSize: 13,
+    marginHorizontal: 4,
   },
   navRightGroup: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
+  },
+  navRightGroupSmall: {
+    gap: 4,
   },
   samdBadgeNav: {
     flexDirection: 'row',
@@ -408,6 +596,12 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     borderWidth: 1,
     borderColor: '#BAE6FD',
+  },
+  samdBadgeNavSmall: {
+    paddingVertical: 3,
+    paddingHorizontal: 5,
+    borderRadius: 6,
+    gap: 3,
   },
   samdBadgeNavPhi: {
     backgroundColor: '#FEF2F2',
@@ -447,15 +641,31 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#0369A1',
   },
+  samdBadgeNavTextSmall: {
+    fontSize: 9.5,
+  },
   scroll: {
     paddingHorizontal: 24,
     paddingTop: 16,
   },
+  scrollMobile: {
+    paddingHorizontal: 16,
+  },
+  scrollSmall: {
+    paddingHorizontal: 12,
+  },
   scrollLandscape: {
+    paddingHorizontal: 28,
+  },
+  contentContainer: {
+    width: '100%',
+    maxWidth: 1120,
+    alignSelf: 'center',
+  },
+  contentContainerLandscape: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    gap: 24,
-    paddingHorizontal: 36,
+    gap: 20,
   },
   leftColumn: {
     gap: 18,
@@ -485,6 +695,11 @@ const styles = StyleSheet.create({
     shadowRadius: 10,
     elevation: 2,
   },
+  emblemCardMobile: {
+    paddingVertical: 16,
+    paddingHorizontal: 12,
+    borderRadius: 20,
+  },
   emblemHeaderRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -504,9 +719,11 @@ const styles = StyleSheet.create({
     letterSpacing: 1.1,
     color: '#2B2620',
   },
+  emblemHeadingSmall: {
+    fontSize: 10,
+    letterSpacing: 0.8,
+  },
   deviceShowcase: {
-    width: 260,
-    height: 260,
     alignItems: 'center',
     justifyContent: 'center',
     marginVertical: 10,
@@ -514,15 +731,10 @@ const styles = StyleSheet.create({
   },
   deviceRing: {
     position: 'absolute',
-    width: 260,
-    height: 260,
-    borderRadius: 130,
     borderWidth: 2,
     borderColor: 'rgba(255, 127, 0, 0.35)',
   },
   deviceImageContainer: {
-    width: 220,
-    height: 220,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -544,6 +756,11 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     color: '#6B635A',
     lineHeight: 18,
+    flexShrink: 1,
+  },
+  emblemFootnoteSmall: {
+    fontSize: 12,
+    lineHeight: 16,
   },
 
   /* Tarjetas */
@@ -558,6 +775,10 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.04,
     shadowRadius: 10,
     elevation: 2,
+  },
+  cardBlockMobile: {
+    padding: 16,
+    borderRadius: 20,
   },
   cardBlockTitle: {
     fontSize: 12,
@@ -581,16 +802,28 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  partnerIconBoxMobile: {
+    width: 38,
+    height: 38,
+    borderRadius: 12,
+  },
   partnerName: {
     fontSize: 15,
     fontWeight: '700',
     color: '#2B2620',
     marginBottom: 4,
   },
+  partnerNameMobile: {
+    fontSize: 14,
+  },
   partnerSubtitle: {
     fontSize: 13.5,
     color: '#6B635A',
     lineHeight: 20,
+  },
+  partnerSubtitleMobile: {
+    fontSize: 12.5,
+    lineHeight: 18,
   },
   divider: {
     height: 1,
@@ -612,6 +845,10 @@ const styles = StyleSheet.create({
     shadowRadius: 12,
     elevation: 2,
   },
+  cardBlockHighlightMobile: {
+    padding: 16,
+    borderRadius: 20,
+  },
   highlightHeader: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -624,46 +861,75 @@ const styles = StyleSheet.create({
     color: '#9A3412',
     flex: 1,
   },
+  highlightTitleMobile: {
+    fontSize: 15,
+  },
   highlightText: {
     fontSize: 14,
     color: '#78350F',
     lineHeight: 21,
     marginBottom: 18,
   },
+  highlightTextMobile: {
+    fontSize: 13,
+    lineHeight: 19,
+    marginBottom: 14,
+  },
   contactButtonsRow: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     alignItems: 'center',
-    gap: 12,
+    gap: 10,
   },
   contactBtn: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
     gap: 8,
     backgroundColor: '#FF7F00',
     paddingVertical: 10,
     paddingHorizontal: 16,
     borderRadius: 12,
+    flexGrow: 1,
+    minHeight: 44,
+  },
+  contactBtnMobile: {
+    paddingHorizontal: 12,
   },
   contactBtnText: {
     fontSize: 14,
     fontWeight: '700',
     color: '#FFFFFF',
+    textAlign: 'center',
+  },
+  contactBtnTextMobile: {
+    fontSize: 13,
   },
   contactBtnOutline: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
     gap: 8,
     backgroundColor: '#FFFFFF',
     paddingVertical: 10,
     paddingHorizontal: 16,
     borderRadius: 12,
-    borderWidth: 1,
+    borderWidth: 1.5,
     borderColor: '#FF7F00',
+    flexGrow: 1,
+    minHeight: 44,
+  },
+  contactBtnOutlineMobile: {
+    paddingHorizontal: 12,
   },
   contactBtnTextOutline: {
     fontSize: 14,
     fontWeight: '700',
     color: '#FF7F00',
+    textAlign: 'center',
+  },
+  contactBtnTextOutlineMobile: {
+    fontSize: 13,
   },
 
   /* Dock Inferior */
@@ -684,19 +950,36 @@ const styles = StyleSheet.create({
     shadowRadius: 16,
     elevation: 8,
   },
+  actionDockMobile: {
+    paddingTop: 12,
+    paddingHorizontal: 16,
+  },
+  dockBtnWrapper: {
+    width: '100%',
+    maxWidth: 440,
+    alignItems: 'center',
+  },
   dockButton: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
     gap: 16,
     backgroundColor: '#FF7F00',
     height: 54,
-    paddingHorizontal: 28,
+    paddingHorizontal: 24,
     borderRadius: 28,
+    width: '100%',
+    maxWidth: 440,
     shadowColor: '#FF7F00',
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.2,
     shadowRadius: 12,
     elevation: 4,
+  },
+  dockButtonMobile: {
+    height: 50,
+    paddingHorizontal: 16,
+    gap: 12,
   },
   dockButtonPressed: {
     opacity: 0.9,
@@ -706,6 +989,14 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     color: '#FFFFFF',
     letterSpacing: 0.2,
+    flexShrink: 1,
+    textAlign: 'center',
+  },
+  dockButtonTextMobile: {
+    fontSize: 14.5,
+  },
+  dockButtonTextSmall: {
+    fontSize: 13.5,
   },
   dockArrowCircle: {
     width: 28,
@@ -714,5 +1005,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     alignItems: 'center',
     justifyContent: 'center',
+    flexShrink: 0,
   },
 });
