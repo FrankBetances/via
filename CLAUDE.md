@@ -532,8 +532,6 @@ descargado, y las imágenes de AVD no lo traen. **Eso no es una avería.**
   permisos del manifiesto, con los dos adaptadores que la usarían (`src/Lua/`,
   el pulsioxímetro de disfagia) esperando un `BleManager` que **nadie
   instancia**. Es decisión de producto, no de limpieza.
-- **Revisar la lista de errores que Gemini encontró** en la última revisión.
-  Frank la tiene; no se ha incorporado.
 - **La app HABLA (confirmado 27/8/2026), y quedan tres vías de salida sin
   confirmar.** El 25/8/2026 se arregló la elección de voz del sistema (VIA+
   prefería sistemáticamente la voz `-network` de Google, que no emite sin
@@ -548,19 +546,26 @@ descargado, y las imágenes de AVD no lo traen. **Eso no es una avería.**
   que enmudecieron en agosto no eran la de `expo-speech`. Hasta que las cuatro
   escuchas de **Comprobar audio** estén contestadas, no se escribe ni se dice
   «el audio funciona».
-- **El build mudo del 2/9/2026 sigue SIN causa confirmada.** Frank informa de
-  que el último build salió mudo y pidió una revisión a Gemini, de la que salió
-  la rama `sonido`; ese arreglo es inerte en Android (ver la corrección de la
-  regla 4). Lo comprobado desde aquí, sin emulador: **ninguna línea de
-  `src/Audio/` cambió** entre el build que hablaba (27/8, commit `6929c47`) y
-  hoy; `npx expo export:embed` construye el bundle sin error y empaqueta 458
-  `.m4a`; los 421 `require` del mapa de voz apuntan a ficheros que existen y
-  ninguno está vacío. Es decir: **no hay regresión en el código de audio ni un
-  fallo de empaquetado**, lo que deja arriba la hipótesis del stream que no
-  abre. Lo que falta para cerrarlo es una corrida de «Comprobar audio» en el
-  emulador: el eslabón **Reloj del hardware de salida** distingue las tres
-  causas (stream que no abrió · callback atascado · motor vivo que no se oye) y
-  reabre el motor si la avería es la primera.
+- **El build mudo del 2/9/2026: Frank informa el 3/9/2026 de que «ya se arregló
+  todo». La causa RAÍZ no está identificada.** Las dos cosas caben juntas y hay
+  que anotarlas juntas, porque entre el build mudo y el que suena entraron
+  varios cambios a la vez y ninguno se aisló: el merge de audio (`dfe77f6`:
+  reabrir el contexto muerto, el eslabón del reloj) y los cambios de CI del NDK
+  (`fddd1d7`, `ba0c29c`) —una descarga corrupta del NDK ya había tumbado `main`
+  una vez—. **No se puede escribir que lo arreglara el arreglo del audio.** Lo
+  descartado desde aquí, sin emulador: ninguna línea de `src/Audio/` cambió
+  entre el build que hablaba (27/8, `6929c47`) y el mudo; `npx expo
+  export:embed` construía el bundle sin error con sus 458 `.m4a`; los 421
+  `require` del mapa de voz apuntan a ficheros existentes y no vacíos. Ni
+  regresión de audio ni fallo de empaquetado. Lo que queda por saber, y **hay
+  que preguntárselo a Frank antes de tocar la capa de audio otra vez**: qué dijo
+  el eslabón «Reloj del hardware de salida» en la corrida buena. Si dijo
+  «reabierto», la causa era el stream de Oboe que no abría y está demostrada en
+  dispositivo; si salió verde de primeras, el mudo era otra cosa y sigue suelta.
+- **La lista de Gemini sigue sin incorporar.** Salió de la revisión que Frank
+  pidió por el build mudo y produjo la rama `sonido`, cuyo arreglo era inerte en
+  Android. Que el síntoma haya desaparecido no valida esa revisión ni cierra sus
+  otros hallazgos.
 - **El micrófono no cambia de nivel al acercarse (25/8/2026).** Frank lo
   reporta como duda, no como avería, y no está resuelto. La toma de prueba
   publica ahora el **recorrido** (bloque más flojo → más fuerte) para que la
