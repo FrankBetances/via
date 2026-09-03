@@ -64,6 +64,88 @@ Consumidores: `audiometryToneAdapter`, `verbalAudiometryAudio`,
 (reproducción de tomas). El contrato está fijado en
 `src/Audio/__tests__/sharedAudioContext.test.ts`.
 
+## Qué se puede preguntarle al motor (0.8.4) y qué no
+
+Escrito el 2/9/2026 leyendo `node_modules/react-native-audio-api@0.8.4`, después
+de que la rama `sonido` construyera un arreglo entero sobre una lectura vieja de
+este mismo motor. **Si sube la versión, esta sección se vuelve a comprobar antes
+de razonar sobre ella.**
+
+| Pregunta | Cómo se responde | Qué demuestra |
+| --- | --- | --- |
+| ¿Existe el motor? | `isAudioEngineAvailable()` | Que el binario trae el módulo nativo |
+| ¿Está abierto el stream de salida? | `ctx.state === 'running'` | **Sí lo demuestra** (ver abajo). No demuestra que se oiga |
+| ¿Está el hardware pidiendo muestras? | avance de `ctx.currentTime` | Lo más cerca de «emite» sin un oído delante |
+| ¿Se oye? | La prueba de escucha de *Comprobar audio* | Solo lo cierra el profesional |
+
+**`ctx.state` no es `state_`.** Es cierto que el constructor de `AudioContext`
+hace `audioPlayer_->start(); state_ = ContextState::RUNNING;` ignorando el
+booleano, y de ahí viene el contexto mudo. Pero el puente no expone `state_`:
+
+```cpp
+// BaseAudioContext.cpp:31
+std::string getState() {
+  if (isDriverRunning()) return toString(state_);
+  if (state_ == ContextState::CLOSED) return "closed";
+  return "suspended";
+}
+// AudioContext.cpp:105 → AudioPlayer.cpp:79
+bool isRunning() const { return mStream_ && mStream_->getState() == Started; }
+```
+
+Un contexto cuyo stream de Oboe no abrió responde **«suspended»**, no
+«running». Por eso `resumeAudioContext()` conserva su guarda: llamar a
+`resume()` con el driver ya corriendo es un no-op —`AudioContext::resume()`
+abre con `if (isRunning()) return true;`— con un salto por el puente JSI en cada
+estímulo de la audiometría.
+
+**`currentTime` es un reloj de hardware, no de pared.** Sale de
+`currentSampleFrame_ / sampleRate`, y `currentSampleFrame_` solo crece dentro de
+`AudioDestinationNode::renderAudio` (`AudioDestinationNode.cpp:44`), a la que
+solo se llega desde `AudioPlayer::onAudioReady` —el callback con el que Oboe
+pide muestras—, que además sale por la puerta de atrás sin renderizar cuando
+`isInitialized_` es `false`. Si el reloj avanza, el hardware está tirando de
+frames de verdad. Eso es el eslabón **«Reloj del hardware de salida»**
+(`checkOutputClock`) de la pantalla *Comprobar audio*: mide 250 ms y separa «el
+motor está muerto» de «el motor va y no lo oigo», que hasta entonces solo podía
+distinguir el oído del profesional.
+
+**De un stream que no abrió NO se sale con `resume()`.** Es el mecanismo por el
+que la app entera puede salir muda de un build sin que haya cambiado una línea
+de la capa de audio:
+
+1. `AudioPlayer` abre el stream **en su constructor**
+   (`isInitialized_ = openAudioStream()`). Si Oboe no lo abre —otra app con el
+   dispositivo en exclusiva, el arranque pillando la salida ocupada—, `mStream_`
+   queda **nulo** y el error solo va al log de Android.
+2. `AudioContext` llama a `audioPlayer_->start()`, **ignora su `false`** y deja
+   `playerHasBeenStarted_ = true`.
+3. `AudioContext::resume()` reabre el stream **solo** en la rama
+   `if (!playerHasBeenStarted_)`, que ese `true` deja muerta. Lo que ejecuta es
+   `audioPlayer_->resume()` → `mStream_->requestStart()` con `mStream_` nulo →
+   `false`, para siempre.
+
+El contexto se abre **al arrancar la app** (`installAudiometryToneAdapter` en
+`src/App.tsx`) y no se suelta nunca, así que una apertura fallida deja **toda la
+sesión muda**, sin reintento y sin mensaje. Por eso existe
+`recoverAudioContext()`: cierra el contexto muerto y construye uno nuevo —otro
+`AudioPlayer`, otro `openAudioStream()`—, conservando el recuento de reservas y
+avisando por `onAudioContextChange()` a los adaptadores, que guardan su propia
+referencia y si no seguirían usando el objeto muerto. La pantalla *Comprobar
+audio* lo intenta sola cuando el reloj no avanza y el driver no está arrancado,
+y dice si funcionó.
+
+Un caso distinto, con arreglo distinto: si el driver **sí** dice `running` y el
+reloj no avanza, el stream está abierto y su callback atascado. Reabrir no es la
+cura y el diagnóstico no lo intenta — lo nombra.
+
+**La sesión de audio es una capa iOS.** En Android
+`AudioAPIModule.kt:66` implementa `setAudioSessionOptions` como
+`// noting to do here` y `setAudioSessionActivity` solo resuelve la promesa. Un
+arreglo de sonido para el emulador de Android que consista en reconfigurar la
+sesión no está tocando nada. Por eso la sesión se aplica donde tiene sentido
+—al crear el contexto y al soltar la última captura— y no en cada estímulo.
+
 ## El lado de la ENTRADA: `sharedAudioRecorder`
 
 El micrófono tiene el mismo problema y **uno peor**. `AudioRecorder` abre su

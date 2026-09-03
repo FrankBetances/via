@@ -1,6 +1,11 @@
 import type { OscillatorNode, GainNode, StereoPannerNode } from 'react-native-audio-api';
 
-import { acquireAudioContext, releaseAudioContext, resumeAudioContext } from '@/Audio';
+import {
+  acquireAudioContext,
+  onAudioContextChange,
+  releaseAudioContext,
+  resumeAudioContext,
+} from '@/Audio';
 import { setAudiometryToneAdapter, ToneChannel, ToneTarget } from './useAudiometryTest';
 import { dbHLtoGainFreeField } from './audiometryCalibration';
 
@@ -68,8 +73,10 @@ export function installAudiometryToneAdapter(opts: ToneAdapterOptions = {}): () 
   const toneDurationMs = opts.toneDurationMs ?? 1600;
 
   // Contexto ÚNICO de la app (crea el stream nativo en la primera reserva y
-  // configura la sesión de reproducción por altavoz).
-  const ctx = acquireAudioContext();
+  // configura la sesión de reproducción por altavoz). `let`, no `const`: si el
+  // stream nativo muere y hay que reabrirlo, este adaptador —que se instala al
+  // arrancar la app y vive todo el proceso— se quedaría con el objeto muerto.
+  let ctx = acquireAudioContext();
   if (!ctx) {
     // Sin motor nativo NO se registra adaptador: así `hasTone` queda en false
     // y la pantalla avisa («no se emitirán tonos») en vez de aparentar que la
@@ -243,7 +250,15 @@ export function installAudiometryToneAdapter(opts: ToneAdapterOptions = {}): () 
 
   setAudiometryToneAdapter({ playTone, stop });
 
+  // Si `recoverAudioContext()` sustituye el contexto muerto por uno nuevo, hay
+  // que soltar los nodos del anterior y apuntar al vivo.
+  const unsubscribe = onAudioContextChange(next => {
+    stop();
+    ctx = next;
+  });
+
   return () => {
+    unsubscribe();
     stop();
     setAudiometryToneAdapter(null);
     // No se cierra el contexto: es compartido. `releaseAudioContext` solo lo

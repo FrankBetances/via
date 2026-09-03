@@ -9,6 +9,14 @@
 
 const mockBlocks: Array<(ev: unknown) => void> = [];
 const mockState = { constructed: 0, started: 0 };
+/* Reloj del hardware simulado. En el motor real `currentTime` solo avanza
+ * dentro del callback con el que Oboe pide muestras, así que aquí es un valor
+ * que la prueba mueve a mano: un reloj parado ES el fallo que se busca. */
+const mockClock = { time: 0 };
+/* Estado del stream nativo de salida y nº de contextos construidos. Un stream
+ * que no abrió deja el contexto respondiendo «suspended» (BaseAudioContext.cpp:31)
+ * y sin reloj: es el motor muerto del que solo se sale con un contexto NUEVO. */
+const mockOutput = { state: 'running', contexts: 0, reviveOnNextContext: false };
 
 jest.mock('react-native-audio-api', () => {
   class FakeRecorder {
@@ -26,8 +34,19 @@ jest.mock('react-native-audio-api', () => {
   return {
     AudioRecorder: FakeRecorder,
     AudioContext: class {
-      currentTime = 0;
-      state = 'running';
+      constructor() {
+        mockOutput.contexts += 1;
+        if (mockOutput.reviveOnNextContext) {
+          mockOutput.reviveOnNextContext = false;
+          mockOutput.state = 'running';
+        }
+      }
+      get currentTime() {
+        return mockClock.time;
+      }
+      get state() {
+        return mockOutput.state;
+      }
       sampleRate = 48000;
       destination = {};
       createOscillator = () => ({
@@ -56,6 +75,9 @@ jest.mock('react-native-audio-api', () => {
 import {
   __resetSharedAudioContextForTests,
   __resetSharedAudioRecorderForTests,
+  acquireAudioContext,
+  acquireRecordingSession,
+  releaseAudioContext,
   setRecorderPermissionGranted,
 } from '@/Audio';
 import {
@@ -63,8 +85,11 @@ import {
   checkMicCapture,
   checkMicPermission,
   checkNativeEngine,
+  checkOutputClock,
   checkOutputContext,
+  CLOCK_PROBE_MS,
   playTestTone,
+  probeOutputClock,
 } from '../audioSelfTest';
 
 /** Entrega un bloque de audio como haría el motor nativo. */
@@ -87,6 +112,10 @@ const runCapture = async (fill: ((i: number) => number) | null, blocks: number) 
 
 beforeEach(() => {
   jest.useFakeTimers();
+  mockClock.time = 0;
+  mockOutput.state = 'running';
+  mockOutput.contexts = 0;
+  mockOutput.reviveOnNextContext = false;
   mockBlocks.length = 0;
   mockState.constructed = 0;
   mockState.started = 0;
@@ -109,6 +138,137 @@ describe('comprobación del motor y la salida', () => {
     const r = checkOutputContext();
     expect(r.status).toBe('ok');
     expect(r.detail).toMatch(/48000 Hz/);
+  });
+
+  it('una captura abierta no ciega la comprobación del contexto de salida', () => {
+    // En Android la sesión ni se toca (`AudioAPIModule.kt:66` es un no-op), y
+    // en iOS atenúa pero no apaga: quien lo menciona es el eslabón del reloj.
+    const release = acquireRecordingSession();
+    const r = checkOutputContext();
+    expect(r.status).toBe('ok');
+    release();
+  });
+
+  /* -------------------------------------------------------------------- */
+  /*  El reloj del hardware: la única prueba MÁQUINA de que el motor emite. */
+  /*  `currentTime` sale de `currentSampleFrame_`, que solo crece dentro de */
+  /*  `AudioDestinationNode::renderAudio`, a la que solo se llega desde el  */
+  /*  callback de Oboe. Reloj parado = el hardware no pide muestras.        */
+  /* -------------------------------------------------------------------- */
+
+  it('probeOutputClock mide el avance real del reloj', async () => {
+    const promise = probeOutputClock(200);
+    // El motor entrega muestras mientras corre la ventana.
+    setTimeout(() => {
+      mockClock.time = 0.2;
+    }, 100);
+    jest.advanceTimersByTime(210);
+    const probe = await promise;
+
+    expect(probe.measured).toBe(true);
+    expect(probe.advancing).toBe(true);
+    expect(probe.deltaTime).toBeCloseTo(0.2, 3);
+    expect(probe.ratio).toBeCloseTo(1, 1);
+  });
+
+  it('checkOutputClock FALLA si el motor dice «arrancado» y no pide una sola muestra', async () => {
+    // Driver que se declara vivo (`state === running`) con el reloj congelado:
+    // el callback de audio está atascado, y reabrir el contexto no es la cura.
+    acquireAudioContext();
+    const construidos = mockOutput.contexts;
+
+    const promise = checkOutputClock();
+    jest.advanceTimersByTime(CLOCK_PROBE_MS + 10);
+    const r = await promise;
+    releaseAudioContext();
+
+    expect(r.id).toBe('output-clock');
+    expect(r.status).toBe('fail');
+    expect(r.detail).toMatch(/ARRANCADO/);
+    expect(r.hint).toMatch(/atascado/);
+    expect(mockOutput.contexts).toBe(construidos); // no se reabre lo que dice estar vivo
+  });
+
+  it('checkOutputClock da CORRECTO cuando el hardware pide muestras', async () => {
+    const promise = checkOutputClock();
+    setTimeout(() => {
+      mockClock.time = CLOCK_PROBE_MS / 1000;
+    }, 100);
+    jest.advanceTimersByTime(CLOCK_PROBE_MS + 10);
+    const r = await promise;
+
+    expect(r.status).toBe('ok');
+    expect(r.detail).toMatch(/pidiendo muestras/);
+  });
+
+  it('checkOutputClock AVISA si el reloj avanza a trompicones', async () => {
+    const promise = checkOutputClock();
+    // Un cuarto de la ventana: el motor entrega, pero se queda corto.
+    setTimeout(() => {
+      mockClock.time = CLOCK_PROBE_MS / 4000;
+    }, 100);
+    jest.advanceTimersByTime(CLOCK_PROBE_MS + 10);
+    const r = await promise;
+
+    expect(r.status).toBe('warn');
+    expect(r.hint).toMatch(/troceado/);
+  });
+
+  it('checkOutputClock REABRE el motor muerto en vez de mandar reiniciar la app', async () => {
+    // Stream que no abrió: el contexto existe como objeto, responde «suspended»
+    // y su reloj no se mueve. Se construye ANTES de romperlo, que es el orden
+    // real: la app abre el contexto al arrancar y el fallo está ya dentro.
+    acquireAudioContext();
+    const construidos = mockOutput.contexts;
+    mockOutput.state = 'suspended';
+    mockOutput.reviveOnNextContext = true;
+    const promise = checkOutputClock();
+    // Primera ventana: el reloj no se mueve → dispara la recuperación.
+    jest.advanceTimersByTime(CLOCK_PROBE_MS + 10);
+    await Promise.resolve();
+    await Promise.resolve();
+    // El contexto nuevo ya tiene stream: el reloj corre en la segunda ventana.
+    mockClock.time = CLOCK_PROBE_MS / 1000;
+    jest.advanceTimersByTime(CLOCK_PROBE_MS + 10);
+    const r = await promise;
+
+    // Un AudioContext NUEVO: es el único camino de vuelta desde un stream que
+    // no abrió, porque `resume()` sobre él devuelve `false` para siempre.
+    expect(mockOutput.contexts).toBe(construidos + 1);
+    expect(r.status).toBe('warn');
+    expect(r.detail).toMatch(/MUERTO/);
+    expect(r.detail).toMatch(/reabierto/);
+    releaseAudioContext();
+  });
+
+  it('checkOutputClock FALLA y lo dice si tampoco revive tras reabrir', async () => {
+    acquireAudioContext();
+    mockOutput.state = 'suspended';
+
+    const promise = checkOutputClock();
+    jest.advanceTimersByTime(CLOCK_PROBE_MS + 10);
+    await Promise.resolve();
+    await Promise.resolve();
+    jest.advanceTimersByTime(CLOCK_PROBE_MS + 10);
+    const r = await promise;
+
+    expect(r.status).toBe('fail');
+    expect(r.detail).toMatch(/tampoco tras reabrir el motor/);
+    releaseAudioContext();
+  });
+
+  it('checkOutputClock nombra la captura abierta sin convertirla en veredicto', async () => {
+    const release = acquireRecordingSession();
+    const promise = checkOutputClock();
+    setTimeout(() => {
+      mockClock.time = CLOCK_PROBE_MS / 1000;
+    }, 100);
+    jest.advanceTimersByTime(CLOCK_PROBE_MS + 10);
+    const r = await promise;
+    release();
+
+    expect(r.status).toBe('ok');
+    expect(r.detail).toMatch(/captura de micrófono abierta/);
   });
 
   it('el tono de prueba llega a programarse', () => {

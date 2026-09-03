@@ -6,7 +6,12 @@ import type {
   StereoPannerNode,
 } from 'react-native-audio-api';
 
-import { acquireAudioContext, releaseAudioContext, resumeAudioContext } from '@/Audio';
+import {
+  acquireAudioContext,
+  onAudioContextChange,
+  releaseAudioContext,
+  resumeAudioContext,
+} from '@/Audio';
 import { isOfflineVoice, pickVoiceForLang, ttsLanguageTagFor, type TtsVoice } from './verbalTtsVoice';
 import { verbalStimulusLang } from './verbalAudiometryBanks';
 
@@ -868,7 +873,17 @@ export function installVerbalAudioAdapter(opts: VerbalAudioAdapterOptions = {}):
     engine: preferTts ? 'tts' : engine === 'assets' && (assetBase64 || assetSource) ? 'assets' : 'tts',
   });
 
+  // Contexto sustituido tras una recuperación: se sueltan los nodos del muerto
+  // y se tira la caché, porque un AudioBuffer pertenece al contexto que lo
+  // decodificó y no se puede reproducir en otro.
+  const unsubscribeCtx = onAudioContextChange(next => {
+    stop();
+    bufferCache.clear();
+    ctx = next;
+  });
+
   return () => {
+    unsubscribeCtx();
     stop();
     setVerbalAudioAdapter(null);
     bufferCache.clear();

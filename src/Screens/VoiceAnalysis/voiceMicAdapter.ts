@@ -7,6 +7,7 @@ import {
   acquireRecorder,
   acquireRecordingSession,
   clampSample,
+  peekAudioContext,
   playbackNormalizationGain,
   recorderHealth,
   releaseAudioContext,
@@ -330,6 +331,10 @@ export function registerVoiceMicAdapter(): boolean {
       // muy floja o no se oía.
       endRecordingSession();
 
+      // Contexto sustituido tras una recuperación: se apunta al vivo sin pedir
+      // otra reserva (la de este adaptador ya está contada).
+      const live = peekAudioContext();
+      if (playbackCtx && live && playbackCtx !== live) playbackCtx = live;
       if (!playbackCtx) playbackCtx = acquireAudioContext();
       if (!playbackCtx) {
         onEnded();

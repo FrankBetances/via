@@ -243,16 +243,149 @@ export function releaseAudioContext(): void {
  */
 export const peekAudioContext = (): SharedAudioContext | null => ctx;
 
+/* -------------------------------------------------------------------------- */
+/*  RECUPERACIÓN DE UN CONTEXTO MUERTO                                         */
+/*                                                                             */
+/*  El caso: `AudioPlayer::openAudioStream()` falla (otra app tiene el         */
+/*  dispositivo en exclusiva, el arranque pilla la salida ocupada), así que    */
+/*  `mStream_` queda nulo e `isInitialized_` en `false`. El constructor de     */
+/*  `AudioContext` llama a `start()`, IGNORA su `false` y pone                 */
+/*  `playerHasBeenStarted_ = true`. A partir de ahí el objeto existe, no lanza */
+/*  nunca y NO SUENA NADA en toda la app.                                      */
+/*                                                                             */
+/*  Y de ese estado NO SE SALE llamando a `resume()`, aunque lo parezca:       */
+/*                                                                             */
+/*    AudioContext.cpp:59  resume() {                                          */
+/*      if (isClosed()) return false;                                          */
+/*      if (isRunning()) return true;                                          */
+/*      if (!playerHasBeenStarted_) { … audioPlayer_->start() … }  // ← muerta */
+/*      return audioPlayer_->resume();   // requestStart() con mStream_ nulo   */
+/*    }                                     →  false                           */
+/*                                                                             */
+/*  La rama que REABRE el stream cuelga de `!playerHasBeenStarted_`, y ese     */
+/*  booleano ya vale `true` desde el constructor (VIA+ no crea el contexto     */
+/*  suspendido). `AudioPlayer::resume()` solo hace `mStream_->requestStart()`, */
+/*  que con `mStream_` nulo devuelve `false`. El único camino de vuelta es un  */
+/*  AudioContext NUEVO: otro `AudioPlayer`, otro `openAudioStream()`.          */
+/*                                                                             */
+/*  Importa porque el contexto se abre AL ARRANCAR LA APP                      */
+/*  (`installAudiometryToneAdapter` en `src/App.tsx`) y no se suelta jamás: si */
+/*  esa apertura falla, la app entera se queda muda para toda la sesión, sin   */
+/*  reintento y sin mensaje. Un usuario lo describe como «el build salió       */
+/*  mudo», y no hay nada en el APK que lo distinga de un fallo de código.      */
+/* -------------------------------------------------------------------------- */
+
+type AudioContextListener = (ctx: SharedAudioContext | null) => void;
+const contextListeners = new Set<AudioContextListener>();
+
+/**
+ * Avisa cuando el contexto compartido se SUSTITUYE por uno nuevo. Los
+ * adaptadores guardan su propia referencia (`let ctx = acquireAudioContext()`),
+ * así que sin este aviso seguirían usando el objeto muerto después de una
+ * recuperación. Devuelve la función para darse de baja.
+ */
+export function onAudioContextChange(listener: AudioContextListener): () => void {
+  contextListeners.add(listener);
+  return () => {
+    contextListeners.delete(listener);
+  };
+}
+
+const notifyContextChange = (next: SharedAudioContext | null): void => {
+  contextListeners.forEach(listener => {
+    try {
+      listener(next);
+    } catch (e) {
+      console.warn('VIA+: un oyente del contexto de audio falló', e);
+    }
+  });
+};
+
+/**
+ * ¿Está el stream nativo de salida abierto y arrancado?
+ *
+ * `ctx.state` no expone `state_`, sino `BaseAudioContext::getState()`
+ * (BaseAudioContext.cpp:31), que devuelve «suspended» siempre que
+ * `isDriverRunning()` sea falso — y eso acaba en `AudioPlayer::isRunning()`
+ * (AudioPlayer.cpp:79) = `mStream_ && mStream_->getState() == Started`. Por eso
+ * «running» aquí SÍ significa driver vivo. Lo que no significa es que se oiga.
+ */
+export const isOutputDriverRunning = (): boolean => !!ctx && ctx.state === 'running';
+
+/**
+ * Tira el contexto muerto y abre uno nuevo, conservando el recuento de
+ * reservas. Devuelve el contexto vivo, o `null` si tampoco se pudo abrir.
+ *
+ * No hace nada si el driver ya está corriendo: reabrir el stream a lo tonto
+ * corta lo que estuviera sonando.
+ */
+export function recoverAudioContext(): SharedAudioContext | null {
+  if (!ctx) return null;
+  if (isOutputDriverRunning()) return ctx;
+
+  const dead = ctx;
+  ctx = null;
+  try {
+    void dead.close?.();
+  } catch {
+    /* un contexto sin stream tampoco cierra bien: da igual, se suelta */
+  }
+
+  const api = optionalAudioApi();
+  if (!api?.AudioContext) {
+    unavailable = true;
+    notifyContextChange(null);
+    return null;
+  }
+  try {
+    applyPlaybackSession();
+    ctx = new api.AudioContext({ sampleRate: AUDIO_SAMPLE_RATE }) as SharedAudioContext;
+  } catch (e) {
+    console.warn('VIA+: no se pudo reabrir el motor de audio', e);
+    ctx = null;
+    unavailable = true;
+  }
+  notifyContextChange(ctx);
+  return ctx;
+}
+
 /**
  * Reactiva el contexto si el sistema lo suspendió (interrupción de llamada,
  * cambio de ruta de audio, vuelta de segundo plano). Un contexto suspendido
  * reproduce SILENCIO sin dar ningún error, así que conviene llamarlo justo
  * antes de programar un estímulo.
+ *
+ * LO QUE `ctx.state` SIGNIFICA DE VERDAD (react-native-audio-api 0.8.4, leído
+ * en `node_modules`, no de memoria). El constructor pone `state_ = RUNNING`
+ * ignorando el booleano de `AudioPlayer::start()` —eso es cierto y es el
+ * origen del contexto mudo—, pero lo que llega a JS NO es `state_`:
+ *
+ *   BaseAudioContext.cpp:31  getState() { if (isDriverRunning()) return toString(state_);
+ *                                          … return "suspended"; }
+ *   BaseAudioContext.cpp:175 isRunning() { return state_ == RUNNING && isDriverRunning(); }
+ *   AudioContext.cpp:105     isDriverRunning() { return audioPlayer_->isRunning(); }
+ *   AudioPlayer.cpp:79       isRunning() { return mStream_ && mStream_->getState() == Started; }
+ *
+ * O sea: `ctx.state` devuelve «suspended» siempre que el stream de Oboe no
+ * esté `Started`, aunque `state_` valga RUNNING. La condición de abajo es por
+ * tanto exactamente «si el driver no está corriendo, intenta levantarlo».
+ *
+ * Y llamar a `resume()` de forma INCONDICIONAL no añade nada: `AudioContext::
+ * resume()` (AudioContext.cpp:59) abre con `if (isRunning()) return true;`, la
+ * misma pregunta hecha en C++. Cuando `state` es «running» es un no-op con un
+ * salto por el puente JSI en cada estímulo; cuando no lo es, esta condición ya
+ * entra. Por eso se conserva la guarda.
+ *
+ * La sesión de audio NO se toca aquí. Se aplica al crear el contexto y al
+ * soltar la última petición de grabación, y reaplicarla por estímulo no
+ * arregla nada: en Android `AudioAPIModule.kt:66` implementa
+ * `setAudioSessionOptions` como `// noting to do here` y
+ * `setAudioSessionActivity` solo resuelve la promesa. Es una capa iOS.
  */
 export function resumeAudioContext(): void {
   if (!ctx) return;
   try {
-    if (ctx.state && ctx.state !== 'running') void ctx.resume?.();
+    if (ctx.state !== 'running') void ctx.resume?.();
   } catch {
     /* state/resume no disponibles en algunos targets */
   }
@@ -268,6 +401,7 @@ export function __resetSharedAudioContextForTests(): void {
   recordingHolders = 0;
   unavailable = false;
   recordingSessionListeners.clear();
+  contextListeners.clear();
 }
 
 /** Solo para tests/diagnóstico: nº de reservas vivas del contexto. */

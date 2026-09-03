@@ -6,6 +6,7 @@ import {
   acquireRecordingSession,
   clampSample,
   isRecorderAvailable,
+  peekAudioContext,
   playbackNormalizationGain,
   releaseAudioContext,
   resumeAudioContext,
@@ -669,6 +670,12 @@ export function useArticulationAudio(lang: string = 'es'): ArticulationAudio {
     // Reproducción sobre el contexto COMPARTIDO: abrir uno propio dejaría mudo
     // al resto de la app en Android (Oboe exclusivo), que es el fallo que
     // documenta `docs/design/arquitectura-audio.md`.
+    // Si el contexto se sustituyó tras una recuperación, se apunta al vivo sin
+    // pedir otra reserva: la de esta pantalla ya está contada.
+    const live = peekAudioContext();
+    if (playbackCtxRef.current && live && playbackCtxRef.current !== live) {
+      playbackCtxRef.current = live;
+    }
     if (!playbackCtxRef.current) playbackCtxRef.current = acquireAudioContext();
     const ctx = playbackCtxRef.current;
     if (!ctx) return;

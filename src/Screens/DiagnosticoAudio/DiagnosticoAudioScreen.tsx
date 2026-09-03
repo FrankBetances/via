@@ -20,6 +20,7 @@ import {
   checkMicCapture,
   checkMicPermission,
   checkNativeEngine,
+  checkOutputClock,
   checkOutputContext,
   checkSpeechRecognition,
   checkSystemVoice,
@@ -190,6 +191,9 @@ export default function DiagnosticoAudioScreen() {
 
     setStep('Contexto de salida…');
     push(checkOutputContext());
+
+    setStep('Reloj del hardware de salida…');
+    push(await checkOutputClock());
 
     setStep('Banco de locuciones…');
     push(await checkVoiceBank());

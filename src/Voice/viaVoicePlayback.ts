@@ -41,19 +41,50 @@ const optionalExpoAudio = (): any => {
 };
 
 let current: { player: any; sub: any } | null = null;
-/** El modo de sesión se fija una sola vez por proceso. */
+/** El modo de sesión se fija una sola vez por proceso, si LOGRA fijarse. */
 let modeSet = false;
+/** Último fallo al fijar el modo de sesión, para que el diagnóstico lo nombre. */
+let modeError: string | null = null;
+
+/**
+ * Estado del modo de sesión de las locuciones, para «Comprobar audio».
+ *
+ * Existe porque el fallo aquí es invisible por naturaleza: si
+ * `setAudioModeAsync` rechaza, las locuciones siguen sonando… hasta que la
+ * tableta está en silencio (`playsInSilentMode` no se aplicó) o hasta que la
+ * locución pausa el estímulo en curso en vez de mezclarse con él. Nada revienta
+ * y nadie se entera. Regla 4: un `catch` en ruta clínica necesita al lado un
+ * estado que la pantalla pueda enseñar.
+ */
+export const voiceAudioModeStatus = (): { applied: boolean; error: string | null } => ({
+  applied: modeSet,
+  error: modeError,
+});
 
 /** Modo de mezcla de la sesión (una sola vez por proceso, como Valeria+). */
 const ensureAudioMode = (ExpoAudio: any): void => {
   if (modeSet) return;
-  modeSet = true;
   // Mezcla: la locución convive con lo que esté sonando, nunca lo pausa.
-  void ExpoAudio.setAudioModeAsync({
-    playsInSilentMode: true,
-    shouldPlayInBackground: false,
-    interruptionMode: 'mixWithOthers',
-  });
+  const failed = (e: unknown): void => {
+    // NO se marca como fijado: el siguiente intento vuelve a probar. Marcarlo
+    // antes de la llamada dejaba el modo sin aplicar para toda la sesión.
+    modeSet = false;
+    modeError = e instanceof Error ? e.message : String(e);
+  };
+  try {
+    const promise = ExpoAudio.setAudioModeAsync?.({
+      playsInSilentMode: true,
+      shouldPlayInBackground: false,
+      interruptionMode: 'mixWithOthers',
+    });
+    modeSet = true;
+    modeError = null;
+    if (promise && typeof promise.catch === 'function') {
+      void promise.catch(failed);
+    }
+  } catch (e) {
+    failed(e);
+  }
 };
 
 const sleep = (ms: number): Promise<void> => new Promise(resolve => setTimeout(resolve, ms));
@@ -229,3 +260,11 @@ export const probeVoiceAsset = async (
 export const disposeVoicePlayback = (): void => {
   stopVoiceAsset();
 };
+
+/** Solo para tests: reinicia el estado interno del reproductor de voz. */
+export const __resetVoicePlaybackForTests = (): void => {
+  cleanup();
+  modeSet = false;
+  modeError = null;
+};
+
