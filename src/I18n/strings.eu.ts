@@ -89,6 +89,8 @@ export const EU: UiStrings = {
     navBackA11y: 'Kredituetara itzuli',
     navTitle: 'Lúa · Maskota eta Periferikoa',
     emblemHeading: 'LAGUNTZAILE PEDIATRIKOA',
+    mascotRenderCaption: 'Diseinu-irudikapena: gailuak ez du oraindik fabrikatutako bertsiorik.',
+    mascotImageA11y: 'Lúa lagun-maskotaren diseinu-irudikapena.',
     emblemFootnote: 'Gailu osagarria · garatzen',
     cardTitle: 'GAILU FISIKO AUKERAKOA',
     empathyName: 'Enpatia eta Lasaitasun Klinikoa',

@@ -143,6 +143,13 @@ export const ES = {
     navBackA11y: 'Volver a créditos',
     navTitle: 'Lúa · Mascota y Periférico',
     emblemHeading: 'ACOMPAÑANTE PEDIÁTRICO',
+    /* Frank confirma el 3/9/2026 que la imagen es un RENDER, no una fotografía
+     * del aparato: la pantalla lo dice. Un render junto a un botón de contacto,
+     * en un SaMD Clase IIa, afirma disponibilidad aunque no lo escriba; el art.
+     * 7 del MDR prohíbe inducir a error sobre lo que existe. El pie es la
+     * diferencia entre enseñar un diseño y enseñar un producto. */
+    mascotRenderCaption: 'Representación de diseño: el aparato aún no tiene versión fabricada.',
+    mascotImageA11y: 'Representación de diseño de Lúa, la mascota acompañante.',
     emblemFootnote: 'Dispositivo complementario · en desarrollo',
     cardTitle: 'DISPOSITIVO FÍSICO OPCIONAL',
     empathyName: 'Empatía y Calma Clínica',

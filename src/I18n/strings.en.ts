@@ -85,6 +85,8 @@ export const EN: UiStrings = {
     navBackA11y: 'Back to credits',
     navTitle: 'Lúa · Mascot and Peripheral',
     emblemHeading: 'PEDIATRIC COMPANION',
+    mascotRenderCaption: 'Design rendering: the device has no manufactured version yet.',
+    mascotImageA11y: 'Design rendering of Lúa, the companion mascot.',
     emblemFootnote: 'Companion device · in development',
     cardTitle: 'OPTIONAL PHYSICAL DEVICE',
     empathyName: 'Empathy and Clinical Calm',

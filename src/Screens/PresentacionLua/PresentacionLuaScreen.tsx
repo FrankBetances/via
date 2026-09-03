@@ -33,6 +33,8 @@ import { CatPixel } from '@/Components/Mascot/LuaPixel';
 import { Text } from '@/Components/Common';
 import { atoms } from '@/Theme/styleAtoms';
 
+import { CONTENT_MAX_WIDTH } from '@/Theme/screenLayout';
+
 import { computeLuaLayout } from './luaLayout';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'PresentacionLua'>;
@@ -297,9 +299,21 @@ export default function PresentacionLuaScreen({ navigation }: Props) {
                     source={require('@/../assets/img/lua_mascot_device.png')}
                     style={styles.deviceImage}
                     resizeMode="contain"
+                    accessible
+                    accessibilityRole="image"
+                    accessibilityLabel={t.luaIntro.mascotImageA11y}
                   />
                 </Animated.View>
               </View>
+
+              {/* La imagen es un RENDER (confirmado por Frank el 3/9/2026), y en
+                  un SaMD Clase IIa una imagen de producto sin pie afirma
+                  disponibilidad sin escribirla. El pie va pegado a la foto, no
+                  al final de la tarjeta, para que se lea con ella. */}
+              <Text
+                style={[styles.renderCaption, isSmallPhone && styles.renderCaptionSmall]}>
+                {t.luaIntro.mascotRenderCaption}
+              </Text>
 
               <View style={styles.catPixelRow}>
                 <CatPixel size={isMobile ? 32 : 40} pose="head" />
@@ -662,7 +676,7 @@ const styles = StyleSheet.create({
   },
   contentContainer: {
     width: '100%',
-    maxWidth: 1120,
+    maxWidth: CONTENT_MAX_WIDTH,
     alignSelf: 'center',
   },
   contentContainerLandscape: {
@@ -746,6 +760,20 @@ const styles = StyleSheet.create({
      * el PNG ya no tiene canto —el fondo se funde a transparente. */
     width: '100%',
     height: '100%',
+  },
+  renderCaption: {
+    fontSize: 11.5,
+    lineHeight: 16,
+    color: '#8A8078',
+    textAlign: 'center',
+    fontStyle: 'italic',
+    marginTop: 2,
+    marginBottom: 6,
+    paddingHorizontal: 6,
+  },
+  renderCaptionSmall: {
+    fontSize: 10.5,
+    lineHeight: 14,
   },
   catPixelRow: {
     flexDirection: 'row',

@@ -41,6 +41,9 @@ import {
   QuisqueyaHablaMark,
 } from './BrandMarks';
 import { ORBIT_MODULES, OrbitModule } from './orbitModules';
+import { CONTENT_MAX_WIDTH } from '@/Theme/screenLayout';
+
+import { computeCreditsLayout } from './creditsLayout';
 import { atoms } from '@/Theme/styleAtoms';
 
 /* -------------------------------------------------------------------------- */
@@ -51,7 +54,6 @@ import { atoms } from '@/Theme/styleAtoms';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Creditos'>;
 
-const EMBLEM = 84;
 const RING_DURATION = 2600;
 const ORBIT_TILT = 0.82;
 
@@ -189,7 +191,7 @@ function FlowParticle({ cfg, width }: { cfg: ParticleCfg; width: number }) {
 }
 
 /* --------------------------- Punto en órbita ------------------------------ */
-function OrbitDot({ module: m }: { module: OrbitModule }) {
+function OrbitDot({ module: m, scale }: { module: OrbitModule; scale: number }) {
   const spin = useSharedValue(0);
 
   useEffect(() => {
@@ -207,8 +209,8 @@ function OrbitDot({ module: m }: { module: OrbitModule }) {
     const depth = (Math.sin(rad) + 1) / 2;
     return {
       transform: [
-        { translateX: Math.cos(rad) * m.radius },
-        { translateY: Math.sin(rad) * m.radius * ORBIT_TILT },
+        { translateX: Math.cos(rad) * m.radius * scale },
+        { translateY: Math.sin(rad) * m.radius * ORBIT_TILT * scale },
         { scale: 0.76 + 0.36 * depth },
       ],
       opacity: 0.4 + 0.6 * depth,
@@ -221,9 +223,9 @@ function OrbitDot({ module: m }: { module: OrbitModule }) {
       style={[
         styles.orbitDot,
         {
-          width: m.size,
-          height: m.size,
-          borderRadius: m.size / 2,
+          width: m.size * scale,
+          height: m.size * scale,
+          borderRadius: (m.size * scale) / 2,
           backgroundColor: m.color,
           shadowColor: m.color,
         },
@@ -235,8 +237,17 @@ function OrbitDot({ module: m }: { module: OrbitModule }) {
 
 export default function CreditosScreen({ navigation }: Props) {
   const insets = useSafeAreaInsets();
-  const { width: winW } = useWindowDimensions();
-  const isTabletLandscape = winW >= 850;
+  const { width: winW, height: winH } = useWindowDimensions();
+  const {
+    twoColumns,
+    isMobile,
+    isSmallPhone,
+    emblemScale,
+    emblemBox,
+    coreSize,
+    ringSize,
+    isotypeSize,
+  } = computeCreditsLayout({ winW, winH });
   const [bandWidth, setBandWidth] = useState(0);
   const [langModalVisible, setLangModalVisible] = useState(false);
 
@@ -333,36 +344,59 @@ export default function CreditosScreen({ navigation }: Props) {
       <View style={styles.blobBottomLeft} pointerEvents="none" />
 
       {/* Top Navbar con insets seguros */}
-      <View style={[styles.topNavbar, { paddingTop: Math.max(insets.top, 12) }]}>
+      <View
+        style={[
+          styles.topNavbar,
+          { paddingTop: Math.max(insets.top, 12) },
+          isSmallPhone ? styles.topNavbarSmall : isMobile ? styles.topNavbarMobile : undefined,
+        ]}>
         <Pressable
           accessibilityRole="button"
           accessibilityLabel={t.credits.navBackA11y}
+          hitSlop={8}
           style={({ pressed }) => [styles.navBackButton, pressed && styles.navButtonPressed]}
           onPress={handleBack}>
-          <ArrowLeft size={20} color="#2B2620" strokeWidth={2.4} />
+          <ArrowLeft size={isMobile ? 18 : 20} color="#2B2620" strokeWidth={2.4} />
           <View style={styles.navLogoRow}>
-            <ViaIcon size={24} variant="color" />
-            <Text style={styles.navLogoText}>
+            <ViaIcon size={isMobile ? 22 : 24} variant="color" />
+            <Text style={[styles.navLogoText, isMobile && styles.navLogoTextMobile]}>
               VIA<Text style={atoms.colorFF7F00}>+</Text>
             </Text>
           </View>
         </Pressable>
 
-        <Text style={styles.navTitle}>{t.credits.navTitle}</Text>
+        <Text
+          style={[
+            styles.navTitle,
+            isSmallPhone ? styles.navTitleSmall : isMobile ? styles.navTitleMobile : undefined,
+          ]}
+          numberOfLines={1}
+          ellipsizeMode="tail">
+          {t.credits.navTitle}
+        </Text>
 
-        <View style={styles.navRightGroup}>
+        <View style={[styles.navRightGroup, isSmallPhone && styles.navRightGroupSmall]}>
           <Pressable
             accessibilityRole="button"
             accessibilityLabel={t.langPicker.navA11y(SESSION_LANG_LABEL[currentLang] ?? currentLang)}
-            style={({ pressed }) => [styles.langNavButton, pressed && styles.navButtonPressed]}
+            hitSlop={8}
+            style={({ pressed }) => [
+              styles.langNavButton,
+              isSmallPhone && styles.navPillSmall,
+              pressed && styles.navButtonPressed,
+            ]}
             onPress={() => setLangModalVisible(true)}>
-            <Globe size={14} color="#FF7F00" strokeWidth={2.4} />
-            <Text style={styles.langNavButtonText}>{currentLang.toUpperCase()}</Text>
+            <Globe size={isSmallPhone ? 12 : 14} color="#FF7F00" strokeWidth={2.4} />
+            <Text style={[styles.langNavButtonText, isSmallPhone && styles.navPillTextSmall]}>
+              {currentLang.toUpperCase()}
+            </Text>
           </Pressable>
 
-          <View style={styles.samdBadgeNav}>
-            <ShieldCheck size={13} color="#0D9488" strokeWidth={2.2} />
-            <Text style={styles.samdBadgeNavText}>{t.credits.samdBadge}</Text>
+          <View style={[styles.samdBadgeNav, isSmallPhone && styles.navPillSmall]}>
+            <ShieldCheck size={isSmallPhone ? 11 : 13} color="#0D9488" strokeWidth={2.2} />
+            <Text style={[styles.samdBadgeNavText, isSmallPhone && styles.navPillTextSmall]}>
+              {t.credits.samdBadge}
+            </Text>
           </View>
         </View>
       </View>
@@ -372,193 +406,234 @@ export default function CreditosScreen({ navigation }: Props) {
         style={atoms.flex1}
         contentContainerStyle={[
           styles.scroll,
-          { paddingBottom: 100 + Math.max(insets.bottom, 16) },
-          isTabletLandscape && styles.scrollLandscape,
+          { paddingBottom: (isMobile ? 86 : 100) + Math.max(insets.bottom, 16) },
+          isSmallPhone ? styles.scrollSmall : isMobile ? styles.scrollMobile : undefined,
+          twoColumns && styles.scrollLandscape,
         ]}
         showsVerticalScrollIndicator={false}>
-        
-        {/* ================================================================== */}
-        {/* COLUMNA IZQUIERDA: Emblema de Órbita + Tarjeta del Autor           */}
-        {/* ================================================================== */}
-        <Animated.View style={[styles.leftColumn, isTabletLandscape && styles.columnHalf, introStyle]}>
-          {/* Emblema con un punto por módulo de la batería */}
-          <View style={styles.emblemCard}>
-            <View style={styles.emblemHeaderRow}>
-              <View style={styles.emblemDotLive} />
-              <Text style={styles.emblemHeading}>{ORBIT_HEADING}</Text>
-            </View>
+        <View style={[styles.contentContainer, twoColumns && styles.contentContainerLandscape]}>
+          {/* ================================================================== */}
+          {/* COLUMNA IZQUIERDA: Emblema de Órbita + Tarjeta del Autor           */}
+          {/* ================================================================== */}
+          <Animated.View style={[styles.leftColumn, twoColumns && styles.columnHalf, introStyle]}>
+            {/* Emblema con un punto por módulo de la batería */}
+            <View style={[styles.emblemCard, isMobile && styles.emblemCardMobile]}>
+              <View style={styles.emblemHeaderRow}>
+                <View style={styles.emblemDotLive} />
+                <Text style={styles.emblemHeading}>{ORBIT_HEADING}</Text>
+              </View>
             
-            <Animated.View
-              style={[styles.emblemWrapper, floatStyle]}
-              accessible
-              accessibilityRole="image"
-              accessibilityLabel={ORBIT_LABEL}>
-              <Animated.View style={[styles.ring, ring1Style]} />
-              <Animated.View style={[styles.ring, ring2Style]} />
-              
-              <View style={styles.emblemCore}>
-                <ViaIcon size={56} variant="color" />
-              </View>
-
-              <View style={styles.orbitLayer} pointerEvents="none">
-                {ORBIT_MODULES.map(m => (
-                  <OrbitDot key={m.key} module={m} />
-                ))}
-              </View>
-            </Animated.View>
-
-            <Text style={styles.emblemFootnote}>
-              {t.credits.emblemFootnote}
-            </Text>
-          </View>
-
-          {/* Tarjeta del Autor (Dr. Betances) */}
-          <View style={styles.authorCard}>
-            <View style={styles.authorHeaderRow}>
-              <View style={styles.authorAvatarBox}>
-                <Image
-                  source={require('@/../assets/img/logo_betances.jpg')}
-                  style={styles.authorAvatarImg}
-                  resizeMode="cover"
+              <Animated.View
+                style={[styles.emblemWrapper, { width: emblemBox, height: emblemBox }, floatStyle]}
+                accessible
+                accessibilityRole="image"
+                accessibilityLabel={ORBIT_LABEL}>
+                <Animated.View
+                  style={[
+                    styles.ring,
+                    { width: ringSize, height: ringSize, borderRadius: ringSize / 2 },
+                    ring1Style,
+                  ]}
                 />
-              </View>
-              <View style={atoms.flex1}>
-                <View style={styles.authorBadgeRow}>
-                  <UserCheck size={14} color="#EA580C" strokeWidth={2.4} />
-                  <Text style={styles.authorBadgeText}>{t.credits.authorBadge}</Text>
+                <Animated.View
+                  style={[
+                    styles.ring,
+                    { width: ringSize, height: ringSize, borderRadius: ringSize / 2 },
+                    ring2Style,
+                  ]}
+                />
+
+                <View
+                  style={[
+                    styles.emblemCore,
+                    { width: coreSize, height: coreSize, borderRadius: coreSize / 2 },
+                  ]}>
+                  <ViaIcon size={isotypeSize} variant="color" />
                 </View>
-                <Text style={styles.authorName}>Dr. Frank Alberto Betances Reinoso</Text>
-                <Text style={styles.authorRole}>{t.credits.authorRole}</Text>
+
+                <View
+                  style={[styles.orbitLayer, { width: emblemBox, height: emblemBox }]}
+                  pointerEvents="none">
+                  {ORBIT_MODULES.map(m => (
+                    <OrbitDot key={m.key} module={m} scale={emblemScale} />
+                  ))}
+                </View>
+              </Animated.View>
+
+              <Text style={styles.emblemFootnote}>
+                {t.credits.emblemFootnote}
+              </Text>
+            </View>
+
+            {/* Tarjeta del Autor (Dr. Betances) */}
+            <View style={[styles.authorCard, isMobile && styles.cardMobile]}>
+              <View style={styles.authorHeaderRow}>
+                <View style={styles.authorAvatarBox}>
+                  <Image
+                    source={require('@/../assets/img/logo_betances.jpg')}
+                    style={styles.authorAvatarImg}
+                    resizeMode="cover"
+                  />
+                </View>
+                <View style={atoms.flex1}>
+                  <View style={styles.authorBadgeRow}>
+                    <UserCheck size={14} color="#EA580C" strokeWidth={2.4} />
+                    <Text style={styles.authorBadgeText}>{t.credits.authorBadge}</Text>
+                  </View>
+                  <Text style={styles.authorName}>Dr. Frank Alberto Betances Reinoso</Text>
+                  <Text style={styles.authorRole}>{t.credits.authorRole}</Text>
+                </View>
+              </View>
+
+              <View
+                style={styles.particleBand}
+                onLayout={e => setBandWidth(Math.round(e.nativeEvent.layout.width))}>
+                {bandWidth > 0
+                  ? PARTICLES.map(cfg => <FlowParticle key={cfg.id} cfg={cfg} width={bandWidth} />)
+                  : null}
               </View>
             </View>
+          </Animated.View>
 
-            <View
-              style={styles.particleBand}
-              onLayout={e => setBandWidth(Math.round(e.nativeEvent.layout.width))}>
-              {bandWidth > 0
-                ? PARTICLES.map(cfg => <FlowParticle key={cfg.id} cfg={cfg} width={bandWidth} />)
-                : null}
-            </View>
-          </View>
-        </Animated.View>
-
-        {/* ================================================================== */}
-        {/* COLUMNA DERECHA: Colaboradores, Voces y Calidad Regulatoria        */}
-        {/* ================================================================== */}
-        <Animated.View style={[styles.rightColumn, isTabletLandscape && styles.columnHalf, introStyle]}>
-          {/* Tarjeta 1: Entidades Colaboradoras */}
-          <View style={styles.cardBlock}>
-            <Text style={styles.cardBlockTitle}>{t.credits.partnersTitle}</Text>
+          {/* ================================================================== */}
+          {/* COLUMNA DERECHA: Colaboradores, Voces y Calidad Regulatoria        */}
+          {/* ================================================================== */}
+          <Animated.View style={[styles.rightColumn, twoColumns && styles.columnHalf, introStyle]}>
+            {/* Tarjeta 1: Entidades Colaboradoras */}
+            <View style={[styles.cardBlock, isMobile && styles.cardMobile]}>
+              <Text style={styles.cardBlockTitle}>{t.credits.partnersTitle}</Text>
             
-            <View style={styles.partnerList}>
-              <View style={styles.partnerItem}>
-                <View style={styles.partnerIconBox}>
-                  <QuisqueyaHablaMark size={34} />
-                </View>
-                <View style={atoms.flex1}>
-                  <Text style={styles.partnerName}>Quisqueya Habla (FONDOCYT)</Text>
-                  <Text style={styles.partnerSubtitle}>{t.credits.quisqueyaDesc}</Text>
-                </View>
-              </View>
-
-              <View style={styles.divider} />
-
-              <View style={styles.partnerItem}>
-                <View style={styles.partnerIconBox}>
-                  <AcoprosMark size={34} />
-                </View>
-                <View style={atoms.flex1}>
-                  <Text style={styles.partnerName}>ACOPROS</Text>
-                  <Text style={styles.partnerSubtitle}>{t.credits.acoprosDesc}</Text>
-                </View>
-              </View>
-
-              <View style={styles.divider} />
-
-              <View style={styles.partnerItem}>
-                <View style={styles.partnerIconBox}>
-                  <EarlifyMark size={34} />
-                </View>
-                <View style={atoms.flex1}>
-                  <Text style={styles.partnerName}>Earlify Health</Text>
-                  <Text style={styles.partnerSubtitle}>{t.credits.earlifyDesc}</Text>
-                </View>
-              </View>
-            </View>
-          </View>
-
-          {/* Tarjeta 2: Voces y Variantes */}
-          <View style={styles.cardBlock}>
-            <View style={styles.cardBlockHeaderRow}>
-              <Text style={styles.cardBlockTitle}>{t.credits.voicesTitle}</Text>
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel={t.langPicker.openA11y}
-                style={({ pressed }) => [styles.changeLangButton, pressed && styles.navButtonPressed]}
-                onPress={() => setLangModalVisible(true)}>
-                <Globe size={13} color="#FF7F00" strokeWidth={2.2} />
-                <Text style={styles.changeLangButtonText}>{t.langPicker.change(currentLang)}</Text>
-              </Pressable>
-            </View>
-            
-            <View style={styles.langList}>
-              {languageCredits(t).map((item, idx) => (
-                <View key={idx} style={[styles.langItem, idx > 0 && atoms.marginTop10]}>
-                  <Text style={styles.langFlag}>{item.flag}</Text>
+              <View style={styles.partnerList}>
+                <View style={styles.partnerItem}>
+                  <View style={styles.partnerIconBox}>
+                    <QuisqueyaHablaMark size={34} />
+                  </View>
                   <View style={atoms.flex1}>
-                    <Text style={styles.langName}>{item.name}</Text>
-                    <Text style={styles.langRole}>{item.role}</Text>
+                    <Text style={styles.partnerName}>Quisqueya Habla (FONDOCYT)</Text>
+                    <Text style={styles.partnerSubtitle}>{t.credits.quisqueyaDesc}</Text>
                   </View>
                 </View>
-              ))}
-            </View>
-          </View>
 
-          {/* Tarjeta 3: Calidad y Marco Regulatorio */}
-          <View style={styles.cardBlock}>
-            <Text style={styles.cardBlockTitle}>{t.credits.qualityTitle}</Text>
+                <View style={styles.divider} />
+
+                <View style={styles.partnerItem}>
+                  <View style={styles.partnerIconBox}>
+                    <AcoprosMark size={34} />
+                  </View>
+                  <View style={atoms.flex1}>
+                    <Text style={styles.partnerName}>ACOPROS</Text>
+                    <Text style={styles.partnerSubtitle}>{t.credits.acoprosDesc}</Text>
+                  </View>
+                </View>
+
+                <View style={styles.divider} />
+
+                <View style={styles.partnerItem}>
+                  <View style={styles.partnerIconBox}>
+                    <EarlifyMark size={34} />
+                  </View>
+                  <View style={atoms.flex1}>
+                    <Text style={styles.partnerName}>Earlify Health</Text>
+                    <Text style={styles.partnerSubtitle}>{t.credits.earlifyDesc}</Text>
+                  </View>
+                </View>
+              </View>
+            </View>
+
+            {/* Tarjeta 2: Voces y Variantes */}
+            <View style={[styles.cardBlock, isMobile && styles.cardMobile]}>
+              <View style={styles.cardBlockHeaderRow}>
+                <Text style={styles.cardBlockTitle}>{t.credits.voicesTitle}</Text>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={t.langPicker.openA11y}
+                  style={({ pressed }) => [styles.changeLangButton, pressed && styles.navButtonPressed]}
+                  onPress={() => setLangModalVisible(true)}>
+                  <Globe size={13} color="#FF7F00" strokeWidth={2.2} />
+                  <Text style={styles.changeLangButtonText}>{t.langPicker.change(currentLang)}</Text>
+                </Pressable>
+              </View>
             
-            <View style={styles.sealRow}>
-              <ItemasSealMark size={40} />
-              <View style={atoms.flex1MarginLeft14}>
-                <Text style={styles.sealTitle}>{t.credits.sealTitle}</Text>
-                {/* El rediseño proponía «Innovación sanitaria avalada por el
-                    ISCIII». Es una afirmación sobre una acreditación, más
-                    fuerte que la actual, y cambiarla no es un efecto colateral
-                    de un cambio de estilo: se mantiene la que ya estaba hasta
-                    que Frank confirme los términos del sello. */}
-                <Text style={styles.sealSubtitle}>{t.credits.sealSubtitle}</Text>
+              <View style={styles.langList}>
+                {languageCredits(t).map((item, idx) => (
+                  <View key={idx} style={[styles.langItem, idx > 0 && atoms.marginTop10]}>
+                    <Text style={styles.langFlag}>{item.flag}</Text>
+                    <View style={atoms.flex1}>
+                      <Text style={styles.langName}>{item.name}</Text>
+                      <Text style={styles.langRole}>{item.role}</Text>
+                    </View>
+                  </View>
+                ))}
               </View>
             </View>
 
-            <View style={styles.chipsRow}>
-              <View style={styles.chipPill}>
-                <Text style={styles.chipText}>{t.credits.chipSamd}</Text>
+            {/* Tarjeta 3: Calidad y Marco Regulatorio */}
+            <View style={[styles.cardBlock, isMobile && styles.cardMobile]}>
+              <Text style={styles.cardBlockTitle}>{t.credits.qualityTitle}</Text>
+            
+              <View style={styles.sealRow}>
+                <ItemasSealMark size={40} />
+                <View style={atoms.flex1MarginLeft14}>
+                  <Text style={styles.sealTitle}>{t.credits.sealTitle}</Text>
+                  {/* El rediseño proponía «Innovación sanitaria avalada por el
+                      ISCIII». Es una afirmación sobre una acreditación, más
+                      fuerte que la actual, y cambiarla no es un efecto colateral
+                      de un cambio de estilo: se mantiene la que ya estaba hasta
+                      que Frank confirme los términos del sello. */}
+                  <Text style={styles.sealSubtitle}>{t.credits.sealSubtitle}</Text>
+                </View>
               </View>
-              <View style={styles.chipPill}>
-                <Text style={styles.chipText}>MDR 2017/745</Text>
-              </View>
-              <View style={styles.chipPill}>
-                <Text style={styles.chipText}>{t.credits.chipLocation}</Text>
+
+              <View style={styles.chipsRow}>
+                <View style={styles.chipPill}>
+                  <Text style={styles.chipText}>{t.credits.chipSamd}</Text>
+                </View>
+                <View style={styles.chipPill}>
+                  <Text style={styles.chipText}>MDR 2017/745</Text>
+                </View>
+                <View style={styles.chipPill}>
+                  <Text style={styles.chipText}>{t.credits.chipLocation}</Text>
+                </View>
               </View>
             </View>
-          </View>
-        </Animated.View>
+          </Animated.View>
+        </View>
       </ScrollView>
 
       {/* Action Dock Inferior con manejo dinámico de Safe Area */}
-      <View style={[styles.actionDock, { paddingBottom: Math.max(insets.bottom, 14) }]}>
-        <Animated.View style={btnAnimatedStyle}>
+      <View
+        style={[
+          styles.actionDock,
+          { paddingBottom: Math.max(insets.bottom, isMobile ? 12 : 14) },
+          isMobile && styles.actionDockMobile,
+        ]}>
+        <Animated.View style={[btnAnimatedStyle, styles.dockBtnWrapper]}>
           <Pressable
             accessibilityRole="button"
             accessibilityLabel={t.credits.dockButton}
-            style={({ pressed }) => [styles.dockButton, pressed && styles.dockButtonPressed]}
+            style={({ pressed }) => [
+              styles.dockButton,
+              isMobile && styles.dockButtonMobile,
+              pressed && styles.dockButtonPressed,
+            ]}
             onPressIn={() => (btnScale.value = withSpring(0.97, { damping: 15, stiffness: 300 }))}
             onPressOut={() => (btnScale.value = withSpring(1, { damping: 15, stiffness: 300 }))}
             onPress={handleContinue}>
-            <Text style={styles.dockButtonText}>{t.credits.dockButton}</Text>
+            <Text
+              style={[
+                styles.dockButtonText,
+                isSmallPhone
+                  ? styles.dockButtonTextSmall
+                  : isMobile
+                    ? styles.dockButtonTextMobile
+                    : undefined,
+              ]}
+              numberOfLines={1}
+              ellipsizeMode="tail">
+              {t.credits.dockButton}
+            </Text>
             <View style={styles.dockArrowCircle}>
-              <ArrowRight size={18} color="#FF7F00" strokeWidth={2.6} />
+              <ArrowRight size={isMobile ? 16 : 18} color="#FF7F00" strokeWidth={2.6} />
             </View>
           </Pressable>
         </Animated.View>
@@ -607,6 +682,12 @@ const styles = StyleSheet.create({
     borderBottomColor: '#EDE7DC',
     backgroundColor: 'rgba(245, 242, 236, 0.94)',
   },
+  topNavbarMobile: {
+    paddingHorizontal: 16,
+  },
+  topNavbarSmall: {
+    paddingHorizontal: 12,
+  },
   navBackButton: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -614,6 +695,7 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
     paddingHorizontal: 6,
     borderRadius: 10,
+    minHeight: 44,
   },
   navButtonPressed: {
     opacity: 0.7,
@@ -629,15 +711,43 @@ const styles = StyleSheet.create({
     color: '#2B2620',
     letterSpacing: -0.5,
   },
+  navLogoTextMobile: {
+    fontSize: 16,
+  },
   navTitle: {
     fontSize: 17,
     fontWeight: '700',
     color: '#2B2620',
+    flexShrink: 1,
+    textAlign: 'center',
+    marginHorizontal: 12,
+  },
+  navTitleMobile: {
+    fontSize: 14.5,
+    marginHorizontal: 6,
+  },
+  navTitleSmall: {
+    fontSize: 13,
+    marginHorizontal: 4,
   },
   navRightGroup: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
+  },
+  navRightGroupSmall: {
+    gap: 4,
+  },
+  /* Las dos píldoras de la derecha —idioma y sello— comparten talla compacta:
+   * en un teléfono estrecho el título se queda sin sitio si no encogen. */
+  navPillSmall: {
+    paddingVertical: 3,
+    paddingHorizontal: 5,
+    borderRadius: 6,
+    gap: 3,
+  },
+  navPillTextSmall: {
+    fontSize: 9.5,
   },
   langNavButton: {
     flexDirection: 'row',
@@ -682,11 +792,26 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     paddingTop: 16,
   },
+  scrollMobile: {
+    paddingHorizontal: 16,
+  },
+  scrollSmall: {
+    paddingHorizontal: 12,
+  },
   scrollLandscape: {
+    paddingHorizontal: 28,
+  },
+  /* El ancho máximo va en el contenido, no en el `contentContainerStyle`: en
+   * una tableta grande las dos columnas se centran en vez de estirarse. */
+  contentContainer: {
+    width: '100%',
+    maxWidth: CONTENT_MAX_WIDTH,
+    alignSelf: 'center',
+  },
+  contentContainerLandscape: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    gap: 24,
-    paddingHorizontal: 36,
+    gap: 20,
   },
   leftColumn: {
     gap: 18,
@@ -716,6 +841,15 @@ const styles = StyleSheet.create({
     shadowRadius: 10,
     elevation: 2,
   },
+  emblemCardMobile: {
+    paddingVertical: 16,
+    paddingHorizontal: 12,
+    borderRadius: 20,
+  },
+  cardMobile: {
+    padding: 12,
+    borderRadius: 20,
+  },
   emblemHeaderRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -736,24 +870,16 @@ const styles = StyleSheet.create({
     color: '#2B2620',
   },
   emblemWrapper: {
-    width: 200,
-    height: 200,
     alignItems: 'center',
     justifyContent: 'center',
     marginVertical: 4,
   },
   ring: {
     position: 'absolute',
-    width: EMBLEM + 36,
-    height: EMBLEM + 36,
-    borderRadius: (EMBLEM + 36) / 2,
     borderWidth: 1.5,
     borderColor: 'rgba(255, 127, 0, 0.35)',
   },
   emblemCore: {
-    width: EMBLEM,
-    height: EMBLEM,
-    borderRadius: EMBLEM / 2,
     backgroundColor: '#FFFFFF',
     borderWidth: 2,
     borderColor: '#FF7F00',
@@ -767,8 +893,6 @@ const styles = StyleSheet.create({
   },
   orbitLayer: {
     position: 'absolute',
-    width: 200,
-    height: 200,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -1013,6 +1137,15 @@ const styles = StyleSheet.create({
     shadowRadius: 10,
     elevation: 8,
   },
+  actionDockMobile: {
+    paddingTop: 12,
+    paddingHorizontal: 16,
+  },
+  dockBtnWrapper: {
+    width: '100%',
+    maxWidth: 440,
+    alignItems: 'center',
+  },
   dockButton: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1020,7 +1153,9 @@ const styles = StyleSheet.create({
     backgroundColor: '#FF7F00',
     borderRadius: 28,
     height: 54,
-    paddingHorizontal: 28,
+    paddingHorizontal: 24,
+    width: '100%',
+    maxWidth: 440,
     shadowColor: '#FF7F00',
     shadowOpacity: 0.35,
     shadowRadius: 12,
@@ -1030,14 +1165,27 @@ const styles = StyleSheet.create({
   dockButtonPressed: {
     opacity: 0.92,
   },
+  dockButtonMobile: {
+    height: 50,
+    paddingHorizontal: 16,
+  },
   dockButtonText: {
     color: '#FFFFFF',
     fontSize: 15.5,
     fontWeight: '800',
     letterSpacing: 0.2,
     marginRight: 10,
+    flexShrink: 1,
+    textAlign: 'center',
+  },
+  dockButtonTextMobile: {
+    fontSize: 14.5,
+  },
+  dockButtonTextSmall: {
+    fontSize: 13.5,
   },
   dockArrowCircle: {
+    flexShrink: 0,
     width: 28,
     height: 28,
     borderRadius: 14,
