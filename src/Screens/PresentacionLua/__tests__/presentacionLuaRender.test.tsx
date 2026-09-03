@@ -9,6 +9,10 @@
 /*                                                                             */
 /*  Los textos se leen del catálogo (`ES`), no a mano: así una pantalla que se  */
 /*  saliera del catálogo rompe esta prueba en vez de pasarla con un literal.    */
+/*                                                                             */
+/*  Los cortes de tamaño (móvil, móvil apaisado, tableta) NO se miden aquí:     */
+/*  espiar `useWindowDimensions` desde fuera no llega al componente. Van en     */
+/*  `luaLayout.test.ts`, contra la función pura `computeLuaLayout`.             */
 /* -------------------------------------------------------------------------- */
 import React from 'react';
 import { act, create } from 'react-test-renderer';

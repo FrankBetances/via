@@ -85,6 +85,8 @@ export const GL: UiStrings = {
     navBackA11y: 'Volver aos créditos',
     navTitle: 'Lúa · Mascota e Periférico',
     emblemHeading: 'ACOMPAÑANTE PEDIÁTRICO',
+    mascotRenderCaption: 'Representación de deseño: o aparello aínda non ten versión fabricada.',
+    mascotImageA11y: 'Representación de deseño de Lúa, a mascota acompañante.',
     emblemFootnote: 'Dispositivo complementario · en desenvolvemento',
     cardTitle: 'DISPOSITIVO FÍSICO OPCIONAL',
     empathyName: 'Empatía e Calma Clínica',

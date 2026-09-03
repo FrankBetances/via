@@ -89,6 +89,8 @@ export const CA: UiStrings = {
     navBackA11y: 'Tornar als crèdits',
     navTitle: 'Lúa · Mascota i Perifèric',
     emblemHeading: 'ACOMPANYANT PEDIÀTRIC',
+    mascotRenderCaption: 'Representació de disseny: l\'aparell encara no té versió fabricada.',
+    mascotImageA11y: 'Representació de disseny de Lúa, la mascota acompanyant.',
     emblemFootnote: 'Dispositiu complementari · en desenvolupament',
     cardTitle: 'DISPOSITIU FÍSIC OPCIONAL',
     empathyName: 'Empatia i Calma Clínica',
