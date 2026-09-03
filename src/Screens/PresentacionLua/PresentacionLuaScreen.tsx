@@ -521,7 +521,7 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(255, 127, 0, 0.35)',
   },
   deviceImageContainer: {
-    width: 200,
+    width: 220,
     height: 220,
     alignItems: 'center',
     justifyContent: 'center',
