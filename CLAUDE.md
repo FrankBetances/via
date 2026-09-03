@@ -513,11 +513,11 @@ descargado, y las imágenes de AVD no lo traen. **Eso no es una avería.**
 
 ## Pendiente (abierto: no lo des por cerrado)
 
-- **Verificar en el emulador el resto de la batería.** La migración de voz de
-  agosto de 2026 ya NO está sin compilar: el 27/8/2026 Frank informa de que
-  **la app habla** en el emulador, así que compiló, arrancó y locuta. Lo que
-  sigue abierto es todo lo demás — ningún módulo clínico se ha recorrido en
-  dispositivo, y las sesiones de Claude aquí siguen sin SDK de Android.
+- **Verificar en el emulador el resto de la batería.** La cadena de AUDIO ya
+  está comprobada en dispositivo (las cuatro escuchas, 3/9/2026 — ver abajo).
+  Lo que sigue abierto es todo lo demás: **ningún módulo clínico se ha recorrido
+  de principio a fin**, y las sesiones de Claude aquí siguen sin SDK de Android.
+  «Suena» y «la prueba mide lo que dice medir» son cosas distintas.
 - **Registrar el repositorio de referencia del análisis de prosodia.** Frank
   dio uno y su URL no consta en el repositorio. Hasta que esté en la tabla de
   la regla 1, no se toca `src/Screens/ProsodyAnalysis/`.
@@ -532,20 +532,21 @@ descargado, y las imágenes de AVD no lo traen. **Eso no es una avería.**
   permisos del manifiesto, con los dos adaptadores que la usarían (`src/Lua/`,
   el pulsioxímetro de disfagia) esperando un `BleManager` que **nadie
   instancia**. Es decisión de producto, no de limpieza.
-- **La app HABLA (confirmado 27/8/2026), y quedan tres vías de salida sin
-  confirmar.** El 25/8/2026 se arregló la elección de voz del sistema (VIA+
-  prefería sistemáticamente la voz `-network` de Google, que no emite sin
-  cobertura, porque la regla «local gana a red» colgaba de una bandera que
-  `expo-speech` no envía nunca — ver `docs/design/arquitectura-corpus-voz.md`
-  §2 bis). **Frank confirma en el emulador que la app locuta**, así que esa
-  causa queda demostrada también en dispositivo, no solo sobre el código.
-  **Cuidado con extrapolarlo:** «habla» confirma la vía de `expo-speech` y
-  ninguna más. `LISTEN_CHECK_IDS` son CUATRO —`tone`, `verbal-clip-heard`,
-  `voice-bank-heard`, `tts-heard`— y las otras tres pasan por motores
-  distintos (`expo-audio` y `react-native-audio-api`). Justamente las dos vías
-  que enmudecieron en agosto no eran la de `expo-speech`. Hasta que las cuatro
-  escuchas de **Comprobar audio** estén contestadas, no se escribe ni se dice
-  «el audio funciona».
+- **LAS CUATRO ESCUCHAS ESTÁN CONTESTADAS (Frank, emulador, 3/9/2026).** El
+  25/8/2026 se arregló la elección de voz del sistema (VIA+ prefería la voz
+  `-network` de Google, que no emite sin cobertura, porque la regla «local gana
+  a red» colgaba de una bandera que `expo-speech` no envía nunca — ver
+  `docs/design/arquitectura-corpus-voz.md` §2 bis); el 27/8 Frank confirmó que
+  la app habla, y el 3/9, tras el episodio del build mudo, que **las cuatro
+  escuchas de «Comprobar audio» suenan**: `tone`, `verbal-clip-heard`,
+  `voice-bank-heard` y `tts-heard`. Son los tres motores de salida
+  (`expo-speech`, `expo-audio`, `react-native-audio-api`), así que la cadena de
+  audio SÍ se puede dar por comprobada en dispositivo. **Lo que sigue sin
+  cubrir, y no se puede estirar hasta ahí:** eso es una corrida de la pantalla
+  de diagnóstico, no un recorrido de los trece módulos clínicos, que sigue
+  abierto arriba. Y la regla que lo hizo posible se queda: si alguien añade un
+  motor de salida, añade su escucha, y mientras falte una el veredicto es
+  «SALIDA NO COMPROBADA».
 - **El build mudo del 2/9/2026: Frank informa el 3/9/2026 de que «ya se arregló
   todo». La causa RAÍZ no está identificada.** Las dos cosas caben juntas y hay
   que anotarlas juntas, porque entre el build mudo y el que suena entraron

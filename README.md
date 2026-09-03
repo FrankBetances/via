@@ -401,7 +401,7 @@ id = [${lang}_]${style}_${fnv1a32(normalize(text))}_${len}
 **Cadena de degradación de `speak()`:** asset neuronal de la lengua → asset neuronal base `es` →
 voz del sistema con la mejor voz verificada de esa lengua → silencio (el clínico lee la consigna).
 
-#### Estado en dispositivo: la app locuta (27/8/2026)
+#### Estado en dispositivo: las cuatro vías de salida suenan (3/9/2026)
 
 Durante varios ciclos de desarrollo VIA+ estuvo **muda en el emulador de Android Studio**, en el
 mismo emulador donde Valeria+ locutaba con voz neuronal. La causa era la elección de la voz del
@@ -412,22 +412,25 @@ sistema, no la síntesis: VIA+ puntuaba las voces con la bandera `networkConnect
 Android emite `onError` y no sale nada. Arreglado el 25/8/2026 leyendo el **id** de la voz, como
 hace Valeria+.
 
-**Confirmado en el emulador por Frank el 27/8/2026: la app habla.**
+**Confirmado en el emulador por Frank el 27/8/2026: la app habla.** Y el **3/9/2026**, tras el
+episodio de un build que salió mudo, Frank confirma en el emulador que **las cuatro escuchas de
+«Comprobar audio» suenan**. Eso cubre los tres motores de salida, no uno:
 
-Conviene ser exacto con lo que esa confirmación cubre y lo que no, porque el fallo anterior enseñó
-que las vías de salida son varias y se comprobaban de una en una:
+| Vía de salida | Motor | Escucha | Estado |
+|---|---|---|---|
+| Locución de consignas y modelos hablados | `expo-speech` | `tts-heard` | 🟢 **Confirmada en dispositivo** (27/8 y 3/9/2026) |
+| Recortes empaquetados del banco verbal | `expo-audio` | `voice-bank-heard` | 🟢 **Confirmada en dispositivo** (3/9/2026) |
+| Estímulo de la audiometría verbal (base64 → `BufferSource`) | `react-native-audio-api` | `verbal-clip-heard` | 🟢 **Confirmada en dispositivo** (3/9/2026) |
+| Tonos de audiometría (osciladores) | `react-native-audio-api` | `tone` | 🟢 **Confirmada en dispositivo** (3/9/2026) |
 
-| Vía de salida | Motor | Estado |
-|---|---|---|
-| Locución de consignas y modelos hablados | `expo-speech` | 🟢 **Confirmado en dispositivo** (27/8/2026) |
-| Recortes empaquetados del banco verbal | `expo-audio` | 🟡 Sin confirmación explícita en dispositivo |
-| Estímulo de la audiometría verbal (base64 → `BufferSource`) | `react-native-audio-api` | 🟡 Sin confirmación explícita en dispositivo |
-| Tonos de audiometría (osciladores) | `react-native-audio-api` | 🟡 Sin confirmación explícita en dispositivo |
+Quien contesta esas cuatro es el profesional, no la máquina: la pantalla emite una por una y **no
+dice «todo funciona» mientras falte alguna** —dice `SALIDA NO COMPROBADA` y cuántas quedan—, porque
+enumerar el catálogo de voces no es emitir y ninguna bandera del motor sustituye a un oído.
 
-Las tres últimas se contestan en la pantalla **Comprobar audio**, que emite una por una y **no dice
-«todo funciona» mientras falte alguna**: dice `SALIDA NO COMPROBADA` y cuántas quedan. Enumerar el
-catálogo de voces no es emitir, y `state === 'running'` del `AudioContext` no prueba que el stream
-se abriera: por eso el veredicto se apoya en escuchas, no en banderas.
+Lo que esta confirmación **no** cubre: es una corrida de la pantalla de diagnóstico, no un recorrido
+de los trece módulos clínicos en dispositivo, que sigue abierto. Y la causa raíz del build mudo del
+2/9/2026 **no llegó a aislarse** —entre el binario mudo y el que suena entraron a la vez el arreglo
+del motor de audio y dos cambios de CI del NDK—, así que no se le atribuye a ninguno de los dos.
 
 ### Corpus general y pipeline
 
@@ -910,18 +913,29 @@ silencioso cuesta días de campo.
 #### Comprobar audio 🎙️🔊 (`DiagnosticoAudio`, desde el hub)
 
 Recorre la cadena de audio entera y **nombra el eslabón roto** en vez de dejar que la prueba
-«no suene» sin más: permiso de micrófono, captura real, motor de audio, contexto de salida, banco de
-locuciones, recortes de la audiometría verbal, sintetizador del sistema, locución real y
-reconocedor del T.A.R.
+«no suene» sin más: permiso de micrófono, captura real, motor de audio, contexto de salida, reloj
+del hardware de salida, banco de locuciones, recortes de la audiometría verbal, sintetizador del
+sistema, locución real y reconocedor del T.A.R. Es además la única pieza que **repara**: si el
+motor de salida está muerto, lo reabre.
 
 Lo que la hace fiable es lo que aprendió del fallo de agosto de 2026, cuando enseñó **siete
 eslabones en verde** mientras dos pruebas seguían mudas:
 
 - **Enumerar el catálogo de voces no es emitir.** «473 voces» no significa que suene: ahora
   `checkSystemVoiceSpeaks` **dicta una frase** y espera `onStart`/`onDone`/`onError` con plazo.
-- **`state === 'running'` del `AudioContext` no prueba nada.** El constructor de la librería marca
-  `RUNNING` **ignorando** el booleano de `start()`, así que un contexto sin stream de Oboe se declara
-  corriendo igual.
+- **El reloj del hardware es la única prueba máquina de que el motor emite.** `ctx.currentTime` no
+  es un reloj de pared: solo avanza dentro del callback con el que Oboe **pide muestras**. Si avanza,
+  el hardware está tirando de frames; si no, el motor está muerto y nada de la app va a sonar. El
+  eslabón lo mide sobre una ventana de 250 ms (`react-native-audio-api` 0.8.4,
+  `AudioDestinationNode.cpp:44`).
+- **Un stream que no abre no se levanta con `resume()`, así que la pantalla lo REABRE.**
+  `AudioPlayer` abre el stream en su constructor; si Oboe falla, `mStream_` queda nulo y
+  `AudioContext` ignora el `false` de `start()`. La única rama de `resume()` que reabriría queda
+  muerta, y como el contexto se abre al arrancar la app y no se suelta nunca, una apertura fallida
+  dejaba la sesión entera muda **sin reintento y sin mensaje**. Ahora se construye un contexto nuevo
+  y el diagnóstico dice si funcionó. Caso distinto y no confundido con este: si el motor declara el
+  stream arrancado y aun así el reloj no avanza, el callback está atascado y reabrir no cura — la
+  pantalla lo nombra en vez de intentarlo.
 - **Si hay tres motores de salida, hacen falta tres escuchas.** `LISTEN_CHECK_IDS` son cuatro
   emisiones —`tone`, `verbal-clip-heard`, `voice-bank-heard`, `tts-heard`— y mientras falte una de
   contestar, ni el titular ni el resumen copiable dicen «todo funciona»: dicen `SALIDA NO COMPROBADA`
@@ -1316,12 +1330,12 @@ Earlify Health
 | Generación de informes PDF | 🟢 Integrado |
 | Resultados de sesión e historial del paciente | 🟢 Integrado |
 | Telemetría de usabilidad Zero-PHI (Likert → QR) | 🟢 Integrado |
-| Capa de voz neuronal multi-idioma (es · gl · eu · es-DO) | 🟢 Integrada · **locución confirmada en emulador el 27/8/2026** |
+| Capa de voz neuronal multi-idioma (es · gl · eu · es-DO) | 🟢 Integrada · **las cuatro vías de salida confirmadas en emulador el 3/9/2026** |
 | Tres variedades añadidas (ca · es-419 · en) | 🟡 Voces firmadas el 31/8/2026 (María · Quisqueya Habla · Miguelina), pero **sin T.A.R.**; en `ca`/`en` el acta cubre solo las consignas y el banco sigue prestado |
 | Interfaz traducida (catálogo `src/I18n` + gate `check-ui-strings`) | 🟢 Integrada · 7 variedades, cambio de idioma en caliente |
-| Pantalla **Comprobar audio** (diagnóstico de la cadena de audio) | 🟢 Integrada · cuatro escuchas, sin veredicto favorable por omisión |
+| Pantalla **Comprobar audio** (diagnóstico de la cadena de audio) | 🟢 Integrada · cuatro escuchas contestadas (3/9/2026), reloj de hardware y reapertura del motor muerto |
 | Barrera de error e informe de arranque (`@/Startup`) | 🟢 Integrada · el fallo se lee en el dispositivo, no en `console.error` |
-| Tipos, tests y linter | 🟢 `tsc` limpio · 71 suites / 870 tests en verde · `eslint` en **cero errores y cero avisos** |
+| Tipos, tests y linter | 🟢 `tsc` limpio · 74 suites / 933 tests en verde · `eslint` en **cero errores y cero avisos** |
 | Validación del análisis acústico contra Praat | 🟢 En CI |
 | Sitio público y política de privacidad (Pages) | 🟢 Publicable |
 | Release firmada de Android (APK + AAB) | 🟢 En CI, con puerta de locuciones |
@@ -1376,8 +1390,8 @@ ya costó ciclos de desarrollo enteros. El registro completo, con el coste de ca
 
 | Abierto | Estado real |
 |---|---|
-| **Recorrer la batería en el emulador** | Ningún módulo clínico se ha recorrido en dispositivo. Lo confirmado el 27/8/2026 es que **la app habla**, y eso cubre la vía de `expo-speech` y ninguna más |
-| **Las otras tres vías de salida** | `expo-audio` y las dos de `react-native-audio-api` siguen **sin contestar** en dispositivo. Mientras falte una escucha de **Comprobar audio**, no se escribe «el audio funciona» |
+| **Recorrer la batería en el emulador** | Ningún módulo clínico se ha recorrido de principio a fin en dispositivo. Lo confirmado el 3/9/2026 es que **las cuatro vías de salida suenan**, que es la cadena de audio — no las trece pruebas |
+| **La causa del build mudo del 2/9/2026** | El síntoma desapareció, la causa **no se aisló**: entre el binario mudo y el que suena entraron a la vez el arreglo del motor de audio y dos cambios de CI del NDK. Queda anotado en `CLAUDE.md` para no atribuirlo a ninguno de los dos |
 | **El nivel del micrófono no cambia al acercarse** | Reportado el 25/8/2026 como duda, sin resolver. La toma de prueba publica ya el recorrido (bloque más flojo → más fuerte) para poder medirlo. Hipótesis no verificada: el *input preset* de la captura, que la librería nativa no fija |
 | **El veredicto de ruido de sala no llega al informe** | No se persiste en ningún modelo ni aparece en el PDF: un informe de audiometría no deja constancia de las condiciones acústicas ni de si la sala se saltó. Decisión de producto pendiente |
 | **Repositorio de referencia del análisis prosódico** | Existe uno indicado por la dirección y **su URL no consta en el repositorio**. Hasta que esté registrada, `src/Screens/ProsodyAnalysis/` no se toca |
