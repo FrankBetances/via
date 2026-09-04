@@ -366,6 +366,24 @@ causas con arreglos completamente distintos.
     —tono, recorte verbal, locución empaquetada, voz del sistema— y mientras
     falte alguna, ni el titular ni el resumen copiable dicen «todo funciona»:
     dicen «SALIDA NO COMPROBADA» y cuántas faltan.
+  · **Un PLAZO que vence mide la paciencia de la sonda, no la salud del
+    motor** (4/9/2026). «Locución real del sintetizador · FALLO — el motor
+    empezó a hablar pero no terminó la locución», y al lado el consejo de
+    cambiar el motor de síntesis del sistema. El motor había ARRANCADO
+    (`onStart`) y la voz era `es-es-x-eee-local`, local, sin dependencia de
+    red: lo único que había vencido eran los **4 s fijos** de la sonda, para
+    una frase de 47 caracteres a ritmo 0.95 y en una corrida donde la propia
+    pantalla midió 3,57 s solo para CARGAR la primera locución del banco.
+    Exactamente la figura que prohíbe la regla 0: la ausencia de prueba
+    convertida en acusación, aquí contra el motor del dispositivo. Lo que
+    queda: el plazo lo calcula `speechProbeTimeoutMs` a partir del texto y del
+    ritmo (arranque + habla estimada a mitad de la velocidad típica, con techo
+    de 20 s); un plazo vencido CON `onStart` es AVISO —«arrancó y no confirmó
+    el final»— y la escucha sigue en pie, no FALLO; y la sonda publica
+    `startedAfterMs` y `elapsedMs`, porque el veredicto se dio sin un solo
+    tiempo medido y aún no sabemos si la frase duraba más de 4 s o si el motor
+    arranca y no avisa. **Un veredicto que dependa de un número fijo tiene que
+    decir cuál era ese número.**
 - **Un arranque que falla tiene que DECIRLO en la pantalla.** El APK del
   24/8/2026 «no abría y se quedaba colgado», y no había forma de saber en qué
   eslabón: la app **no tenía ninguna barrera de error** (`grep` sobre `src/`: ni
@@ -564,6 +582,22 @@ descargado, y las imágenes de AVD no lo traen. **Eso no es una avería.**
   el eslabón «Reloj del hardware de salida» en la corrida buena. Si dijo
   «reabierto», la causa era el stream de Oboe que no abría y está demostrada en
   dispositivo; si salió verde de primeras, el mudo era otra cosa y sigue suelta.
+- **¿Por qué no llegó el `onDone` del sintetizador el 4/9/2026?** Sigue
+  abierto, y el arreglo de arriba no lo cierra: quita el veredicto falso y pone
+  los tiempos, pero no dice cuál de las dos causas era. Cuando Frank repita
+  «Comprobar audio», el eslabón «Locución real del sintetizador» traerá dos
+  números. Si dice «dictó la frase completa en ~5-8 s», la causa era el plazo
+  corto y está cerrada. Si vuelve a decir «arrancó a los X y no confirmó el
+  final en 9,6 s» **y la escucha SÍ se oye entera**, entonces el motor del
+  emulador emite y no cierra la locución, y eso alcanza a todo lo que espere
+  `onDone`. En concreto a `speakWord` (`verbalAudiometryAudio.ts`), la vía TTS
+  del estímulo verbal: **no tiene plazo**, así que una locución sin cierre deja
+  su promesa pendiente para siempre — ni resuelve ni rechaza, con lo que esa
+  palabra no degrada a su recorte y el contador de fallos no se mueve. No
+  cuelga la pantalla (es fuego y olvido), pero deja el fallo invisible. **No se
+  le ha puesto plazo a propósito**: es la cadena del estímulo clínico y elegir
+  ahí un número a ciegas es repetir el error de los 4 s. **Preguntárselo a
+  Frank con la captura nueva antes de tocar nada más de TTS.**
 - **La lista de Gemini sigue sin incorporar.** Salió de la revisión que Frank
   pidió por el build mudo y produjo la rama `sonido`, cuyo arreglo era inerte en
   Android. Que el síntoma haya desaparecido no valida esa revisión ni cierra sus

@@ -68,13 +68,18 @@ jest.mock('react-native-audio-api', () => {
 });
 
 /* Motor de síntesis. `speech.behaviour` decide qué hace con cada locución, y
- * los tres casos son los que se ven en un dispositivo real:
+ * los cuatro casos son los que se ven en un dispositivo real:
  *   · 'speaks'  → onStart + onDone (voz instalada, funciona);
  *   · 'errors'  → onError (voz de red sin cobertura: Android lo notifica);
  *   · 'silent'  → acepta la locución y NO EMITE NADA NI AVISA. Éste es el que
  *     dejaba la pantalla en verde con la app muda, y el que obliga a la sonda
- *     a tener un plazo: sin él se esperaría para siempre. */
-const speech = { behaviour: 'speaks' as 'speaks' | 'errors' | 'silent' };
+ *     a tener un plazo: sin él se esperaría para siempre;
+ *   · 'starts-never-ends' → onStart y ningún cierre dentro del plazo. Es lo
+ *     que vio Frank el 4/9/2026, y lo que la pantalla presentaba como fallo
+ *     DEL MOTOR sobre una voz local que había empezado a sonar. */
+const speech = {
+  behaviour: 'speaks' as 'speaks' | 'errors' | 'silent' | 'starts-never-ends',
+};
 
 jest.mock('expo-speech', () => ({
   speak: jest.fn((_text: string, opts: any) => {
@@ -85,6 +90,8 @@ jest.mock('expo-speech', () => ({
       }, 0);
     } else if (speech.behaviour === 'errors') {
       setTimeout(() => opts?.onError?.(new Error('network error')), 0);
+    } else if (speech.behaviour === 'starts-never-ends') {
+      setTimeout(() => opts?.onStart?.(), 0);
     }
     /* 'silent': ni un evento, como el motor real cuando descarta la locución */
   }),
@@ -112,10 +119,13 @@ jest.mock('expo-audio', () => ({
 
 import { __resetSharedAudioContextForTests } from '@/Audio';
 import { installVerbalAudioAdapter } from '@/Screens/VerbalAudiometry/verbalAudiometryAudio';
+import { speechProbeTimeoutMs } from '@/Screens/VerbalAudiometry/verbalAudiometryAudio';
 import {
   LISTEN_CHECK_IDS,
+  TEST_PHRASE,
   checkSystemVoiceSpeaks,
   checkVerbalClipChain,
+  emitSystemVoiceSample,
   summaryText,
   type CheckResult,
 } from '../audioSelfTest';
@@ -193,6 +203,66 @@ describe('locución real del sintetizador', () => {
     const r = await checkSystemVoiceSpeaks();
     expect(r.status).toBe('fail');
     expect(r.detail).toMatch(/adaptador de voz no está instalado/);
+  });
+
+  /* ---------------------------------------------------------------------- */
+  /*  4/9/2026: «Locución real del sintetizador · FALLO — el motor empezó a  */
+  /*  hablar pero no terminó la locución (voz es-es-x-eee-local, sin red)»,  */
+  /*  con el consejo de cambiar el motor de síntesis del sistema. El motor   */
+  /*  había ARRANCADO y la voz era local: lo que venció fue el plazo de la   */
+  /*  sonda, que eran 4 s fijos para una frase de 47 caracteres dictada a    */
+  /*  ritmo 0.95 en un emulador donde cargar la primera locución del banco   */
+  /*  costó 3,57 s medidos en esa misma corrida.                             */
+  /* ---------------------------------------------------------------------- */
+  describe('el motor arranca y no confirma el final', () => {
+    it('es AVISO, no FALLO, y no acusa al motor de síntesis del sistema', async () => {
+      speech.behaviour = 'starts-never-ends';
+      uninstall = installVerbalAudioAdapter();
+      const r = await checkSystemVoiceSpeaks('es', 80);
+      expect(r.status).toBe('warn');
+      expect(r.detail).toMatch(/arrancó la locución/);
+      // Lo que NO puede volver a decir: que el fallo es del motor.
+      expect(r.hint).not.toMatch(/cambiar el motor de síntesis/);
+      expect(r.hint).toMatch(/prueba de escucha/);
+    });
+
+    it('publica los tiempos que midió, para no volver a deducirlos', async () => {
+      speech.behaviour = 'starts-never-ends';
+      uninstall = installVerbalAudioAdapter();
+      const r = await checkSystemVoiceSpeaks('es', 120);
+      expect(r.detail).toMatch(/arrancó a los 0\.0 s/);
+      // El plazo era de 120 ms: lo que se comprueba es que el tiempo SE
+      // PUBLICA, no su valor exacto (depende de la máquina que corre el test).
+      expect(r.detail).toMatch(/no confirmó el final en \d+\.\d s/);
+    });
+
+    it('la escucha SIGUE EN PIE: hay algo que oír aunque no llegue el cierre', async () => {
+      speech.behaviour = 'starts-never-ends';
+      uninstall = installVerbalAudioAdapter();
+      // Devolver `false` aquí pintaba «el sintetizador no llegó a emitir» sin
+      // preguntar, cerrando en falso la única escucha que responde del T.A.R.
+      await expect(emitSystemVoiceSample('es', 80)).resolves.toBe(true);
+    });
+
+    it('una locución que SÍ termina dice cuánto tardó', async () => {
+      uninstall = installVerbalAudioAdapter();
+      const r = await checkSystemVoiceSpeaks();
+      expect(r.detail).toMatch(/frase de prueba completa en 0\.0 s/);
+    });
+  });
+
+  describe('plazo de la sonda', () => {
+    it('crece con el texto y con la lentitud del ritmo: no es un número fijo', () => {
+      const corta = speechProbeTimeoutMs('Hola.', 1);
+      const larga = speechProbeTimeoutMs(TEST_PHRASE, 1);
+      expect(larga).toBeGreaterThan(corta);
+      // El plazo viejo (4 s) no daba ni para la frase de prueba a ritmo normal.
+      expect(larga).toBeGreaterThan(4000);
+      // Un ritmo más lento alarga la locución, y con ella el plazo.
+      expect(speechProbeTimeoutMs(TEST_PHRASE, 0.5)).toBeGreaterThan(larga);
+      // Y hay techo: una consigna larguísima no cuelga la pantalla un minuto.
+      expect(speechProbeTimeoutMs('x'.repeat(5000), 0.1)).toBeLessThanOrEqual(20000);
+    });
   });
 });
 

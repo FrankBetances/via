@@ -103,7 +103,48 @@ export interface SpeechProbe {
   offline: boolean;
   /** Motivo del fallo, o `null` si dictó. */
   error: string | null;
+  /** El plazo de la sonda venció antes de que el motor cerrase la locución. */
+  timedOut: boolean;
+  /** Milisegundos entre encolar la locución y el `onStart`, o `null` si no llegó. */
+  startedAfterMs: number | null;
+  /** Milisegundos que esperó la sonda hasta resolver (por veredicto o por plazo). */
+  elapsedMs: number;
 }
+
+/* Plazo de la sonda de voz: arranque + habla estimada. Ver `speechProbeTimeoutMs`. */
+const SPEECH_PROBE_STARTUP_MS = 3500;
+const SPEECH_PROBE_MS_PER_CHAR = 130;
+const SPEECH_PROBE_MAX_MS = 20000;
+
+/**
+ * Plazo de la sonda de voz, PROPORCIONAL a lo que se le pide dictar.
+ *
+ * Era un número fijo de 4 s y esa cifra produjo un veredicto falso en el
+ * emulador de Frank (4/9/2026): «el motor empezó a hablar pero no terminó la
+ * locución» sobre `es-es-x-eee-local` —una voz LOCAL, que no depende de la
+ * red— y con el consejo de cambiar el motor de síntesis al lado. La frase de
+ * prueba son 47 caracteres con dos comas y un punto, se dicta a `rate` 0.95, y
+ * en ESA misma corrida cargar la primera locución del banco costó 3,57 s
+ * medidos: cuatro segundos no dan para arrancar la síntesis Y terminarla. El
+ * plazo estaba midiendo la paciencia de la sonda, no la salud del motor.
+ *
+ * La cuenta: un tope de arranque más el habla estimada a MITAD de la velocidad
+ * típica de un sintetizador español (~15 caracteres/s a ritmo 1.0 → 130 ms por
+ * carácter aquí), dividida por el ritmo pedido. Es un TOPE, no una espera: una
+ * locución que termina resuelve en cuanto llega `onDone`.
+ *
+ * NO VERIFICADO en dispositivo: la duración real de la frase en el emulador de
+ * Frank no se ha medido: la sonda no la registraba. Por eso este cambio
+ * publica `startedAfterMs` y `elapsedMs` — para que la próxima corrida traiga
+ * el dato en vez de obligarnos a deducirlo.
+ */
+export const speechProbeTimeoutMs = (text: string, rate = 1): number =>
+  Math.min(
+    SPEECH_PROBE_MAX_MS,
+    Math.round(
+      SPEECH_PROBE_STARTUP_MS + (text.length * SPEECH_PROBE_MS_PER_CHAR) / (rate > 0 ? rate : 1),
+    ),
+  );
 
 export interface VerbalAudioAdapter {
   /**
@@ -644,14 +685,18 @@ export function installVerbalAudioAdapter(opts: VerbalAudioAdapterOptions = {}):
    * El plazo importa: `expo-speech` no promete nada si el motor descarta la
    * locución en silencio (voz de red sin cobertura, motor ocupado), así que sin
    * un tope la sonda se quedaría colgada y la pantalla, en «comprobando…» para
-   * siempre. Un `onStart` que no llega en 4 s ES el resultado.
+   * siempre. Un `onStart` que no llega ES el resultado.
+   *
+   * Lo que el plazo NO puede hacer es confundir «el motor no responde» con «la
+   * frase dura más de lo que yo esperaba»: por eso el tope lo calcula
+   * `speechProbeTimeoutMs` a partir del texto y del ritmo, y por eso la sonda
+   * publica los tiempos que midió (`startedAfterMs`, `elapsedMs`). Un veredicto
+   * que dependa de un número fijo tiene que decir cuál era ese número.
    */
-  const PROBE_TIMEOUT_MS = 4000;
-
   const probeSpeech = async (
     text: string,
     lang = 'es',
-    timeoutMs = PROBE_TIMEOUT_MS,
+    timeoutMs?: number,
   ): Promise<SpeechProbe> => {
     if (!ttsEngine) {
       return {
@@ -662,6 +707,9 @@ export function installVerbalAudioAdapter(opts: VerbalAudioAdapterOptions = {}):
         degraded: false,
         offline: false,
         error: 'Este binario no incorpora el módulo de síntesis de voz.',
+        timedOut: false,
+        startedAfterMs: null,
+        elapsedMs: 0,
       };
     }
 
@@ -680,40 +728,58 @@ export function installVerbalAudioAdapter(opts: VerbalAudioAdapterOptions = {}):
       degraded: pick?.degraded ?? false,
       offline: pick ? isOfflineVoice(pick.voice) : false,
       error: null,
+      timedOut: false,
+      startedAfterMs: null,
+      elapsedMs: 0,
     };
 
     if (!ready) {
       return { ...base, error: 'El motor de voz del sistema no llegó a estar listo.' };
     }
 
+    const budget = timeoutMs ?? speechProbeTimeoutMs(text, speechOpts.rate);
+
+    /* La parada previa se ESPERA, y esto no es celo: el nativo de expo-speech
+     * 14.0.8 encola con `TextToSpeech.QUEUE_ADD`
+     * (`android/src/main/java/expo/modules/speech/SpeechModule.kt:128`, versión
+     * instalada), así que una locución anterior todavía en cola no se
+     * interrumpe: la de prueba espera su turno detrás. Con el `stop()`
+     * disparado y sin esperar, ese tiempo de espera ajeno se cargaba al plazo
+     * de la sonda y salía como «el motor no responde». `speakText` puede seguir
+     * sin esperarlo —es fuego y olvido, una ayuda—; una MEDIDA no. */
+    try {
+      await ttsEngine.stop?.();
+    } catch {
+      /* nada que detener */
+    }
+
     return new Promise<SpeechProbe>(resolve => {
       let settled = false;
       const state = { ...base };
+      // El reloj arranca al ENCOLAR, no al pedir la sonda: la espera por la
+      // enumeración de voces (`ensureTtsReady`) no es tiempo del motor
+      // hablando y contarla falsearía los dos tiempos publicados.
+      const t0 = Date.now();
       const finish = (error: string | null) => {
         if (settled) return;
         settled = true;
         clearTimeout(timer);
-        resolve({ ...state, error });
+        resolve({ ...state, error, elapsedMs: Date.now() - t0 });
       };
-      const timer = setTimeout(
-        () =>
-          finish(
-            state.started
-              ? 'El motor empezó a hablar pero no terminó la locución.'
-              : 'El motor aceptó la locución y NO llegó a emitir nada.',
-          ),
-        timeoutMs,
-      );
-      try {
-        ttsEngine.stop?.();
-      } catch {
-        /* nada que detener */
-      }
+      const timer = setTimeout(() => {
+        state.timedOut = true;
+        finish(
+          state.started
+            ? 'El motor arrancó la locución y no confirmó que la terminase dentro del plazo.'
+            : 'El motor aceptó la locución y NO llegó a emitir nada.',
+        );
+      }, budget);
       try {
         ttsEngine.speak(text, {
           ...speechOpts,
           onStart: () => {
             state.started = true;
+            state.startedAfterMs = Date.now() - t0;
           },
           onDone: () => {
             state.finished = true;
