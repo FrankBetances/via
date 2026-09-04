@@ -60,6 +60,9 @@ const TRAVEL_MS = 5200;
 const FIELD_H_MIN = 150;
 const FIELD_H_MAX = 420;
 
+/** Hueco entre el isotipo y la onda: sin él se tocaban en pantallas estrechas. */
+const ICON_WAVE_GAP = 12;
+
 const clamp = (value: number, min: number, max: number) =>
   Math.min(max, Math.max(min, value));
 
@@ -73,6 +76,12 @@ export interface StageLayout {
   fieldHeight: number;
   iconSize: number;
   waveHeight: number;
+  /** Ancho útil del campo acústico (la tarjeta menos su relleno). */
+  fieldWidth: number;
+  /** Sangrado izquierdo del isotipo dentro del campo. */
+  iconLeft: number;
+  /** Ancho de la onda: TODO lo que queda a la derecha del isotipo. */
+  waveWidth: number;
 }
 
 /**
@@ -111,12 +120,35 @@ export function computeStageLayout({
       : clamp(availableH * 0.26, FIELD_H_MIN, 232),
   );
 
+  /* Reparto HORIZONTAL del campo. Antes no había ninguno: el isotipo se
+   * anclaba a 18 px del borde izquierdo con un tamaño que solo miraba el ALTO,
+   * y la onda ocupaba un 60 % fijo pegado a la derecha. En una tableta sobra
+   * sitio y no se nota; en un móvil las dos piezas se pisan —9 px de solape en
+   * 360×800, 8 px en 320×568, 1 px en 412×915— y a la vez queda hueco muerto
+   * al no llenar nadie el centro. Aquí se reparte el ancho REAL: el isotipo
+   * toma su parte, y la onda TODO lo que queda tras un hueco explícito. */
+  const fieldWidth = stageWidth - 32;
+  const iconSize = Math.round(clamp(Math.min(fieldHeight * 0.44, fieldWidth * 0.3), 62, 96));
+  const iconLeft = Math.round(clamp(fieldWidth * 0.05, 8, 20));
+  // El isotipo se dibuja centrado en una caja de `iconSize + 20` (sus anillos).
+  const iconBox = iconSize + 20;
+  const waveWidth = Math.max(80, Math.round(fieldWidth - iconLeft - iconBox - ICON_WAVE_GAP));
+  // La onda conserva la proporción de su viewBox (240×100): dimensionar la
+  // capa a otra cosa dejaría bandas vacías dentro de la propia capa, que es la
+  // versión pequeña del mismo problema.
+  const waveHeight = Math.round(
+    Math.min((waveWidth * 100) / 240, clamp(fieldHeight * 0.62, 70, 130)),
+  );
+
   return {
     isTabletLandscape,
     stageWidth,
     fieldHeight,
-    iconSize: Math.round(clamp(fieldHeight * 0.44, 62, 96)),
-    waveHeight: Math.round(clamp(fieldHeight * 0.5, 70, 130)),
+    iconSize,
+    waveHeight,
+    fieldWidth,
+    iconLeft,
+    waveWidth,
   };
 }
 
@@ -217,8 +249,16 @@ export default function BienvenidaScreen() {
   const navigation = useNavigation<Nav>();
   const insets = useSafeAreaInsets();
   const { width: winW, height: winH } = useWindowDimensions();
-  const { isTabletLandscape, stageWidth, fieldHeight, iconSize, waveHeight } =
-    computeStageLayout({
+  const {
+    isTabletLandscape,
+    stageWidth,
+    fieldHeight,
+    iconSize,
+    waveHeight,
+    fieldWidth,
+    iconLeft,
+    waveWidth,
+  } = computeStageLayout({
       winW,
       winH,
       insetTop: insets.top,
@@ -353,19 +393,13 @@ export default function BienvenidaScreen() {
             </View>
 
             {/* Contenedor del osciloscopio cinemático */}
-            <View
-              style={[styles.fieldContainer, { width: stageWidth - 32, height: fieldHeight }]}>
+            <View style={[styles.fieldContainer, { width: fieldWidth, height: fieldHeight }]}>
               {/* Partículas de señal en movimiento */}
               <View
                 style={[styles.particleTrack, { top: fieldHeight / 2 }]}
                 pointerEvents="none">
                 {specs.map((spec, i) => (
-                  <Particle
-                    key={i}
-                    spec={spec}
-                    width={stageWidth - 32}
-                    height={fieldHeight}
-                  />
+                  <Particle key={i} spec={spec} width={fieldWidth} height={fieldHeight} />
                 ))}
               </View>
 
@@ -373,14 +407,14 @@ export default function BienvenidaScreen() {
               <View
                 style={[
                   styles.waveLayer,
-                  { top: fieldHeight / 2 - waveHeight / 2, height: waveHeight },
+                  {
+                    top: fieldHeight / 2 - waveHeight / 2,
+                    height: waveHeight,
+                    width: waveWidth,
+                  },
                 ]}
                 pointerEvents="none">
-                <Svg
-                  width={(stageWidth - 32) * 0.58}
-                  height={waveHeight}
-                  viewBox="0 0 240 100"
-                  fill="none">
+                <Svg width={waveWidth} height={waveHeight} viewBox="0 0 240 100" fill="none">
                   <Defs>
                     <LinearGradient id="orangeWave" x1="0" y1="0" x2="1" y2="0">
                       <Stop offset="0" stopColor="#FF7F00" stopOpacity="0.3" />
@@ -417,7 +451,7 @@ export default function BienvenidaScreen() {
               <Animated.View
                 style={[
                   styles.iconWrapper,
-                  { width: iconSize + 20, height: iconSize + 20 },
+                  { width: iconSize + 20, height: iconSize + 20, left: iconLeft },
                   floatStyle,
                 ]}>
                 <Animated.View style={[styles.ring, ringSize(iconSize), ring1Style]} />
@@ -692,15 +726,15 @@ const styles = StyleSheet.create({
     top: 0,
   },
   waveLayer: {
+    // El ancho llega calculado: es lo que queda tras el isotipo y su hueco.
     position: 'absolute',
     right: 0,
-    width: '60%',
     alignItems: 'flex-start',
     justifyContent: 'center',
   },
   iconWrapper: {
+    // `left` llega calculado desde el ancho real del campo.
     position: 'absolute',
-    left: 18,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -764,6 +798,13 @@ const styles = StyleSheet.create({
   /* Columna Narrativa y Tarjetas Clínicas                                      */
   /* -------------------------------------------------------------------------- */
   narrativeColumn: {
+    /* `width: '100%'` no es decorativo: sin él esta columna se encogía a su
+     * contenido (el ScrollView centra en vertical), y los hijos que piden
+     * `width: '100%'` —la fila del wordmark, las tres tarjetas de valor y el
+     * botón— tomaban como referencia el ancho del texto más largo, no el de la
+     * pantalla. De ahí que en un móvil cada bloque saliera con una anchura
+     * distinta y el conjunto se viera descolocado. */
+    width: '100%',
     maxWidth: 520,
     alignItems: 'flex-start',
   },

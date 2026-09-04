@@ -6,6 +6,7 @@ import {
   useWindowDimensions,
   View,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useDispatch, useSelector } from 'react-redux';
 import { Box, Center, HStack, VStack } from '@gluestack-ui/themed';
@@ -38,6 +39,7 @@ import { useVoiceEngineStatus } from '@/Voice';
 import ModuleCardItem from './ModuleCardItem';
 import CategoryFilterChip from './CategoryFilterChip';
 import { MODULES } from './moduleCards';
+import { computeGridLayout } from './seleccionLayout';
 import { CategoryType } from './CategoryBadgeIcon';
 
 import { useT } from '@/I18n';
@@ -71,10 +73,45 @@ const CATEGORIES: FilterCategoryDef[] = [
   { id: 'dysphagia', label: 'Disfagia', count: countOf('dysphagia'), color: '#DC2626', soft: '#FEE2E2' },
 ];
 
+/**
+ * Acceso de la barra superior. En tableta sigue siendo el enlace subrayado de
+ * la referencia visual; en teléfono pasa a botón con área de toque propia,
+ * porque ahí estos accesos son la única vía a la comprobación de audio y al
+ * sonómetro, y un texto de 11 px no se acierta con el pulgar.
+ */
+function NavAction({
+  isPhone,
+  label,
+  onPress,
+}: {
+  isPhone: boolean;
+  label: string;
+  onPress: () => void;
+}) {
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      onPress={onPress}
+      style={({ pressed }) => [
+        isPhone ? styles.navChip : styles.navLink,
+        pressed && atoms.opacity08,
+      ]}>
+      <Text
+        size="xs"
+        weight={isPhone ? 'bold' : 'medium'}
+        style={isPhone ? atoms.color475569FontSize11 : atoms.color64748BTextDecorationLineUnderline}>
+        {label}
+      </Text>
+    </Pressable>
+  );
+}
+
 export default function SeleccionEjerciciosScreen({ navigation }: Props) {
   const t = useT();
   const dispatch = useDispatch<AppDispatch>();
   const { width } = useWindowDimensions();
+  const insets = useSafeAreaInsets();
 
   const activeEvaluation = useClassSelector(Evaluation, (state: RootState) => state.activeEvaluation.evaluation);
   const patient = activeEvaluation?.patient;
@@ -176,12 +213,13 @@ export default function SeleccionEjerciciosScreen({ navigation }: Props) {
     navigation.navigate(selected[0] as any);
   };
 
-  // Rejilla de columnas responsiva según el ancho de pantalla (Tableta 4:3 = 4 columnas)
-  const numColumns = width >= 980 ? 4 : width >= 680 ? 2 : 1;
-  const gap = 14;
-  const horizontalPadding = 24;
-  const availableWidth = width - horizontalPadding * 2;
-  const cardWidth = numColumns > 1 ? (availableWidth - gap * (numColumns - 1)) / numColumns : '100%';
+  /* Reparto de la pantalla. Sale de `computeGridLayout` para poder medirlo sin
+   * montar la pantalla: la tableta 4:3 de la referencia y un teléfono a una
+   * columna no se diferencian solo en el número de columnas — cambian el
+   * relleno lateral, el alto del dibujo de cada tarjeta y el hueco que hay que
+   * reservarle al muelle de acciones, que en teléfono va apilado. */
+  const { isPhone, gap, horizontalPadding, cardWidth, illustrationHeight, dockClearance } =
+    computeGridLayout({ width });
 
   return (
     <Content
@@ -198,15 +236,19 @@ export default function SeleccionEjerciciosScreen({ navigation }: Props) {
         {/* ==================================================================== */}
         {/* Cabecera Superior VIA+ (Zero-PHI & Estado de Sala)                    */}
         {/* ==================================================================== */}
-        <HStack
-          alignItems="center"
-          justifyContent="space-between"
-          px="$6"
-          pt="$4"
-          pb="$3"
-          style={styles.topNavbar}>
+        {/* `Content` monta el área segura sin el borde superior (`insetTop={false}`)
+            y cada pantalla se ocupa del suyo. Ésta no lo hacía: en tableta se
+            nota poco, pero en un teléfono la barra de estado se comía la fila
+            del logotipo y el paciente. Solo se aplica en teléfono para no mover
+            la cabecera de la tableta, que es la que Frank ya da por buena. */}
+        <View
+          style={[
+            styles.topNavbar,
+            isPhone ? styles.topNavbarPhone : styles.topNavbarWide,
+            isPhone ? { paddingTop: Math.max(insets.top, 12) } : null,
+          ]}>
           {/* Logo VIA+ y Datos del Paciente */}
-          <HStack alignItems="center" space="md">
+          <HStack alignItems="center" space="md" style={isPhone ? styles.navIdentityPhone : undefined}>
             {/* Logo VIA+ */}
             <HStack alignItems="center" space="xs">
               <ViaIcon size={28} variant="color" />
@@ -225,14 +267,23 @@ export default function SeleccionEjerciciosScreen({ navigation }: Props) {
                   [{initials}]
                 </Text>
               </Center>
-              <Text size="sm" weight="semiBold" style={atoms.color2B2620}>
+              <Text
+                size="sm"
+                weight="semiBold"
+                numberOfLines={1}
+                style={[atoms.color2B2620, atoms.flexShrink1]}>
                 {patientLabel}
               </Text>
             </HStack>
           </HStack>
 
-          {/* Estado de Sala y Accesos Directos */}
-          <HStack alignItems="center" space="md">
+          {/* Estado de Sala y Accesos Directos.
+              En teléfono esto era una fila única con `space-between` y sin
+              envolver: el chip de sala y los tres accesos no caben en 360 dp,
+              así que «Comprobar audio» —el último— se salía por la derecha y no
+              había forma de llegar a él. Ahora envuelve y cada acceso es un
+              botón con su propia área de toque. */}
+          <View style={[styles.navActions, isPhone && styles.navActionsPhone]}>
             {/* Certificado de Sala Activo */}
             {/* El estado de la sala se LEE del veredicto real del sonómetro.
                 Antes se deducía de la ausencia de una bandera de navegación, y
@@ -259,39 +310,36 @@ export default function SeleccionEjerciciosScreen({ navigation }: Props) {
             </HStack>
 
             {/* Acceso directo a CAP */}
-            <Pressable onPress={() => navigation.navigate('ClinicalAssessment')}>
-              <Text size="xs" weight="medium" style={atoms.color64748BTextDecorationLineUnderline}>
-                
-                {t.seleccionEjercicios.volverCap}
-              </Text>
-            </Pressable>
+            <NavAction
+              isPhone={isPhone}
+              label={t.seleccionEjercicios.volverCap}
+              onPress={() => navigation.navigate('ClinicalAssessment')}
+            />
 
             {/* Acceso a Sonómetro */}
-            <Pressable onPress={() => navigation.navigate('RoomNoiseCheck')}>
-              <Text size="xs" weight="medium" style={atoms.color64748BTextDecorationLineUnderline}>
-                
-                {t.seleccionEjercicios.sonometroSala}
-              </Text>
-            </Pressable>
+            <NavAction
+              isPhone={isPhone}
+              label={t.seleccionEjercicios.sonometroSala}
+              onPress={() => navigation.navigate('RoomNoiseCheck')}
+            />
 
             {/* Comprobación de audio del dispositivo. Va aquí, siempre visible y
                 no solo cuando algo ya ha fallado: cuando las pruebas de voz no
                 suenan ni graban, la app degrada en silencio y el profesional no
                 tiene desde dónde averiguar qué eslabón está roto. */}
-            <Pressable onPress={() => navigation.navigate('DiagnosticoAudio')}>
-              <Text size="xs" weight="medium" style={atoms.color64748BTextDecorationLineUnderline}>
-                
-                {t.seleccionEjercicios.comprobarAudio}
-              </Text>
-            </Pressable>
-          </HStack>
-        </HStack>
+            <NavAction
+              isPhone={isPhone}
+              label={t.seleccionEjercicios.comprobarAudio}
+              onPress={() => navigation.navigate('DiagnosticoAudio')}
+            />
+          </View>
+        </View>
 
         {/* ==================================================================== */}
         {/* Aviso del motor de voz (si la locución no está disponible)           */}
         {/* ==================================================================== */}
         {voiceEngine.shouldWarn ? (
-          <Box px="$6" pt="$2">
+          <Box pt="$2" style={{ paddingHorizontal: horizontalPadding }}>
             <VStack space="xs" bg="#FEF2F2" p="$3" borderRadius={14} borderWidth={1} borderColor="#FECACA">
               <HStack space="xs" alignItems="flex-start">
                 <AlertTriangle size={14} color="#DC2626" />
@@ -326,7 +374,7 @@ export default function SeleccionEjerciciosScreen({ navigation }: Props) {
         {/* ==================================================================== */}
         {/* Barra de Filtros de Categorías (Carrusel Horizontal)                 */}
         {/* ==================================================================== */}
-        <Box px="$6" py="$2">
+        <Box py="$2" style={{ paddingHorizontal: horizontalPadding }}>
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
@@ -352,7 +400,10 @@ export default function SeleccionEjerciciosScreen({ navigation }: Props) {
         {/* ==================================================================== */}
         <ScrollView
           style={atoms.flex1}
-          contentContainerStyle={[atoms.paddingTop10PaddingBottom110, { paddingHorizontal: horizontalPadding }]}
+          contentContainerStyle={[
+            styles.gridScroll,
+            { paddingHorizontal: horizontalPadding, paddingBottom: dockClearance },
+          ]}
           showsVerticalScrollIndicator={false}>
           
           {/* Rejilla de Tarjetas (Grid Multi-Columna) */}
@@ -367,13 +418,14 @@ export default function SeleccionEjerciciosScreen({ navigation }: Props) {
                   order={idx >= 0 ? idx + 1 : null}
                   onToggle={toggle}
                   cardWidth={cardWidth}
+                  illustrationHeight={illustrationHeight}
                 />
               );
             })}
           </View>
 
           {/* Accesos Rápidos Inferiores de Gestión de Sesión */}
-          <HStack space="md" mt="$4" justifyContent="center">
+          <HStack space="md" mt="$4" justifyContent="center" style={atoms.flexWrapWrap}>
             <Pressable onPress={() => navigation.navigate('ResultadosPreliminares')}>
               <HStack alignItems="center" space="xs" px="$4" py="$2" borderRadius={12} bg="#FFFFFF" borderWidth={1} borderColor="#E2DDD5">
                 <CheckCircle2 size={15} color="#0D9488" />
@@ -422,10 +474,16 @@ export default function SeleccionEjerciciosScreen({ navigation }: Props) {
         {/* ==================================================================== */}
         {/* Dock Inferior Flotante (Sticky Action Dock)                          */}
         {/* ==================================================================== */}
-        <View style={styles.floatingDock}>
-          <HStack alignItems="center" justifyContent="space-between">
+        {/* En teléfono el muelle se APILA. Era una fila única con
+            `space-between`: en 360 dp el texto de estado («2 pruebas en cola ·
+            Tiempo total: 18 min») empujaba el botón naranja fuera del muelle, y
+            con él la única forma de empezar la batería. Apilado, el botón ocupa
+            el ancho completo y no depende de lo que mida el texto. */}
+        <View
+          style={[styles.floatingDock, isPhone && styles.floatingDockPhone]}>
+          <View style={isPhone ? styles.dockStack : styles.dockRow}>
             {/* Texto de estado acumulado */}
-            <HStack alignItems="center" space="xs">
+            <HStack alignItems="center" space="xs" style={atoms.flexWrapWrap}>
               <Text size="sm" weight="bold" style={atoms.color1E293BFontSize14}>
                 {selCount === 0
                   ? t.seleccionEjercicios.ningunaPruebaCola
@@ -443,7 +501,7 @@ export default function SeleccionEjerciciosScreen({ navigation }: Props) {
             </HStack>
 
             {/* Acciones del Dock */}
-            <HStack alignItems="center" space="sm">
+            <HStack alignItems="center" space="sm" style={isPhone ? styles.dockActionsPhone : undefined}>
               {selCount > 0 && (
                 <Pressable
                   onPress={() => setSelected([])}
@@ -464,9 +522,10 @@ export default function SeleccionEjerciciosScreen({ navigation }: Props) {
                 onPress={handleStart}
                 style={[
                   styles.ctaButton,
+                  isPhone && styles.ctaButtonPhone,
                   selCount > 0 ? atoms.backgroundColorFF7F00 : atoms.backgroundColorCBD5E1,
                 ]}>
-                <HStack alignItems="center" space="xs">
+                <HStack alignItems="center" justifyContent="center" space="xs">
                   <Text size="sm" weight="bold" style={atoms.colorFFFFFFFontSize14}>
                     {ctaLabel}
                   </Text>
@@ -474,7 +533,7 @@ export default function SeleccionEjerciciosScreen({ navigation }: Props) {
                 </HStack>
               </Pressable>
             </HStack>
-          </HStack>
+          </View>
         </View>
       </VStack>
     </Content>
@@ -487,6 +546,47 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#EDE7DC',
   },
+  topNavbarWide: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 24,
+    paddingTop: 16,
+    paddingBottom: 12,
+  },
+  topNavbarPhone: {
+    paddingHorizontal: 16,
+    paddingTop: 12,
+    paddingBottom: 10,
+    gap: 8,
+  },
+  navIdentityPhone: {
+    flexShrink: 1,
+  },
+  navActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 16,
+  },
+  navActionsPhone: {
+    flexWrap: 'wrap',
+    rowGap: 8,
+    columnGap: 8,
+  },
+  navLink: {
+    paddingVertical: 2,
+  },
+  navChip: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 12,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#E2DDD5',
+  },
+  gridScroll: {
+    paddingTop: 10,
+  },
   filterRow: {
     paddingVertical: 6,
     paddingRight: 12,
@@ -497,6 +597,17 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     justifyContent: 'flex-start',
     alignItems: 'stretch',
+  },
+  dockRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  dockStack: {
+    gap: 10,
+  },
+  dockActionsPhone: {
+    width: '100%',
   },
   floatingDock: {
     position: 'absolute',
@@ -520,6 +631,20 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     borderRadius: 14,
     backgroundColor: '#F1F5F9',
+  },
+  floatingDockPhone: {
+    left: 12,
+    right: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+  },
+  ctaButtonPhone: {
+    // Toma el ancho que quede tras «Limpiar»: así el rótulo largo («Iniciar
+    // batería (3 pruebas)») ya no puede empujar el botón fuera del muelle.
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 48,
   },
   ctaButton: {
     paddingHorizontal: 20,

@@ -32,6 +32,7 @@ import {
   VOICE_ASSETS_VERSION,
   probeSystemVoice,
   probeVoiceAsset,
+  stopSpeaking,
   stopVoiceAsset,
   voiceAudioModeStatus,
   voiceStatus,
@@ -844,6 +845,31 @@ export async function checkSystemVoiceSpeaks(lang = 'es', timeoutMs?: number): P
       : 'REQUIERE RED'
     : 'disponibilidad desconocida';
   const where = `${voice} · ${probe.language} · ${net}${probe.degraded ? ' · voz de OTRO idioma' : ''}`;
+  const secs = (ms: number) => `${(ms / 1000).toFixed(1)} s`;
+
+  /* El motor ARRANCÓ y el plazo venció antes de que dijera haber terminado.
+   *
+   * Esto NO es «el motor falla», y presentarlo como fallo costó una acusación
+   * falsa el 4/9/2026: la pantalla mandaba cambiar el motor de síntesis del
+   * sistema por una locución que había empezado a sonar con una voz local. Lo
+   * único que se sabe es que el motor empezó y que el veredicto de final no
+   * llegó a tiempo — que puede ser una frase más larga que el plazo o un motor
+   * que arranca y no avisa. Quien lo cierra es el oído del profesional, así
+   * que se dice lo que se sabe, con los tiempos medidos, y la escucha sigue en
+   * pie. */
+  if (probe.timedOut && probe.started) {
+    // Se corta lo que quede sonando: detrás de este eslabón la corrida graba
+    // por el micrófono, y una locución todavía en curso se metería en esa
+    // toma como si fuese voz de la sala.
+    stopSpeaking();
+    const startedAt = probe.startedAfterMs == null ? '' : ` (arrancó a los ${secs(probe.startedAfterMs)})`;
+    return {
+      ...base,
+      status: 'warn',
+      detail: `El motor arrancó la locución${startedAt} y no confirmó el final en ${secs(probe.elapsedMs)}. (${where})`,
+      hint: 'Empezó a hablar, así que el motor NO está descartando la locución. Queda por saber si se oyó entera: conteste la prueba de escucha del final de la pantalla.',
+    };
+  }
 
   if (probe.error) {
     return {
@@ -859,7 +885,7 @@ export async function checkSystemVoiceSpeaks(lang = 'es', timeoutMs?: number): P
   return {
     ...base,
     status: probe.degraded ? 'warn' : 'ok',
-    detail: `El motor dictó la frase de prueba completa (${where}).`,
+    detail: `El motor dictó la frase de prueba completa en ${secs(probe.elapsedMs)} (${where}).`,
     hint: probe.degraded
       ? 'Se dictó con una voz de otro idioma: instale la voz de la lengua de sesión para no alterar el estímulo.'
       : 'Que el motor la dicte no prueba que salga por el altavoz: conteste la prueba de escucha.',
@@ -974,10 +1000,19 @@ export const emitVoiceBankSample = async (): Promise<boolean> => {
 export const emitVerbalClipSample = async (): Promise<boolean> =>
   (await checkVerbalClipChain()).status === 'ok';
 
-/** Dicta la frase de prueba por la vía real del modelo hablado del T.A.R. */
+/**
+ * Dicta la frase de prueba por la vía real del modelo hablado del T.A.R.
+ *
+ * Devuelve si HAY ALGO QUE ESCUCHAR, no si el motor cerró la locución: basta
+ * con que arrancase. La pregunta que viene detrás es «¿lo ha oído?», y quien
+ * la contesta es el profesional. Exigir aquí el `onDone` hacía que una
+ * locución que estaba sonando en ese mismo instante se declarase «el
+ * sintetizador no llegó a emitir», cerrando en falso —y sin preguntar— la
+ * única escucha que responde por el T.A.R.
+ */
 export const emitSystemVoiceSample = async (lang = 'es', timeoutMs?: number): Promise<boolean> => {
   const probe = await probeSystemVoice(TEST_PHRASE, lang, timeoutMs);
-  return !!probe && probe.error === null;
+  return !!probe && (probe.error === null || probe.started);
 };
 
 /**

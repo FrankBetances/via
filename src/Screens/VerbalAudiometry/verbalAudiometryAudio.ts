@@ -103,7 +103,67 @@ export interface SpeechProbe {
   offline: boolean;
   /** Motivo del fallo, o `null` si dictó. */
   error: string | null;
+  /** El plazo de la sonda venció antes de que el motor cerrase la locución. */
+  timedOut: boolean;
+  /** Milisegundos entre encolar la locución y el `onStart`, o `null` si no llegó. */
+  startedAfterMs: number | null;
+  /** Milisegundos que esperó la sonda hasta resolver (por veredicto o por plazo). */
+  elapsedMs: number;
 }
+
+/* Plazo de la sonda de voz: arranque + habla estimada. Ver `speechProbeTimeoutMs`. */
+const SPEECH_PROBE_STARTUP_MS = 3500;
+const SPEECH_PROBE_MS_PER_CHAR = 130;
+const SPEECH_PROBE_MAX_MS = 20000;
+
+/**
+ * Plazo de la sonda de voz, PROPORCIONAL a lo que se le pide dictar.
+ *
+ * Era un número fijo de 4 s y esa cifra produjo un veredicto falso en el
+ * emulador de Frank (4/9/2026): «el motor empezó a hablar pero no terminó la
+ * locución» sobre `es-es-x-eee-local` —una voz LOCAL, que no depende de la
+ * red— y con el consejo de cambiar el motor de síntesis al lado. La frase de
+ * prueba son 47 caracteres con dos comas y un punto, se dicta a `rate` 0.95, y
+ * en ESA misma corrida cargar la primera locución del banco costó 3,57 s
+ * medidos: cuatro segundos no dan para arrancar la síntesis Y terminarla. El
+ * plazo estaba midiendo la paciencia de la sonda, no la salud del motor.
+ *
+ * La cuenta: un tope de arranque más el habla estimada a MITAD de la velocidad
+ * típica de un sintetizador español (~15 caracteres/s a ritmo 1.0 → 130 ms por
+ * carácter aquí), dividida por el ritmo pedido. Es un TOPE, no una espera: una
+ * locución que termina resuelve en cuanto llega `onDone`.
+ *
+ * NO VERIFICADO en dispositivo: la duración real de la frase en el emulador de
+ * Frank no se ha medido: la sonda no la registraba. Por eso este cambio
+ * publica `startedAfterMs` y `elapsedMs` — para que la próxima corrida traiga
+ * el dato en vez de obligarnos a deducirlo.
+ */
+/**
+ * Desenlace de una locución del ESTÍMULO verbal.
+ *
+ * No son dos casos (sonó / falló) sino tres, y el tercero es el que obliga a
+ * separarlos: un motor que arranca y no confirma el final. Ahí SÍ ha salido
+ * voz por el altavoz, así que degradar la palabra a su recorte reproduciría el
+ * estímulo dos veces solapado sobre el mismo ítem — invalidándolo en silencio,
+ * que es peor que no sonar. Tratarlo como fallo era el riesgo de ponerle plazo
+ * a `speakWord`, y por eso el plazo es doble: uno para el arranque (degradar es
+ * seguro: no hay nada sonando) y otro para el final (no se degrada).
+ */
+type SpeakOutcome =
+  /** El motor cerró la locución (`onDone`): la única prueba de que está sano. */
+  | 'done'
+  /** Arrancó y no confirmó el final dentro del plazo: hay voz, no hay veredicto. */
+  | 'started-no-end'
+  /** Preempción deliberada (`onStopped`): otra locución tomó el relevo. */
+  | 'stopped';
+
+export const speechProbeTimeoutMs = (text: string, rate = 1): number =>
+  Math.min(
+    SPEECH_PROBE_MAX_MS,
+    Math.round(
+      SPEECH_PROBE_STARTUP_MS + (text.length * SPEECH_PROBE_MS_PER_CHAR) / (rate > 0 ? rate : 1),
+    ),
+  );
 
 export interface VerbalAudioAdapter {
   /**
@@ -479,10 +539,24 @@ export function installVerbalAudioAdapter(opts: VerbalAudioAdapterOptions = {}):
 
   void ensureTtsReady();
 
+  /**
+   * Cierra los plazos de la locución del estímulo que esté en curso. La pone
+   * `speakWord` y la dispara `stop()`.
+   *
+   * Hace falta desde que `speakWord` tiene plazos: el motor sano cierra la
+   * locución con `onStopped` en cuanto se le para, pero justo el motor que
+   * motivó los plazos —el que acepta y no contesta— no emitiría nada, y su
+   * plazo de arranque seguiría vivo. Reventaría a los 3,5 s degradando al
+   * recorte de la palabra ANTERIOR, encima de la que el clínico ya esté
+   * presentando. Un plazo que sobrevive a su locución es una trampa.
+   */
+  let cancelSpokenWord: (() => void) | null = null;
+
   const stop = () => {
-    // Detención deliberada. Con `expo-speech` no hace falta anular ningún
-    // respaldo pendiente: la parada llega por el `onStopped` de esa misma
-    // locución, que `speakWord` trata como fin normal y no como fallo.
+    // Detención deliberada. La parada llega por el `onStopped` de esa misma
+    // locución, que `speakWord` trata como fin normal y no como fallo; el
+    // cancelador cubre al motor que no lo emite.
+    cancelSpokenWord?.();
     try { source?.stop(); } catch {}
     try { source?.disconnect(); } catch {}
     try { gain?.disconnect(); } catch {}
@@ -515,24 +589,76 @@ export function installVerbalAudioAdapter(opts: VerbalAudioAdapterOptions = {}):
    * corresponde: respaldo audible para las lenguas sin banco de recortes, sin
    * pretensión de calibración.
    */
-  const speakWord = (word: string, _levelDb: number, lang = 'es'): Promise<unknown> =>
+  const speakWord = (word: string, _levelDb: number, lang = 'es'): Promise<SpeakOutcome> =>
     ensureTtsReady().then(
       ready =>
-        new Promise((resolve, reject) => {
+        new Promise<SpeakOutcome>((resolve, reject) => {
           if (!ttsEngine || !ready) throw new Error('sin voz del sistema');
           try {
             ttsEngine.stop?.();
           } catch {
             /* nada que detener */
           }
+          const wordSpeechOpts = speechOptionsFor(lang);
+          let started = false;
+          let settled = false;
+          const settle = (act: () => void) => {
+            if (settled) return;
+            settled = true;
+            clearTimeout(startTimer);
+            clearTimeout(endTimer);
+            cancelSpokenWord = null;
+            act();
+          };
+          // Una parada (o la palabra siguiente, que empieza por `stop()`)
+          // cierra esta locución como preempción: ni degrada ni cuenta fallo.
+          cancelSpokenWord = () => settle(() => resolve('stopped'));
+          /* Se corta lo encolado ANTES de degradar. Sin esto, un motor lento
+           * podía arrancar la palabra medio segundo después de que el recorte
+           * empezara a sonar, y el niño oiría el estímulo dos veces solapado
+           * — que es peor que no oírlo, porque el ítem queda invalidado sin
+           * que nadie se entere. */
+          const abandon = (reason: string) =>
+            settle(() => {
+              try {
+                ttsEngine.stop?.();
+              } catch {
+                /* nada que detener */
+              }
+              reject(new Error(reason));
+            });
+          /* PLAZO 1 · ARRANQUE. Sin `onStart` el motor no ha sacado nada por
+           * el altavoz: degradar al recorte es seguro y es lo que hay que
+           * hacer. Mismo tope de arranque que la sonda del diagnóstico. */
+          const startTimer = setTimeout(
+            () => abandon(`la voz del sistema no arrancó en ${SPEECH_PROBE_STARTUP_MS} ms`),
+            SPEECH_PROBE_STARTUP_MS,
+          );
+          /* PLAZO 2 · FINAL. Aquí el motor YA está emitiendo, así que la
+           * palabra no se degrada: reproducir el recorte encima sería el
+           * solape de arriba. Lo que se hace es no dar el motor por sano (el
+           * contador de fallos no se pone a cero) y seguir. */
+          const endTimer = setTimeout(
+            () =>
+              started
+                ? settle(() => resolve('started-no-end'))
+                : abandon('la voz del sistema no cerró ni arrancó la locución'),
+            speechProbeTimeoutMs(word, wordSpeechOpts.rate),
+          );
           ttsEngine.speak(word, {
-            ...speechOptionsFor(lang),
-            onDone: () => resolve(undefined),
+            ...wordSpeechOpts,
+            onStart: () => {
+              started = true;
+              clearTimeout(startTimer);
+            },
+            onDone: () => settle(() => resolve('done')),
             // Una parada deliberada (otra locución toma el relevo) NO es un
             // fallo: contarla degradaría la sesión a recortes por hacer bien
-            // la preempción.
-            onStopped: () => resolve(undefined),
-            onError: (e: unknown) => reject(e instanceof Error ? e : new Error('síntesis fallida')),
+            // la preempción. Tampoco es prueba de que el motor esté sano, así
+            // que no pone el contador a cero.
+            onStopped: () => settle(() => resolve('stopped')),
+            onError: (e: unknown) =>
+              settle(() => reject(e instanceof Error ? e : new Error('síntesis fallida'))),
           });
         }),
     );
@@ -644,14 +770,18 @@ export function installVerbalAudioAdapter(opts: VerbalAudioAdapterOptions = {}):
    * El plazo importa: `expo-speech` no promete nada si el motor descarta la
    * locución en silencio (voz de red sin cobertura, motor ocupado), así que sin
    * un tope la sonda se quedaría colgada y la pantalla, en «comprobando…» para
-   * siempre. Un `onStart` que no llega en 4 s ES el resultado.
+   * siempre. Un `onStart` que no llega ES el resultado.
+   *
+   * Lo que el plazo NO puede hacer es confundir «el motor no responde» con «la
+   * frase dura más de lo que yo esperaba»: por eso el tope lo calcula
+   * `speechProbeTimeoutMs` a partir del texto y del ritmo, y por eso la sonda
+   * publica los tiempos que midió (`startedAfterMs`, `elapsedMs`). Un veredicto
+   * que dependa de un número fijo tiene que decir cuál era ese número.
    */
-  const PROBE_TIMEOUT_MS = 4000;
-
   const probeSpeech = async (
     text: string,
     lang = 'es',
-    timeoutMs = PROBE_TIMEOUT_MS,
+    timeoutMs?: number,
   ): Promise<SpeechProbe> => {
     if (!ttsEngine) {
       return {
@@ -662,6 +792,9 @@ export function installVerbalAudioAdapter(opts: VerbalAudioAdapterOptions = {}):
         degraded: false,
         offline: false,
         error: 'Este binario no incorpora el módulo de síntesis de voz.',
+        timedOut: false,
+        startedAfterMs: null,
+        elapsedMs: 0,
       };
     }
 
@@ -680,40 +813,58 @@ export function installVerbalAudioAdapter(opts: VerbalAudioAdapterOptions = {}):
       degraded: pick?.degraded ?? false,
       offline: pick ? isOfflineVoice(pick.voice) : false,
       error: null,
+      timedOut: false,
+      startedAfterMs: null,
+      elapsedMs: 0,
     };
 
     if (!ready) {
       return { ...base, error: 'El motor de voz del sistema no llegó a estar listo.' };
     }
 
+    const budget = timeoutMs ?? speechProbeTimeoutMs(text, speechOpts.rate);
+
+    /* La parada previa se ESPERA, y esto no es celo: el nativo de expo-speech
+     * 14.0.8 encola con `TextToSpeech.QUEUE_ADD`
+     * (`android/src/main/java/expo/modules/speech/SpeechModule.kt:128`, versión
+     * instalada), así que una locución anterior todavía en cola no se
+     * interrumpe: la de prueba espera su turno detrás. Con el `stop()`
+     * disparado y sin esperar, ese tiempo de espera ajeno se cargaba al plazo
+     * de la sonda y salía como «el motor no responde». `speakText` puede seguir
+     * sin esperarlo —es fuego y olvido, una ayuda—; una MEDIDA no. */
+    try {
+      await ttsEngine.stop?.();
+    } catch {
+      /* nada que detener */
+    }
+
     return new Promise<SpeechProbe>(resolve => {
       let settled = false;
       const state = { ...base };
+      // El reloj arranca al ENCOLAR, no al pedir la sonda: la espera por la
+      // enumeración de voces (`ensureTtsReady`) no es tiempo del motor
+      // hablando y contarla falsearía los dos tiempos publicados.
+      const t0 = Date.now();
       const finish = (error: string | null) => {
         if (settled) return;
         settled = true;
         clearTimeout(timer);
-        resolve({ ...state, error });
+        resolve({ ...state, error, elapsedMs: Date.now() - t0 });
       };
-      const timer = setTimeout(
-        () =>
-          finish(
-            state.started
-              ? 'El motor empezó a hablar pero no terminó la locución.'
-              : 'El motor aceptó la locución y NO llegó a emitir nada.',
-          ),
-        timeoutMs,
-      );
-      try {
-        ttsEngine.stop?.();
-      } catch {
-        /* nada que detener */
-      }
+      const timer = setTimeout(() => {
+        state.timedOut = true;
+        finish(
+          state.started
+            ? 'El motor arrancó la locución y no confirmó que la terminase dentro del plazo.'
+            : 'El motor aceptó la locución y NO llegó a emitir nada.',
+        );
+      }, budget);
       try {
         ttsEngine.speak(text, {
           ...speechOpts,
           onStart: () => {
             state.started = true;
+            state.startedAfterMs = Date.now() - t0;
           },
           onDone: () => {
             state.finished = true;
@@ -816,14 +967,20 @@ export function installVerbalAudioAdapter(opts: VerbalAudioAdapterOptions = {}):
     // estarlo, degrada igual.
     if (!isSpanishVariant && preferTts && ttsPhase !== 'unavailable' && ttsConsecutiveFailures < TTS_FAILURE_LIMIT) {
       speakWord(word, levelDb, sessionLang).then(
-        () => {
+        outcome => {
           // Una locución COMPLETADA confirma que el motor está sano y devuelve
           // el contador a cero: un fallo aislado (un corte de red puntual) no
           // debe degradar el resto de la sesión a recortes. Con
           // `react-native-tts` esto lo hacía el evento global `tts-finish`;
           // con `expo-speech` el resultado viaja con la propia promesa, que es
           // justo lo que evita tener que emparejar eventos con palabras.
-          ttsConsecutiveFailures = 0;
+          //
+          // Los otros dos desenlaces no son ni éxito ni fallo y no tocan el
+          // contador: 'started-no-end' es un motor que emitió y no cerró (hay
+          // estímulo, no hay confirmación) y 'stopped', una preempción nuestra.
+          // Presumir sano cualquiera de los dos sería dar por buena una vía
+          // que no se ha comprobado.
+          if (outcome === 'done') ttsConsecutiveFailures = 0;
         },
         () => {
           ttsConsecutiveFailures += 1;

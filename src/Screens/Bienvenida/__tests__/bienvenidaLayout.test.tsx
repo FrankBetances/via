@@ -69,6 +69,61 @@ describe('computeStageLayout', () => {
     expect(fieldHeight).toBe(420);
   });
 
+  /* ---------------------------------------------------------------------- */
+  /*  4/9/2026: «los iconos quedan descolocados y generan montón de espacio   */
+  /*  muerto» en teléfono. El campo acústico repartía su ancho a ciegas: el   */
+  /*  isotipo anclado a 18 px con un tamaño que solo miraba el ALTO, y la     */
+  /*  onda en un 60 % fijo pegado a la derecha. Con las fórmulas viejas se    */
+  /*  pisaban 9 px en 360×800, 8 px en 320×568 y 1 px en 412×915.             */
+  /* ---------------------------------------------------------------------- */
+  describe('reparto horizontal del campo', () => {
+    const PHONES = [
+      { winW: 320, winH: 568 },
+      { winW: 360, winH: 640 },
+      { winW: 360, winH: 800 },
+      { winW: 412, winH: 915 },
+      { winW: 430, winH: 932 },
+    ];
+
+    it.each(PHONES)('el isotipo y la onda no se pisan en $winW×$winH', ({ winW, winH }) => {
+      const { fieldWidth, iconSize, iconLeft, waveWidth } = computeStageLayout({
+        winW,
+        winH,
+        insetTop: 24,
+        insetBottom: 16,
+      });
+
+      const iconEnd = iconLeft + iconSize + 20; // la caja del isotipo con sus anillos
+      const waveStart = fieldWidth - waveWidth; // la onda va pegada a la derecha
+      expect(waveStart).toBeGreaterThanOrEqual(iconEnd);
+    });
+
+    it('la onda ocupa TODO lo que queda: ni se pisa ni deja hueco muerto', () => {
+      const { fieldWidth, iconSize, iconLeft, waveWidth } = computeStageLayout({
+        winW: 360,
+        winH: 800,
+        insetTop: 24,
+        insetBottom: 16,
+      });
+      // Antes la onda medía un 58 % del campo pasara lo que pasara. Ahora es
+      // exactamente el resto, así que el centro del campo deja de estar vacío.
+      expect(iconLeft + iconSize + 20 + waveWidth).toBeLessThanOrEqual(fieldWidth);
+      expect(waveWidth).toBeGreaterThan(fieldWidth * 0.4);
+    });
+
+    it('el isotipo tampoco se sale por el ancho en una pantalla estrecha y alta', () => {
+      // El tamaño salía solo del alto: en una ventana alta y estrecha crecía
+      // hasta comerse el campo entero a lo ancho.
+      const { fieldWidth, iconSize, iconLeft } = computeStageLayout({
+        winW: 320,
+        winH: 1200,
+        insetTop: 0,
+        insetBottom: 0,
+      });
+      expect(iconLeft + iconSize + 20).toBeLessThan(fieldWidth);
+    });
+  });
+
   it('nunca deja el campo por debajo de lo legible', () => {
     const { fieldHeight, iconSize } = computeStageLayout({
       winW: 320,

@@ -366,6 +366,46 @@ causas con arreglos completamente distintos.
     —tono, recorte verbal, locución empaquetada, voz del sistema— y mientras
     falte alguna, ni el titular ni el resumen copiable dicen «todo funciona»:
     dicen «SALIDA NO COMPROBADA» y cuántas faltan.
+  · **Un PLAZO que vence mide la paciencia de la sonda, no la salud del
+    motor** (4/9/2026). «Locución real del sintetizador · FALLO — el motor
+    empezó a hablar pero no terminó la locución», y al lado el consejo de
+    cambiar el motor de síntesis del sistema. El motor había ARRANCADO
+    (`onStart`) y la voz era `es-es-x-eee-local`, local, sin dependencia de
+    red: lo único que había vencido eran los **4 s fijos** de la sonda, para
+    una frase de 47 caracteres a ritmo 0.95 y en una corrida donde la propia
+    pantalla midió 3,57 s solo para CARGAR la primera locución del banco.
+    Exactamente la figura que prohíbe la regla 0: la ausencia de prueba
+    convertida en acusación, aquí contra el motor del dispositivo. Lo que
+    queda: el plazo lo calcula `speechProbeTimeoutMs` a partir del texto y del
+    ritmo (arranque + habla estimada a mitad de la velocidad típica, con techo
+    de 20 s); un plazo vencido CON `onStart` es AVISO —«arrancó y no confirmó
+    el final»— y la escucha sigue en pie, no FALLO; y la sonda publica
+    `startedAfterMs` y `elapsedMs`, porque el veredicto se dio sin un solo
+    tiempo medido y aún no sabemos si la frase duraba más de 4 s o si el motor
+    arranca y no avisa. **Un veredicto que dependa de un número fijo tiene que
+    decir cuál era ese número.**
+- **Un plazo en la cadena del ESTÍMULO se pone doble, o degrada un ítem
+  válido.** `speakWord` —la vía TTS de la audiometría verbal— no tenía plazo:
+  un motor que aceptaba la palabra y no emitía ninguno de sus tres eventos
+  dejaba la promesa pendiente para siempre, esa palabra no degradaba a su
+  recorte, el contador de fallos no se movía y la prueba seguía con un ítem que
+  no había sonado. Puesto a petición de Frank (4/9/2026), y con la cautela que
+  lo hacía delicado: **rechazar por plazo hace que `playWord` reproduzca el
+  recorte**, así que un motor que solo iba lento acabaría presentando el
+  estímulo DOS VECES SOLAPADO sobre el mismo ítem — peor que el silencio,
+  porque lo invalida sin que nadie se entere. De ahí los dos plazos:
+  · **arranque** (sin `onStart` no ha salido voz: degradar es seguro, y antes
+    de degradar se corta lo encolado para que el motor no arranque encima del
+    recorte);
+  · **final** (con `onStart` el motor YA emite: no se degrada, solo se deja de
+    dar por sano — el contador no se pone a cero).
+  Y un tercer detalle que es justo la trampa de poner plazos: **un plazo no
+  puede sobrevivir a su locución.** El motor que no contesta tampoco emite
+  `onStopped` al pararlo, así que el plazo de la palabra anterior reventaría a
+  los 3,5 s soltando SU recorte encima de la lámina siguiente; `stop()` cancela
+  ahora la locución en curso. Vigilado por
+  `src/Screens/VerbalAudiometry/__tests__/verbalTtsTimeout.test.ts`, cuyo test
+  del solape se comprobó que FALLA sin el cancelador.
 - **Un arranque que falla tiene que DECIRLO en la pantalla.** El APK del
   24/8/2026 «no abría y se quedaba colgado», y no había forma de saber en qué
   eslabón: la app **no tenía ninguna barrera de error** (`grep` sobre `src/`: ni
@@ -564,6 +604,16 @@ descargado, y las imágenes de AVD no lo traen. **Eso no es una avería.**
   el eslabón «Reloj del hardware de salida» en la corrida buena. Si dijo
   «reabierto», la causa era el stream de Oboe que no abría y está demostrada en
   dispositivo; si salió verde de primeras, el mudo era otra cosa y sigue suelta.
+- **¿Por qué no llegó el `onDone` del sintetizador el 4/9/2026?** Sigue
+  abierto, y el arreglo de arriba no lo cierra: quita el veredicto falso y pone
+  los tiempos, pero no dice cuál de las dos causas era. Cuando Frank repita
+  «Comprobar audio», el eslabón «Locución real del sintetizador» traerá dos
+  números. Si dice «dictó la frase completa en ~5-8 s», la causa era el plazo
+  corto y está cerrada. Si vuelve a decir «arrancó a los X y no confirmó el
+  final en 9,6 s» **y la escucha SÍ se oye entera**, entonces el motor del
+  emulador emite y no cierra la locución, y eso alcanza a todo lo que espere
+  `onDone`. **Preguntárselo a Frank con la captura nueva antes de tocar nada
+  más de TTS.**
 - **La lista de Gemini sigue sin incorporar.** Salió de la revisión que Frank
   pidió por el build mudo y produjo la rama `sonido`, cuyo arreglo era inerte en
   Android. Que el síntoma haya desaparecido no valida esa revisión ni cierra sus
