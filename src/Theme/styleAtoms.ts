@@ -282,6 +282,12 @@ export const atoms = StyleSheet.create({
     paddingHorizontal: 24,
     paddingTop: 8,
   },
+  flexShrink1: {
+    flexShrink: 1,
+  },
+  flexWrapWrap: {
+    flexWrap: 'wrap',
+  },
   fontSize10: {
     fontSize: 10,
   },
@@ -525,10 +531,6 @@ export const atoms = StyleSheet.create({
     paddingHorizontal: 24,
     paddingTop: 8,
     paddingBottom: 40,
-  },
-  paddingTop10PaddingBottom110: {
-    paddingTop: 10,
-    paddingBottom: 110,
   },
   positionAbsolute: {
     position: 'absolute',

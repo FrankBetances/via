@@ -46,6 +46,13 @@ interface Props {
   order: number | null;
   onToggle: (id: string) => void;
   cardWidth?: number | string;
+  /**
+   * Alto de la banda del dibujo, calculado desde el ancho REAL de la tarjeta
+   * (`computeGridLayout`). Sin él la banda medía 52 px en cualquier pantalla y
+   * el dibujo se quedaba a 160 px de ancho dentro de ella: a una columna, casi
+   * la mitad de la tarjeta era hueco.
+   */
+  illustrationHeight?: number;
 }
 
 const SPRING = { damping: 14, stiffness: 180 };
@@ -56,6 +63,7 @@ export default function ModuleCardItem({
   order,
   onToggle,
   cardWidth = '100%',
+  illustrationHeight,
 }: Props) {
   const t = useT();
   const isSelected = order !== null;
@@ -167,9 +175,18 @@ export default function ModuleCardItem({
             </Text>
           </VStack>
 
-          {/* Micro-Gráfica Vectorial Central */}
-          <View style={styles.graphicContainer}>
-            <ModuleIllustration moduleId={m.id} color={m.color} softColor={m.soft} />
+          {/* Dibujo temático: ocupa la tarjeta de lado a lado */}
+          <View
+            style={[
+              styles.graphicContainer,
+              illustrationHeight ? { height: illustrationHeight } : null,
+            ]}>
+            <ModuleIllustration
+              moduleId={m.id}
+              color={m.color}
+              softColor={m.soft}
+              height={illustrationHeight}
+            />
           </View>
 
           {/* Fila Inferior de Metadatos */}
@@ -267,6 +284,8 @@ const styles = StyleSheet.create({
     marginBottom: 14,
   },
   graphicContainer: {
+    // Suelo para quien no pase alto (tests, usos sueltos): el valor real lo
+    // calcula la pantalla desde el ancho de la tarjeta.
     height: 52,
     justifyContent: 'center',
     alignItems: 'center',
