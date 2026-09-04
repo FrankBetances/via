@@ -34,7 +34,7 @@ Los mockups replican los tokens de diseño de `src/Theme/gluestack-ui.config.ts`
 
 Portada · Índice · Introducción · Flujo clínico · Acceso · Pacientes ·
 Consentimiento y CAP · Sonómetro de sala y selección de pruebas ·
-**Idioma de la sesión y voz neuronal (es · gl · eu · es-DO)** · Audiometrías ·
+**Idioma de la sesión y voz neuronal (7 lenguas)** · Audiometrías ·
 Voz y articulación (T.A.R.) · **Análisis prosódico (ritmo, pausas y tono)** ·
 Disfagia, M-CHAT y SAHS ·
 Módulos nuevos (Audiometría Verbal y Funciones Ejecutivas) ·
@@ -42,7 +42,9 @@ Módulos nuevos (Audiometría Verbal y Funciones Ejecutivas) ·
 Resultados, valoración de uso (Likert → QR de telemetría Zero-PHI) e informe PDF ·
 Casos de uso · Buenas prácticas, privacidad y soporte.
 
-La batería cubre **13 módulos** de evaluación en **cuatro lenguas de sesión**.
+La batería cubre **13 módulos** de evaluación en **siete lenguas de sesión**: cuatro con
+banco de estímulos y locución propios (es · gl · eu · es-DO) y tres que se apoyan en el
+castellano (es-419 · ca · en). La sección 7 lo dice lengua por lengua.
 
 Los cuatro casos de uso de principio a fin son: cribado auditivo infantil,
 valoración de lenguaje y voz, exploración de disfagia por la vía rápida y sesión

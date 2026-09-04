@@ -64,7 +64,7 @@ VIA+ (**V**aloración **I**nteractiva de **A**udición y Lenguaje) es un **Softw
 | **Logopedia y lenguaje** | Logoaudiometría, discriminación auditiva y repetición verbal |
 | **Neurodesarrollo** | Indicadores conductuales de atención, cognición y procesamiento |
 
-La aplicación opera sobre **tablets iOS/Android** en entornos clínicos bajo supervisión profesional directa, capturando biomarcadores vocales y respuestas conductuales a través de baterías de pruebas gamificadas adaptadas a la población pediátrica.
+La aplicación opera sobre **tablets iOS/Android** en entornos clínicos bajo supervisión profesional directa, capturando biomarcadores vocales y respuestas conductuales a través de baterías de pruebas gamificadas adaptadas a la población pediátrica. La tableta es el dispositivo de referencia y es donde se prueba; el reparto de pantalla vive en [`src/Theme/screenLayout.ts`](./src/Theme/screenLayout.ts) y **hoy solo lo usan la presentación de Lúa y los créditos** — los trece módulos clínicos no se han recorrido en un teléfono.
 
 ### ¿Qué NO hace VIA+?
 
@@ -197,6 +197,7 @@ via/
 │   │   ├── index                # useT(): hook reactivo para las pantallas
 │   │   └── strings.<lang>       # Un catálogo por variedad (Record sin huecos: tsc lo exige)
 │   ├── Theme/                   # Tokens de diseño Gluestack
+│   │   ├── screenLayout         # Cortes de tamaño (móvil · apaisado · tableta) en UN sitio
 │   │   └── styleAtoms           # Átomos de estilo: los retoques que antes iban en línea
 │   └── Helpers/
 │
@@ -730,7 +731,7 @@ npm run android
 
 ```bash
 npx tsc --noEmit                              # tipos (equivale a `npm run tsc`)
-npx jest                                      # 71 suites · 870 tests (`npm run test`)
+npx jest                                      # 79 suites · 1023 tests (`npm run test`)
 npx eslint . --ext .js,.jsx,.ts,.tsx          # listón: CERO errores y CERO avisos
 node scripts/check-verbal-coverage.js --strict  # cobertura de locuciones por idioma
 node scripts/check-lua-sprite.js              # sprite de Lúa, píxel a píxel contra Valeria+
@@ -954,6 +955,20 @@ no hay error pero la espera se alarga, la pantalla **nombra el eslabón** en el 
 
 Ficha de la mascota y del periférico: qué es, qué hace en VIA+ y qué no, con los enlaces de contacto
 y compra. No toca BLE.
+
+**La foto lleva pie, y no es cosmético.** Es un **render de producto**, no una fotografía de la placa
+ESP32-C3 (confirmado el 3/9/2026), así que la pantalla lo dice: «Representación de diseño: el aparato
+aún no tiene versión fabricada» (`luaIntro.mascotRenderCaption`, en las cinco variedades del
+catálogo; `es-419` y `es-DO` lo heredan). Un render junto a un botón de contacto, en un SaMD Clase
+IIa, **afirma disponibilidad aunque no la escriba**, y el art. 7 del MDR prohíbe inducir a error
+sobre lo que existe. El día que haya placa, la foto y el pie cambian en el MISMO commit.
+
+El PNG de Lúa se sirve en dos densidades (256 px y `@2x` a 512) y funde su fondo a transparente: un
+fichero sin sufijo cae entero en `drawable-mdpi` y Android lo reescala al decodificar —×3 en un
+teléfono xxhdpi—. Los cortes de tamaño salen de `computeLuaLayout`, que se mide con números en
+`__tests__/luaLayout.test.ts`; **espiar `useWindowDimensions` desde una prueba no llega al
+componente** (medido: 0 llamadas) y `scripts/__tests__/windowDimensionsSpy.test.js` impide que ese
+patrón vuelva.
 
 ---
 
@@ -1335,7 +1350,7 @@ Earlify Health
 | Interfaz traducida (catálogo `src/I18n` + gate `check-ui-strings`) | 🟢 Integrada · 7 variedades, cambio de idioma en caliente |
 | Pantalla **Comprobar audio** (diagnóstico de la cadena de audio) | 🟢 Integrada · cuatro escuchas contestadas (3/9/2026), reloj de hardware y reapertura del motor muerto |
 | Barrera de error e informe de arranque (`@/Startup`) | 🟢 Integrada · el fallo se lee en el dispositivo, no en `console.error` |
-| Tipos, tests y linter | 🟢 `tsc` limpio · 74 suites / 933 tests en verde · `eslint` en **cero errores y cero avisos** |
+| Tipos, tests y linter | 🟢 `tsc` limpio · 79 suites / 1023 tests en verde · `eslint` en **cero errores y cero avisos** |
 | Validación del análisis acústico contra Praat | 🟢 En CI |
 | Sitio público y política de privacidad (Pages) | 🟢 Publicable |
 | Release firmada de Android (APK + AAB) | 🟢 En CI, con puerta de locuciones |

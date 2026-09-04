@@ -95,6 +95,10 @@ table.info{width:100%; border-collapse:collapse; font-size:10px;}
 table.info th{background:var(--bg-soft); color:var(--ink-2); text-align:left; font-weight:800; padding:7px 9px; border-bottom:1.5px solid var(--line);}
 table.info td{padding:7px 9px; border-bottom:1px solid var(--line-soft); color:var(--muted); vertical-align:top;}
 table.info tr:last-child td{border-bottom:none;}
+/* Siete lenguas no caben con el relleno de cuatro: la sección 7 aprieta. */
+table.info.tight{font-size:9.2px;}
+table.info.tight th{padding:5px 7px;}
+table.info.tight td{padding:4.5px 7px;}
 table.info td b{color:var(--ink-2);}
 .tag{display:inline-block; font-weight:800; font-size:8.5px; padding:2px 7px; border-radius:999px; letter-spacing:.4px;}
 .tag.ok{background:var(--ok-bg); color:var(--ok);}
@@ -309,7 +313,7 @@ table.info td b{color:var(--ink-2);}
       <li><span class="tc-n">4</span><span class="tc-t">Pacientes · Lista y alta de paciente</span><span class="tc-d"></span><span class="tc-p">6</span></li>
       <li><span class="tc-n">5</span><span class="tc-t">Consentimiento informado y CAP (bloqueantes)</span><span class="tc-d"></span><span class="tc-p">7</span></li>
       <li><span class="tc-n">6</span><span class="tc-t">Sonómetro de sala y selección de pruebas</span><span class="tc-d"></span><span class="tc-p">8</span></li>
-      <li><span class="tc-n">7</span><span class="tc-t">Idioma de la sesión y voz neuronal (es · gl · eu · es-DO)</span><span class="tc-d"></span><span class="tc-p">9</span></li>
+      <li><span class="tc-n">7</span><span class="tc-t">Idioma de la sesión y voz neuronal (7 lenguas)</span><span class="tc-d"></span><span class="tc-p">9</span></li>
       <li><span class="tc-n">8</span><span class="tc-t">Módulos de audición · Audiometrías</span><span class="tc-d"></span><span class="tc-p">10</span></li>
       <li><span class="tc-n">9</span><span class="tc-t">Módulos de voz y lenguaje · Voz y T.A.R.</span><span class="tc-d"></span><span class="tc-p">11</span></li>
       <li><span class="tc-n">10</span><span class="tc-t">Análisis prosódico · Ritmo, pausas y tono</span><span class="tc-d"></span><span class="tc-p">12</span></li>
@@ -735,7 +739,7 @@ table.info td b{color:var(--ink-2);}
     <div>
       <div class="kicker">Sección 7</div>
       <h1 class="h">Idioma de la sesión y voz neuronal</h1>
-      <p class="lead">VIA+ se aplica en <b>cuatro lenguas o variantes</b>. El idioma se elige en el hub, antes de empezar, y decide dos cosas distintas: las <b>palabras que se le presentan</b> al paciente (banco de estímulos) y la <b>voz</b> que las locuta. La elección se recuerda entre sesiones.</p>
+      <p class="lead">VIA+ se aplica en <b>siete lenguas o variantes</b>. El idioma se elige en el hub, antes de empezar, y decide dos cosas distintas: las <b>palabras que se le presentan</b> al paciente (banco de estímulos) y la <b>voz</b> que las locuta. <b>Cuatro tienen banco y locución propios</b>; las otras tres se apoyan en el castellano, y la tabla dice en qué. La elección se recuerda entre sesiones.</p>
     </div>
     <div class="grid2-shot" style="gap:22px;">
       <div class="shot">
@@ -752,7 +756,7 @@ table.info td b{color:var(--ink-2);}
                 <div style="flex:1; text-align:center; padding:8px 3px; border-radius:11px; border:1px solid var(--line); color:var(--muted); font-size:7px; font-weight:800;">Euskara</div>
                 <div style="flex:1; text-align:center; padding:8px 3px; border-radius:11px; border:1px solid var(--line); color:var(--muted); font-size:7px; font-weight:800;">Español (RD)</div>
               </div>
-              <div style="font-size:7.5px; color:var(--muted-2); margin-top:8px; line-height:1.45;">Las <b>cuatro lenguas</b> tienen ya sus locuciones propias: 97 por idioma, que cubren las consignas, los modelos del T.A.R. y la prosodia. El niño <b>lee y oye la misma palabra</b>, la de su variedad.</div>
+              <div style="font-size:7.5px; color:var(--muted-2); margin-top:8px; line-height:1.45;">Cuatro lenguas tienen <b>97 locuciones propias</b>: el niño <b>lee y oye la misma palabra</b>, la de su variedad. Las otras tres llevan <b>11 consignas</b>.</div>
             </div>
             <div style="margin-top:8px; display:flex; gap:6px; align-items:flex-start; padding:8px 10px; border-radius:11px; background:var(--warn-bg); border:1px solid #F0D9A6;">
               <span style="font-size:10px;">⚠️</span>
@@ -779,16 +783,23 @@ table.info td b{color:var(--ink-2);}
           <div class="sc-text">Los avisos aparecen <b>donde se elige el idioma</b>, no escondidos en la prueba: banco pendiente de validar y motor de voz caído, con botón de reintento. Si algo no suena, se sabe antes de sentar al niño.</div>
           <div class="note" style="margin-top:9px;"><b>Elija el idioma antes de empezar.</b> Cambiarlo a mitad de batería cambia el banco de estímulos: los porcentajes obtenidos antes y después dejan de ser comparables entre sí.</div>
         </div>
+        
+        
       </div>
       <div>
         <h2 class="h" style="font-size:12px; margin-bottom:6px;">Qué hay disponible en cada lengua</h2>
-        <table class="info">
-          <tr><th style="width:24%;">Lengua</th><th>Banco de estímulos</th><th style="width:15%;">Consignas</th><th style="width:22%;">Estado clínico</th></tr>
-          <tr><td><b>Español (España)</b><div class="small">castellano ibérico</div></td><td>Banco base: 38 láminas, bandas A–D</td><td>97 locuciones</td><td><span class="tag ok">Validado</span></td></tr>
-          <tr><td><b>Galego</b></td><td>Banco propio: 38 láminas · voz Celtia</td><td>97 locuciones</td><td><span class="tag ok">Banco aprobado por ACOPROS</span></td></tr>
-          <tr><td><b>Euskara</b></td><td>Banco propio: 37 láminas · voz Maider</td><td>97 locuciones</td><td><span class="tag warn">Provisional</span></td></tr>
-          <tr><td><b>Español (RD)</b><div class="small">Quisqueya Habla</div></td><td>Banco base auditado para el Caribe · 37 locuciones propias</td><td>97 locuciones</td><td><span class="tag ok">Audio aprobado</span></td></tr>
+        <table class="info tight">
+          <tr><th style="width:19%;">Lengua</th><th style="width:27%;">Banco de estímulos</th><th style="width:17%;">Voz</th><th style="width:12%;">Consignas</th><th style="width:19%;">Estado clínico</th></tr>
+          <tr><td><b>Español (España)</b><div class="small">castellano ibérico</div></td><td>Banco base · 38 láminas (A–D)</td><td>Piper</td><td>97 locuciones</td><td><span class="tag ok">Validado</span></td></tr>
+          <tr><td><b>Galego</b></td><td>Banco propio · 38 láminas</td><td>Celtia</td><td>97 locuciones</td><td><span class="tag ok">Aprobado · ACOPROS</span></td></tr>
+          <tr><td><b>Euskara</b></td><td>Banco propio · 37 láminas</td><td>Maider (AhoTTS)</td><td>97 locuciones</td><td><span class="tag warn">Provisional</span></td></tr>
+          <tr><td><b>Español (RD)</b><div class="small">Quisqueya Habla</div></td><td>Banco base auditado para el Caribe · 37 locuciones propias</td><td>Piper LatAm</td><td>97 locuciones</td><td><span class="tag ok">Audio aprobado</span></td></tr>
+          <tr><td><b>Español (LatAm)</b><div class="small">variante es-419</div></td><td>Banco castellano heredado · 37 locuciones propias</td><td>Piper · neutra LatAm</td><td>11 consignas</td><td><span class="tag ok">Audio aprobado</span></td></tr>
+          <tr><td><b>Català</b></td><td><b>Sin banco propio</b> · palabras y voz castellanas</td><td>Matxa-TTS</td><td>11 consignas</td><td><span class="tag warn">Provisional</span></td></tr>
+          <tr><td><b>English (US)</b></td><td><b>Sin banco propio</b> · palabras y voz castellanas</td><td>Piper · LJSpeech</td><td>11 consignas</td><td><span class="tag warn">Provisional</span></td></tr>
         </table>
+        <div class="small" style="margin-top:6px; line-height:1.45;">De dónde vienen las voces: <b>Celtia</b> (Proxecto Nós · ILENIA), <b>Maider</b> (HiTZ/Aholab · UPV/EHU), <b>Matxa-TTS</b> (projecte AINA · BSC) y <b>Piper</b> (modelos abiertos). La locución definitiva de producción clínica es <b>locutor profesional</b>: cada archivo se sustituye conservando su clave, sin tocar la aplicación.</div>
+        <div class="note" style="margin-top:8px;"><b>Catalán e inglés: la discriminación que se mide es la del castellano.</b> Mientras no tengan banco propio, el paciente ve y oye palabras castellanas, así que el porcentaje NO es una medida de discriminación en su lengua. El informe recoge el idioma de la sesión; interprételo con este dato delante.</div>
         <h2 class="h" style="font-size:12px; margin:13px 0 6px;">Si una locución no está, la prueba sigue</h2>
         <div class="seqrow" style="margin-top:0;">
           <span class="seqchip on">Locución de la lengua</span><span class="ar">→</span>
@@ -799,15 +810,8 @@ table.info td b{color:var(--ink-2);}
         <div class="note ok" style="margin-top:10px;">
           <b>Sin inteligencia artificial en la tableta.</b> Las voces se generan <b>antes</b> de empaquetar la aplicación; en la consulta VIA+ solo reproduce archivos de audio ya incluidos. Por eso funciona sin conexión y no envía ninguna voz a ningún servidor.
         </div>
-        <h2 class="h" style="font-size:12px; margin:13px 0 6px;">De dónde viene cada voz</h2>
-        <table class="info">
-          <tr><th style="width:27%;">Lengua</th><th>Voz</th><th style="width:33%;">Origen</th></tr>
-          <tr><td><b>Español</b></td><td>Piper (neuronal)</td><td>Modelo abierto</td></tr>
-          <tr><td><b>Galego</b></td><td>Celtia</td><td>Proxecto Nós · ILENIA</td></tr>
-          <tr><td><b>Euskara</b></td><td>Maider (AhoTTS)</td><td>HiTZ/Aholab · UPV/EHU</td></tr>
-          <tr><td><b>Español (RD)</b></td><td>Piper LatAm (provisional)</td><td>Quisqueya Habla</td></tr>
-        </table>
-        <div class="small" style="margin-top:7px; line-height:1.45;">La locución definitiva de producción clínica es <b>locutor profesional</b>: cada archivo se sustituye conservando su clave, sin tocar la aplicación.</div>
+        
+        
       </div>
     </div>
     <div class="usecase">
@@ -1295,7 +1299,7 @@ table.info td b{color:var(--ink-2);}
         </div>
       </div>
     </div>
-    <div class="note ok"><b>Funciones nuevas.</b> Consignas de los mini-juegos <b>dictadas por voz</b> (accesible para prelectores) · <b>locuciones neuronales pre-grabadas</b> en las cuatro lenguas de sesión para el estímulo de la audiometría verbal (sección 7) · <b>sonómetro de sala</b> en dB(A) con LAeq, percentiles y calibración de campo · <b>análisis acústico validado contra Praat</b>.</div>
+    <div class="note ok"><b>Funciones nuevas.</b> Consignas de los mini-juegos <b>dictadas por voz</b> (accesible para prelectores) · <b>locuciones neuronales pre-grabadas</b> para el estímulo de la audiometría verbal, en las lenguas con banco propio (sección 7) · <b>sonómetro de sala</b> en dB(A) con LAeq, percentiles y calibración de campo · <b>análisis acústico validado contra Praat</b>.</div>
   </div>
   <div class="page-foot"><span>VIA+ · Manual de Usuario</span><span>Página 14</span></div>
 </div>
