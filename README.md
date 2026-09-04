@@ -735,6 +735,7 @@ npx jest                                      # 79 suites · 1023 tests (`npm ru
 npx eslint . --ext .js,.jsx,.ts,.tsx          # listón: CERO errores y CERO avisos
 node scripts/check-verbal-coverage.js --strict  # cobertura de locuciones por idioma
 node scripts/check-lua-sprite.js              # sprite de Lúa, píxel a píxel contra Valeria+
+node scripts/build-launcher-icons.js --check  # iconos del lanzador: zona segura de 66 dp
 node scripts/resize-verbal-images.js --check  # presupuesto de ilustraciones
 node scripts/build-lua-protocol.js --check    # tabla generada ↔ src/Lua/protocol.json
 node scripts/check-ui-strings.js              # i18n: ningún .tsx con texto literal
