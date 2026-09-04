@@ -213,6 +213,7 @@ npx jest
 npx eslint . --ext .js,.jsx,.ts,.tsx
 node scripts/check-verbal-coverage.js --strict
 node scripts/check-lua-sprite.js
+node scripts/build-launcher-icons.js --check
 node scripts/resize-verbal-images.js --check
 node scripts/build-lua-protocol.js --check
 node scripts/check-ui-strings.js

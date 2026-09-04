@@ -99,6 +99,13 @@ jobs:
       - name: Verify illustration size budget
         run: node scripts/resize-verbal-images.js --check
 
+      # Un icono mal encajado COMPILA: ni el typecheck, ni las suites, ni el
+      # APK firmado ven que el dibujo se sale del círculo seguro de 66 dp y el
+      # lanzador lo recorta. Pasó (4/9/2026: 73 dp de dibujo sobre 66 dp de
+      # zona segura), así que se comprueba aquí, donde sí se mira el `res/`.
+      - name: Verify launcher icons
+        run: node scripts/build-launcher-icons.js --check
+
       - name: Decode release keystore
         env:
           RELEASE_KEYSTORE_BASE64: ${{ secrets.MYAPP_RELEASE_STORE_FILE_BASE64 }}
