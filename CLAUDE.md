@@ -384,6 +384,28 @@ causas con arreglos completamente distintos.
     tiempo medido y aún no sabemos si la frase duraba más de 4 s o si el motor
     arranca y no avisa. **Un veredicto que dependa de un número fijo tiene que
     decir cuál era ese número.**
+- **Un plazo en la cadena del ESTÍMULO se pone doble, o degrada un ítem
+  válido.** `speakWord` —la vía TTS de la audiometría verbal— no tenía plazo:
+  un motor que aceptaba la palabra y no emitía ninguno de sus tres eventos
+  dejaba la promesa pendiente para siempre, esa palabra no degradaba a su
+  recorte, el contador de fallos no se movía y la prueba seguía con un ítem que
+  no había sonado. Puesto a petición de Frank (4/9/2026), y con la cautela que
+  lo hacía delicado: **rechazar por plazo hace que `playWord` reproduzca el
+  recorte**, así que un motor que solo iba lento acabaría presentando el
+  estímulo DOS VECES SOLAPADO sobre el mismo ítem — peor que el silencio,
+  porque lo invalida sin que nadie se entere. De ahí los dos plazos:
+  · **arranque** (sin `onStart` no ha salido voz: degradar es seguro, y antes
+    de degradar se corta lo encolado para que el motor no arranque encima del
+    recorte);
+  · **final** (con `onStart` el motor YA emite: no se degrada, solo se deja de
+    dar por sano — el contador no se pone a cero).
+  Y un tercer detalle que es justo la trampa de poner plazos: **un plazo no
+  puede sobrevivir a su locución.** El motor que no contesta tampoco emite
+  `onStopped` al pararlo, así que el plazo de la palabra anterior reventaría a
+  los 3,5 s soltando SU recorte encima de la lámina siguiente; `stop()` cancela
+  ahora la locución en curso. Vigilado por
+  `src/Screens/VerbalAudiometry/__tests__/verbalTtsTimeout.test.ts`, cuyo test
+  del solape se comprobó que FALLA sin el cancelador.
 - **Un arranque que falla tiene que DECIRLO en la pantalla.** El APK del
   24/8/2026 «no abría y se quedaba colgado», y no había forma de saber en qué
   eslabón: la app **no tenía ninguna barrera de error** (`grep` sobre `src/`: ni
@@ -590,14 +612,8 @@ descargado, y las imágenes de AVD no lo traen. **Eso no es una avería.**
   corto y está cerrada. Si vuelve a decir «arrancó a los X y no confirmó el
   final en 9,6 s» **y la escucha SÍ se oye entera**, entonces el motor del
   emulador emite y no cierra la locución, y eso alcanza a todo lo que espere
-  `onDone`. En concreto a `speakWord` (`verbalAudiometryAudio.ts`), la vía TTS
-  del estímulo verbal: **no tiene plazo**, así que una locución sin cierre deja
-  su promesa pendiente para siempre — ni resuelve ni rechaza, con lo que esa
-  palabra no degrada a su recorte y el contador de fallos no se mueve. No
-  cuelga la pantalla (es fuego y olvido), pero deja el fallo invisible. **No se
-  le ha puesto plazo a propósito**: es la cadena del estímulo clínico y elegir
-  ahí un número a ciegas es repetir el error de los 4 s. **Preguntárselo a
-  Frank con la captura nueva antes de tocar nada más de TTS.**
+  `onDone`. **Preguntárselo a Frank con la captura nueva antes de tocar nada
+  más de TTS.**
 - **La lista de Gemini sigue sin incorporar.** Salió de la revisión que Frank
   pidió por el build mudo y produjo la rama `sonido`, cuyo arreglo era inerte en
   Android. Que el síntoma haya desaparecido no valida esa revisión ni cierra sus
