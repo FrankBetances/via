@@ -35,8 +35,8 @@ encima de su tolerancia, así que sirve tal cual como puerta de CI.
    cambio en las medidas es un cambio real del DSP y no ruido de muestreo) con
    F0, formantes, jitter, shimmer y contaminación conocidos. En **dos familias
    de fuente**, y hacen falta las dos:
-   + **Suma de armónicos** (`vowel`) — espectro suave, fácil de seguir.
-   + **Tren de pulsos glotales por resonadores** (`vowelPulsed`, modelo de
+   - **Suma de armónicos** (`vowel`) — espectro suave, fácil de seguir.
+   - **Tren de pulsos glotales por resonadores** (`vowelPulsed`, modelo de
      Klatt) — más parecido a una voz real. Los pulsos dejan la autocorrelación
      con picos marcados en cada múltiplo del periodo, que es donde un estimador
      de F0 se equivoca. Sobre la suma de armónicos, los dos estimadores que se
@@ -65,11 +65,11 @@ encima de su tolerancia, así que sirve tal cual como puerta de CI.
 En la familia de habla conectada **no todo lo puede arbitrar Praat**, y fingir
 que sí sería peor que no validarlo:
 
-+ **Entonación y pausas → Praat.** Tiene estimador de tono propio y detector de
+- **Entonación y pausas → Praat.** Tiene estimador de tono propio y detector de
   silencios propio (`To TextGrid (silences)`), configurado aquí con el mismo
   criterio que el módulo: umbral a −25 dB del nivel alto y pausa mínima de
   250 ms. Es un juez genuinamente independiente.
-+ **Recuento de sílabas → el guion de la síntesis.** Praat **no trae** detector
+- **Recuento de sílabas → el guion de la síntesis.** Praat **no trae** detector
   de núcleos silábicos: el método de De Jong & Wempe que usa VIA+ es un *script*
   de Praat, no una función suya. Reimplementarlo en el validador sería comparar
   el módulo contra una segunda implementación nuestra del mismo método —
@@ -100,12 +100,12 @@ la banda infantil alta, la fuente de pulsos y la validación de jitter y shimmer
 
 ## Estado actual — vocal sostenida
 
-+ **F0** — coincide con Praat **al decimal** (Δ = 0.0 Hz) en todos los casos.
-+ **HNR** — sobre ruido aditivo puro, dentro de **0.5 dB**. Ante perturbación
+- **F0** — coincide con Praat **al decimal** (Δ = 0.0 Hz) en todos los casos.
+- **HNR** — sobre ruido aditivo puro, dentro de **0.5 dB**. Ante perturbación
   (jitter/shimmer) divergen algunos dB: VIA+ lo deriva del pico de
   autocorrelación y Praat de la armonicidad, y el pico baja también cuando lo
   que varía es el periodo. La tolerancia (8 dB) cubre esa diferencia de método.
-+ **Formantes** — F1/F2 dentro de la tolerancia en todos los casos estimados.
+- **Formantes** — F1/F2 dentro de la tolerancia en todos los casos estimados.
   F3 es el menos fiable en ambos estimadores cuando F2 y F3 se acercan (/i/).
   En la familia de **fuente de pulsos** los arbitra el GUION, no Praat, por el
   mismo motivo por el que en prosodia el recuento de sílabas lo arbitra el
@@ -126,13 +126,13 @@ dos discrepan del guion; el «F3» de cada uno es un pico espurio distinto (Praa
 El caso declara ahora `comparableFormants: 2` y su F3 sale listado como
 excluido. Este era el motivo por el que el banco llevaba en rojo desde antes de
 la integración de agosto de 2026.
-+ **Vocal /u/** — VIA+ declara los formantes no estimables (F1 y F2 están a
+- **Vocal /u/** — VIA+ declara los formantes no estimables (F1 y F2 están a
   450 Hz y el pico se funde). Es la respuesta honesta y el banco no lo cuenta
   como fallo: no estimar es preferible a inventar. La prueba clínica usa /a/
   sostenida.
-+ **Jitter** — sigue a Praat dentro de **0,4 puntos** en todos los casos con
+- **Jitter** — sigue a Praat dentro de **0,4 puntos** en todos los casos con
   perturbación inyectada, y da 0,0 sobre voz sana.
-+ **Shimmer** — da 0,0 sobre señal limpia y sigue la perturbación de forma
+- **Shimmer** — da 0,0 sobre señal limpia y sigue la perturbación de forma
   monótona, pero **la COMPRIME** respecto a Praat. Ver abajo.
 
 ### El shimmer comprime, y cuánto
@@ -192,17 +192,17 @@ que es el dato que dice que la captura no vale.
 Ocho casos: cadenas con y sin pausas, habla monótona frente a entonada, cierres
 entonativos ascendente y descendente, y habla lenta.
 
-+ **Recuento de sílabas** — **exacto en los ocho casos** (16/16, 12/12, 14/14…)
+- **Recuento de sílabas** — **exacto en los ocho casos** (16/16, 12/12, 14/14…)
   frente al guion de síntesis.
-+ **Recuento de pausas** — exacto, y coincidente con Praat en todos los casos.
-+ **F0 mediana** — dentro de **0.03 Hz** de Praat.
-+ **Rango tonal** — Δ ≤ **0.67 st**, y solo en los casos con glissando final: los
+- **Recuento de pausas** — exacto, y coincidente con Praat en todos los casos.
+- **F0 mediana** — dentro de **0.03 Hz** de Praat.
+- **Rango tonal** — Δ ≤ **0.67 st**, y solo en los casos con glissando final: los
   dos estimadores muestrean la rampa con pasos distintos y los percentiles caen
   en puntos algo distintos de ella. En habla sin glissando, Δ = 0.00 st.
-+ **SD de F0** — Δ ≤ **0.07 st**.
-+ **Separación monótona / entonada** — 0.0 st frente a 7.4 st de rango, sobre
+- **SD de F0** — Δ ≤ **0.07 st**.
+- **Separación monótona / entonada** — 0.0 st frente a 7.4 st de rango, sobre
   unos 170–260 Hz sintetizados (7.35 st nominales).
-+ **Tasa de habla** — la señal lenta da 0.52× la tasa de la normal, contra el
+- **Tasa de habla** — la señal lenta da 0.52× la tasa de la normal, contra el
   0.517× que pide el guion.
 
 Sobre la **duración total de las pausas**: sale unos 50 ms más larga por pausa

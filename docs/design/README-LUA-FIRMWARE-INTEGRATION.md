@@ -72,7 +72,7 @@ lo que dicen el `README.md` y el `CLAUDE.md` de `lua-firmware` a fecha de
 
 **Contrastado contra** `src/Lua/luaProtocol.ts` (generado) y `protocol.json`.
 
-* **Servicio**: `6c75612d-0001-4000-b000-000000000001`
+- **Servicio**: `6c75612d-0001-4000-b000-000000000001`
 
 Los UUID son ASCII: `6c 75 61 2d` es `lua-`. **No cambian nunca** — hay aparatos
 flasheados.

@@ -27,12 +27,12 @@ distintos, y conviene que conste por qué:
 
 Los trae el rediseño y no son de estilo:
 
-+ **Veredictos del CAP renombrados**: «Restricción» → «Adaptar» y «Bloqueo» →
+- **Veredictos del CAP renombrados**: «Restricción» → «Adaptar» y «Bloqueo» →
   «Bloqueado», con las etiquetas duplicadas dentro de la hoja de estilos en vez
   de leerlas de `DOMAIN_LABELS`. Renombrar un veredicto clínico es una decisión
   clínica. Se mantiene el vocabulario actual y una sola fuente para él, vigilado
   por `clinicalAssessmentRender.test.tsx`.
-+ **Acreditación de Créditos**: «Innovación tecnológica en salud» → «Innovación
+- **Acreditación de Créditos**: «Innovación tecnológica en salud» → «Innovación
   sanitaria **avalada por el ISCIII**». Es una afirmación más fuerte sobre un
   sello. Se mantiene la actual hasta que Frank confirme los términos.
 
@@ -56,9 +56,9 @@ El `README_ASHA_UX.md` de esa rama atribuye además al cambio la migración a
 
 ## Estratificación
 
-+ **Rojo** — al menos una bandera roja no cumplida.
-+ **Amarillo** — algún hito fallado, ninguno con bandera roja.
-+ **Verde** — todos los hitos de la banda cumplidos.
+- **Rojo** — al menos una bandera roja no cumplida.
+- **Amarillo** — algún hito fallado, ninguno con bandera roja.
+- **Verde** — todos los hitos de la banda cumplidos.
 
 Un hito **sin contestar no cuenta como fallado**, ni en el motor ni en el
 informe: es la regla 4 aplicada a un dato clínico. Un cribado a medias no puede

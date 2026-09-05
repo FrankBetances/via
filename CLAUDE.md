@@ -217,6 +217,7 @@ node scripts/build-launcher-icons.js --check
 node scripts/resize-verbal-images.js --check
 node scripts/build-lua-protocol.js --check
 node scripts/check-ui-strings.js
+npm run lint:md
 ```
 
 `check-ui-strings.js` (portado de Valeria+, agosto 2026) prohíbe texto literal
@@ -225,6 +226,30 @@ migrar 40 ficheros «a ojo» deja la app mitad en un idioma y mitad en otro sin
 que nada avise — es lo que pasó en Valeria+ dos veces. Para exceptuar una línea
 (un nombre propio, una marca), un comentario en ella o en la anterior:
 `// i18n-exempt: motivo`. El motivo es obligatorio.
+
+`npm run lint:md` entra en la lista el **5/9/2026**, y entra porque su ausencia
+tuvo `main` con el aspa roja **cinco días** (31/8 → 5/9). No era el APK:
+`Android Release` y `CodeQL` estuvieron verdes todo el tiempo. Eran tres viñetas
+de `docs/design/arquitectura-corpus-voz.md` que usaban `-` donde el fichero
+había arrancado con `+`, y `MD004` en su modo por defecto (`consistent`) hace
+que el estándar de cada fichero lo fije su PRIMERA lista. Dos cosas quedan de
+aquí, y las dos son la misma figura que ya está escrita más arriba:
+
+- **Un gate que solo existe en el CI se incumple por defecto.** El workflow
+  usaba `DavidAnson/markdownlint-cli2-action@v17`, que trae su propia versión de
+  markdownlint: no había ningún comando que Frank o Claude pudieran ejecutar
+  antes de empujar, así que el fallo solo se veía cuando ya estaba en `main`. Es
+  literalmente lo que dice el párrafo de `check-android-permissions.js` dos
+  líneas más abajo, y aquí se incumplió al revés: no por poner un gate
+  imposible, sino por no poner el posible. Ahora el CI ejecuta `npm run
+  lint:md`, el mismo comando, con la versión pineada en `package.json` — una
+  sola fuente de verdad. Vigilado por
+  `scripts/__tests__/markdownLintGate.test.js`.
+- **Un rojo crónico deja de verse, otra vez.** `Markdown Lint` había fallado
+  **15 de sus 23 últimas corridas**. Con el aspa siempre puesta, un APK roto y
+  una viñeta mal puesta pintan exactamente el mismo icono en la app de GitHub —
+  la misma dinámica de los 16 errores «preexistentes» de eslint y de los 725
+  avisos. El listón aquí también es cero.
 
 `scripts/check-android-permissions.js` **NO va en esa lista**: necesita el
 manifiesto FUSIONADO de release y en local siempre falla con «no encuentro el
