@@ -17,6 +17,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: DavidAnson/markdownlint-cli2-action@v17
-        with:
-          globs: "**/*.md"
+      # El CI corre EXACTAMENTE el mismo comando que `npm run lint:md` en local,
+      # con la versión pineada en package.json. Antes usaba
+      # DavidAnson/markdownlint-cli2-action@v17, que traía su propia versión: el
+      # gate no se podía reproducir en local y `main` estuvo cinco días en rojo
+      # (31/8 → 5/9/2026) sin que nadie viera el fallo antes de empujar.
+      # Si cambias la versión, cámbiala en package.json — aquí no hay ninguna.
+      - run: npm run lint:md

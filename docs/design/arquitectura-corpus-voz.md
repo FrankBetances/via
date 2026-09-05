@@ -3,7 +3,7 @@
 > **Estado:** INFRAESTRUCTURA (v1). Capa `src/Voice/` portada del blueprint
 > replicable de Valeria+ (`arquitectura-corpus-voz-nos-ilenia.json`, Proxecto
 > Nós / ILENIA) y adaptada a la pila de VIA+ (React Native + `expo-speech`
-> + `expo-audio` + `react-native-audio-api`). El encabezado decía
+> - `expo-audio` + `react-native-audio-api`). El encabezado decía
 > `react-native-tts` hasta el 27/8/2026: esa librería es justo la que se retiró
 > por enmudecer la app (§2 y §2 bis), y dejarla escrita aquí describía una pila
 > que ya no existe. Documentos hermanos: `integracion-proxecto-nos.md`
@@ -127,12 +127,12 @@ permisos.
 id = [${lang}_]${style}_${fnv1a32(normalize(text))}_${len}
 ```
 
-+ **`style`** ∈ `tutor | child | clinical | slow` — la prosodia se hornea en el
+- **`style`** ∈ `tutor | child | clinical | slow` — la prosodia se hornea en el
   audio: un mismo texto en dos estilos son DOS entradas con ids distintos.
-+ **`lang`** ∈ `es | gl | es-DO` — la base `es` **no** lleva prefijo
+- **`lang`** ∈ `es | gl | es-DO` — la base `es` **no** lleva prefijo
   (retro-compat de assets ya sintetizados); `gl`/`es-DO` prefijan `${lang}_`.
-+ **`fnv1a32`** — FNV-1a de 32 bits (hex), estable entre plataformas.
-+ **`normalize`** — colapsa espacios y recorta bordes (los espacios no cambian
+- **`fnv1a32`** — FNV-1a de 32 bits (hex), estable entre plataformas.
+- **`normalize`** — colapsa espacios y recorta bordes (los espacios no cambian
   la locución; todo lo demás sí).
 
 La MISMA función se usa en build (al enumerar el corpus) y en runtime (al
@@ -291,9 +291,9 @@ si NO se sintetizó ningún idioma.
 
 Ese diseño tiene dos mitades y hacen falta las dos:
 
-+ en la **síntesis**, `scripts/check-verbal-coverage.js` es informativo — deja
+- en la **síntesis**, `scripts/check-verbal-coverage.js` es informativo — deja
   en el log qué idiomas quedaron locutados, sin cortar;
-+ en el **empaquetado** (`android-release.yml`, antes de descifrar el
+- en el **empaquetado** (`android-release.yml`, antes de descifrar el
   keystore), el mismo chequeo con `--strict` sale con código 1: ahí una voz
   ausente no es una degradación aceptada, es un APK defectuoso.
 
@@ -302,9 +302,9 @@ El modo estricto no exige «todos los idiomas al 100 %», sino **coherencia con
 no tienen locuciones propias y que la propia pantalla usa para advertir al
 profesional. Falla en los dos sentidos:
 
-+ un idioma **no** declarado pendiente al que le falten recortes — la app
+- un idioma **no** declarado pendiente al que le falten recortes — la app
   promete un estímulo locutado que no existe;
-+ un idioma declarado pendiente que **ya** los tiene todos — el aviso de «el
+- un idioma declarado pendiente que **ya** los tiene todos — el aviso de «el
   estímulo no es el definitivo» ha pasado a ser falso.
 
 Es decir: cuando el workflow de voz sintetice el gallego, la release seguirá
@@ -373,23 +373,23 @@ ha retirado por lo mismo. Cuando se firme un delta, la lista crece sola.
 
 ## 7. Invariantes críticas
 
-+ El módulo del corpus (`viaVoiceCorpus.ts` + `viaVoiceConsignas.ts`) permanece
+- El módulo del corpus (`viaVoiceCorpus.ts` + `viaVoiceConsignas.ts`) permanece
   **PURO** (sin imports de RN/UI), o el exportador falla en build-time.
-+ `voiceCorpusId` es idéntica en build y runtime (ambos importan la misma).
-+ Los ids de la base `es` **no** llevan prefijo (retro-compat de assets).
-+ Los modelos de IA nunca corren en el dispositivo: solo en build-time.
-+ `src/Voice/viaVoiceAssets.ts` es **GENERADO**: no editar a mano.
-+ Toda locución sin asset cae limpiamente a la voz del sistema; nunca silencio
+- `voiceCorpusId` es idéntica en build y runtime (ambos importan la misma).
+- Los ids de la base `es` **no** llevan prefijo (retro-compat de assets).
+- Los modelos de IA nunca corren en el dispositivo: solo en build-time.
+- `src/Voice/viaVoiceAssets.ts` es **GENERADO**: no editar a mano.
+- Toda locución sin asset cae limpiamente a la voz del sistema; nunca silencio
   inesperado.
-+ **La voz es la del texto (§6.0):** ninguna locución sale con la voz de una
+- **La voz es la del texto (§6.0):** ninguna locución sale con la voz de una
   lengua distinta de aquella en la que está escrito lo que se dice. Un idioma
   completo sin recorte propio no se sirve con el recorte castellano. Fijado por
   `src/Voice/__tests__/viaVoiceLocale.test.ts`.
-+ **Ninguna frase hablada se compone fuera de un banco:** si una pantalla arma
+- **Ninguna frase hablada se compone fuera de un banco:** si una pantalla arma
   un texto al vuelo, se queda sin lengua de sesión y sin síntesis neuronal (le
   pasaba a los anuncios de norma del juego de flexibilidad, ya incorporados como
   `EF_RULE_CONSIGNAS`).
-+ **Traducir no es adaptar (P6):** las consignas `gl`/`es-DO` se localizan con
+- **Traducir no es adaptar (P6):** las consignas `gl`/`es-DO` se localizan con
   revisión humana firmada (Nós M2 / Quisqueya Habla Q2); nada de traducción
   automática entra al corpus sin revisar. El material clínico (pares mínimos de
   la audiometría verbal) se REDISEÑA por lengua, no se traduce.
@@ -420,16 +420,16 @@ campo: «el castellano va demasiado deprisa; el resto está bien».
 El primer intento fue subir el `lengthScale` del castellano de 1.1 a 1.35. No
 sirvió, y merece la pena entender por qué, porque el fallo se repitió entero:
 
-+ **La desviación no es uniforme.** davefx mantiene las polisílabas en un ritmo
+- **La desviación no es uniforme.** davefx mantiene las polisílabas en un ritmo
   razonable y desploma las cortas. El factor que rescataría a «pan» (×2,3)
   dejaría el resto del banco arrastrándose.
-+ **La puerta descartaba el banco entero.** Con 1.35, «pan» seguía en ~185 ms,
+- **La puerta descartaba el banco entero.** Con 1.35, «pan» seguía en ~185 ms,
   por debajo del suelo: la generación fallaba, el workflow lo anotaba como
   «idioma fallido» con un simple aviso y en el árbol se quedaban **los recortes
   viejos**, que son justamente los atropellados. El arreglo no llegó nunca a los
   `.m4a` y el defecto sobrevivió a su propio parche sin que nadie viera un fallo
   en rojo (run del 29/07: `VERBAL_FAILED="es"`, conclusión *success*).
-+ **El corpus general no tenía puerta ninguna.** Por ahí se colaron los modelos
+- **El corpus general no tenía puerta ninguna.** Por ahí se colaron los modelos
   hablados del T.A.R.: «Tapa» 0,140 s, «Apto» 0,163 s. El módulo parecía no
   tener voz neuronal cuando lo que tenía era una inservible.
 

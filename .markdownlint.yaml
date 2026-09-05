@@ -16,3 +16,14 @@ MD001: false # heading-increment — centered h1/h3 title block in README
 MD022: false # blanks-around-headings — tight centered title block in README
 MD032: false # blanks-around-lists — LICENSE legal text formatting
 MD007: false # ul-indent — LICENSE legal text formatting
+MD004: # ul-style
+  # Fijado a `dash` en vez del `consistent` por defecto (5/9/2026). Con
+  # `consistent`, el estilo lo decide el PRIMER marcador que aparece en cada
+  # fichero, así que una lista nueva escrita con `-` —lo natural— rompía el CI
+  # en un fichero que arrancaba con `+`, sin que el autor hiciera nada raro.
+  # Es lo que tuvo `main` en rojo del 31/8 al 5/9/2026: tres viñetas de
+  # `docs/design/arquitectura-corpus-voz.md`. Con un estilo fijo, el error
+  # señala la línea que se desvía del estándar del proyecto (27 de los 31
+  # ficheros con listas ya usaban solo `-`), no del accidente histórico de
+  # cuál fue la primera viñeta que alguien escribió en ese fichero.
+  style: dash

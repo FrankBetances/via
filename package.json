@@ -11,6 +11,7 @@
     "test:clinical": "jest --testPathPattern=clinical",
     "test:coverage": "jest --coverage",
     "lint": "eslint . --ext .js,.jsx,.ts,.tsx",
+    "lint:md": "npx --yes markdownlint-cli2@0.14.0 \"**/*.md\" \"!node_modules\"",
     "tsc": "tsc --noEmit",
     "postinstall": "patch-package"
   },
