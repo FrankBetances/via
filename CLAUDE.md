@@ -191,6 +191,22 @@ compilar.
   viejo seguía bloqueado a los 8 s. Vigilado por
   `scripts/__tests__/metroBundleConfig.test.js`. Cuando metas una orden externa
   en un build, drena las dos salidas, ponle plazo y comprueba el código.
+- **Los niveles de SDK también salen de React Native, y el que se olvida no
+  rompe nada hasta la consola de Play.** Coste real (5/9/2026): Google Play
+  rechazó la subida a pruebas internas con «tu aplicación está orientada al
+  nivel 35 de la API, pero debe orientarse, al menos, al nivel 36».
+  `compileSdkVersion` y `buildToolsVersion` ya estaban en 36 desde la
+  migración; `targetSdkVersion` se quedó en 35. Lo que hace a este fallo
+  distinto de los de arriba es que **no rompe nada por el camino**: compila,
+  pasa `tsc`, los 1069 tests y los seis gates, genera el AAB firmado, y solo
+  falla al subirlo — con el build ya hecho y el tiempo ya gastado. RN 0.81.5
+  declara `targetSdk = "36"` y `compileSdk = "36"` en
+  `node_modules/react-native/gradle/libs.versions.toml`, y Valeria+ (Expo
+  managed, misma RN) acaba también en 36: el 35 era la desviación, no el 36.
+  Vigilado por `scripts/__tests__/androidSdkLevels.test.js`, que compara los
+  tres niveles del bloque `ext` con los del `libs.versions.toml` de la RN
+  instalada — así el desfase salta al SUBIR de React Native, en el gate, y no
+  en la consola de Play tres días después.
 - **Un plugin de Gradle que añades trae REQUISITOS. Míralos.**
   `install-expo-modules` añadió `apply plugin: "expo-root-project"` al
   `android/build.gradle`, ese plugin aplica KSP, y KSP exige una versión de

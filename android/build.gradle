@@ -3,7 +3,32 @@ buildscript {
         buildToolsVersion = "36.0.0"
         minSdkVersion = 24
         compileSdkVersion = 36
-        targetSdkVersion = 35
+        /* 36 (Android 16) por el mismo criterio que `kotlinVersion` de abajo:
+         * es el que trae la versión de React Native que el proyecto usa
+         * (node_modules/react-native/gradle/libs.versions.toml:4,
+         * `targetSdk = "36"`, con agp = "8.11.0" y compileSdk = "36"). No es un
+         * número elegido aquí.
+         *
+         * Estaba en 35 y Google Play RECHAZÓ la subida a pruebas internas el
+         * 5/9/2026: «tu aplicación está orientada al nivel 35 de la API, pero
+         * debe orientarse, al menos, al nivel 36». `compileSdkVersion` y
+         * `buildToolsVersion` ya estaban en 36, así que la cadena de
+         * herramientas no cambia: lo que cambia es el COMPORTAMIENTO en
+         * ejecución sobre Android 16.
+         *
+         * Comprobado en el árbol antes de subirlo, porque los dos cambios de
+         * Android 16 que rompen apps dependen de banderas que este manifiesto
+         * no declara:
+         *   · edge-to-edge sin opt-out — no se usa
+         *     `windowOptOutEdgeToEdgeEnforcement` (ni en el manifiesto ni en
+         *     los temas), y con target 35 la app ya iba edge-to-edge;
+         *   · orientación y redimensionado libres en pantallas ≥ 600 dp — no se
+         *     declara `screenOrientation` ni `resizeableActivity` en ningún
+         *     sitio, y `MainActivity` ya trae `configChanges` con `orientation`
+         *     y `screenSize`.
+         * Lo que NO se ha comprobado: cómo se ve en un dispositivo con Android
+         * 16. Aquí no hay SDK de Android ni emulador. */
+        targetSdkVersion = 36
         ndkVersion = "27.1.12297006"
         /* Kotlin 2.1.20 es la versión con la que compila React Native 0.81.5
          * (node_modules/@react-native/gradle-plugin/gradle/libs.versions.toml:
