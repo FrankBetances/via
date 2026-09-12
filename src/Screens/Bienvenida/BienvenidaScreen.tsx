@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo } from 'react';
 import {
+  Image,
   Platform,
   Pressable,
   ScrollView,
@@ -9,7 +10,7 @@ import {
   useWindowDimensions,
   View,
 } from 'react-native';
-import Svg, { Defs, LinearGradient, Path, Stop } from 'react-native-svg';
+import Svg, { Circle, Defs, LinearGradient, Path, Rect, Stop } from 'react-native-svg';
 import Animated, {
   cancelAnimation,
   Easing,
@@ -29,11 +30,8 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import {
   Activity,
   ArrowRight,
-  Award,
-  Lock,
   ShieldCheck,
   Sparkles,
-  Stethoscope,
 } from 'lucide-react-native';
 
 import type { RootStackParamList } from '@/Navigators/screenTypeNavigator';
@@ -41,7 +39,6 @@ import ViaIcon from '@/Components/Common/ViaIcon';
 
 import { useT } from '@/I18n';
 import { ORBIT_MODULES } from '@/Screens/Creditos/orbitModules';
-import { atoms } from '@/Theme/styleAtoms';
 type Nav = NativeStackNavigationProp<RootStackParamList, 'Bienvenida'>;
 
 /* -------------------------------------------------------------------------- */
@@ -241,6 +238,50 @@ function Particle({
         style,
       ]}
     />
+  );
+}
+
+/**
+ * Icono profesional de la batería modular clínica VIA+.
+ * Cuadrantes modulares con pistas de interconexión y pulso acústico unificador.
+ */
+function ModulesBatteryMark({ size = 22 }: { size?: number }) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 32 32" fill="none">
+      <Rect x="4" y="4" width="10" height="10" rx="2.5" fill="#0284C7" fillOpacity={0.9} />
+      <Rect x="18" y="4" width="10" height="10" rx="2.5" fill="#0EA5E9" fillOpacity={0.8} />
+      <Rect x="4" y="18" width="10" height="10" rx="2.5" fill="#38BDF8" fillOpacity={0.8} />
+      <Rect x="18" y="18" width="10" height="10" rx="2.5" fill="#0369A1" fillOpacity={0.95} />
+      <Path d="M7 9h4M21 9h4M7 23h4M21 23h4" stroke="#FFFFFF" strokeWidth={1.8} strokeLinecap="round" />
+      <Circle cx="16" cy="16" r="3" fill="#FF7F00" />
+      <Path d="M14 16h4" stroke="#FFFFFF" strokeWidth={1.5} strokeLinecap="round" />
+    </Svg>
+  );
+}
+
+/**
+ * Icono profesional del motor DSP local On-Device con blindaje Zero-PHI.
+ * Microchip de procesamiento en silicio con onda acústica interna y testigo de privacidad.
+ */
+function OnDeviceDspMark({ size = 22 }: { size?: number }) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 32 32" fill="none">
+      <Rect x="6" y="6" width="20" height="20" rx="4.5" fill="#0D9488" />
+      <Path
+        d="M10 3v3M16 3v3M22 3v3M10 26v3M16 26v3M22 26v3M3 10h3M3 16h3M3 22h3M26 10h3M26 16h3M26 22h3"
+        stroke="#0F766E"
+        strokeWidth={1.6}
+        strokeLinecap="round"
+      />
+      <Path
+        d="M11 16h2l2-4 3 8 2-4h2"
+        stroke="#FFFFFF"
+        strokeWidth={1.8}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <Circle cx="21" cy="11" r="2" fill="#34D399" />
+    </Svg>
   );
 }
 
@@ -521,10 +562,10 @@ export default function BienvenidaScreen() {
 
           {/* 3 Tarjetas de Valor Clínico Enriquecidas */}
           <View style={styles.cardsContainer}>
-            {/* Tarjeta 1: 12 Módulos Clínicos */}
+            {/* Tarjeta 1: 13 Módulos Clínicos */}
             <View style={styles.clinicalCard}>
-              <View style={[styles.cardIconBox, atoms.backgroundColorE0F2FE]}>
-                <Stethoscope size={20} color="#0284C7" strokeWidth={2.2} />
+              <View style={[styles.cardIconBox, styles.cardIconBoxModules]}>
+                <ModulesBatteryMark size={22} />
               </View>
               <View style={styles.cardContent}>
                 <Text style={styles.cardTitle}>{t.bienvenida.modulosBateria(ORBIT_MODULES.length)}</Text>
@@ -537,8 +578,8 @@ export default function BienvenidaScreen() {
 
             {/* Tarjeta 2: 100% On-Device · Zero-PHI */}
             <View style={styles.clinicalCard}>
-              <View style={[styles.cardIconBox, atoms.backgroundColorCCFBF1]}>
-                <Lock size={19} color="#0D9488" strokeWidth={2.2} />
+              <View style={[styles.cardIconBox, styles.cardIconBoxOnDevice]}>
+                <OnDeviceDspMark size={22} />
               </View>
               <View style={styles.cardContent}>
                 <Text style={styles.cardTitle}>{t.bienvenida.n100OnDeviceZeroPhi}</Text>
@@ -551,8 +592,13 @@ export default function BienvenidaScreen() {
 
             {/* Tarjeta 3: Sello ITEMAS 2024 */}
             <View style={styles.clinicalCard}>
-              <View style={[styles.cardIconBox, atoms.backgroundColorFEF3C7]}>
-                <Award size={20} color="#D97706" strokeWidth={2.2} />
+              <View style={[styles.cardIconBox, styles.cardIconBoxItemas]}>
+                <Image
+                  source={require('@/../assets/img/sello_itemas_2024.png')}
+                  style={styles.itemasSealImage}
+                  resizeMode="contain"
+                  accessibilityLabel={t.bienvenida.selloCalidadItemas2024}
+                />
               </View>
               <View style={styles.cardContent}>
                 <Text style={styles.cardTitle}>{t.bienvenida.selloCalidadItemas2024}</Text>
@@ -941,6 +987,26 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 12,
+  },
+  cardIconBoxModules: {
+    backgroundColor: '#E0F2FE',
+    borderWidth: 1,
+    borderColor: 'rgba(2, 132, 199, 0.22)',
+  },
+  cardIconBoxOnDevice: {
+    backgroundColor: '#CCFBF1',
+    borderWidth: 1,
+    borderColor: 'rgba(13, 148, 136, 0.25)',
+  },
+  cardIconBoxItemas: {
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: 'rgba(22, 104, 143, 0.22)',
+    overflow: 'hidden',
+  },
+  itemasSealImage: {
+    width: 30,
+    height: 34,
   },
   cardContent: {
     flex: 1,
