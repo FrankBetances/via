@@ -1,4 +1,5 @@
 import React from 'react';
+import { Image, StyleSheet } from 'react-native';
 import { act, create } from 'react-test-renderer';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
@@ -168,7 +169,23 @@ describe('BienvenidaScreen', () => {
     });
   });
 
-  it('renderiza las 3 tarjetas inferiores con sus nuevos logos e icono oficial de ITEMAS', () => {
+  /* ------------------------------------------------------------------------ */
+  /*  Las 3 tarjetas inferiores y sus iconos.                                  */
+  /*                                                                          */
+  /*  La primera versión de esta prueba comprobaba los TRES TÍTULOS de las     */
+  /*  tarjetas y nada más. Los títulos ya estaban antes del rediseño —salen    */
+  /*  del catálogo y no los tocó—, así que pasaba igual con los iconos de      */
+  /*  trazo viejos: comprobado revirtiendo la pantalla a su versión anterior   */
+  /*  y volviendo a correrla en verde. Una prueba que no distingue el cambio   */
+  /*  que dice cubrir no es una red (regla 3).                                */
+  /*                                                                          */
+  /*  Lo que se mide ahora es lo que el rediseño introduce y lo que se puede   */
+  /*  romper sin que nada más avise: que el sello sea el ARCHIVO OFICIAL       */
+  /*  compartido con Créditos —no un icono de trazo ni una segunda copia—, y   */
+  /*  el tamaño con el que se pinta, que es justo el retoque que equilibró la  */
+  /*  tercera tarjeta con las otras dos.                                      */
+  /* ------------------------------------------------------------------------ */
+  it('la tarjeta ITEMAS pinta el sello oficial, compartido con Créditos y al tamaño de sus vecinos', () => {
     let tree: ReturnType<typeof create> | undefined;
     act(() => {
       tree = create(
@@ -178,6 +195,26 @@ describe('BienvenidaScreen', () => {
       );
     });
 
+    const sellos = tree!.root
+      .findAllByType(Image)
+      .filter(n => n.props.accessibilityLabel === 'Sello de Calidad ITEMAS 2024');
+
+    // Uno, y solo uno: dos sellos a la vez fue el defecto que se corrigió.
+    expect(sellos).toHaveLength(1);
+    const sello = sellos[0]!;
+
+    // Es un archivo de imagen, no un trazo vectorial genérico.
+    expect(sello.props.source).toBeTruthy();
+    // `contain`: el sello es vertical (723 × 1024) y estirarlo lo deforma.
+    expect(sello.props.resizeMode).toBe('contain');
+
+    // El alto con el que se pinta no puede volver a despegarse de los otros
+    // dos iconos, que miden 22. Con 34 la tercera tarjeta iba un 55 % alta.
+    const { height } = StyleSheet.flatten(sello.props.style) as { height: number };
+    expect(height).toBe(24);
+    expect(height).toBeLessThanOrEqual(26);
+
+    // Y los tres títulos siguen en su sitio.
     const json = JSON.stringify(tree!.toJSON());
     expect(json).toContain('Módulos de Batería Clínica');
     expect(json).toContain('100% On-Device · Zero-PHI');

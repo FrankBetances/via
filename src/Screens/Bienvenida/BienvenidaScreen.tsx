@@ -1,6 +1,5 @@
 import React, { useEffect, useMemo } from 'react';
 import {
-  Image,
   Platform,
   Pressable,
   ScrollView,
@@ -39,6 +38,7 @@ import ViaIcon from '@/Components/Common/ViaIcon';
 
 import { useT } from '@/I18n';
 import { ORBIT_MODULES } from '@/Screens/Creditos/orbitModules';
+import { ItemasSealMark } from '@/Screens/Creditos/BrandMarks';
 type Nav = NativeStackNavigationProp<RootStackParamList, 'Bienvenida'>;
 
 /* -------------------------------------------------------------------------- */
@@ -593,10 +593,13 @@ export default function BienvenidaScreen() {
             {/* Tarjeta 3: Sello ITEMAS 2024 */}
             <View style={styles.clinicalCard}>
               <View style={[styles.cardIconBox, styles.cardIconBoxItemas]}>
-                <Image
-                  source={require('@/../assets/img/sello_itemas_2024.png')}
-                  style={styles.itemasSealImage}
-                  resizeMode="contain"
+                {/* 24 y no 34: el sello es vertical (723 × 1024) y con
+                    `contain` en la caja de 30 × 34 que traía el rediseño
+                    ocupaba 34 px de alto, un 55 % más que los 22 px de los
+                    otros dos iconos — la tercera tarjeta quedaba
+                    descompensada. A 24 los tres pesan igual. */}
+                <ItemasSealMark
+                  size={24}
                   accessibilityLabel={t.bienvenida.selloCalidadItemas2024}
                 />
               </View>
@@ -1003,10 +1006,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(22, 104, 143, 0.22)',
     overflow: 'hidden',
-  },
-  itemasSealImage: {
-    width: 30,
-    height: 34,
   },
   cardContent: {
     flex: 1,

@@ -1,4 +1,5 @@
 import React, { useMemo } from 'react';
+import { Image } from 'react-native';
 import Svg, { Circle, Defs, Ellipse, G, LinearGradient, Path, Rect, Stop } from 'react-native-svg';
 
 /* -------------------------------------------------------------------------- */
@@ -204,78 +205,53 @@ export function EarlifyMark({ size = 44 }: MarkProps) {
 }
 
 /* ------------------------- Sello de calidad ITEMAS ------------------------ */
-/*  Roseta festoneada con dos colas de cinta, a un solo trazo azul.            */
+/*  EL ARCHIVO OFICIAL, no una reconstrucción. Es el camino que la cabecera    */
+/*  de este fichero dejaba previsto —«sustituir cualquiera por el archivo      */
+/*  oficial (cuando se incorpore a assets/) es cambiar el cuerpo de UNA        */
+/*  función sin tocar a quien la usa»— y ya se puede tomar: el sello entró en  */
+/*  `assets/img/sello_itemas_2024.png` con el rediseño de las tarjetas de      */
+/*  Bienvenida.                                                               */
+/*                                                                            */
+/*  POR QUÉ SE CAMBIA, y no es estética. Lo que había era una roseta           */
+/*  festoneada con un «guiño» al logotipo de itemas isciii: tres motas y dos   */
+/*  barras colocadas a mano. Sirve para una marca de la que no se tiene el     */
+/*  original, pero un sello de calidad NO es una marca cualquiera: representa  */
+/*  una acreditación concreta de un tercero, y dibujarla de aproximación la    */
+/*  presenta con un signo que no es el suyo. Con el archivo oficial disponible */
+/*  no hay motivo para seguir aproximándola.                                  */
+/*                                                                            */
+/*  Y evita la incoherencia que abrió el rediseño: Bienvenida pintaba el PNG   */
+/*  oficial mientras esta pantalla seguía con la roseta, así que la misma app  */
+/*  mostraba DOS sellos distintos para la misma acreditación. Ahora las dos    */
+/*  pantallas pasan por este componente.                                      */
+/*                                                                            */
+/*  El texto que acompaña al sello NO se toca: sigue saliendo del catálogo y   */
+/*  sigue diciendo lo que decía. Cambiar el signo no es afirmar nada nuevo     */
+/*  sobre el alcance de la acreditación (ver el comentario de `sealSubtitle`   */
+/*  en CreditosScreen).                                                       */
+/*                                                                            */
+/*  `accessibilityLabel` llega por PROP y no escrito aquí: este fichero está   */
+/*  declarado sin cadenas de interfaz en `scripts/check-ui-strings.js`, y el   */
+/*  rótulo del sello ya vive en el catálogo de cada lengua. Quien lo usa pasa  */
+/*  el suyo traducido.                                                        */
+/*                                                                            */
+/*  El sello es VERTICAL (723 × 1024). Se encaja con `contain` en un cuadrado  */
+/*  de `size`, así que ocupa todo el alto y deja aire a los lados en vez de    */
+/*  deformarse.                                                               */
 
-const ITEMAS_BLUE = '#16688F';
-const ROSETTE_CX = 70;
-const ROSETTE_CY = 56;
-const ROSETTE_R = 38;
-const SCALLOPS = 14;
+const ITEMAS_SEAL = require('@/../assets/img/sello_itemas_2024.png');
 
-export function ItemasSealMark({ size = 56 }: MarkProps) {
+export function ItemasSealMark({
+  size = 56,
+  accessibilityLabel,
+}: MarkProps & { accessibilityLabel?: string }) {
   return (
-    <Svg width={size} height={size} viewBox="0 0 140 140">
-      {/* colas de la cinta (bajo la roseta) */}
-      <Path
-        d="M 54 88 L 38 132 L 53 121 L 63 134"
-        stroke={ITEMAS_BLUE}
-        strokeWidth="4.5"
-        strokeLinejoin="round"
-        strokeLinecap="round"
-        fill="none"
-      />
-      <Path
-        d="M 86 88 L 102 132 L 87 121 L 77 134"
-        stroke={ITEMAS_BLUE}
-        strokeWidth="4.5"
-        strokeLinejoin="round"
-        strokeLinecap="round"
-        fill="none"
-      />
-
-      {/* festón: círculos repartidos sobre el borde de la roseta */}
-      {Array.from({ length: SCALLOPS }, (_, i) => {
-        const a = (i / SCALLOPS) * Math.PI * 2;
-        return (
-          <Circle
-            key={i}
-            cx={ROSETTE_CX + Math.cos(a) * ROSETTE_R}
-            cy={ROSETTE_CY + Math.sin(a) * ROSETTE_R}
-            r="8"
-            fill="#FFFFFF"
-            stroke={ITEMAS_BLUE}
-            strokeWidth="4"
-          />
-        );
-      })}
-      <Circle cx={ROSETTE_CX} cy={ROSETTE_CY} r={ROSETTE_R} fill="#FFFFFF" />
-      <Circle
-        cx={ROSETTE_CX}
-        cy={ROSETTE_CY}
-        r={ROSETTE_R - 3}
-        stroke={ITEMAS_BLUE}
-        strokeWidth="4"
-        fill="none"
-      />
-      <Circle
-        cx={ROSETTE_CX}
-        cy={ROSETTE_CY}
-        r={ROSETTE_R - 11}
-        stroke={ITEMAS_BLUE}
-        strokeWidth="3"
-        fill="none"
-        opacity={0.55}
-      />
-      {/* Guiño al logotipo «itemas isciii»: las tres motas y las líneas del
-          logotipo, alineadas a la izquierda como en el sello real. Nada de
-          simetría aquí: dos motas simétricas sobre una barra centrada leen
-          como una cara a 40 px. */}
-      <Circle cx="54" cy="46" r="2.9" fill={ITEMAS_BLUE} />
-      <Circle cx="60.5" cy="43.6" r="2.4" fill={ITEMAS_BLUE} />
-      <Circle cx="66.5" cy="45" r="2" fill={ITEMAS_BLUE} />
-      <Rect x="50" y="52" width="42" height="6" rx="3" fill={ITEMAS_BLUE} opacity={0.85} />
-      <Rect x="50" y="63" width="42" height="2.8" rx="1.4" fill={ITEMAS_BLUE} opacity={0.45} />
-      <Rect x="50" y="69" width="30" height="2.8" rx="1.4" fill={ITEMAS_BLUE} opacity={0.45} />
-    </Svg>
+    <Image
+      source={ITEMAS_SEAL}
+      style={{ width: size, height: size }}
+      resizeMode="contain"
+      accessibilityLabel={accessibilityLabel}
+      accessible={accessibilityLabel !== undefined}
+    />
   );
 }
