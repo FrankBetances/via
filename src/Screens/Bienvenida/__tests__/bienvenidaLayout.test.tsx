@@ -167,4 +167,24 @@ describe('BienvenidaScreen', () => {
       tree!.unmount();
     });
   });
+
+  it('renderiza las 3 tarjetas inferiores con sus nuevos logos e icono oficial de ITEMAS', () => {
+    let tree: ReturnType<typeof create> | undefined;
+    act(() => {
+      tree = create(
+        <SafeAreaProvider initialMetrics={SAFE_AREA_METRICS}>
+          <BienvenidaScreen />
+        </SafeAreaProvider>,
+      );
+    });
+
+    const json = JSON.stringify(tree!.toJSON());
+    expect(json).toContain('Módulos de Batería Clínica');
+    expect(json).toContain('100% On-Device · Zero-PHI');
+    expect(json).toContain('Sello de Calidad ITEMAS 2024');
+
+    act(() => {
+      tree!.unmount();
+    });
+  });
 });
