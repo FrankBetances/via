@@ -5,6 +5,8 @@
 
 **Software como Dispositivo Médico (SaMD) · Clase IIa · MDR 2017/745**
 
+*Entregado llave en mano sobre un único modelo de tableta COTS cualificado · [decisión del 20/10/2026](#modelo-de-entrega-samd-sobre-hardware-cots-cualificado)*
+
 [![Regulatory Status](https://img.shields.io/badge/SaMD-Class%20IIa%20MDR-blue?style=flat-square)](https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32017R0745)
 [![IEC 62304](https://img.shields.io/badge/IEC%2062304-Class%20B-yellow?style=flat-square)](#normativas-aplicables)
 [![ISO 14971](https://img.shields.io/badge/ISO%2014971-Risk%20Management-orange?style=flat-square)](#normativas-aplicables)
@@ -32,6 +34,8 @@
 - [¿Qué es VIA+?](#qué-es-via)
 - [Características Principales](#características-principales)
 - [Marco Regulatorio](#marco-regulatorio)
+- [Modelo de entrega: SaMD sobre hardware COTS cualificado](#modelo-de-entrega-samd-sobre-hardware-cots-cualificado)
+- [Motor NLG determinista de informes](#motor-nlg-determinista-de-informes)
 - [Arquitectura del Sistema](#arquitectura-del-sistema)
 - [Flujo Clínico](#flujo-clínico)
 - [Idiomas y Voz Neuronal](#idiomas-y-voz-neuronal)
@@ -64,7 +68,12 @@ VIA+ (**V**aloración **I**nteractiva de **A**udición y Lenguaje) es un **Softw
 | **Logopedia y lenguaje** | Logoaudiometría, discriminación auditiva y repetición verbal |
 | **Neurodesarrollo** | Indicadores conductuales de atención, cognición y procesamiento |
 
-La aplicación opera sobre **tablets iOS/Android** en entornos clínicos bajo supervisión profesional directa, capturando biomarcadores vocales y respuestas conductuales a través de baterías de pruebas gamificadas adaptadas a la población pediátrica. La tableta es el dispositivo de referencia y es donde se prueba; el reparto de pantalla vive en [`src/Theme/screenLayout.ts`](./src/Theme/screenLayout.ts) y **hoy solo lo usan la presentación de Lúa y los créditos** — los trece módulos clínicos no se han recorrido en un teléfono.
+La aplicación opera sobre **tabletas Android** en entornos clínicos bajo supervisión profesional directa, capturando biomarcadores vocales y respuestas conductuales a través de baterías de pruebas gamificadas adaptadas a la población pediátrica. La tableta es el dispositivo de referencia y es donde se prueba; el reparto de pantalla vive en [`src/Theme/screenLayout.ts`](./src/Theme/screenLayout.ts) y **hoy solo lo usan la presentación de Lúa y los créditos** — los trece módulos clínicos no se han recorrido en un teléfono.
+
+**Producto comercial (decisión del 20/10/2026):** VIA+ se entregará **cerrado y preconfigurado sobre
+un único modelo de tableta comercial**, en modo quiosco. Es una decisión tomada y **todavía sin
+implementar**; ver [Modelo de entrega](#modelo-de-entrega-samd-sobre-hardware-cots-cualificado) y el
+[plan de trabajo](./docs/PLAN-DE-TRABAJO.md).
 
 ### ¿Qué NO hace VIA+?
 
@@ -89,6 +98,8 @@ La aplicación opera sobre **tablets iOS/Android** en entornos clínicos bajo su
 - 📋 **Consentimiento informado digital** — Gestión legal obligatoria para tutores legales
 - 🏥 **Pre-screening clínico** — Certificado de Aptitud para la Prueba (CAP) integrado
 - 📄 **Informes PDF** — Generación automática de informes clínicos estructurados
+- 🧾 **Síntesis narrativa por reglas** *(planificado)* — [Motor NLG determinista](#motor-nlg-determinista-de-informes): cada frase del informe trazable a una regla clínica y a un dato medido, sin modelos estadísticos
+- 📦 **Dispositivo llave en mano** *(decidido, sin implementar)* — Un único modelo de tableta, quiosco Knox, calibración acústica de fábrica y base de datos cifrada: [modelo de entrega](#modelo-de-entrega-samd-sobre-hardware-cots-cualificado)
 - 🔑 **Identidad del profesional** — Firebase Authentication (email/contraseña) + sincronización del perfil en Firestore
 - 🎙️ **Audio clínico medido** — Sonómetro en **dB(A)** (IEC 61672) con calibración de campo persistida y análisis acústico [validado contra Praat](#herramientas-de-build-time)
 - 👁️ **UX dual** — Modo Profesional analítico y Modo Niño lúdico en un único dispositivo
@@ -133,6 +144,109 @@ Ruta de conformidad: Organismo Notificado (ON) requerido para marcado CE
 <!-- Separador: dos citas independientes, no una continuación. -->
 
 > **IEC 62304 — Clase de Seguridad B:** Un fallo en el software podría generar datos erróneos que, sin el adecuado escrutinio clínico del profesional, podría conducir a una decisión subóptima. El riesgo de lesión directa es bajo gracias a la supervisión obligatoria.
+
+---
+
+## Modelo de Entrega: SaMD sobre Hardware COTS Cualificado
+
+> **Estado: DECIDIDO por la dirección el 20/10/2026 · SIN IMPLEMENTAR · pendiente de contrastar con
+> el organismo notificado.** Nada de esta sección describe la app tal como está hoy en el
+> repositorio: describe el producto al que se va. El detalle, las fases y los criterios de salida
+> están en el [plan de trabajo](./docs/PLAN-DE-TRABAJO.md).
+
+VIA+ **sigue siendo legalmente un SaMD de Clase IIa** (Regla 11). Lo que cambia es la entrega:
+cerrado y preconfigurado sobre **un único modelo de tableta comercial** (*COTS*), en modo quiosco
+gestionado por MDM.
+
+```
+┌────────────────────────────────────────────────────────────────────────┐
+│                     DISPOSITIVO VIA+ LLAVE EN MANO                     │
+│                                                                        │
+│   [ Hardware COTS ]        Samsung Galaxy Tab S9 (11", IP68, AKG)      │
+│   [ Capa de control ]      Samsung Knox (quiosco bloqueado, MDM)       │
+│   [ Audio calibrado ]      Offset dB SPL/HL por modelo, en build-time  │
+│   [ Cifrado ]              Claves en Knox Vault + SQLite cifrada       │
+│                                                                        │
+│   [ Software SaMD ]        VIA+ (Clase IIa · Regla 11 MDR)             │
+│   [ Informes ]             Motor NLG determinista (TypeScript local)   │
+└────────────────────────────────────────────────────────────────────────┘
+```
+
+| Capa | Hoy en el repositorio | Objetivo | Fase del plan |
+|---|---|---|---|
+| **Hardware** | Cualquier tableta Android; se prueba en el emulador de Android Studio | Un único modelo (Galaxy Tab S9, referencia exacta por fijar) | F0 |
+| **Control (quiosco / MDM)** | No existe | Perfil Knox de una sola app, firmware congelado, ajustes de audio bloqueados, comprobación al arrancar | F3 |
+| **Audio calibrado** | Corrección **relativa** por frecuencia (RETSPL ISO 389-7) y sonómetro con offset **manual** del clínico: audiometría **orientativa** | Offset absoluto medido con equipo patrón, generado desde actas de medida y vigilado por un gate | F4 |
+| **Cifrado en reposo** | 🔴 `viaplus.db` **sin cifrar**; seudonimización sin cablear | SQLite cifrada con la clave en el almacén respaldado por hardware | F2 |
+| **Informes** | Seis funciones de interpretación por reglas, en castellano literal y sin traza | [Motor NLG determinista](#motor-nlg-determinista-de-informes) | F1 |
+
+**Por qué esta opción.** El argumento que decide es **metrológico**: con cualquier tableta del
+mercado la audiometría tonal no puede pasar de orientativa, porque el nivel real depende de un
+altavoz y un volumen que nadie mide (lo dice la cabecera de
+`src/Screens/Audiometry/audiometryCalibration.ts`). Con un transductor fijo y el audio del sistema
+bloqueado, la calibración absoluta empieza a ser posible. Además, un modelo único con el sistema
+operativo congelado deja una lista de SOUP (IEC 62304) y una superficie de ciberseguridad finitas.
+
+> **«Cualificado», no «homologado».** La tableta es un producto de consumo **sin marcado CE como
+> producto sanitario**. Llamarla «homologada» afirmaría un estado que no tiene, y el art. 7 del MDR
+> prohíbe inducir a error sobre el producto: es la misma razón por la que el render de Lúa lleva pie.
+> Las especificaciones citadas del Tab S9 (IP68, altavoces AKG, Knox Vault) son **del fabricante y
+> están por verificar** contra la ficha del modelo exacto.
+
+**Lo que hay que resolver antes de comprometer fechas** (detalle en el §3 del plan):
+
+- Si el organismo notificado lo trata como **SaMD sobre plataforma especificada** o como **sistema**
+  (art. 22 MDR).
+- Si la audiometría reivindica la **IEC 60645-1** o se declara como cribado con error máximo publicado.
+- La **variabilidad entre unidades** del mismo modelo: si supera la tolerancia clínica, el offset
+  tiene que ser por unidad, no por modelo.
+- **Actualizaciones del sistema operativo y del procesado de audio** (Dolby Atmos, ecualizador):
+  alteran la respuesta del altavoz sin tocar VIA+. Sin firmware congelado, la calibración caduca en
+  silencio.
+- El **ciclo de vida del modelo** y el procedimiento para sustituirlo.
+- El **port iOS** (`ios-native/`) sale de la ruta comercial.
+
+---
+
+## Motor NLG Determinista de Informes
+
+> **Estado: PLANIFICADO (fase F1 del [plan](./docs/PLAN-DE-TRABAJO.md)).** No hay ninguna cifra
+> de rendimiento medida todavía.
+
+Generación de la **síntesis narrativa del informe** a partir de reglas clínicas y matrices de
+evidencia, en TypeScript local, sin red y **sin ningún modelo estadístico**: no rompe el principio
+de [cero IA en el dispositivo](./docs/design/adr-inferencia-en-dispositivo.md).
+
+```
+ datos medidos ──► reglas (puras, versionadas) ──► hechos con id ──► plantillas del catálogo ──► texto
+  (entidad)          umbral + fuente de evidencia      «R-AUD-003»        (7 variedades)           + traza
+```
+
+**No se parte de cero.** Ya existen seis funciones de interpretación por reglas
+(`interpretAudiometry`, `interpretVerbal`, `buildInterpretation` de voz, `prosodyInterpretation`,
+`interpretExecutiveFunctions` y la de disfagia, en línea en su pantalla). El motor las consolida y
+resuelve tres problemas que tienen hoy:
+
+| Problema actual | Qué hace el motor |
+|---|---|
+| Texto en **castellano literal** fuera de `src/I18n/`: una sesión en gallego o euskera sale con la síntesis en castellano | Plantillas en el catálogo de interfaz; una lengua sin plantilla rompe `tsc` |
+| **Sin trazabilidad** de qué regla produjo cada frase | Cada frase lleva su `ruleId` y la referencia de la matriz de evidencia, guardados con el resultado |
+| **Lenguaje normativo** que choca con «¿Qué NO hace VIA+?» (p. ej. «dentro de los rangos normativos» en voz) | Gate de léxico: un test rechaza las plantillas con términos vetados, con excepción escrita y motivada |
+
+Cómo se escribe lo que hace, y por qué así:
+
+- **Determinista**: mismos datos → mismo texto, byte a byte. Se verifica con tests de oro por
+  módulo y por lengua.
+- **Sin generación estocástica**, no «cero alucinaciones»: un motor de reglas no inventa contenido,
+  pero una regla o un umbral equivocados producen una frase falsa. Ese riesgo se gestiona en ISO
+  14971; no se declara inexistente.
+- **Trazable**, no «auditable al 100 %»: lo verificable es que cada frase lleve la regla que la
+  produjo.
+- **Rendimiento**: el orden de milisegundos es plausible para ensamblar plantillas, pero se
+  publicará con el número **medido en la tableta**, no antes.
+- **Describe y señala; no diagnostica.** Las derivaciones son solo las que ya existen y tienen su
+  umbral en la matriz. Las plantillas pasan por revisión clínica en cada lengua, como las
+  locuciones.
 
 ---
 
@@ -522,6 +636,8 @@ Las sesiones y los resultados apuntan a la fila del paciente, no al NHC.
 | Control de acceso | RBAC | Roles: Médico, Logopeda, Psicopedagogo, Enfermero | 🟡 Parcial |
 | Auditoría | IEC 62304 | Log inmutable de eventos clínicos y de acceso | 🔴 Pendiente |
 | Borrado seguro | LOPDGDD | Eliminación verificable al revocar consentimiento | 🔴 Pendiente |
+| Custodia de claves por hardware | Android Keystore / Knox Vault | Clave de la base en el almacén respaldado por hardware del modelo único | 🔴 Planificado (F2 del [plan](./docs/PLAN-DE-TRABAJO.md)) |
+| Quiosco y firmware congelado | MDCG 2019-16 (ciberseguridad) | Perfil Knox de una sola app, sin tienda ni depuración, actualizaciones controladas | 🔴 Planificado (F3) |
 
 > **Permisos que conviene no maquillar.** El permiso de **ubicación** existe únicamente para poder
 > escanear el pulsioxímetro BLE en Android ≤ 11 (`maxSdkVersion=30`, y en Android 12+ el escaneo va
@@ -705,7 +821,7 @@ parámetros técnicos son constantes en el código, documentadas en su módulo:
 | Frecuencia de muestreo de audio | `src/Audio/sharedAudioContext.ts` | 48 000 Hz (`AUDIO_SAMPLE_RATE`) |
 | Umbral de ruido de sala | `src/Screens/RoomNoiseCheck/` | 45 dB(A) por defecto |
 | Referencia dBFS → dB SPL | `src/Screens/RoomNoiseCheck/noiseDsp.ts` | 105 dB(A) SPL a fondo de escala |
-| Calibración de campo del sonómetro | AsyncStorage (`via.noise.calibrationOffsetDb`) | La fija el clínico contra un sonómetro patrón |
+| Calibración de campo del sonómetro | AsyncStorage (`via.noise.calibrationOffsetDb`) | La fija el clínico contra un sonómetro patrón. **Con el dispositivo llave en mano pasará a valor de fábrica** y la pantalla, de ajustar a verificar (F4 del [plan](./docs/PLAN-DE-TRABAJO.md)) |
 | Idioma de la sesión | Redux `state.locale.language` (persistido) | `es` por defecto |
 
 ### Ejecución en desarrollo
@@ -1197,6 +1313,7 @@ versionados de los que hay que **activar en la interfaz de GitHub** para que sur
 docs/
 ├── manual/                     # Manual de Usuario (HTML fuente + PDF + DOCX generados)
 ├── capturas/                   # Icono de la app y capturas de pantalla
+├── PLAN-DE-TRABAJO.md          # Plan del producto: dispositivo llave en mano + motor NLG (fases F0–F6)
 ├── SECURITY-GOBERNANZA.md      # Controles de seguridad del repositorio en GitHub
 └── design/
     ├── arquitectura-corpus-voz.md        # Capa de voz neuronal multi-idioma
@@ -1355,7 +1472,9 @@ Earlify Health
 | Validación del análisis acústico contra Praat | 🟢 En CI |
 | Sitio público y política de privacidad (Pages) | 🟢 Publicable |
 | Release firmada de Android (APK + AAB) | 🟢 En CI, con puerta de locuciones |
-| Port nativo iOS (SwiftUI) | 🟡 Parcial (acceso, paciente, consentimiento, CAP, sonómetro) |
+| Port nativo iOS (SwiftUI) | 🟡 Parcial (acceso, paciente, consentimiento, CAP, sonómetro) · fuera de la ruta comercial desde la decisión del 20/10/2026 (congelarlo está por confirmar) |
+| Dispositivo llave en mano (modelo único, quiosco Knox, calibración de fábrica) | 🔴 Decidido el 20/10/2026, sin implementar ([plan](./docs/PLAN-DE-TRABAJO.md), F0 · F3 · F4) |
+| Motor NLG determinista de informes | 🔴 Planificado ([plan](./docs/PLAN-DE-TRABAJO.md), F1); hoy hay seis funciones de interpretación sueltas, en castellano literal |
 | Lúa — periférico de refuerzo BLE | 🟡 Código completo y probado; *no-op* hasta que exista el `BleManager` compartido ([detalle](#estado-hoy-todo-srclua-es-no-op)) |
 | Cifrado en reposo y seudonimización efectiva | 🔴 Pendiente ([detalle](#controles-de-seguridad)) |
 | Expediente de gestión de riesgos (ISO 14971) | 🔴 Pendiente |
@@ -1413,6 +1532,8 @@ ya costó ciclos de desarrollo enteros. El registro completo, con el coste de ca
 | **Repositorio de referencia del análisis prosódico** | Existe uno indicado por la dirección y **su URL no consta en el repositorio**. Hasta que esté registrada, `src/Screens/ProsodyAnalysis/` no se toca |
 | **`react-native-ble-plx` en esta versión** | Autolinkada y compilada en cada build, con los dos adaptadores que la usarían esperando un `BleManager` que nadie instancia. Es decisión de producto, no limpieza |
 | **Banco propio para `ca` y `en`** | Sus VOCES ya están firmadas (31/8/2026), pero siguen sin listas propias: se les presentan las palabras castellanas. Diseñar la rejilla fonológica catalana e inglesa es lo que falta, y hasta entonces la pantalla lo advierte |
+| **Consulta al organismo notificado sobre el modelo de entrega** | La tesis «SaMD sobre COTS cualificado» no se ha contrastado. Tampoco si la audiometría reivindica IEC 60645-1. Bloquea las fases de plataforma y calibración del [plan](./docs/PLAN-DE-TRABAJO.md) |
+| **La síntesis del informe no se traduce** | Las funciones de interpretación escriben en castellano literal, fuera de `src/I18n/`, y una (voz) usa lenguaje normativo. Lo resuelve la fase F1 del plan |
 | **Identidad completa de dos firmantes** | Las actas de `ca` y `en` constan como «María (otorrinolaringóloga catalana)» y «Miguelina». Falta nombre completo, colegiación y acta de la sesión de escucha para el expediente |
 
 ---

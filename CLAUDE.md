@@ -595,6 +595,13 @@ descargado, y las imágenes de AVD no lo traen. **Eso no es una avería.**
 
 ## Pendiente (abierto: no lo des por cerrado)
 
+- **Decisión de producto del 20/10/2026: dispositivo llave en mano + motor NLG
+  determinista.** Está en `docs/PLAN-DE-TRABAJO.md`, con lo que es hecho, objetivo
+  y dato por verificar. **Nada de eso está implementado.** No escribas en ningún
+  sitio «hardware homologado», «calibración sellada», «cifrado por hardware»,
+  «2 ms» ni «cero alucinaciones» como hechos: el §2 del plan dice por qué y cómo
+  se escribe cada uno. F0 (consulta al organismo notificado) bloquea las fases de
+  plataforma y calibración; F1 (NLG) y F2 (cifrado) se pueden empezar ya.
 - **Verificar en el emulador el resto de la batería.** La cadena de AUDIO ya
   está comprobada en dispositivo (las cuatro escuchas, 3/9/2026 — ver abajo).
   Lo que sigue abierto es todo lo demás: **ningún módulo clínico se ha recorrido
