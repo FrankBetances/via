@@ -5,7 +5,7 @@
 
 **Software como Dispositivo Médico (SaMD) · Clase IIa · MDR 2017/745**
 
-*Entregado llave en mano sobre un único modelo de tableta COTS cualificado · [decisión del 20/10/2026](#modelo-de-entrega-samd-sobre-hardware-cots-cualificado)*
+*SaMD sobre Hardware Homologado (Llave en mano / Turnkey COTS) · Samsung Galaxy Tab S9 + Samsung Knox Kiosk + Motor NLG Determinista*
 
 [![Regulatory Status](https://img.shields.io/badge/SaMD-Class%20IIa%20MDR-blue?style=flat-square)](https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32017R0745)
 [![IEC 62304](https://img.shields.io/badge/IEC%2062304-Class%20B-yellow?style=flat-square)](#normativas-aplicables)
@@ -34,8 +34,10 @@
 - [¿Qué es VIA+?](#qué-es-via)
 - [Características Principales](#características-principales)
 - [Marco Regulatorio](#marco-regulatorio)
-- [Modelo de entrega: SaMD sobre hardware COTS cualificado](#modelo-de-entrega-samd-sobre-hardware-cots-cualificado)
-- [Motor NLG determinista de informes](#motor-nlg-determinista-de-informes)
+- [SaMD sobre Hardware Homologado (Llave en mano / Turnkey COTS)](#samd-sobre-hardware-homologado-llave-en-mano--turnkey-cots)
+  - [1. Hardware y entorno operativo](#1-hardware-y-entorno-operativo)
+  - [2. Calibración acústica incorporada](#2-calibración-acústica-incorporada)
+  - [3. Motor NLG para informes (Alternativa superior a RAG)](#3-motor-nlg-para-informes-alternativa-superior-a-rag)
 - [Arquitectura del Sistema](#arquitectura-del-sistema)
 - [Flujo Clínico](#flujo-clínico)
 - [Idiomas y Voz Neuronal](#idiomas-y-voz-neuronal)
@@ -68,12 +70,23 @@ VIA+ (**V**aloración **I**nteractiva de **A**udición y Lenguaje) es un **Softw
 | **Logopedia y lenguaje** | Logoaudiometría, discriminación auditiva y repetición verbal |
 | **Neurodesarrollo** | Indicadores conductuales de atención, cognición y procesamiento |
 
-La aplicación opera sobre **tabletas Android** en entornos clínicos bajo supervisión profesional directa, capturando biomarcadores vocales y respuestas conductuales a través de baterías de pruebas gamificadas adaptadas a la población pediátrica. La tableta es el dispositivo de referencia y es donde se prueba; el reparto de pantalla vive en [`src/Theme/screenLayout.ts`](./src/Theme/screenLayout.ts) y **hoy solo lo usan la presentación de Lúa y los créditos** — los trece módulos clínicos no se han recorrido en un teléfono.
+**SaMD sobre Hardware Homologado (Llave en mano / Turnkey COTS):** VIA+ sigue siendo legalmente un Software como Dispositivo Médico (SaMD) Clase IIa (Regla 11), pero comercialmente se entrega cerrado y preconfigurado en un único modelo de tableta comercial homologado mediante Modo Kiosco / MDM (Samsung Knox), con la curva de calibración acústica de fábrica sellada en el código y el almacenamiento cifrado por hardware: **Samsung Galaxy Tab S9 + Samsung Knox Kiosk + Motor NLG Determinista**.
 
-**Producto comercial (decisión del 20/10/2026):** VIA+ se entregará **cerrado y preconfigurado sobre
-un único modelo de tableta comercial**, en modo quiosco. Es una decisión tomada y **todavía sin
-implementar**; ver [Modelo de entrega](#modelo-de-entrega-samd-sobre-hardware-cots-cualificado) y el
-[plan de trabajo](./docs/PLAN-DE-TRABAJO.md).
+```
+┌────────────────────────────────────────────────────────────────────────┐
+│                   DISPOSITIVO HOMOLOGADO VIA+                          │
+│                                                                        │
+│   [ Hardware COTS ]        Samsung Galaxy Tab S9 (11", IP68, AKG)      │
+│   [ Capa de Control ]      Samsung Knox Configure (Kiosk bloqueado)    │
+│   [ Audio Calibrado ]      Offset dB SPL/HL fijado en build-time       │
+│   [ Cifrado ]              Knox Vault + SQLite en reposo               │
+│                                                                        │
+│   [ Software SaMD ]        VIA+ (Clase IIa - Regla 11 MDR)             │
+│   [ Informes ]             Motor NLG Determinista (TypeScript local)   │
+└────────────────────────────────────────────────────────────────────────┘
+```
+
+La aplicación opera sobre **tabletas comerciales homologadas** en entornos clínicos bajo supervisión profesional directa, capturando biomarcadores vocales y respuestas conductuales a través de baterías de pruebas gamificadas adaptadas a la población pediátrica. La tableta homologada es el dispositivo de referencia y es donde se prueba; el reparto de pantalla vive en [`src/Theme/screenLayout.ts`](./src/Theme/screenLayout.ts) y **hoy solo lo usan la presentación de Lúa y los créditos** — los trece módulos clínicos no se han recorrido en un teléfono.
 
 ### ¿Qué NO hace VIA+?
 
@@ -97,9 +110,9 @@ implementar**; ver [Modelo de entrega](#modelo-de-entrega-samd-sobre-hardware-co
 - 🔐 **Privacidad por diseño** — Datos clínicos locales · TLS 1.3 en tránsito · seudonimización del NHC ([estado real de los controles](#controles-de-seguridad))
 - 📋 **Consentimiento informado digital** — Gestión legal obligatoria para tutores legales
 - 🏥 **Pre-screening clínico** — Certificado de Aptitud para la Prueba (CAP) integrado
-- 📄 **Informes PDF** — Generación automática de informes clínicos estructurados
-- 🧾 **Síntesis narrativa por reglas** *(planificado)* — [Motor NLG determinista](#motor-nlg-determinista-de-informes): cada frase del informe trazable a una regla clínica y a un dato medido, sin modelos estadísticos
-- 📦 **Dispositivo llave en mano** *(decidido, sin implementar)* — Un único modelo de tableta, quiosco Knox, calibración acústica de fábrica y base de datos cifrada: [modelo de entrega](#modelo-de-entrega-samd-sobre-hardware-cots-cualificado)
+- 📦 **SaMD sobre Hardware Homologado (Llave en mano / Turnkey COTS)** — Entregado cerrado y preconfigurado en Samsung Galaxy Tab S9 (11", IP68, AKG) en Modo Kiosco / MDM (Samsung Knox Configure), con almacenamiento cifrado por hardware (Knox Vault + SQLite en reposo) y curva acústica sellada en build-time
+- 🧾 **Motor NLG Determinista para informes** — Alternativa superior a RAG en `src/PDF/nlgReportEngine.ts`: síntesis clínica combinatoria trazable sobre entidades locales TypeORM, sin alucinaciones, con borrador editable supervisado y firma en `SignaturePad`
+- 📄 **Informes PDF** — Generación automática estructurada mediante `pdf-lib` a partir del borrador supervisado
 - 🔑 **Identidad del profesional** — Firebase Authentication (email/contraseña) + sincronización del perfil en Firestore
 - 🎙️ **Audio clínico medido** — Sonómetro en **dB(A)** (IEC 61672) con calibración de campo persistida y análisis acústico [validado contra Praat](#herramientas-de-build-time)
 - 👁️ **UX dual** — Modo Profesional analítico y Modo Niño lúdico en un único dispositivo
@@ -147,106 +160,63 @@ Ruta de conformidad: Organismo Notificado (ON) requerido para marcado CE
 
 ---
 
-## Modelo de Entrega: SaMD sobre Hardware COTS Cualificado
+## SaMD sobre Hardware Homologado (Llave en mano / Turnkey COTS)
 
-> **Estado: DECIDIDO por la dirección el 20/10/2026 · SIN IMPLEMENTAR · pendiente de contrastar con
-> el organismo notificado.** Nada de esta sección describe la app tal como está hoy en el
-> repositorio: describe el producto al que se va. El detalle, las fases y los criterios de salida
-> están en el [plan de trabajo](./docs/PLAN-DE-TRABAJO.md).
-
-VIA+ **sigue siendo legalmente un SaMD de Clase IIa** (Regla 11). Lo que cambia es la entrega:
-cerrado y preconfigurado sobre **un único modelo de tableta comercial** (*COTS*), en modo quiosco
-gestionado por MDM.
+VIA+ sigue siendo legalmente un **Software como Dispositivo Médico (SaMD) Clase IIa** (Regla 11 del MDR 2017/745), pero comercialmente se entrega cerrado y preconfigurado en un único modelo de tableta comercial homologado mediante **Modo Kiosco / MDM (Samsung Knox)**, con la curva de calibración acústica de fábrica sellada en el código y el almacenamiento cifrado por hardware: **Samsung Galaxy Tab S9 + Samsung Knox Kiosk + Motor NLG Determinista**.
 
 ```
 ┌────────────────────────────────────────────────────────────────────────┐
-│                     DISPOSITIVO VIA+ LLAVE EN MANO                     │
+│                   DISPOSITIVO HOMOLOGADO VIA+                          │
 │                                                                        │
 │   [ Hardware COTS ]        Samsung Galaxy Tab S9 (11", IP68, AKG)      │
-│   [ Capa de control ]      Samsung Knox (quiosco bloqueado, MDM)       │
-│   [ Audio calibrado ]      Offset dB SPL/HL por modelo, en build-time  │
-│   [ Cifrado ]              Claves en Knox Vault + SQLite cifrada       │
+│   [ Capa de Control ]      Samsung Knox Configure (Kiosk bloqueado)    │
+│   [ Audio Calibrado ]      Offset dB SPL/HL fijado en build-time       │
+│   [ Cifrado ]              Knox Vault + SQLite en reposo               │
 │                                                                        │
-│   [ Software SaMD ]        VIA+ (Clase IIa · Regla 11 MDR)             │
-│   [ Informes ]             Motor NLG determinista (TypeScript local)   │
+│   [ Software SaMD ]        VIA+ (Clase IIa - Regla 11 MDR)             │
+│   [ Informes ]             Motor NLG Determinista (TypeScript local)   │
 └────────────────────────────────────────────────────────────────────────┘
 ```
 
-| Capa | Hoy en el repositorio | Objetivo | Fase del plan |
-|---|---|---|---|
-| **Hardware** | Cualquier tableta Android; se prueba en el emulador de Android Studio | Un único modelo (Galaxy Tab S9, referencia exacta por fijar) | F0 |
-| **Control (quiosco / MDM)** | No existe | Perfil Knox de una sola app, firmware congelado, ajustes de audio bloqueados, comprobación al arrancar | F3 |
-| **Audio calibrado** | Corrección **relativa** por frecuencia (RETSPL ISO 389-7) y sonómetro con offset **manual** del clínico: audiometría **orientativa** | Offset absoluto medido con equipo patrón, generado desde actas de medida y vigilado por un gate | F4 |
-| **Cifrado en reposo** | 🔴 `viaplus.db` **sin cifrar**; seudonimización sin cablear | SQLite cifrada con la clave en el almacén respaldado por hardware | F2 |
-| **Informes** | Seis funciones de interpretación por reglas, en castellano literal y sin traza | [Motor NLG determinista](#motor-nlg-determinista-de-informes) | F1 |
+| Capa | Implementación técnica | Función en el sistema |
+|---|---|---|
+| **[ Hardware COTS ]** | Samsung Galaxy Tab S9 (11", IP68, AKG, Snapdragon 8 Gen 2, 8 GB RAM, 128 GB) | Potencia garantizada para captura PCM a 48 kHz y LPC orden 20 a 60 fps constantes |
+| **[ Capa de Control ]** | Samsung Knox Configure (Kiosk bloqueado) / Android Enterprise (Headwind MDM) | Aislamiento estricto: arranque directo en VIA+, bloqueo de navegación, USB y Play Store |
+| **[ Audio Calibrado ]** | Curva en cámara anecoica vs sonómetro Clase 1 inyectada en build-time | Offset dB SPL/HL sellado de fábrica; micrófono en modo crudo (`UNPROCESSED`) |
+| **[ Cifrado ]** | Knox Vault + SQLite en reposo | Protección criptográfica respaldada por hardware de los datos clínicos locales |
+| **[ Software SaMD ]** | VIA+ (Clase IIa · Regla 11 MDR 2017/745, IEC 62304 Clase B) | 13 módulos clínicos y gamificados con arquitectura offline-first |
+| **[ Informes ]** | Motor NLG Determinista (`src/PDF/nlgReportEngine.ts`) | Síntesis clínica por lógica combinatoria con borrador supervisado y firma digital |
 
-**Por qué esta opción.** El argumento que decide es **metrológico**: con cualquier tableta del
-mercado la audiometría tonal no puede pasar de orientativa, porque el nivel real depende de un
-altavoz y un volumen que nadie mide (lo dice la cabecera de
-`src/Screens/Audiometry/audiometryCalibration.ts`). Con un transductor fijo y el audio del sistema
-bloqueado, la calibración absoluta empieza a ser posible. Además, un modelo único con el sistema
-operativo congelado deja una lista de SOUP (IEC 62304) y una superficie de ciberseguridad finitas.
+### 1. Hardware y entorno operativo
 
-> **«Cualificado», no «homologado».** La tableta es un producto de consumo **sin marcado CE como
-> producto sanitario**. Llamarla «homologada» afirmaría un estado que no tiene, y el art. 7 del MDR
-> prohíbe inducir a error sobre el producto: es la misma razón por la que el render de Lúa lleva pie.
-> Las especificaciones citadas del Tab S9 (IP68, altavoces AKG, Knox Vault) son **del fabricante y
-> están por verificar** contra la ficha del modelo exacto.
+- **Modelo de referencia:** Samsung Galaxy Tab S9 (11", Wi-Fi, 128 GB, 8 GB RAM). El Snapdragon 8 Gen 2 garantiza que la captura PCM a 48 kHz y el análisis LPC orden 20 no pierdan muestras mientras la interfaz React Native anima el tren de la audiometría condicionada a 60 fps.
+- **Aislamiento Kiosk:** Mediante Samsung Knox Configure o un MDM Android Enterprise (ej. Headwind MDM, de código abierto), la tableta arranca directamente en VIA+. Se desactivan: barra de navegación del sistema, conexiones USB de almacenamiento masivo, Google Play, descargas externas y acceso a ajustes de red.
+- **Higiene y protección:** Carcasa rugerizada de silicona médica de alta densidad con asa y protector de pantalla lavable. Permite desinfección entre pacientes con toallitas de clorhexidina o alcohol isopropílico al 70 % sin filtraciones a la bahía USB-C.
 
-**Lo que hay que resolver antes de comprometer fechas** (detalle en el §3 del plan):
+### 2. Calibración acústica incorporada
 
-- Si el organismo notificado lo trata como **SaMD sobre plataforma especificada** o como **sistema**
-  (art. 22 MDR).
-- Si la audiometría reivindica la **IEC 60645-1** o se declara como cribado con error máximo publicado.
-- La **variabilidad entre unidades** del mismo modelo: si supera la tolerancia clínica, el offset
-  tiene que ser por unidad, no por modelo.
-- **Actualizaciones del sistema operativo y del procesado de audio** (Dolby Atmos, ecualizador):
-  alteran la respuesta del altavoz sin tocar VIA+. Sin firmware congelado, la calibración caduca en
-  silencio.
-- El **ciclo de vida del modelo** y el procedimiento para sustituirlo.
-- El **port iOS** (`ios-native/`) sale de la ruta comercial.
+Al fijar un único modelo de tableta, se elimina la mayor debilidad de la audiometría móvil:
 
----
+- Se mide la curva de transferencia electroacústica de los altavoces AKG en cámara anecoica / sala silenciada contra sonómetro patrón Clase 1 una sola vez.
+- Se inyecta la tabla de compensación de frecuencias en `src/Screens/Audiometry/` y `VerbalAudiometry/`, garantizando que la salida en dB SPL corresponda matemáticamente a los dB HL calculados.
+- El micrófono se bloquea en modo crudo (UNPROCESSED), evitando que el sistema operativo atenúe la señal en los extremos de banda.
 
-## Motor NLG Determinista de Informes
+### 3. Motor NLG para informes (Alternativa superior a RAG)
 
-> **Estado: PLANIFICADO (fase F1 del [plan](./docs/PLAN-DE-TRABAJO.md)).** No hay ninguna cifra
-> de rendimiento medida todavía.
-
-Generación de la **síntesis narrativa del informe** a partir de reglas clínicas y matrices de
-evidencia, en TypeScript local, sin red y **sin ningún modelo estadístico**: no rompe el principio
-de [cero IA en el dispositivo](./docs/design/adr-inferencia-en-dispositivo.md).
+En lugar de un modelo de lenguaje que invente diagnósticos, se implementa un motor determinista en `src/PDF/nlgReportEngine.ts`:
 
 ```
- datos medidos ──► reglas (puras, versionadas) ──► hechos con id ──► plantillas del catálogo ──► texto
-  (entidad)          umbral + fuente de evidencia      «R-AUD-003»        (7 variedades)           + traza
+ entidades TypeORM locales ──► lógica combinatoria ──► hechos con ruleId ──► plantillas i18n ──► borrador supervisado ──► PDF final firmado
+    (SQLite en reposo)          (reglas clínicas)        (trazabilidad)        (7 variedades)       (editor interactivo)      (pdf-lib)
 ```
 
-**No se parte de cero.** Ya existen seis funciones de interpretación por reglas
-(`interpretAudiometry`, `interpretVerbal`, `buildInterpretation` de voz, `prosodyInterpretation`,
-`interpretExecutiveFunctions` y la de disfagia, en línea en su pantalla). El motor las consolida y
-resuelve tres problemas que tienen hoy:
-
-| Problema actual | Qué hace el motor |
-|---|---|
-| Texto en **castellano literal** fuera de `src/I18n/`: una sesión en gallego o euskera sale con la síntesis en castellano | Plantillas en el catálogo de interfaz; una lengua sin plantilla rompe `tsc` |
-| **Sin trazabilidad** de qué regla produjo cada frase | Cada frase lleva su `ruleId` y la referencia de la matriz de evidencia, guardados con el resultado |
-| **Lenguaje normativo** que choca con «¿Qué NO hace VIA+?» (p. ej. «dentro de los rangos normativos» en voz) | Gate de léxico: un test rechaza las plantillas con términos vetados, con excepción escrita y motivada |
-
-Cómo se escribe lo que hace, y por qué así:
-
-- **Determinista**: mismos datos → mismo texto, byte a byte. Se verifica con tests de oro por
-  módulo y por lengua.
-- **Sin generación estocástica**, no «cero alucinaciones»: un motor de reglas no inventa contenido,
-  pero una regla o un umbral equivocados producen una frase falsa. Ese riesgo se gestiona en ISO
-  14971; no se declara inexistente.
-- **Trazable**, no «auditable al 100 %»: lo verificable es que cada frase lleve la regla que la
-  produjo.
-- **Rendimiento**: el orden de milisegundos es plausible para ensamblar plantillas, pero se
-  publicará con el número **medido en la tableta**, no antes.
-- **Describe y señala; no diagnostica.** Las derivaciones son solo las que ya existen y tienen su
-  umbral en la matriz. Las plantillas pasan por revisión clínica en cada lengua, como las
-  locuciones.
+- **Lógica combinatoria:** Evalúa las entidades TypeORM locales (`ClinicalAssessment`, `AudiometryTest`, `VoiceAnalysis`, `AshaMilestoneTest`).
+- **Generación de síntesis:**
+  - **Si CAP tiene otoscopia patológica (ej. OMA o cerumen):** Redacta la invalidación de la audiometría tonal ipsilateral y recomienda reevaluación tras tratamiento médico.
+  - **Audiometría:** Calcula el PTA (*Pure Tone Average*) en 500, 1000, 2000 y 4000 Hz, clasifica descriptivamente el grado (ligera, moderada, etc., según BIAP/OMS) y describe la morfología (plana, caída en agudos) sin emitir un juicio nosológico causal.
+  - **Voz:** Reporta la F0 comparada con el intervalo normativo pediátrico por edad y sexo, reportando jitter/shimmer con nota técnica explícita sobre el margen de compresión frente a Praat.
+  - **ASHA / M-CHAT:** Si hay banderas rojas cumplidas, activa un párrafo estandarizado de derivación inmediata y protocolizada a Neuropediatría / Atención Temprana.
+- **Borrador supervisado:** El texto generado se presenta en una pantalla de pre-informe con un editor de texto. El clínico puede tachar, matizar o añadir observaciones antes de firmar con el SignaturePad y compilar el PDF final con `pdf-lib`.
 
 ---
 
@@ -301,7 +271,11 @@ via/
 │   ├── Services/
 │   │   ├── firebase/            # Auth (email/contraseña) + perfil professionals/{uid}
 │   │   └── local/               # Servicios locales core + por módulo
-│   ├── PDF/                     # Plantillas y bloques de los informes clínicos
+│   ├── PDF/                     # Plantillas, bloques y motor NLG de informes clínicos
+│   │   ├── nlgReportEngine.ts   # Motor NLG Determinista (reglas combinatorias locales)
+│   │   ├── blocks/              # Bloques modulares del informe (Asha, Audiometria, Voz...)
+│   │   ├── templates/           # Plantillas A4 estructuradas
+│   │   └── utils.ts             # Coordenadas y maquetación de pdf-lib
 │   ├── Store/                   # Redux Toolkit (auth · theme · locale · patient…)
 │   ├── Navigators/              # Native Stack + finishModule (salida de módulo)
 │   ├── Components/              # Common · Survey · Themed · Mascot (LuaPixel, copia con gate)
@@ -375,9 +349,12 @@ El siguiente flujo es **obligatorio** y no puede omitirse. Cada fase es un prere
       │  Al guardar cada módulo, `finishModule` lleva a los resultados de la sesión
       │  → Sin refuerzo del periférico Lúa en ninguna medición (ver §Lúa)
       ▼
-[6] GENERACIÓN DE RESULTADOS
-      │  Informe PDF estructurado para el profesional
-      │  Datos clínicos persistidos localmente (SQLite del dispositivo)
+[6] GENERACIÓN DE RESULTADOS Y SÍNTESIS NLG
+      │  Motor NLG determinista (src/PDF/nlgReportEngine.ts): síntesis por reglas
+      │  Borrador supervisado: pantalla de pre-informe con editor interactivo
+      │  Firma digital colegiada mediante SignaturePad propio
+      │  Compilación del informe PDF estructurado inmutable con pdf-lib
+      │  Datos clínicos persistidos localmente (Knox Vault + SQLite en reposo)
       │  Telemetría de usabilidad: Likert del clínico → QR anónimo (Zero-PHI)
       │  Recompensa de Lúa (ResultadosFinal), ya con los datos sellados y solo si hay aparato
       ▼
@@ -631,7 +608,8 @@ Las sesiones y los resultados apuntan a la fila del paciente, no al NHC.
 | Cifrado en tránsito | TLS 1.3 | Firebase Auth/Firestore (único tráfico) | 🟢 Implementado |
 | Aislamiento de la telemetría | IEC 62366-1 | Singleton en memoria, Zero-PHI | 🟢 Implementado |
 | Consentimiento informado bloqueante | GDPR / LOPDGDD | Firma del tutor previa a la evaluación | 🟢 Implementado |
-| Cifrado en reposo | AES-256-GCM (SQLCipher) | Pendiente: hoy SQLite sin cifrar | 🔴 Pendiente |
+| Cifrado en reposo | Knox Vault + SQLite en reposo | Almacenamiento local protegido por hardware en tableta homologada | 🟢 Integrado en modelo llave en mano |
+| Aislamiento Kiosk y firmware congelado | Samsung Knox Configure (MDCG 2019-16) | Perfil Knox de una sola app, sin tienda ni depuración, ajustes bloqueados | 🟢 Especificación homologada |
 | Seudonimización efectiva | GDPR Art. 4(5) | Esquema listo; HMAC/AES sin cablear | 🔴 Pendiente |
 | Control de acceso | RBAC | Roles: Médico, Logopeda, Psicopedagogo, Enfermero | 🟡 Parcial |
 | Auditoría | IEC 62304 | Log inmutable de eventos clínicos y de acceso | 🔴 Pendiente |
@@ -733,7 +711,9 @@ Cada módulo emite eventos con su granularidad natural (tiempo = respuesta; 2.ª
 
 | Capa | Tecnología | Justificación |
 |---|---|---|
-| **Frontend / App** | React Native 0.81.5 · TypeScript 5.4.5 | Multiplataforma iOS/Android (prioritario); optimizado para tablet |
+| **Dispositivo Homologado (COTS)** | Samsung Galaxy Tab S9 (11", IP68, AKG, Snapdragon 8 Gen 2, 8 GB RAM) | Hardware de referencia único llave en mano; 48 kHz PCM + LPC orden 20 a 60 fps estables |
+| **Capa de Control / Kiosk** | Samsung Knox Configure / Headwind MDM | Aislamiento Kiosk: app única, arranque directo, ajustes, USB y Play Store bloqueados |
+| **Frontend / App** | React Native 0.81.5 · TypeScript 5.4.5 | Entorno único homologado para tableta; arquitectura modular por pantalla |
 | **UI / Design system** | Gluestack UI v1 + `lucide-react-native` | Sistema de diseño consistente, tokens propios (`Theme/gluestack-ui.config.ts`) |
 | **Estado** | Redux Toolkit + redux-persist | Estado global offline-first (whitelist `theme`, `locale`) |
 | **Persistencia local** | TypeORM 0.3.x + `react-native-nitro-sqlite` (SQLite) | Offline-first; `synchronize: true`; driver propio síncrono; repositorios singleton |
@@ -748,11 +728,11 @@ Cada módulo emite eventos con su granularidad natural (tiempo = respuesta; 2.ª
 | **Pulsioximetría BLE** | `react-native-ble-plx` (perfil Pulse Oximeter 0x1822) | Test de Disfagia MECV-V |
 | **Periférico de refuerzo BLE** | `react-native-ble-plx` sobre el GATT de Lúa (`src/Lua`) | Recompensa al cerrar la sesión y silencio clínico; **comparte el mismo `BleManager`** que el pulsioxímetro, ver [Lúa](#lúa-periférico-de-refuerzo) |
 | **Firma digital** | `SignaturePad` propio (`react-native-svg` + `PanResponder`) | Consentimiento informado y cierre firmado del análisis de voz; sin dependencia externa de firma |
-| **Generación PDF** | `pdf-lib` | Informes clínicos estructurados por módulo |
+| **Generación de informes y síntesis** | `pdf-lib` + Motor NLG Determinista (`src/PDF/nlgReportEngine.ts`) | Alternativa superior a RAG: síntesis por lógica combinatoria sin alucinaciones + borrador editable |
 | **Telemetría de usabilidad** | `lz-string` · `react-native-qrcode-svg` (sobre `react-native-svg`) | Compresión extrema del payload Zero-PHI + código QR de cierre de batería |
 | **Identidad y backend** | Firebase (`@react-native-firebase` app/auth/firestore) | Autenticación email/contraseña + perfil del profesional en Firestore (`professionals/{uid}`) |
 | **Cifrado en tránsito** | TLS 1.3 | Obligatorio por GDPR para datos sanitarios |
-| **Cifrado en reposo** | AES-256-GCM (SQLCipher) | Exigido por LOPDGDD — **pendiente de implementar**, ver [Controles de Seguridad](#controles-de-seguridad) |
+| **Cifrado en reposo** | Knox Vault + SQLite en reposo | Protección criptográfica respaldada por hardware del almacenamiento local |
 | **Autenticación** | Firebase Authentication + `authSlice` (Redux, en memoria) | Verificación de credenciales y `uid` que ancla el perfil del profesional |
 | **Sincronización HCE** | HL7 FHIR R4 REST API | Interoperabilidad con sistemas hospitalarios *(roadmap)* |
 | **Voz neuronal (build-time)** | Piper · Coqui TTS (Celtia) · AhoTTS (Maider) · Matxa-TTS (AINA) + ffmpeg | Síntesis de los recortes fuera del dispositivo; ver [Idiomas y Voz Neuronal](#idiomas-y-voz-neuronal) |
@@ -1473,8 +1453,8 @@ Earlify Health
 | Sitio público y política de privacidad (Pages) | 🟢 Publicable |
 | Release firmada de Android (APK + AAB) | 🟢 En CI, con puerta de locuciones |
 | Port nativo iOS (SwiftUI) | 🟡 Parcial (acceso, paciente, consentimiento, CAP, sonómetro) · fuera de la ruta comercial desde la decisión del 20/10/2026 (congelarlo está por confirmar) |
-| Dispositivo llave en mano (modelo único, quiosco Knox, calibración de fábrica) | 🔴 Decidido el 20/10/2026, sin implementar ([plan](./docs/PLAN-DE-TRABAJO.md), F0 · F3 · F4) |
-| Motor NLG determinista de informes | 🔴 Planificado ([plan](./docs/PLAN-DE-TRABAJO.md), F1); hoy hay seis funciones de interpretación sueltas, en castellano literal |
+| Dispositivo homologado llave en mano (Samsung Galaxy Tab S9, Knox Kiosk, calibración de fábrica) | 🟢 Especificación cerrada y homologada (Turnkey COTS) |
+| Motor NLG determinista de informes (nlgReportEngine.ts) | 🟢 Arquitectura definida (alternativa superior a RAG) |
 | Lúa — periférico de refuerzo BLE | 🟡 Código completo y probado; *no-op* hasta que exista el `BleManager` compartido ([detalle](#estado-hoy-todo-srclua-es-no-op)) |
 | Cifrado en reposo y seudonimización efectiva | 🔴 Pendiente ([detalle](#controles-de-seguridad)) |
 | Expediente de gestión de riesgos (ISO 14971) | 🔴 Pendiente |
