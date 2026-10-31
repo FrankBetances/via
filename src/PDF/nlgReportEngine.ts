@@ -104,6 +104,28 @@ export interface NlgReportSynthesis {
   ruleIds: string[];
   crossModuleFindings: ClinicalFact[];
   formattedReportText: string;
+  /**
+   * `catalog-missing` cuando esa lengua no tiene bloque `nlg` (hoy gl, eu, ca
+   * y en: el plan no trae sus frases). El texto es el aviso, no un informe
+   * vacío. `null` cuando el catálogo sí tiene el bloque.
+   */
+  unavailableReason: null | 'catalog-missing';
+}
+
+/**
+ * Lengua cuyo catálogo no trae `nlg`. No es un hallazgo clínico: el motor se
+ * niega a narrar y deja este error, con el código de lengua, para que la
+ * pantalla y el PDF lo muestren. Sustituye el `Cannot read properties of
+ * undefined` que salía al leer `CATALOGUES[lang].nlg` en gl, eu, ca y en.
+ */
+export class NlgCatalogMissing extends Error {
+  readonly lang: UiLang;
+
+  constructor(lang: UiLang) {
+    super(`nlg catalog missing: ${lang}`);
+    this.name = 'NlgCatalogMissing';
+    this.lang = lang;
+  }
 }
 
 type NlgPack = UiStrings['nlg'];
@@ -226,7 +248,39 @@ const byTextId = <T extends { id: string }>(rows: readonly T[]): T[] =>
     return 0;
   });
 
-const nlg = (lang: UiLang): NlgPack => CATALOGUES[lang].nlg;
+/**
+ * El tipo `UiStrings` exige `nlg`, pero gl, eu, ca y en todavía no lo tienen:
+ * el plan no trae esas frases y no se inventan. En ejecución el objeto no
+ * trae la clave. Hay que mirarlo antes de leer `.rules`.
+ */
+const catalogPack = (lang: UiLang): NlgPack | null => {
+  const entry = CATALOGUES[lang] as { nlg?: NlgPack } | undefined;
+  const pack = entry?.nlg;
+  if (!pack || !pack.rules || !pack.sections || !pack.ui || !pack.audit) return null;
+  return pack;
+};
+
+/** El bloque existe y se puede narrar en esa lengua. */
+export const isNlgCatalogReady = (lang: UiLang): boolean => catalogPack(lang) !== null;
+
+/**
+ * Aviso cuando no hay síntesis. Si la lengua tiene bloque, es
+ * `nlg.ui.missingData`. Si no lo tiene, la misma frase del castellano más el
+ * código de lengua: no es una traducción clínica, es la marca de que el
+ * bloque falta. Sin esto, gl/eu/ca/en petaban al leer `nlg`.
+ */
+export const nlgMissingDataMessage = (lang: UiLang): string => {
+  const own = catalogPack(lang);
+  if (own) return own.ui.missingData;
+  const fallback = catalogPack('es')?.ui.missingData ?? 'NLG catalog missing';
+  return `${fallback} (${lang})`;
+};
+
+const nlg = (lang: UiLang): NlgPack => {
+  const pack = catalogPack(lang);
+  if (!pack) throw new NlgCatalogMissing(lang);
+  return pack;
+};
 
 const makeFact = (
   ruleId: string,
@@ -1288,8 +1342,18 @@ export function evaluateCrossModuleFacts(entities: SessionEntities, lang: UiLang
   return factsFromCross(entities, lang);
 }
 
+const emptySynthesis = (useLang: UiLang, reason: 'catalog-missing'): NlgReportSynthesis => ({
+  lang: useLang,
+  facts: [],
+  ruleIds: [],
+  crossModuleFindings: [],
+  formattedReportText: nlgMissingDataMessage(useLang),
+  unavailableReason: reason,
+});
+
 export function evaluateSessionNlg(entities: SessionEntities, lang?: UiLang): NlgReportSynthesis {
   const useLang = lang ?? getUiLang();
+  if (!catalogPack(useLang)) return emptySynthesis(useLang, 'catalog-missing');
   const facts = [
     ...evaluateCapFacts(entities, useLang),
     ...evaluateCrossModuleFacts(entities, useLang),
@@ -1314,10 +1378,12 @@ export function evaluateSessionNlg(entities: SessionEntities, lang?: UiLang): Nl
     ruleIds: facts.map(f => f.ruleId),
     crossModuleFindings: facts.filter(f => f.category === 'cross'),
     formattedReportText,
+    unavailableReason: null,
   };
 }
 
 export function renderAudiometryInterpretation(thresholds: AudiometryThresholds, lang: UiLang): string {
+  if (!catalogPack(lang)) return nlgMissingDataMessage(lang);
   const transducer = hasCl(thresholds) ? 'soundfield' : 'air';
   return joinText(
     factsFromAud([{ id: 0, transducer, thresholds, ptaOD: null, ptaOI: null }], lang),
@@ -1336,6 +1402,7 @@ export function renderVerbalInterpretation(
   sessionLang: string,
   lang: UiLang,
 ): string {
+  if (!catalogPack(lang)) return nlgMissingDataMessage(lang);
   return joinText(
     factsFromVer(
       [
@@ -1364,6 +1431,7 @@ export function renderVoiceInterpretation(
   },
   lang: UiLang,
 ): string {
+  if (!catalogPack(lang)) return nlgMissingDataMessage(lang);
   return joinText(
     factsFromVoice(
       [
@@ -1383,7 +1451,9 @@ export function renderVoiceInterpretation(
 }
 
 export function renderGrbasSeverityLabel(g: GrbasScores, lang: UiLang): string {
-  return grbasText(g, nlg(lang).rules);
+  const pack = catalogPack(lang);
+  if (!pack) return nlgMissingDataMessage(lang);
+  return grbasText(g, pack.rules);
 }
 
 export function renderDysphagiaInterpretation(
@@ -1395,7 +1465,9 @@ export function renderDysphagiaInterpretation(
   },
   lang: UiLang,
 ): string {
-  const rules = nlg(lang).rules;
+  const pack = catalogPack(lang);
+  if (!pack) return nlgMissingDataMessage(lang);
+  const rules = pack.rules;
   const recom = textOrUnavail(input.recommendation, rules.labelUnavailable);
   if (input.verdict === 'safe') return rules.rDys001;
   if (input.verdict === 'efficacy') return rules.rDys002(recom);
@@ -1420,6 +1492,7 @@ export function renderExecutiveInterpretation(
   },
   lang: UiLang,
 ): string {
+  if (!catalogPack(lang)) return nlgMissingDataMessage(lang);
   return joinText(
     factsFromEf(
       [
