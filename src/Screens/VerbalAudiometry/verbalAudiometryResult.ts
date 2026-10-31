@@ -17,12 +17,9 @@
 import { getUiLang } from '@/I18n/uiLang';
 import { renderVerbalInterpretation } from '@/PDF/nlgReportEngine';
 
-/** Franja de edad → lista de estímulos y modalidad de tarjeta. */
+import type { AgeBand, CardModality } from './verbalAudiometryTypes';
 
-export type AgeBand = 'A' | 'B' | 'C' | 'D';
-
-/** Modalidad de la tarjeta de selección (WordCard). */
-export type CardModality = 'images' | 'mixed' | 'words';
+export type { AgeBand, CardModality };
 
 /** Modo de la prueba: % a nivel fijo o búsqueda del URV por descenso. */
 export type VerbalMode = 'discrimination' | 'threshold';
@@ -98,23 +95,14 @@ export const MODALITY_LABEL: Record<CardModality, string> = {
  * Etiquetas del idioma/variante de la sesión (claves = bancos registrados en
  * `verbalAudiometryBanks.ts`; aquí como strings planos para no importar el
  * banco desde la lógica pura de resultado).
- */
-/**
- * Etiqueta legible de cada lengua de la prueba.
  *
- * Tenía TRES de las siete —faltaban `eu`, `ca`, `es-419` y `en`—, así que el
- * aviso de la pantalla y el bloque del PDF enseñaban el CÓDIGO en crudo («ca»)
- * donde debía ir el nombre.
+ * Etiqueta legible de cada lengua de la prueba. Tenía tres de las siete, y
+ * la pantalla y el PDF enseñaban el código en crudo.
  *
- * Se escribe aquí, y no se deriva de `SESSION_LANG_LABEL`, porque este fichero
- * lo COMPILA `scripts/check-verbal-coverage.js` con `tsc` suelto y lo ejecuta
- * en Node: un import fuera de esta carpeta mueve el `rootDir` inferido y el
- * gate deja de encontrar su propia salida. Es la lección que Valeria+ dejó
- * escrita en su `i18n/catalog.ts` — lo que consume un gate de Node no puede
- * depender de la resolución de módulos de la app.
- *
- * Que sea una lista aparte NO la deja derivar: `verbalBorrowedBank.test.ts`
- * exige que coincida exactamente con `SESSION_LANG_LABEL`.
+ * El gate de cobertura compila el banco, no este fichero: los tipos que el
+ * banco necesita están en `verbalAudiometryTypes.ts`. Esta lista no se
+ * deriva de `SESSION_LANG_LABEL`; `verbalBorrowedBank.test.ts` exige que
+ * coincidan.
  */
 export const VERBAL_LANG_LABEL: Record<string, string> = {
   es: 'Español (España)',
