@@ -6,9 +6,9 @@ import { evaluateSessionNlg, isNlgCatalogReady, type SessionEntities } from '@/P
 /* -------------------------------------------------------------------------- */
 /*  Puerta de léxico del subárbol `nlg`. El resto del catálogo no entra:      */
 /*  ahí siguen frases viejas («no descarta») que esta oleada no reescribe.    */
-/*                                                                            */
-/*  gl, eu, ca y en no tienen bloque. No se inventa texto para poder          */
-/*  escanearlas. El día que el bloque exista, el test las recorre solo.       */
+/*  Las siete lenguas tienen bloque. El vetado se mira también en gl, eu,     */
+/*  ca y en, y las palabras función castellanas no pueden colarse en las     */
+/*  plantillas (el detector de uiCatalog solo ve las cadenas estáticas).      */
 /* -------------------------------------------------------------------------- */
 
 const BANNED = [
@@ -24,7 +24,18 @@ const BANNED = [
   'rules out',
 ];
 
-const WITHOUT_NLG_BLOCK: readonly UiLang[] = ['gl', 'eu', 'ca', 'en'];
+const looseWord = (words: string[]): RegExp =>
+  new RegExp(`(?<![\\p{L}\\p{N}_-])(${words.join('|')})(?![\\p{L}\\p{N}_])`, 'iu');
+
+const FOREIGN: Partial<Record<UiLang, RegExp>> = {
+  eu: looseWord([
+    'de', 'del', 'la', 'el', 'los', 'las', 'que', 'para', 'con', 'una', 'por',
+    'se', 'ata', 'nivel', 'voz', 'palabra', 'descende', 'però', 'amb', 'dels', 'nivell',
+  ]),
+  gl: looseWord(['y', 'del', 'los', 'las', 'hasta', 'calidad', 'hallazgos']),
+  ca: looseWord(['y', 'los', 'las', 'con', 'para', 'por', 'desde', 'hasta', 'voz', 'selección', 'calidad']),
+  en: looseWord(['de', 'del', 'la', 'el', 'los', 'las', 'y', 'con', 'para', 'por', 'voz', 'banco', 'neuronal', 'calidad']),
+};
 
 const hits = (text: string): string[] => {
   const lower = text.toLowerCase();
@@ -163,34 +174,30 @@ const loud = (): SessionEntities => ({
 });
 
 describe('puerta de léxico nlg', () => {
-  it('las lenguas con bloque no contienen un término vetado', () => {
+  it('las siete lenguas tienen bloque y no contienen un término vetado', () => {
     const ready = ALL_UI_LANGS.filter(lang => isNlgCatalogReady(lang));
-    expect(ready.sort()).toEqual(['es', 'es-419', 'es-DO']);
+    expect(ready.sort()).toEqual([...ALL_UI_LANGS].sort());
     for (const lang of ready) {
+      const foreign = FOREIGN[lang];
       for (const text of stringsOf(lang)) {
-        expect(hits(text)).toEqual([]);
+        expect({ lang, hits: hits(text), text }).toEqual({ lang, hits: [], text });
+        if (foreign) {
+          expect({ lang, leak: foreign.test(text), text }).toEqual({ lang, leak: false, text });
+        }
       }
     }
   });
 
-  it('gl, eu, ca y en siguen sin bloque: la puerta no las da por revisadas', () => {
-    for (const lang of WITHOUT_NLG_BLOCK) {
-      expect(isNlgCatalogReady(lang)).toBe(false);
-      expect(CATALOGUES[lang].nlg).toBeUndefined();
-    }
-    const unexpected = ALL_UI_LANGS.filter(
-      lang => !isNlgCatalogReady(lang) && !WITHOUT_NLG_BLOCK.includes(lang),
-    );
-    expect(unexpected).toEqual([]);
-  });
-
-  it('las salidas arquetipo en castellano tampoco contienen un término vetado', () => {
-    for (const lang of ['es', 'es-419', 'es-DO'] as const) {
+  it('las salidas arquetipo tampoco contienen un término vetado', () => {
+    for (const lang of ALL_UI_LANGS) {
+      const foreign = FOREIGN[lang];
       for (const entities of [{}, loud()] as SessionEntities[]) {
         const report = evaluateSessionNlg(entities, lang);
         expect(hits(report.formattedReportText)).toEqual([]);
+        if (foreign) expect(foreign.test(report.formattedReportText)).toBe(false);
         for (const fact of report.facts) {
           expect(hits(fact.text)).toEqual([]);
+          if (foreign) expect(foreign.test(fact.text)).toBe(false);
         }
       }
     }

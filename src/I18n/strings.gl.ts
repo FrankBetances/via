@@ -904,4 +904,216 @@ export const GL: UiStrings = {
     confirmoEstaEvaluacionRealizaraMediante: '«Confirmo que esta avaliación se realizará mediante observación clínica directa e entrevista profesional, non como autoinforme familiar.»',
     aceptarContinuar: 'Aceptar e continuar',
   },
+
+  /* Contrato NLG. Mesma forma ca o castelán; as cifras son as do plan.
+   * Estas cadeas non se locutan. */
+  nlg: {
+    sections: {
+      executiveSummary: 'Síntese clínica global',
+      crossFindings: 'Achados cruzados entre módulos',
+      audiologyDomain: 'Audición',
+      voiceDomain: 'Voz',
+      languageDomain: 'Linguaxe e articulación',
+      swallowingAndSleep: 'Deglutición e sono',
+      neurodevelopment: 'Comunicación e neurodesenvolvemento',
+      referrals: 'Derivacións suxeridas',
+      auditTrailTitle: 'Trazabilidade das regras clínicas',
+      metrologicalDisclaimer:
+        'Aviso SaMD Clase IIa. O texto describe medidas e desvíos respecto dos limiares de referencia. A decisión clínica corresponde ao profesional presente.',
+    },
+    ui: {
+      draftTitle: 'Síntese clínica global',
+      draftSubtitle: 'Borrador calculado por regras. Revíseo antes de asinar.',
+      observationsLabel: 'Observacións do profesional',
+      observationsPlaceholder: 'Matices ou observacións que queira engadir ao borrador...',
+      rulesBadge: 'Regras aplicadas',
+      crossAlertBadge: 'Achado cruzado',
+      auditTrailToggle: 'Ver a trazabilidade das regras',
+      signatureLabel: 'Sinatura do profesional',
+      missingData: 'Non se puido ler a sesión. A síntese non está dispoñible.',
+    },
+    audit: {
+      columnRule: 'Regra',
+      columnModule: 'Módulo',
+      columnMeasured: 'Valores medidos',
+      columnEvidence: 'Fonte de evidencia',
+      evidenceVersion: '1.0.0',
+    },
+    rules: {
+      labelListSep: ', ',
+      labelUnavailable: 'non dispoñible',
+      labelEarOd: 'oído dereito',
+      labelEarOi: 'oído esquerdo',
+      labelEarCl: 'campo libre',
+      labelBandRef: 'Limiar dentro do rango de referencia (≤ 20 dB HL)',
+      labelBand21: 'limiar entre 21 e 40 dB HL',
+      labelBand41: 'limiar entre 41 e 70 dB HL',
+      labelBand71: 'limiar entre 71 e 90 dB HL',
+      labelBand90: 'limiar por riba de 90 dB HL',
+      labelMorphFlat: 'curva plana (a diferenza entre 500 Hz e 4000 Hz é menor de 15 dB)',
+      labelMorphDesc: 'curva descendente en agudos (4000 Hz queda polo menos 15 dB por riba de 500 Hz)',
+      labelMorphAsc: 'curva ascendente (500 Hz queda polo menos 15 dB por riba de 4000 Hz)',
+      labelMorphUnknown: 'morfoloxía non afirmable: falta o limiar de 500 Hz ou o de 4000 Hz',
+      labelFindingCerumen: 'cerume',
+      labelFindingOma: 'otite media aguda',
+      labelFindingPerf: 'perforación timpánica',
+      labelFindingOme: 'otite media con efusión',
+      labelDomainVisual: 'visual',
+      labelDomainMotor: 'motor',
+      labelDomainVerbal: 'verbal',
+      labelDomainOtoscopy: 'otoscopia',
+      labelSahsLow: 'baixa',
+      labelSahsMed: 'media',
+      labelSahsHigh: 'alta',
+      labelImcRef: 'IMC no intervalo de referencia',
+      labelImcSobrepeso: 'sobrepeso',
+      labelImcObesidad: 'obesidade',
+      labelRiskLow: 'baixa (0–2)',
+      labelRiskMed: 'media (3–7)',
+      labelRiskHigh: 'alta (8–20)',
+      labelAshaReceptive: 'recepción',
+      labelAshaExpressive: 'expresión',
+      labelAshaPragmatic: 'pragmática',
+      labelReasonEmpty: 'non se rexistrou audio',
+      labelReasonSilent: 'a toma non contén fala por riba do ruído de fondo',
+      labelReasonShort: 'a toma é máis curta ca a xanela mínima de análise',
+      labelReasonNoVoicing: 'hai son, mais ningún tramo con vibración periódica',
+      labelReasonOther: 'análise non dispoñible',
+      voiceWithinReference:
+        'Parámetros acústicos rexistrados dentro dos intervalos de referencia orientativos para voz pediátrica nesta toma (F0, jitter, shimmer e HNR sen desvíos por riba do limiar de alerta).',
+      labelGrbasMissing: 'Escala perceptual GRBAS non rexistrada.',
+      grbasGrade: (g: string | number) => {
+        if (Number(g) === 0) {
+          return 'Escala perceptual GRBAS: grao global G0 (sen alteración perceptual rexistrada polo avaliador).';
+        }
+        return `Escala perceptual GRBAS: grao global G${g} (rexistrado polo avaliador).`;
+      },
+      rCross001: (ear: string | number, finding: string | number) =>
+        `${ear}: o PTA non é interpretable polo achado de otoscopia (${finding}). Cómpre reavaliar a audiometría cando ese achado se resolva.`,
+      rCross002: (ear: string | number, pta: string | number) =>
+        `${ear}: PTA ${pta} dB HL, con otite media con efusión na otoscopia do mesmo oído. Hai concordancia entre a elevación do limiar e o achado otoscópico. Suxírese valoración ORL e impedanciometría.`,
+      rCross003Disc: (pct: string | number, level: string | number) =>
+        `Recoñecemento verbal ${pct} % a ${level} dB, por debaixo do 80 %.`,
+      rCross003Gap: (gap: string | number) =>
+        `Diferenza absoluta entre o URV e o mellor PTA: ${gap} dB, por riba de 15 dB.`,
+      rCross003: (bestPta: string | number, detail: string | number) =>
+        `Mellor PTA tonal ${bestPta} dB HL, dentro do rango de referencia (≤ 20 dB HL). ${detail} Sinala disociación entre os limiares tonais e o recoñecemento verbal. Suxírese explorar o procesamento auditivo ou a comprensión léxica.`,
+      rCross004: (freqs: string | number, phonemes: string | number) =>
+        `Limiar por riba de 25 dB HL en ${freqs}, con erro en fricativas ou sibilantes (${phonemes}). A baixada de sensibilidade en frecuencias agudas pode comprometer a percepción e a produción desas consoantes.`,
+      rCross005: (jitter: string | number, shimmer: string | number, hnr: string | number) =>
+        `Coexisten unha medida acústica glótica fóra do intervalo de referencia (jitter ${jitter} %, shimmer ${shimmer} %, HNR ${hnr} dB; referencia desta versión: jitter 1,04 %, shimmer 3,81 %, HNR 12 dB) e signos de compromiso de seguridade deglutoria en MECV-V. Precaución laringo-farínxea: correlacionar na consulta.`,
+      rCross006: (ashaDetail: string | number, score: string | number) =>
+        `Converxencia de achados comunicativos e condutuais: cribado ASHA (${ashaDetail}) e puntuación M-CHAT-R ${score} sobre 20. Suxírese derivación prioritaria conxunta a neuropediatría e atención temperá.`,
+      rCross007: (sahsLevel: string | number, efDetail: string | number) =>
+        `Sospeita orientativa de trastorno respiratorio do sono (${sahsLevel}) xunto con ${efDetail}. Cómpre correlacionalo na consulta.`,
+      rCap001:
+        'Condicións visuais, motoras, verbais e otoscópicas verificadas. Veredicto global do certificado de aptitude: FULL.',
+      rCap002: (domains: string | number) =>
+        `Veredicto do certificado de aptitude: PARTIAL. Dominios con restrición: ${domains}.`,
+      rCap003:
+        'Veredicto do certificado de aptitude: BLOCKED. A batería estándar non queda habilitada; fan falta metodoloxías adaptadas.',
+      rAud001: (ear: string | number) => `${ear}: datos insuficientes para estimar o PTA.`,
+      rAud002: (ear: string | number, pta: string | number, band: string | number, morphology: string | number) =>
+        `${ear}: PTA ${pta} dB HL. ${band}. ${morphology}.`,
+      rAud003: (ear: string | number, freqs: string | number) =>
+        `${ear}: sen resposta ao nivel máximo de saída en ${freqs}.`,
+      rAud004: (ear: string | number) =>
+        `${ear}: algún limiar supera 20 dB HL ou quedou sen resposta ao nivel máximo. Suxírese derivación a ORL/audioloxía.`,
+      rAud005:
+        'Campo libre: estima a resposta do mellor oído e non permite avaliar cada oído á parte.',
+      rVer001: 'Audiometría verbal: sen estímulos presentados. Exploración incompleta.',
+      rVer002: (
+        band: string | number,
+        pct: string | number,
+        level: string | number,
+        correct: string | number,
+        presented: string | number,
+        srt: string | number,
+      ) =>
+        `Audiometría verbal, banda ${band}: recoñecemento ${pct} % (${correct}/${presented}) a ${level} dB. URV/SRT estimado: ${srt} dB.`,
+      rVer003: (langLabel: string | number, borrowed: string | number) => {
+        if (Number(borrowed) === 1) {
+          return `Variante lingüística: ${langLabel}. O banco de estímulos desta lingua é prestado; o resultado non se compara como se o banco fose propio.`;
+        }
+        return `Variante lingüística rexistrada: ${langLabel}.`;
+      },
+      rVer004: (pct: string | number, level: string | number) =>
+        `Recoñecemento verbal ${pct} % a ${level} dB (nivel conversacional), por debaixo do 80 %. Suxírese logoaudiometría diagnóstica nun centro especializado.`,
+      rVoz001: (grbas: string | number) => `Peche manual sen captura acústica. ${grbas}`,
+      rVoz002: (
+        f0: string | number,
+        jitter: string | number,
+        shimmer: string | number,
+        hnr: string | number,
+        formants: string | number,
+      ) =>
+        `Parámetros medidos nesta toma: F0 ${f0} Hz, jitter local ciclo a ciclo ${jitter} %, shimmer local ciclo a ciclo ${shimmer} %, HNR ${hnr} dB. Formantes F1–F3: ${formants}.`,
+      rVoz003: (which: string | number) =>
+        `Parámetros fóra do intervalo de referencia pediátrico desta versión (F0 fóra de 220–320 Hz, jitter por riba de 1,04 %, shimmer por riba de 3,81 %, HNR por debaixo de 12 dB): ${which}.`,
+      rVoz004: (formantsMissing: string | number) => {
+        const note =
+          'A estimación ciclo a ciclo do shimmer comprime a cifra entre 1,3 e 1,7 veces respecto de Praat.';
+        if (Number(formantsMissing) === 1) {
+          return `${note} Os formantes F1–F3 non se puideron estimar nesta toma.`;
+        }
+        return `${note} Os formantes F1–F3 desta toma están rexistrados.`;
+      },
+      rPro001: (reason: string | number) => `Toma prosódica non válida ou insuficiente: ${reason}.`,
+      rPro002: (
+        span: string | number,
+        syllables: string | number,
+        pauses: string | number,
+        rangeSt: string | number,
+        rates: string | number,
+      ) =>
+        `Rexistro descritivo de fala conectada: ${span} s, ${syllables} núcleos silábicos, ${pauses} pausas, rango tonal ${rangeSt} semitonos, velocidade ${rates}. Non hai baremo poboacional de referencia para estas medidas. A lectura corresponde ao profesional.`,
+      rArt001: 'Articulación: sen ítems avaliados. Exploración incompleta.',
+      rArt002: (evaluated: string | number, total: string | number, pct: string | number, soda: string | number) =>
+        `T.A.R.: ${evaluated} de ${total} ítems avaliados, ${pct} % de produción concordante. Desagregación SODA (substitución, omisión, distorsión, adición): ${soda}.`,
+      rArt003: (phonemes: string | number) =>
+        `Fonemas con erro sistemático: ${phonemes}. Suxírese valoración logopédica miofuncional e fonética.`,
+      rAsh001: (band: string | number) => `Banda ${band}: fitos contestados cumpridos no cribado ASHA.`,
+      rAsh002: (band: string | number, domains: string | number) =>
+        `Banda ${band}: hai fitos non cumpridos e non consta bandeira vermella. Dominios: ${domains}.`,
+      rAsh003: (band: string | number, domains: string | number) =>
+        `Banda ${band}: hai bandeiras vermellas non cumpridas. Dominios: ${domains}. Suxírense rutas de derivación interdisciplinar.`,
+      rAut001: 'Cuestionario M-CHAT-R incompleto. Non se emite banda de puntuación.',
+      rAut002: (score: string | number, band: string | number, rec: string | number) => {
+        const n = Number(rec);
+        if (n === 2) {
+          return `M-CHAT-R: puntuación ${score} sobre 20, banda ${band}. Suxírese derivación directa a atención temperá ou neuropediatría.`;
+        }
+        if (n === 1) {
+          return `M-CHAT-R: puntuación ${score} sobre 20, banda ${band}. Suxírese entrevista de seguimento.`;
+        }
+        return `M-CHAT-R: puntuación ${score} sobre 20, banda ${band}. A puntuación queda por debaixo de 3.`;
+      },
+      rDys001: 'MECV-V: sen signos de compromiso de eficacia nin de seguridade nos bolos avaliados.',
+      rDys002: (recom: string | number) =>
+        `Compromiso de eficacia deglutoria (selo labial, residuo oral ou deglutición fraccionada), sen signos de compromiso respiratorio. Recomendación rexistrada: ${recom}.`,
+      rDys003: (minSpO2: string | number, maxDrop: string | number, recom: string | number) =>
+        `Compromiso de seguridade deglutoria (tose, cambio vocal ou caída de SpO2 de 3 % ou máis respecto do basal). SpO2 mínima ${minSpO2} %. Caída máxima ${maxDrop} %. Recomendación rexistrada: ${recom}.`,
+      rSah001: (
+        yes: string | number,
+        total: string | number,
+        brodsky: string | number,
+        imc: string | number,
+        level: string | number,
+      ) =>
+        `PSQ de Chervin: ${yes} de ${total} respostas afirmativas. Grao amigdalar de Brodsky: ${brodsky}. ${imc}. Sospeita orientativa: ${level}. A confirmación corresponde a unha polisomnografía na Unidade do Sono.`,
+      rEf001: 'Exploración de funcións executivas: sen mini-xogos rematados. Non hai índice global.',
+      rEf002: (
+        band: string | number,
+        overall: string | number,
+        domains: string | number,
+        below: string | number,
+        anyBelow: string | number,
+      ) => {
+        if (Number(anyBelow) === 1) {
+          return `Funcións executivas, banda ${band}: índice global ${overall}/100. Dominios completados: ${domains}. Por debaixo do limiar orientativo (< 65/100): ${below}.`;
+        }
+        return `Funcións executivas, banda ${band}: índice global ${overall}/100. Dominios completados: ${domains}. Puntuacións iguais ou superiores ao limiar orientativo (≥ 65/100) nos dominios completados.`;
+      },
+    },
+  },
 };

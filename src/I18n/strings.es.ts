@@ -964,9 +964,9 @@ export const ES = {
   /* Contrato NLG (oleada 1). Fuente de las cifras: el plan del motor, no
    * VOICE_NORMS, severityOf, DISCRIMINATION_WARN_CUT ni EF_OK_CUT. Frank cerró
    * el 31/10/2026 que, donde el plan y el código discrepen, manda el plan.
-   * Una regla sin huecos es una cadena; con huecos, una función. Las otras
-   * seis lenguas tienen que copiar cada clave con la misma forma: hasta
-   * entonces `tsc` queda en rojo a propósito y esta oleada no se empuja.
+   * Una regla sin huecos es una cadena; con huecos, una función. es-419 y
+   * es-DO heredan este bloque. gl, eu, ca y en tienen el suyo, con la misma
+   * forma: no es una copia del castellano.
    * Estas cadenas no se locutan: no entran en el corpus de voz. */
   nlg: {
     sections: {

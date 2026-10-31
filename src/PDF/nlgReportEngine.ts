@@ -249,9 +249,9 @@ const byTextId = <T extends { id: string }>(rows: readonly T[]): T[] =>
   });
 
 /**
- * El tipo `UiStrings` exige `nlg`, pero gl, eu, ca y en todavía no lo tienen:
- * el plan no trae esas frases y no se inventan. En ejecución el objeto no
- * trae la clave. Hay que mirarlo antes de leer `.rules`.
+ * El tipo `UiStrings` exige `nlg` en las siete lenguas. Si una entrada no
+ * trae `rules`, `sections`, `ui` y `audit`, no se narra. Hay que mirarlo
+ * antes de leer `.rules`.
  */
 const catalogPack = (lang: UiLang): NlgPack | null => {
   const entry = CATALOGUES[lang] as { nlg?: NlgPack } | undefined;
@@ -264,10 +264,9 @@ const catalogPack = (lang: UiLang): NlgPack | null => {
 export const isNlgCatalogReady = (lang: UiLang): boolean => catalogPack(lang) !== null;
 
 /**
- * Aviso cuando no hay síntesis. Si la lengua tiene bloque, es
- * `nlg.ui.missingData`. Si no lo tiene, la misma frase del castellano más el
- * código de lengua: no es una traducción clínica, es la marca de que el
- * bloque falta. Sin esto, gl/eu/ca/en petaban al leer `nlg`.
+ * Aviso cuando no hay síntesis. Si la lengua tiene bloque usable, es
+ * `nlg.ui.missingData` de esa lengua. Si no lo tiene, la frase castellana
+ * más el código de lengua: marca de bloque ausente, no una traducción.
  */
 export const nlgMissingDataMessage = (lang: UiLang): string => {
   const own = catalogPack(lang);

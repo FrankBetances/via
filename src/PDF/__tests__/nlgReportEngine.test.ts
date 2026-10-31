@@ -1,5 +1,4 @@
 import {
-  NlgCatalogMissing,
   evaluateSessionNlg,
   evaluateVoiceFacts,
   isNlgCatalogReady,
@@ -557,29 +556,34 @@ describe('nlgReportEngine · paridad de cifras', () => {
   });
 });
 
-describe('nlgReportEngine · catálogo ausente', () => {
-  it('gl, eu, ca y en no lanzan TypeError en la sesión', () => {
+describe('nlgReportEngine · catálogo en gl, eu, ca y en', () => {
+  it('narran en su lengua y no caen en el aviso de bloque ausente', () => {
+    const es = evaluateSessionNlg(voice(withinVoice), 'es').formattedReportText;
+    const anchor = {
+      gl: 'limiar de alerta',
+      eu: 'alerta-atalase',
+      ca: 'llindar d’alerta',
+      en: 'alert threshold',
+    } as const;
     for (const lang of ['gl', 'eu', 'ca', 'en'] as const) {
-      expect(isNlgCatalogReady(lang)).toBe(false);
+      expect(isNlgCatalogReady(lang)).toBe(true);
       const synthesis = evaluateSessionNlg(voice(withinVoice), lang);
-      expect(synthesis.unavailableReason).toBe('catalog-missing');
-      expect(synthesis.facts).toEqual([]);
-      expect(synthesis.formattedReportText).toContain(`(${lang})`);
+      expect(synthesis.unavailableReason).toBeNull();
+      expect(synthesis.facts.length).toBeGreaterThan(0);
+      expect(synthesis.formattedReportText).not.toBe(es);
+      expect(synthesis.formattedReportText).toContain(anchor[lang]);
+      expect(synthesis.formattedReportText).not.toContain(`(${lang})`);
     }
   });
 
-  it('evaluateVoiceFacts en eu lanza NlgCatalogMissing', () => {
+  it('evaluateVoiceFacts en eu devuelve hechos, no un TypeError', () => {
     expect(isNlgCatalogReady('es')).toBe(true);
     expect(isNlgCatalogReady('es-DO')).toBe(true);
     expect(isNlgCatalogReady('es-419')).toBe(true);
-    let thrown: unknown;
-    try {
-      evaluateVoiceFacts({}, 'eu');
-    } catch (error) {
-      thrown = error;
-    }
-    expect(thrown).toBeInstanceOf(NlgCatalogMissing);
-    expect(thrown).not.toBeInstanceOf(TypeError);
-    expect(String(thrown)).not.toContain('Cannot read properties');
+    expect(isNlgCatalogReady('eu')).toBe(true);
+    expect(evaluateVoiceFacts({}, 'eu')).toEqual([]);
+    const facts = evaluateVoiceFacts(voice(withinVoice), 'eu');
+    expect(facts.length).toBeGreaterThan(0);
+    expect(facts.map(fact => fact.text).join('\n')).toContain('alerta-atalase');
   });
 });

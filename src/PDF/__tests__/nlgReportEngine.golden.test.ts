@@ -1,17 +1,11 @@
-import { CATALOGUES } from '@/I18n/catalog';
 import type { UiLang } from '@/I18n/uiLang';
-import {
-  evaluateSessionNlg,
-  isNlgCatalogReady,
-  nlgMissingDataMessage,
-  type SessionEntities,
-} from '@/PDF/nlgReportEngine';
+import { evaluateSessionNlg, isNlgCatalogReady, type SessionEntities } from '@/PDF/nlgReportEngine';
 
 /* -------------------------------------------------------------------------- */
 /*  Oro de una sesión limpia. es, es-419 y es-DO comparten el castellano      */
 /*  peninsular (las dos variedades son un delta sobre ES). gl, eu, ca y en    */
-/*  no tienen bloque `nlg`: el oro clínico de esas cuatro no se inventa.      */
-/*  El humo comprueba que el aviso es estable, no una frase clínica.          */
+/*  narran en su bloque: mismas reglas, texto distinto del castellano,        */
+/*  estable en cincuenta corridas.                                            */
 /* -------------------------------------------------------------------------- */
 
 const mchat = (): Record<number, boolean> => {
@@ -183,17 +177,20 @@ describe('oro NLG', () => {
     }
   });
 
-  it('gl, eu, ca y en no tienen oro clínico: el aviso es estable y no es una frase inventada', () => {
-    const notice = CATALOGUES.es.nlg.ui.missingData;
+  it('gl, eu, ca y en repiten sus reglas y no copian el oro castellano', () => {
+    const anchor = {
+      gl: 'limiar de alerta',
+      eu: 'alerta-atalase',
+      ca: 'llindar d’alerta',
+      en: 'alert threshold',
+    } as const;
     for (const lang of ['gl', 'eu', 'ca', 'en'] as const) {
-      expect(isNlgCatalogReady(lang)).toBe(false);
+      expect(isNlgCatalogReady(lang)).toBe(true);
       const report = repeat(lang);
-      expect(report.unavailableReason).toBe('catalog-missing');
-      expect(report.ruleIds).toEqual([]);
-      expect(report.facts).toEqual([]);
-      expect(report.formattedReportText).toBe(nlgMissingDataMessage(lang));
-      expect(report.formattedReportText).toBe(`${notice} (${lang})`);
-      expect(report.formattedReportText).not.toContain('polisomnografía');
+      expect(report.unavailableReason).toBeNull();
+      expect(report.ruleIds).toEqual(GOLD_RULE_IDS);
+      expect(report.formattedReportText).not.toBe(GOLD_ES);
+      expect(report.formattedReportText).toContain(anchor[lang]);
     }
   });
 });

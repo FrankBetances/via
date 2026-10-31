@@ -908,4 +908,215 @@ export const CA: UiStrings = {
     confirmoEstaEvaluacionRealizaraMediante: '«Confirmo que aquesta avaluació es farà mitjançant observació clínica directa i entrevista professional, no com a autoinforme familiar.»',
     aceptarContinuar: 'Acceptar i continuar',
   },
+
+  /* Contracte NLG. Mateixa forma que el castellà; les xifres són les del pla.
+   * Aquestes cadenes no es locuten. */
+  nlg: {
+    sections: {
+      executiveSummary: 'Síntesi clínica global',
+      crossFindings: 'Troballes creuades entre mòduls',
+      audiologyDomain: 'Audició',
+      voiceDomain: 'Veu',
+      languageDomain: 'Llenguatge i articulació',
+      swallowingAndSleep: 'Deglució i son',
+      neurodevelopment: 'Comunicació i neurodesenvolupament',
+      referrals: 'Derivacions suggerides',
+      auditTrailTitle: 'Traçabilitat de les regles clíniques',
+      metrologicalDisclaimer:
+        'Avís SaMD Classe IIa. El text descriu mesures i desviacions respecte dels llindars de referència. La decisió clínica correspon al professional present.',
+    },
+    ui: {
+      draftTitle: 'Síntesi clínica global',
+      draftSubtitle: 'Esborrany calculat per regles. Reviseu-lo abans de signar.',
+      observationsLabel: 'Observacions del professional',
+      observationsPlaceholder: 'Matisos o observacions que vulgueu afegir a l’esborrany...',
+      rulesBadge: 'Regles aplicades',
+      crossAlertBadge: 'Troballa creuada',
+      auditTrailToggle: 'Veure la traçabilitat de les regles',
+      signatureLabel: 'Signatura del professional',
+      missingData: 'No s’ha pogut llegir la sessió. La síntesi no està disponible.',
+    },
+    audit: {
+      columnRule: 'Regla',
+      columnModule: 'Mòdul',
+      columnMeasured: 'Valors mesurats',
+      columnEvidence: 'Font d’evidència',
+      evidenceVersion: '1.0.0',
+    },
+    rules: {
+      labelListSep: ', ',
+      labelUnavailable: 'no disponible',
+      labelEarOd: 'orella dreta',
+      labelEarOi: 'orella esquerra',
+      labelEarCl: 'camp lliure',
+      labelBandRef: 'Llindar dins del rang de referència (≤ 20 dB HL)',
+      labelBand21: 'llindar entre 21 i 40 dB HL',
+      labelBand41: 'llindar entre 41 i 70 dB HL',
+      labelBand71: 'llindar entre 71 i 90 dB HL',
+      labelBand90: 'llindar per sobre de 90 dB HL',
+      labelMorphFlat: 'corba plana (la diferència entre 500 Hz i 4000 Hz és menor de 15 dB)',
+      labelMorphDesc: 'corba descendent en aguts (4000 Hz queda almenys 15 dB per sobre de 500 Hz)',
+      labelMorphAsc: 'corba ascendent (500 Hz queda almenys 15 dB per sobre de 4000 Hz)',
+      labelMorphUnknown: 'morfologia no afirmable: falta el llindar de 500 Hz o el de 4000 Hz',
+      labelFindingCerumen: 'cerumen',
+      labelFindingOma: 'otitis mitjana aguda',
+      labelFindingPerf: 'perforació timpànica',
+      labelFindingOme: 'otitis mitjana amb efusió',
+      labelDomainVisual: 'visual',
+      labelDomainMotor: 'motor',
+      labelDomainVerbal: 'verbal',
+      labelDomainOtoscopy: 'otoscòpia',
+      labelSahsLow: 'baixa',
+      labelSahsMed: 'mitjana',
+      labelSahsHigh: 'alta',
+      labelImcRef: 'IMC en l’interval de referència',
+      labelImcSobrepeso: 'sobrepès',
+      labelImcObesidad: 'obesitat',
+      labelRiskLow: 'baixa (0–2)',
+      labelRiskMed: 'mitjana (3–7)',
+      labelRiskHigh: 'alta (8–20)',
+      labelAshaReceptive: 'recepció',
+      labelAshaExpressive: 'expressió',
+      labelAshaPragmatic: 'pragmàtica',
+      labelReasonEmpty: 'no s’ha enregistrat àudio',
+      labelReasonSilent: 'la presa no conté parla per damunt del soroll de fons',
+      labelReasonShort: 'la presa és més curta que la finestra mínima d’anàlisi',
+      labelReasonNoVoicing: 'hi ha so, però cap tram amb vibració periòdica',
+      labelReasonOther: 'anàlisi no disponible',
+      voiceWithinReference:
+        'Paràmetres acústics registrats dins dels intervals de referència orientatius per a veu pediàtrica en aquesta presa (F0, jitter, shimmer i HNR sense desviacions per sobre del llindar d’alerta).',
+      labelGrbasMissing: 'Escala perceptual GRBAS no registrada.',
+      grbasGrade: (g: string | number) => {
+        if (Number(g) === 0) {
+          return 'Escala perceptual GRBAS: grau global G0 (sense alteració perceptual registrada per l’avaluador).';
+        }
+        return `Escala perceptual GRBAS: grau global G${g} (registrat per l’avaluador).`;
+      },
+      rCross001: (ear: string | number, finding: string | number) =>
+        `${ear}: el PTA no és interpretable per la troballa d’otoscòpia (${finding}). Convé reavaluar l’audiometria quan aquesta troballa s’hagi resolt.`,
+      rCross002: (ear: string | number, pta: string | number) =>
+        `${ear}: PTA ${pta} dB HL, amb otitis mitjana amb efusió a l’otoscòpia de la mateixa orella. Hi ha concordança entre l’elevació del llindar i la troballa otoscòpica. Se suggereix valoració ORL i impedanciometria.`,
+      rCross003Disc: (pct: string | number, level: string | number) =>
+        `Reconeixement verbal ${pct} % a ${level} dB, per sota del 80 %.`,
+      rCross003Gap: (gap: string | number) =>
+        `Diferència absoluta entre l’URV i el millor PTA: ${gap} dB, per sobre de 15 dB.`,
+      rCross003: (bestPta: string | number, detail: string | number) =>
+        `Millor PTA tonal ${bestPta} dB HL, dins del rang de referència (≤ 20 dB HL). ${detail} Assenyala dissociació entre els llindars tonals i el reconeixement verbal. Se suggereix explorar el processament auditiu o la comprensió lèxica.`,
+      rCross004: (freqs: string | number, phonemes: string | number) =>
+        `Llindar per sobre de 25 dB HL a ${freqs}, amb error en fricatives o sibilants (${phonemes}). La baixada de sensibilitat en freqüències agudes pot comprometre la percepció i la producció d’aquestes consonants.`,
+      rCross005: (jitter: string | number, shimmer: string | number, hnr: string | number) =>
+        `Coexisteixen una mesura acústica glòtica fora de l’interval de referència (jitter ${jitter} %, shimmer ${shimmer} %, HNR ${hnr} dB; referència d’aquesta versió: jitter 1,04 %, shimmer 3,81 %, HNR 12 dB) i signes de compromís de seguretat deglutòria a MECV-V. Precaució laringofaríngia: correlacionar-ho a la consulta.`,
+      rCross006: (ashaDetail: string | number, score: string | number) =>
+        `Convergència de troballes comunicatives i conductuals: cribratge ASHA (${ashaDetail}) i puntuació M-CHAT-R ${score} sobre 20. Se suggereix derivació prioritària conjunta a neuropediatria i atenció precoç.`,
+      rCross007: (sahsLevel: string | number, efDetail: string | number) =>
+        `Sospita orientativa de trastorn respiratori del son (${sahsLevel}) juntament amb ${efDetail}. Convé correlacionar-ho a la consulta.`,
+      rCap001:
+        'Condicions visuals, motores, verbals i otoscòpiques verificades. Veredicte global del certificat d’aptitud: FULL.',
+      rCap002: (domains: string | number) =>
+        `Veredicte del certificat d’aptitud: PARTIAL. Dominis amb restricció: ${domains}.`,
+      rCap003:
+        'Veredicte del certificat d’aptitud: BLOCKED. La bateria estàndard no queda habilitada; calen metodologies adaptades.',
+      rAud001: (ear: string | number) => `${ear}: dades insuficients per estimar el PTA.`,
+      rAud002: (ear: string | number, pta: string | number, band: string | number, morphology: string | number) =>
+        `${ear}: PTA ${pta} dB HL. ${band}. ${morphology}.`,
+      rAud003: (ear: string | number, freqs: string | number) =>
+        `${ear}: sense resposta al nivell màxim de sortida a ${freqs}.`,
+      rAud004: (ear: string | number) =>
+        `${ear}: algun llindar supera 20 dB HL o ha quedat sense resposta al nivell màxim. Se suggereix derivació a ORL/audiologia.`,
+      rAud005: 'Camp lliure: estima la resposta de la millor orella i no permet avaluar cada orella per separat.',
+      rVer001: 'Audiometria verbal: sense estímuls presentats. Exploració incompleta.',
+      rVer002: (
+        band: string | number,
+        pct: string | number,
+        level: string | number,
+        correct: string | number,
+        presented: string | number,
+        srt: string | number,
+      ) =>
+        `Audiometria verbal, banda ${band}: reconeixement ${pct} % (${correct}/${presented}) a ${level} dB. URV/SRT estimat: ${srt} dB.`,
+      rVer003: (langLabel: string | number, borrowed: string | number) => {
+        if (Number(borrowed) === 1) {
+          return `Variant lingüística: ${langLabel}. El banc d’estímuls d’aquesta llengua és manllevat; el resultat no es compara com si el banc fos propi.`;
+        }
+        return `Variant lingüística registrada: ${langLabel}.`;
+      },
+      rVer004: (pct: string | number, level: string | number) =>
+        `Reconeixement verbal ${pct} % a ${level} dB (nivell conversacional), per sota del 80 %. Se suggereix logoaudiometria diagnòstica en un centre especialitzat.`,
+      rVoz001: (grbas: string | number) => `Tancament manual sense captura acústica. ${grbas}`,
+      rVoz002: (
+        f0: string | number,
+        jitter: string | number,
+        shimmer: string | number,
+        hnr: string | number,
+        formants: string | number,
+      ) =>
+        `Paràmetres mesurats en aquesta presa: F0 ${f0} Hz, jitter local cicle a cicle ${jitter} %, shimmer local cicle a cicle ${shimmer} %, HNR ${hnr} dB. Formants F1–F3: ${formants}.`,
+      rVoz003: (which: string | number) =>
+        `Paràmetres fora de l’interval de referència pediàtric d’aquesta versió (F0 fora de 220–320 Hz, jitter per sobre de 1,04 %, shimmer per sobre de 3,81 %, HNR per sota de 12 dB): ${which}.`,
+      rVoz004: (formantsMissing: string | number) => {
+        const note =
+          'L’estimació cicle a cicle del shimmer comprimeix la xifra entre 1,3 i 1,7 vegades respecte de Praat.';
+        if (Number(formantsMissing) === 1) {
+          return `${note} Els formants F1–F3 no s’han pogut estimar en aquesta presa.`;
+        }
+        return `${note} Els formants F1–F3 d’aquesta presa estan registrats.`;
+      },
+      rPro001: (reason: string | number) => `Presa prosòdica no vàlida o insuficient: ${reason}.`,
+      rPro002: (
+        span: string | number,
+        syllables: string | number,
+        pauses: string | number,
+        rangeSt: string | number,
+        rates: string | number,
+      ) =>
+        `Registre descriptiu de parla connectada: ${span} s, ${syllables} nuclis sil·làbics, ${pauses} pauses, rang tonal ${rangeSt} semitons, velocitat ${rates}. No hi ha barem poblacional de referència per a aquestes mesures. La lectura correspon al professional.`,
+      rArt001: 'Articulació: sense ítems avaluats. Exploració incompleta.',
+      rArt002: (evaluated: string | number, total: string | number, pct: string | number, soda: string | number) =>
+        `T.A.R.: ${evaluated} de ${total} ítems avaluats, ${pct} % de producció concordant. Desglossament SODA (substitució, omissió, distorsió, addició): ${soda}.`,
+      rArt003: (phonemes: string | number) =>
+        `Fonemes amb error sistemàtic: ${phonemes}. Se suggereix valoració logopèdica miofuncional i fonètica.`,
+      rAsh001: (band: string | number) => `Banda ${band}: fites contestades complertes en el cribratge ASHA.`,
+      rAsh002: (band: string | number, domains: string | number) =>
+        `Banda ${band}: hi ha fites no complertes i no consta bandera vermella. Dominis: ${domains}.`,
+      rAsh003: (band: string | number, domains: string | number) =>
+        `Banda ${band}: hi ha banderes vermelles no complertes. Dominis: ${domains}. Se suggereixen rutes de derivació interdisciplinària.`,
+      rAut001: 'Qüestionari M-CHAT-R incomplet. No s’emet banda de puntuació.',
+      rAut002: (score: string | number, band: string | number, rec: string | number) => {
+        const n = Number(rec);
+        if (n === 2) {
+          return `M-CHAT-R: puntuació ${score} sobre 20, banda ${band}. Se suggereix derivació directa a atenció precoç o neuropediatria.`;
+        }
+        if (n === 1) {
+          return `M-CHAT-R: puntuació ${score} sobre 20, banda ${band}. Se suggereix entrevista de seguiment.`;
+        }
+        return `M-CHAT-R: puntuació ${score} sobre 20, banda ${band}. La puntuació queda per sota de 3.`;
+      },
+      rDys001: 'MECV-V: sense signes de compromís d’eficàcia ni de seguretat en els bols avaluats.',
+      rDys002: (recom: string | number) =>
+        `Compromís d’eficàcia deglutòria (segell labial, residu oral o deglució fraccionada), sense signes de compromís respiratori. Recomanació registrada: ${recom}.`,
+      rDys003: (minSpO2: string | number, maxDrop: string | number, recom: string | number) =>
+        `Compromís de seguretat deglutòria (tos, canvi vocal o caiguda de SpO2 del 3 % o més respecte del basal). SpO2 mínima ${minSpO2} %. Caiguda màxima ${maxDrop} %. Recomanació registrada: ${recom}.`,
+      rSah001: (
+        yes: string | number,
+        total: string | number,
+        brodsky: string | number,
+        imc: string | number,
+        level: string | number,
+      ) =>
+        `PSQ de Chervin: ${yes} de ${total} respostes afirmatives. Grau amigdalar de Brodsky: ${brodsky}. ${imc}. Sospita orientativa: ${level}. La confirmació correspon a una polisomnografia a la Unitat del Son.`,
+      rEf001: 'Exploració de funcions executives: sense mini-jocs completats. No hi ha índex global.',
+      rEf002: (
+        band: string | number,
+        overall: string | number,
+        domains: string | number,
+        below: string | number,
+        anyBelow: string | number,
+      ) => {
+        if (Number(anyBelow) === 1) {
+          return `Funcions executives, banda ${band}: índex global ${overall}/100. Dominis completats: ${domains}. Per sota del llindar orientatiu (< 65/100): ${below}.`;
+        }
+        return `Funcions executives, banda ${band}: índex global ${overall}/100. Dominis completats: ${domains}. Puntuacions iguals o superiors al llindar orientatiu (≥ 65/100) en els dominis completats.`;
+      },
+    },
+  },
 };

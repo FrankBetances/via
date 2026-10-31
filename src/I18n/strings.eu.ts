@@ -907,4 +907,215 @@ export const EU: UiStrings = {
     confirmoEstaEvaluacionRealizaraMediante: '«Berresten dut ebaluazio hau behaketa kliniko zuzenaren eta elkarrizketa profesionalaren bidez egingo dela, ez familiaren autotxosten gisa.»',
     aceptarContinuar: 'Onartu eta jarraitu',
   },
+
+  /* NLG kontratua. Gaztelaniazko forma bera; zifrak planekoak dira.
+   * Kate hauek ez dira lokutatzen. */
+  nlg: {
+    sections: {
+      executiveSummary: 'Sintesi kliniko orokorra',
+      crossFindings: 'Modulu arteko aurkikuntza gurutzatuak',
+      audiologyDomain: 'Entzumena',
+      voiceDomain: 'Ahotsa',
+      languageDomain: 'Hizkuntza eta artikulazioa',
+      swallowingAndSleep: 'Irenstea eta loa',
+      neurodevelopment: 'Komunikazioa eta neurogarapena',
+      referrals: 'Iradokitako deribazioak',
+      auditTrailTitle: 'Erregela klinikoen trazabilitatea',
+      metrologicalDisclaimer:
+        'SaMD IIa Klasearen oharra. Testuak neurriak eta erreferentzia-atalaseekiko desbideratzeak deskribatzen ditu. Erabaki klinikoa bertan den profesionalari dagokio.',
+    },
+    ui: {
+      draftTitle: 'Sintesi kliniko orokorra',
+      draftSubtitle: 'Erregelek kalkulatutako zirriborroa. Berrikusi sinatu aurretik.',
+      observationsLabel: 'Profesionalaren oharrak',
+      observationsPlaceholder: 'Zirriborroari gehitu nahi dituzun ñabardurak edo oharrak...',
+      rulesBadge: 'Aplikatutako erregelak',
+      crossAlertBadge: 'Aurkikuntza gurutzatua',
+      auditTrailToggle: 'Ikusi erregelen trazabilitatea',
+      signatureLabel: 'Profesionalaren sinadura',
+      missingData: 'Ezin izan da saioa irakurri. Sintesia ez dago erabilgarri.',
+    },
+    audit: {
+      columnRule: 'Erregela',
+      columnModule: 'Modulua',
+      columnMeasured: 'Neurtutako balioak',
+      columnEvidence: 'Ebidentzia-iturria',
+      evidenceVersion: '1.0.0',
+    },
+    rules: {
+      labelListSep: ', ',
+      labelUnavailable: 'ez dago erabilgarri',
+      labelEarOd: 'eskuineko belarria',
+      labelEarOi: 'ezkerreko belarria',
+      labelEarCl: 'eremu librea',
+      labelBandRef: 'Erreferentzia-tartearen barruko atalasea (≤ 20 dB HL)',
+      labelBand21: 'atalasea 21 eta 40 dB HL artean',
+      labelBand41: 'atalasea 41 eta 70 dB HL artean',
+      labelBand71: 'atalasea 71 eta 90 dB HL artean',
+      labelBand90: 'atalasea 90 dB HL-tik gora',
+      labelMorphFlat: 'kurba laua (500 Hz eta 4000 Hz arteko aldea 15 dB baino txikiagoa da)',
+      labelMorphDesc: 'kurba beherakorra akutuetan (4000 Hz 500 Hz baino gutxienez 15 dB gorago dago)',
+      labelMorphAsc: 'kurba gorakorra (500 Hz 4000 Hz baino gutxienez 15 dB gorago dago)',
+      labelMorphUnknown: 'morfologia ezin da baieztatu: 500 Hz-ko atalasea edo 4000 Hz-koa falta da',
+      labelFindingCerumen: 'zerumena',
+      labelFindingOma: 'otitis media akutua',
+      labelFindingPerf: 'tinpanoaren zulaketa',
+      labelFindingOme: 'efusiozko otitis media',
+      labelDomainVisual: 'ikusmena',
+      labelDomainMotor: 'motorra',
+      labelDomainVerbal: 'hitzezkoa',
+      labelDomainOtoscopy: 'otoskopia',
+      labelSahsLow: 'baxua',
+      labelSahsMed: 'ertaina',
+      labelSahsHigh: 'altua',
+      labelImcRef: 'GMI erreferentzia-tartean',
+      labelImcSobrepeso: 'gainpisua',
+      labelImcObesidad: 'obesitatea',
+      labelRiskLow: 'baxua (0–2)',
+      labelRiskMed: 'ertaina (3–7)',
+      labelRiskHigh: 'altua (8–20)',
+      labelAshaReceptive: 'harrera',
+      labelAshaExpressive: 'adierazpena',
+      labelAshaPragmatic: 'pragmatika',
+      labelReasonEmpty: 'ez da audiorik erregistratu',
+      labelReasonSilent: 'hartuneak ez dauka hizketarik hondoko zarataren gainetik',
+      labelReasonShort: 'hartunea analisi-leiho minimoa baino laburragoa da',
+      labelReasonNoVoicing: 'soinua dago, baina ez dago dardara periodikoko tarterik',
+      labelReasonOther: 'analisia ez dago erabilgarri',
+      voiceWithinReference:
+        'Erregistratutako parametro akustikoak haur-ahotsaren erreferentzia-tarte orientagarrien barruan daude hartune honetan (F0, jitter, shimmer eta HNR alerta-atalasetik gora desbideratu gabe).',
+      labelGrbasMissing: 'GRBAS eskala pertzeptuala ez da erregistratu.',
+      grbasGrade: (g: string | number) => {
+        if (Number(g) === 0) {
+          return 'GRBAS eskala pertzeptuala: G0 gradu orokorra (ebaluatzaileak ez du alterazio pertzeptualik erregistratu).';
+        }
+        return `GRBAS eskala pertzeptuala: G${g} gradu orokorra (ebaluatzaileak erregistratua).`;
+      },
+      rCross001: (ear: string | number, finding: string | number) =>
+        `${ear}: PTA ez da interpretagarria otoskopiako aurkikuntzagatik (${finding}). Audiometria berrebaluatzea komeni da aurkikuntza hori konpondutakoan.`,
+      rCross002: (ear: string | number, pta: string | number) =>
+        `${ear}: PTA ${pta} dB HL, efusiozko otitis mediarekin belarri bereko otoskopian. Atalase-igoeraren eta aurkikuntza otoskopikoaren arteko bat-etortzea dago. ORL balorazioa eta inpedantziometria iradokitzen dira.`,
+      rCross003Disc: (pct: string | number, level: string | number) =>
+        `Hitzezko errekonozimendua ${pct} % ${level} dB-tan, % 80tik behera.`,
+      rCross003Gap: (gap: string | number) =>
+        `URVren eta PTA onenaren arteko alde absolutua: ${gap} dB, 15 dB-tik gora.`,
+      rCross003: (bestPta: string | number, detail: string | number) =>
+        `PTA tonal onena ${bestPta} dB HL, erreferentzia-tartearen barruan (≤ 20 dB HL). ${detail} Atalase tonalen eta hitzezko errekonozimenduaren arteko disoziazioa adierazten du. Audizio-prozesamendua edo ulermen lexikoa esploratzea iradokitzen da.`,
+      rCross004: (freqs: string | number, phonemes: string | number) =>
+        `${freqs} maiztasunetan atalasea 25 dB HL-tik gora, frikari edo sibilanteetan errorearekin (${phonemes}). Maiztasun akutuotan sentikortasun-jaitsierak kontsonante horien pertzepzioa eta ekoizpena arriskuan jar ditzake.`,
+      rCross005: (jitter: string | number, shimmer: string | number, hnr: string | number) =>
+        `Erreferentzia-tartetik kanpoko neurri akustiko glotiko bat eta MECV-Vko irenste-segurtasunaren arrisku-zeinuak batera daude (jitter ${jitter} %, shimmer ${shimmer} %, HNR ${hnr} dB; bertsio honetako erreferentzia: jitter 1,04 %, shimmer 3,81 %, HNR 12 dB). Laringe-faringe arreta: kontsultan korrelazionatu.`,
+      rCross006: (ashaDetail: string | number, score: string | number) =>
+        `Komunikazio-aurkikuntzen eta jokabide-aurkikuntzen bat-etortzea: ASHA baheketa (${ashaDetail}) eta M-CHAT-R puntuazioa 20tik ${score}. Deribazio lehentasunezkoa iradokitzen da neuropediatrian eta arreta goiztiarrean batera.`,
+      rCross007: (sahsLevel: string | number, efDetail: string | number) =>
+        `Loaren arnas-nahastearen susmo orientagarria (${sahsLevel}) eta ${efDetail}. Kontsultan korrelazionatzea komeni da.`,
+      rCap001:
+        'Ikusmeneko, motorraren, hitzezko eta otoskopiako baldintzak egiaztatuta daude. Gaitasun-ziurtagiriaren epai orokorra: FULL.',
+      rCap002: (domains: string | number) =>
+        `Gaitasun-ziurtagiriaren epaia: PARTIAL. Murrizketa duten domeinuak: ${domains}.`,
+      rCap003:
+        'Gaitasun-ziurtagiriaren epaia: BLOCKED. Bateria estandarra ez dago gaituta; metodologia egokituak behar dira.',
+      rAud001: (ear: string | number) => `${ear}: datuak ez dira nahikoak PTA estimatzeko.`,
+      rAud002: (ear: string | number, pta: string | number, band: string | number, morphology: string | number) =>
+        `${ear}: PTA ${pta} dB HL. ${band}. ${morphology}.`,
+      rAud003: (ear: string | number, freqs: string | number) =>
+        `${ear}: irteera-maila maximoan erantzunik ez ${freqs} maiztasunetan.`,
+      rAud004: (ear: string | number) =>
+        `${ear}: atalaseren batek 20 dB HL gainditzen du edo irteera-maila maximoan erantzunik gabe geratu da. ORL/audiologiara deribatzea iradokitzen da.`,
+      rAud005:
+        'Eremu librea: belarri onenaren erantzuna estimatzen du eta ez du belarri bakoitza bereiz ebaluatzen uzten.',
+      rVer001: 'Hitzezko audiometria: ez da estimulurik aurkeztu. Esplorazio osatugabea.',
+      rVer002: (
+        band: string | number,
+        pct: string | number,
+        level: string | number,
+        correct: string | number,
+        presented: string | number,
+        srt: string | number,
+      ) =>
+        `Hitzezko audiometria, ${band} banda: errekonozimendua ${pct} % (${correct}/${presented}) ${level} dB-tan. Estimaturiko URV/SRT: ${srt} dB.`,
+      rVer003: (langLabel: string | number, borrowed: string | number) => {
+        if (Number(borrowed) === 1) {
+          return `Hizkuntza-aldaera: ${langLabel}. Hizkuntza honetako estimulu-bankua mailegatua da; emaitza ez da alderatzen bankua berezkoa balitz bezala.`;
+        }
+        return `Erregistratutako hizkuntza-aldaera: ${langLabel}.`;
+      },
+      rVer004: (pct: string | number, level: string | number) =>
+        `Hitzezko errekonozimendua ${pct} % ${level} dB-tan (elkarrizketa-maila), % 80tik behera. Logoaudiometria diagnostikoa iradokitzen da zentro espezializatu batean.`,
+      rVoz001: (grbas: string | number) => `Eskuzko itxiera, kapturarik gabe. ${grbas}`,
+      rVoz002: (
+        f0: string | number,
+        jitter: string | number,
+        shimmer: string | number,
+        hnr: string | number,
+        formants: string | number,
+      ) =>
+        `Hartune honetan neurtutako parametroak: F0 ${f0} Hz, zikloz zikloko jitter lokala ${jitter} %, zikloz zikloko shimmer lokala ${shimmer} %, HNR ${hnr} dB. F1–F3 formanteak: ${formants}.`,
+      rVoz003: (which: string | number) =>
+        `Bertsio honetako haur-erreferentzia-tartetik kanpoko parametroak (F0 220–320 Hz-ko tartetik kanpo, jitter 1,04 %tik gora, shimmer 3,81 %tik gora, HNR 12 dB-tik behera): ${which}.`,
+      rVoz004: (formantsMissing: string | number) => {
+        const note = 'Shimmer-en zikloz zikloko estimazioak zifra 1,3 eta 1,7 aldiz konprimitzen du Praaten aldean.';
+        if (Number(formantsMissing) === 1) {
+          return `${note} F1–F3 formanteak ezin izan dira estimatu hartune honetan.`;
+        }
+        return `${note} Hartune honetako F1–F3 formanteak erregistratuta daude.`;
+      },
+      rPro001: (reason: string | number) => `Prosodia-hartune baliogabea edo nahikoa ez: ${reason}.`,
+      rPro002: (
+        span: string | number,
+        syllables: string | number,
+        pauses: string | number,
+        rangeSt: string | number,
+        rates: string | number,
+      ) =>
+        `Hizketa jarraituaren erregistro deskribatzailea: ${span} s, ${syllables} silaba-nukleo, ${pauses} isilune, tonu-bitartea ${rangeSt} tonuerdi, abiadura ${rates}. Neurri hauetarako ez dago populazio-erreferentziarik. Irakurketa profesionalari dagokio.`,
+      rArt001: 'Artikulazioa: ebaluatutako itemik ez. Esplorazio osatugabea.',
+      rArt002: (evaluated: string | number, total: string | number, pct: string | number, soda: string | number) =>
+        `T.A.R.: ${total} itemetik ${evaluated} ebaluatuta, ekoizpen bat-etortzailea ${pct} %. SODA banaketa (ordezkapena, omisioa, distortsioa, gehikuntza): ${soda}.`,
+      rArt003: (phonemes: string | number) =>
+        `Errore sistematikoa duten fonemak: ${phonemes}. Balorazio logopediko miofuntzionala eta fonetikoa iradokitzen da.`,
+      rAsh001: (band: string | number) => `${band} banda: erantzundako mugarriak beteta daude ASHA baheketan.`,
+      rAsh002: (band: string | number, domains: string | number) =>
+        `${band} banda: betetzeke dauden mugarriak daude eta ez dago alerta gorririk. Domeinuak: ${domains}.`,
+      rAsh003: (band: string | number, domains: string | number) =>
+        `${band} banda: bete gabeko alerta gorriak daude. Domeinuak: ${domains}. Diziplina arteko deribazio-bideak iradokitzen dira.`,
+      rAut001: 'M-CHAT-R galdetegia osatugabea da. Ez da puntuazio-bandarik ematen.',
+      rAut002: (score: string | number, band: string | number, rec: string | number) => {
+        const n = Number(rec);
+        if (n === 2) {
+          return `M-CHAT-R: puntuazioa 20tik ${score}, ${band} banda. Deribazio zuzena iradokitzen da arreta goiztiarrera edo neuropediatrian.`;
+        }
+        if (n === 1) {
+          return `M-CHAT-R: puntuazioa 20tik ${score}, ${band} banda. Jarraipen-elkarrizketa iradokitzen da.`;
+        }
+        return `M-CHAT-R: puntuazioa 20tik ${score}, ${band} banda. Puntuazioa 3tik behera dago.`;
+      },
+      rDys001: 'MECV-V: ebaluatutako boloetan ez dago eraginkortasun-arriskurik, ezta segurtasun-arriskurik ere.',
+      rDys002: (recom: string | number) =>
+        `Irenste-eraginkortasunaren arriskua (ezpain-itxiera, aho-hondarra edo irenste zatikatua), arnas-arriskuaren zeinurik gabe. Erregistratutako gomendioa: ${recom}.`,
+      rDys003: (minSpO2: string | number, maxDrop: string | number, recom: string | number) =>
+        `Irenste-segurtasunaren arriskua (eztula, ahots-aldaketa edo SpO2ren jaitsiera basalaren aldean % 3 edo gehiago). SpO2 minimoa ${minSpO2} %. Jaitsiera maximoa ${maxDrop} %. Erregistratutako gomendioa: ${recom}.`,
+      rSah001: (
+        yes: string | number,
+        total: string | number,
+        brodsky: string | number,
+        imc: string | number,
+        level: string | number,
+      ) =>
+        `Chervinen PSQ: ${total} erantzunetatik ${yes} baiezko. Brodskyren amigdala-gradua: ${brodsky}. ${imc}. Susmo orientagarria: ${level}. Berrespena Loaren Unitateko polisomnografiari dagokio.`,
+      rEf001: 'Funtzio exekutiboen esplorazioa: osatutako mini-jokorik ez. Ez dago indize orokorrik.',
+      rEf002: (
+        band: string | number,
+        overall: string | number,
+        domains: string | number,
+        below: string | number,
+        anyBelow: string | number,
+      ) => {
+        if (Number(anyBelow) === 1) {
+          return `Funtzio exekutiboak, ${band} banda: indize orokorra ${overall}/100. Osatutako domeinuak: ${domains}. Orientazio-atalasetik behera (< 65/100): ${below}.`;
+        }
+        return `Funtzio exekutiboak, ${band} banda: indize orokorra ${overall}/100. Osatutako domeinuak: ${domains}. Osatutako domeinuetan puntuazioak orientazio-atalasearen berdina edo handiagoa (≥ 65/100).`;
+      },
+    },
+  },
 };
