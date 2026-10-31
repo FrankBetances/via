@@ -165,36 +165,44 @@ describe('verbalNeedsReferral · interpretVerbal', () => {
     expect(verbalNeedsReferral(computeVerbalScore({}))).toBe(false);
   });
 
-  it('la interpretación incluye %, nivel, banda y el disclaimer de campo libre', () => {
+  it('la interpretación a 90 % trae banda, cuenta y nivel, sin la frase vieja de campo libre', () => {
     const text = interpretVerbal('D', good, null);
     expect(text).toContain('90 %');
     expect(text).toContain('9/10');
     expect(text).toContain('65 dB');
-    expect(text).toContain('voz conversacional');
-    expect(text).toContain('Banda D');
-    expect(text).toContain('no descarta una pérdida unilateral');
-    expect(text).not.toContain('derivación'); // 90 % no deriva
+    expect(text).toContain('banda D');
+    expect(text).not.toContain('no descarta');
+    expect(text).not.toContain('nivel conversacional');
+    expect(text).not.toContain('logoaudiometría');
   });
 
-  it('con discriminación alterada recomienda derivación', () => {
+  it('por debajo del 80 % a 65 dB sugiere logoaudiometría, no la derivación ORL vieja', () => {
     const text = interpretVerbal('A', bad, null);
     expect(text).toContain('40 %');
-    expect(text).toContain('derivación');
-    expect(text).toContain('ORL/audiología');
+    expect(text).toContain('nivel conversacional');
+    expect(text).toContain('por debajo del 80');
+    expect(text).toContain('logoaudiometría diagnóstica');
+    expect(text).not.toContain('ORL/audiología');
+    expect(text).not.toContain('no descarta');
   });
 
-  it('incluye los niveles secundarios y el URV cuando existen', () => {
+  it('incluye el nivel secundario y el URV con la frase del motor', () => {
     const score = computeVerbalScore(
       results([[0, 65, true], [1, 65, true], [0, 50, true], [1, 50, false]]),
     );
     const text = interpretVerbal('B', score, 50);
-    expect(text).toContain('a 50 dB (voz baja): 50 % (1/2)');
-    expect(text).toContain('URV estimado ≈ 50 dB');
+    expect(text).toContain('a 50 dB');
+    expect(text).toContain('50 %');
+    expect(text).toContain('(1/2)');
+    expect(text).toContain('URV/SRT estimado: 50 dB');
+    expect(text).not.toContain('voz baja');
+    expect(text).not.toContain('nivel conversacional');
   });
 
-  it('sin respuestas lo dice explícitamente sin recomendar derivación', () => {
+  it('sin estímulos presentados no sugiere logoaudiometría', () => {
     const text = interpretVerbal('C', computeVerbalScore({}), null);
-    expect(text).toContain('sin respuestas suficientes');
-    expect(text).not.toContain('derivación');
+    expect(text).toContain('sin estímulos presentados');
+    expect(text).not.toContain('logoaudiometría');
+    expect(text).not.toContain('sin respuestas suficientes');
   });
 });

@@ -150,7 +150,7 @@ describe('agregación e interpretación', () => {
     expect(efStatus(40)).toBe('alt');
   });
 
-  it('interpretación: señala dominios bajos y recomienda valoración', () => {
+  it('interpretación: el dominio bajo de 65 lo nombra el motor', () => {
     const text = interpretExecutiveFunctions('B', {
       attention: 90,
       inhibition: 50,
@@ -158,13 +158,19 @@ describe('agregación e interpretación', () => {
       workingMemory: 88,
       planning: 92,
     });
-    expect(text).toContain('inhibición (50)');
-    expect(text).toContain('valoración neuropsicológica');
-    expect(text).toContain('no constituye diagnóstico');
+    expect(text).toContain('banda B');
+    expect(text).toContain('81/100');
+    expect(text).toContain('inhibition 50/100');
+    expect(text).toContain('Por debajo del umbral orientativo (< 65/100)');
+    expect(text).not.toContain('valoración neuropsicológica');
+    expect(text).not.toContain('no constituye diagnóstico');
   });
 
-  it('interpretación sin datos: no interpretable', () => {
-    expect(interpretExecutiveFunctions('A', EMPTY_EF_SCORES)).toContain('no interpretable');
+  it('interpretación sin juegos completados: no hay índice global', () => {
+    const text = interpretExecutiveFunctions('A', EMPTY_EF_SCORES);
+    expect(text).toContain('sin mini-juegos completados');
+    expect(text).toContain('No hay índice global');
+    expect(text).not.toContain('no interpretable');
   });
 
   it('la batería recorre los 5 dominios', () => {
