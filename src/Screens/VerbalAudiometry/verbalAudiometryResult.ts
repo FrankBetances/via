@@ -14,6 +14,9 @@
 /*  Diseño: docs/design/audiometria-verbal.md                                  */
 /* -------------------------------------------------------------------------- */
 
+import { getUiLang } from '@/I18n/uiLang';
+import { renderVerbalInterpretation } from '@/PDF/nlgReportEngine';
+
 /** Franja de edad → lista de estímulos y modalidad de tarjeta. */
 
 export type AgeBand = 'A' | 'B' | 'C' | 'D';
@@ -220,61 +223,13 @@ export const verbalNeedsReferral = (score: VerbalScore): boolean => {
   return score.discriminationPct < DISCRIMINATION_WARN_CUT;
 };
 
-const statusText = (pct: number): string => {
-  const st = verbalDiscriminationStatus(pct);
-  if (st === 'ok') return 'reconocimiento verbal dentro de lo esperado';
-  if (st === 'warn') return 'reconocimiento verbal reducido';
-  return 'reconocimiento verbal alterado';
-};
-
 /**
- * Interpretación clínica orientativa (misma voz que `interpretAudiometry`):
- * resumen por nivel + URV + recomendación + disclaimers de campo libre.
+ * Interpretación clínica. El texto lo arma el motor NLG con las cifras del
+ * plan. La firma no cambia.
  */
 export const interpretVerbal = (
   band: AgeBand,
   score: VerbalScore,
   srtDb: number | null,
   lang: string = 'es',
-): string => {
-  const parts: string[] = [];
-
-  if (!score.presentedCount) {
-    parts.push('Audiometría verbal: sin respuestas suficientes para valorar la discriminación');
-  } else {
-    const main =
-      score.levelScores.find(ls => ls.level === DEFAULT_LEVEL) ?? score.levelScores[0];
-    parts.push(
-      `Audiometría verbal en campo libre (${BAND_LABEL[band]}): discriminación ${main.pct} % ` +
-        `(${main.correct}/${main.presented}) a ${main.level} dB` +
-        (LEVEL_LABEL[main.level] ? ` (${LEVEL_LABEL[main.level]})` : '') +
-        ` — ${statusText(main.pct)}`,
-    );
-    for (const ls of score.levelScores) {
-      if (ls.level === main.level) continue;
-      parts.push(
-        `a ${ls.level} dB` +
-          (LEVEL_LABEL[ls.level] ? ` (${LEVEL_LABEL[ls.level]})` : '') +
-          `: ${ls.pct} % (${ls.correct}/${ls.presented})`,
-      );
-    }
-    if (srtDb !== null) parts.push(`URV estimado ≈ ${srtDb} dB`);
-  }
-
-  // Variante lingüística: el banco/voz usados condicionan la comparabilidad
-  // entre informes, así que se deja constancia explícita cuando no es `es`.
-  if (lang !== 'es') {
-    parts.push(`variante lingüística: ${VERBAL_LANG_LABEL[lang] ?? lang}`);
-  }
-
-  let text = parts.join(' · ') + '.';
-  if (verbalNeedsReferral(score)) {
-    text +=
-      ' Ante indicios de dificultad de reconocimiento verbal, se recomienda derivación a un centro' +
-      ' especializado (ORL/audiología) para logoaudiometría diagnóstica.';
-  }
-  text +=
-    ' Prueba de conjunto cerrado en campo libre binaural con nivel orientativo: estima el mejor' +
-    ' oído y no descarta una pérdida unilateral.';
-  return text;
-};
+): string => renderVerbalInterpretation(band, score, srtDb, lang, getUiLang());

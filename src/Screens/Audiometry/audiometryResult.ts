@@ -1,4 +1,6 @@
 import { AudiometryThresholds } from '@/Models/Audiometry/AudiometryTest';
+import { getUiLang } from '@/I18n/uiLang';
+import { renderAudiometryInterpretation } from '@/PDF/nlgReportEngine';
 
 /* -------------------------------------------------------------------------- */
 /*  Lógica clínica de audiometría tonal (fuente única para ambas pantallas).   */
@@ -80,40 +82,5 @@ export const soundfieldNeedsReferral = (cl: Record<number, number | null>): bool
   return FREQS.some(f => cl[f] === null || cl[f]! > 20);
 };
 
-const interpretSoundfield = (cl: Record<number, number | null>): string => {
-  const p = pta(cl);
-  const s = severityOf(p);
-  const missing = FREQS.filter(f => cl[f] === null);
-  const parts: string[] = [];
-  if (p === null) {
-    parts.push('Campo libre: sin respuestas suficientes para estimar la audición');
-  } else {
-    parts.push(`Campo libre (binaural): PTA ${p} dB HL (${s?.label.toLowerCase()})`);
-  }
-  if (missing.length && p !== null) {
-    parts.push(`sin respuesta al nivel máximo en ${missing.map(f => FREQ_LABEL[String(f)]).join(', ')} Hz`);
-  }
-  let text = parts.join(' · ') + '.';
-  if (soundfieldNeedsReferral(cl)) {
-    text +=
-      ' Ante indicios de hipoacusia, se recomienda derivación a un centro especializado (ORL/audiología) para audiometría diagnóstica.';
-  }
-  text +=
-    ' Cribado orientativo sin discriminación de oído: estima el mejor oído y no descarta una pérdida unilateral.';
-  return text;
-};
-
-export const interpretAudiometry = (thresholds: AudiometryThresholds): string => {
-  if (thresholds.CL) return interpretSoundfield(thresholds.CL);
-  const od = pta(thresholds.OD);
-  const oi = pta(thresholds.OI);
-  const parts: string[] = [];
-  const describe = (label: string, v: number | null) => {
-    const s = severityOf(v);
-    if (v === null) parts.push(`${label}: sin datos suficientes`);
-    else parts.push(`${label}: PTA ${v} dB HL (${s?.label.toLowerCase()})`);
-  };
-  describe('OD', od);
-  describe('OI', oi);
-  return parts.join(' · ') + '.';
-};
+export const interpretAudiometry = (thresholds: AudiometryThresholds): string =>
+  renderAudiometryInterpretation(thresholds, getUiLang());

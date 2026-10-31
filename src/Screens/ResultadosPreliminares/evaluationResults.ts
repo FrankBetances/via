@@ -8,11 +8,17 @@ import { VerbalAudiometryRepository } from '@/Repositories/VerbalAudiometryRepos
 import { ScreeningRepository } from '@/Repositories/ScreeningRepository';
 import { ExecutiveFunctionsRepository } from '@/Repositories/ExecutiveFunctionsRepository';
 
+import { getUiLang } from '@/I18n/uiLang';
+import {
+  evaluateVoiceFacts,
+  isNlgCatalogReady,
+  nlgMissingDataMessage,
+  renderDysphagiaInterpretation,
+} from '@/PDF/nlgReportEngine';
 import { interpretAudiometry, pta, severityOf } from '@/Screens/Audiometry/audiometryResult';
-import { verbalDiscriminationStatus } from '@/Screens/VerbalAudiometry/verbalAudiometryResult';
+import { interpretVerbal, verbalDiscriminationStatus } from '@/Screens/VerbalAudiometry/verbalAudiometryResult';
 import { prosodyInterpretation } from '@/Screens/ProsodyAnalysis/prosodyResult';
-import { buildInterpretation as buildVoiceInterpretation } from '@/Screens/VoiceAnalysis/voiceAnalysisResult';
-import { efStatus } from '@/Screens/ExecutiveFunctions/executiveFunctionsGame';
+import { interpretExecutiveFunctions, efStatus } from '@/Screens/ExecutiveFunctions/executiveFunctionsGame';
 
 /* -------------------------------------------------------------------------- */
 /*  Lectura de los resultados de UNA evaluación, en tarjetas resumidas.        */
@@ -59,6 +65,9 @@ export const countResults = (cards: ResultCard[]): ResultCounts => {
  */
 export async function loadEvaluationResultCards(evaluationId: number): Promise<ResultCard[]> {
   const cards: ResultCard[] = [];
+  const lang = getUiLang();
+  const catalogReady = isNlgCatalogReady(lang);
+  const missing = nlgMissingDataMessage(lang);
 
   /** Ejecuta la lectura de un módulo aislando su fallo del resto. */
   const collect = async (label: string, read: () => Promise<void>) => {
@@ -90,8 +99,8 @@ export async function loadEvaluationResultCards(evaluationId: number): Promise<R
       cards.push({
         key: `audio-${a.id}`,
         title: a.method === 'conditioned' ? 'Audiometría Condicionada' : 'Audiometría Infantil',
-        status,
-        headline: interpretAudiometry(a.thresholds),
+        status: catalogReady ? status : 'warn',
+        headline: catalogReady ? interpretAudiometry(a.thresholds) : missing,
         metric,
       });
     });
@@ -100,28 +109,22 @@ export async function loadEvaluationResultCards(evaluationId: number): Promise<R
   await collect('análisis de voz', async () => {
     const voiceAnalyses = await VoiceAnalysisRepository.getVoiceAnalysisByEvaluation(evaluationId);
     voiceAnalyses.forEach(v => {
-      // Cierre manual: sin acústica, se muestra la valoración GRBAS registrada.
-      if (v.f0 == null || v.jitter == null || v.shimmer == null || v.hnr == null) {
-        cards.push({
-          key: `voice-${v.id}`,
-          title: 'Análisis Acústico de Voz',
-          status: v.grbas && v.grbas.g >= 1 ? 'warn' : 'ok',
-          headline: v.interpretation || 'Prueba de voz cerrada manualmente (análisis acústico no disponible).',
-          metric: v.grbas
-            ? `GRBAS G${v.grbas.g} R${v.grbas.r} B${v.grbas.b} A${v.grbas.a} S${v.grbas.s}`
-            : 'Cierre manual',
-        });
-        return;
-      }
-      const params = { f0: v.f0, jitter: v.jitter, shimmer: v.shimmer, hnr: v.hnr, formants: v.formants };
-      const interp = buildVoiceInterpretation(params);
-      const altered = interp.startsWith('Se observa');
+      const facts = catalogReady ? evaluateVoiceFacts({ voiceAnalyses: [v] }, lang) : [];
+      const headline = catalogReady ? facts.map(f => f.text).join(' ') : missing;
+      const f0 = v.f0;
+      const jitter = v.jitter;
+      const shimmer = v.shimmer;
+      const acoustic = f0 != null && jitter != null && shimmer != null && v.hnr != null;
       cards.push({
         key: `voice-${v.id}`,
         title: 'Análisis Acústico de Voz',
-        status: altered ? 'alt' : 'ok',
-        headline: interp,
-        metric: `F0 ${Math.round(v.f0)} Hz · Jitter ${v.jitter.toFixed(1)}% · Shimmer ${v.shimmer.toFixed(1)}%`,
+        status: !catalogReady || facts.some(f => f.level === 'warning') ? 'warn' : 'ok',
+        headline,
+        metric: acoustic
+          ? `F0 ${Math.round(f0)} Hz · Jitter ${jitter.toFixed(1)}% · Shimmer ${shimmer.toFixed(1)}%`
+          : v.grbas
+            ? `GRBAS G${v.grbas.g} R${v.grbas.r} B${v.grbas.b} A${v.grbas.a} S${v.grbas.s}`
+            : 'Cierre manual',
       });
     });
   });
@@ -136,8 +139,20 @@ export async function loadEvaluationResultCards(evaluationId: number): Promise<R
       cards.push({
         key: `verbal-${v.id}`,
         title: 'Audiometría Verbal',
-        status,
-        headline: v.interpretation || 'Audiometría verbal completada.',
+        status: catalogReady ? status : 'warn',
+        headline: catalogReady
+          ? interpretVerbal(
+              v.ageBand,
+              {
+                levelScores: v.levelScores,
+                presentedCount: v.presentedCount,
+                correctCount: v.correctCount,
+                discriminationPct: v.discriminationPct,
+              },
+              v.srtDb,
+              v.language,
+            )
+          : missing,
         metric: `Discriminación ${v.discriminationPct} % · ${v.correctCount}/${v.presentedCount} ítems${
           v.srtDb != null ? ` · URV ≈ ${v.srtDb} dB` : ''
         }`,
@@ -176,8 +191,16 @@ export async function loadEvaluationResultCards(evaluationId: number): Promise<R
       cards.push({
         key: `ef-${ef.id}`,
         title: 'Funciones Ejecutivas',
-        status: st,
-        headline: ef.interpretation || 'Exploración lúdica de funciones ejecutivas completada.',
+        status: catalogReady ? st : 'warn',
+        headline: catalogReady
+          ? interpretExecutiveFunctions(ef.ageBand, {
+              attention: ef.attentionScore,
+              inhibition: ef.inhibitionScore,
+              flexibility: ef.flexibilityScore,
+              workingMemory: ef.workingMemoryScore,
+              planning: ef.planningScore,
+            })
+          : missing,
         metric: `Índice global ${overall !== null ? `${overall}/100` : '—'} · banda ${ef.ageBand}`,
       });
     });
@@ -190,8 +213,18 @@ export async function loadEvaluationResultCards(evaluationId: number): Promise<R
       cards.push({
         key: `dys-${d.id}`,
         title: 'Exploración de Disfagia',
-        status,
-        headline: d.interpretation || 'Exploración MECV-V completada.',
+        status: catalogReady ? status : 'warn',
+        headline: catalogReady
+          ? renderDysphagiaInterpretation(
+              {
+                verdict: d.verdict,
+                minSpO2: d.minSpO2,
+                maxDrop: d.maxDrop,
+                recommendation: d.recommendation,
+              },
+              lang,
+            )
+          : missing,
         metric: `SpO₂ basal ${d.basalSpO2}% · mín. ${d.minSpO2 ?? '—'}%`,
       });
     });
