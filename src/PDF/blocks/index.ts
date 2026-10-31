@@ -23,6 +23,8 @@ export { ArticulationDetail } from './ArticulationDetail';
 export { VerbalAudiometryDetail } from './VerbalAudiometryDetail';
 export { ExecutiveFunctionsDetail } from './ExecutiveFunctionsDetail';
 export { AshaScreeningDetail } from './AshaScreeningDetail';
+export { NlgClinicalSynthesis } from './NlgClinicalSynthesis';
+export { NlgAuditTrail } from './NlgAuditTrail';
 
 import { ClinicalAssessmentDetail } from './ClinicalAssessmentDetail';
 import { ScreeningDetail } from './ScreeningDetail';
@@ -35,6 +37,8 @@ import { ArticulationDetail } from './ArticulationDetail';
 import { VerbalAudiometryDetail } from './VerbalAudiometryDetail';
 import { ExecutiveFunctionsDetail } from './ExecutiveFunctionsDetail';
 import { AshaScreeningDetail } from './AshaScreeningDetail';
+import { NlgClinicalSynthesis } from './NlgClinicalSynthesis';
+import { NlgAuditTrail } from './NlgAuditTrail';
 
 /**
  * Registro de bloques de informe por módulo, recorrido por
@@ -52,4 +56,6 @@ export const blocks: Record<string, PdfBlock<any>> = {
   VerbalAudiometryDetail,
   ExecutiveFunctionsDetail,
   AshaScreeningDetail,
+  NlgClinicalSynthesis,
+  NlgAuditTrail,
 };

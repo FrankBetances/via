@@ -13,6 +13,8 @@ import { ArticulationTestRepository } from '@/Repositories/ArticulationTestRepos
 import { VerbalAudiometryRepository } from '@/Repositories/VerbalAudiometryRepository';
 import { ExecutiveFunctionsRepository } from '@/Repositories/ExecutiveFunctionsRepository';
 import { AshaMilestoneTestRepository } from '@/Repositories/AshaMilestoneTestRepository';
+import { getUiLang } from '@/I18n/uiLang';
+import { evaluateSessionNlg, type NlgReportSynthesis } from '@/PDF/nlgReportEngine';
 
 /* -------------------------------------------------------------------------- */
 /*  Generador de informe PDF — VIA+.                                        */
@@ -25,11 +27,19 @@ import { AshaMilestoneTestRepository } from '@/Repositories/AshaMilestoneTestRep
 
 export interface GenerateReportOptions {
   evaluation: Evaluation;
+  /** Texto libre del clínico. No sustituye un ClinicalFact. Solo este PDF. */
+  customSynthesisNotes?: string;
+  /** Path SVG de SignaturePad. null = sin firma. No se persiste en Evaluation. */
+  clinicianSignatureSvg?: string | null;
 }
 
 const PAGE_SIZE: [number, number] = [595, 842]; // A4 @ 72dpi
 
-export async function generateReport({ evaluation }: GenerateReportOptions): Promise<Uint8Array> {
+export async function generateReport({
+  evaluation,
+  customSynthesisNotes,
+  clinicianSignatureSvg,
+}: GenerateReportOptions): Promise<Uint8Array> {
   const pdfDoc = await PDFDocument.create();
 
   const fonts = {
@@ -83,6 +93,72 @@ export async function generateReport({ evaluation }: GenerateReportOptions): Pro
     // El informe no debe fallar por no poder leer el consentimiento.
     console.warn('VIA+: no se pudo incluir el consentimiento en el informe', e);
   }
+
+  // Síntesis y trazabilidad, después de la portada y antes del primer módulo.
+  // Las reglas se calculan en esta lectura. Notas y firma no reescriben un
+  // hecho y no tienen columna: si la app se cierra, el texto libre se pierde.
+  let synthesis: NlgReportSynthesis | null = null;
+  let nlgReadFailed = false;
+  try {
+    const [
+      clinicalAssessments,
+      screenings,
+      audiometries,
+      verbalAudiometries,
+      voiceAnalyses,
+      prosodyAnalyses,
+      executiveFunctions,
+      dysphagias,
+      sahsScreenings,
+      articulations,
+      ashaTests,
+    ] = await Promise.all([
+      ClinicalAssessmentRepository.getClinicalAssessmentsByEvaluation(evaluation.id),
+      ScreeningRepository.getScreeningsByEvaluation(evaluation.id),
+      AudiometryRepository.getAudiometryByEvaluation(evaluation.id),
+      VerbalAudiometryRepository.getVerbalAudiometryByEvaluation(evaluation.id),
+      VoiceAnalysisRepository.getVoiceAnalysisByEvaluation(evaluation.id),
+      ProsodyAnalysisRepository.getProsodyAnalysisByEvaluation(evaluation.id),
+      ExecutiveFunctionsRepository.getExecutiveFunctionsByEvaluation(evaluation.id),
+      DysphagiaTestRepository.getDysphagiaByEvaluation(evaluation.id),
+      SahsScreeningRepository.getSahsScreeningsByEvaluation(evaluation.id),
+      ArticulationTestRepository.getArticulationByEvaluation(evaluation.id),
+      AshaMilestoneTestRepository.getAshaTestsByEvaluation(evaluation.id),
+    ]);
+    synthesis = evaluateSessionNlg(
+      {
+        clinicalAssessments,
+        screenings,
+        audiometries,
+        verbalAudiometries,
+        voiceAnalyses,
+        prosodyAnalyses,
+        executiveFunctions,
+        dysphagias,
+        sahsScreenings,
+        articulations,
+        ashaTests,
+      },
+      getUiLang(),
+    );
+  } catch (e) {
+    nlgReadFailed = true;
+    synthesis = null;
+    console.warn('VIA+: no se pudo leer la sesión para la síntesis NLG', e);
+  }
+
+  const synthesisPage = pdfDoc.addPage(PAGE_SIZE);
+  await blocks.NlgClinicalSynthesis(
+    {
+      synthesis,
+      notes: customSynthesisNotes,
+      signatureSvg: clinicianSignatureSvg,
+      readFailed: nlgReadFailed,
+    },
+    { page: synthesisPage, fonts, t },
+  );
+  const auditPage = pdfDoc.addPage(PAGE_SIZE);
+  await blocks.NlgAuditTrail({ synthesis, readFailed: nlgReadFailed }, { page: auditPage, fonts, t });
 
   // Module-specific report sections: una página por resultado de módulo
   // asociado a la evaluación, en el orden del Contrato de Compilación §2.
