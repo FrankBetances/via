@@ -631,6 +631,30 @@ descargado, y las imágenes de AVD no lo traen. **Eso no es una avería.**
   Android (`src/PDF/reportFile.ts`, `expo-file-system/legacy`), y la
   evaluación pasa a `completed`. **Nadie ha visto aún el selector abrirse en el
   emulador**: es lo primero que hay que probar.
+- **Sin Firebase desde el 2/11/2026 (Frank).** Se quitaron los tres módulos
+  `@react-native-firebase`, el plugin `google-services` de Gradle y la
+  configuración de Firestore. El acceso del profesional es LOCAL: contraseña
+  PBKDF2-SHA256 con sal (`src/Helpers/passwordHash.ts`, comprobada contra el
+  `crypto` de Node). Un perfil antiguo sin contraseña la crea en su primer
+  acceso. Vigilado por `scripts/__tests__/noFirebase.test.js`. **Sin
+  verificar en dispositivo**, y el coste de las 10 000 iteraciones en Hermes
+  no está medido. `ios-native/` (demostrador) **sigue llevando el SDK de
+  Firebase** en el proyecto de Xcode: no se tocó sin poder compilarlo.
+- **Un carácter fuera de WinAnsi tumba el PDF entero.** Coste real
+  (2/11/2026): «no permite exportar a PDF». Las frases del motor NLG llevan
+  «≤ 20 dB HL» y «≥ 65/100», Helvetica (WinAnsi) no los codifica y `pdf-lib`
+  lanza en `drawText` y en `widthOfTextAtSize`. Lo introdujo el propio trabajo
+  de NLG. Ahora `src/PDF/winAnsiFallback.ts` sustituye en las dos funciones
+  (≤ → <=, ₂ → 2, lo demás → ?) y `winAnsiFallback.test.ts` reproduce el fallo
+  sin la red. **Cualquier texto nuevo del PDF con símbolos pasa por ahí; no
+  añadas otra fuente sin mirarlo.**
+- **Un módulo que se guarda y no se LEE parece que no se guarda.** Coste real
+  (2/11/2026): «no guarda la evaluación ASHA». Sí se escribía, pero
+  `loadEvaluationResultCards` (Resultados preliminares e Historial) no leía
+  ASHA, y `finishModule` aterriza justo ahí. Además ASHA guardaba sin evaluación
+  activa (fila huérfana, invisible) y anunciaba «Guardado». Vigilado por
+  `evaluationResultsAsha.test.ts`. **Si añades un módulo, añádelo también a
+  `evaluationResults.ts`.**
 - **«No medido» no es «sin respuesta».** `null` en `AudiometryTest.thresholds`
   significa «no determinado»; la ausencia de respuesta al máximo va en
   `noResponseAtMax`. Los registros anteriores al 2/11/2026 no tienen esa

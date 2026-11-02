@@ -7,9 +7,11 @@ import { ProsodyAnalysisRepository } from '@/Repositories/ProsodyAnalysisReposit
 import { VerbalAudiometryRepository } from '@/Repositories/VerbalAudiometryRepository';
 import { ScreeningRepository } from '@/Repositories/ScreeningRepository';
 import { ExecutiveFunctionsRepository } from '@/Repositories/ExecutiveFunctionsRepository';
+import { AshaMilestoneTestRepository } from '@/Repositories/AshaMilestoneTestRepository';
 
 import { getUiLang } from '@/I18n/uiLang';
 import {
+  evaluateAshaFacts,
   evaluateVoiceFacts,
   isNlgCatalogReady,
   nlgMissingDataMessage,
@@ -254,6 +256,25 @@ export async function loadEvaluationResultCards(evaluationId: number): Promise<R
         status,
         headline: `${a.correctPct}% de producción correcta`,
         metric: `${a.evaluatedCount}/${a.totalCount} ítems · ${a.affectedPhonemes.length} fonema(s) afectado(s)`,
+      });
+    });
+  });
+
+  // Hitos ASHA. Faltaba: el cribado se guardaba, `finishModule` aterrizaba
+  // aquí y la tarjeta no salía nunca, ni en el historial (2/11/2026).
+  await collect('cribado de hitos ASHA', async () => {
+    const ashaTests = await AshaMilestoneTestRepository.getAshaTestsByEvaluation(evaluationId);
+    ashaTests.forEach(a => {
+      const status: ResultStatus = a.riskLevel === 'red' ? 'alt' : a.riskLevel === 'yellow' ? 'warn' : 'ok';
+      const facts = catalogReady ? evaluateAshaFacts({ ashaTests: [a] }, lang) : [];
+      cards.push({
+        key: `asha-${a.id}`,
+        title: 'Hitos del Lenguaje ASHA',
+        status: catalogReady ? status : 'warn',
+        headline: catalogReady ? facts.map(f => f.text).join(' ') : missing,
+        metric: `Banda ${a.ageBand} · ${Object.keys(a.responses ?? {}).length} hitos · ${
+          a.failedDomains?.length ? a.failedDomains.join(', ') : '—'
+        }`,
       });
     });
   });

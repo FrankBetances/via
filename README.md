@@ -74,7 +74,7 @@ VIA+ (**V**aloración **I**nteractiva de **A**udición y Lenguaje) es un **Softw
 
 ```
 ┌────────────────────────────────────────────────────────────────────────┐
-│                   DISPOSITIVO HOMOLOGADO VIA+                          │
+│        DISPOSITIVO VIA+ LLAVE EN MANO (OBJETIVO, NO IMPLEMENTADO)      │
 │                                                                        │
 │   [ Hardware COTS ]        Samsung Galaxy Tab S9 (11", IP68, AKG)      │
 │   [ Capa de Control ]      Samsung Knox Configure (Kiosk bloqueado)    │
@@ -110,10 +110,10 @@ La aplicación opera sobre **tabletas comerciales homologadas** en entornos clí
 - 🔐 **Privacidad por diseño** — Datos clínicos locales · TLS 1.3 en tránsito · seudonimización del NHC ([estado real de los controles](#controles-de-seguridad))
 - 📋 **Consentimiento informado digital** — Gestión legal obligatoria para tutores legales
 - 🏥 **Pre-screening clínico** — Certificado de Aptitud para la Prueba (CAP) integrado
-- 📦 **SaMD sobre Hardware Homologado (Llave en mano / Turnkey COTS)** — Entregado cerrado y preconfigurado en Samsung Galaxy Tab S9 (11", IP68, AKG) en Modo Kiosco / MDM (Samsung Knox Configure), con almacenamiento cifrado por hardware (Knox Vault + SQLite en reposo) y curva acústica sellada en build-time
-- 🧾 **Motor NLG Determinista para informes** — Alternativa superior a RAG en `src/PDF/nlgReportEngine.ts`: síntesis clínica combinatoria trazable sobre entidades locales TypeORM, sin alucinaciones, con borrador editable supervisado y firma en `SignaturePad`
+- 📦 **Objetivo: SaMD llave en mano sobre hardware COTS cualificado** — *Decidido, no implementado* ([plan de trabajo](./docs/PLAN-DE-TRABAJO.md)): un único modelo de tableta en quiosco gestionado por MDM, calibración acústica de fábrica y cifrado en reposo. Hoy no existe ninguna de las tres cosas
+- 🧾 **Motor NLG Determinista para informes** — Alternativa superior a RAG en `src/PDF/nlgReportEngine.ts`: síntesis clínica por reglas trazable sobre entidades locales TypeORM (sin generación estocástica: cada frase lleva la regla que la produjo), con borrador editable supervisado y firma en `SignaturePad`
 - 📄 **Informes PDF** — Generación automática estructurada mediante `pdf-lib` a partir del borrador supervisado
-- 🔑 **Identidad del profesional** — Firebase Authentication (email/contraseña) + sincronización del perfil en Firestore
+- 🔑 **Identidad del profesional** — Perfil y contraseña **locales** (PBKDF2-SHA256 con sal, verificada en el dispositivo, sin red). Sin Firebase desde el 2/11/2026
 - 🎙️ **Audio clínico medido** — Sonómetro en **dB(A)** (IEC 61672) con calibración de campo persistida y análisis acústico [validado contra Praat](#herramientas-de-build-time)
 - 👁️ **UX dual** — Modo Profesional analítico y Modo Niño lúdico en un único dispositivo
 - 🗂️ **Historial longitudinal** — Resultados de la sesión y sesiones anteriores del paciente accesibles desde el hub
@@ -166,7 +166,7 @@ VIA+ sigue siendo legalmente un **Software como Dispositivo Médico (SaMD) Clase
 
 ```
 ┌────────────────────────────────────────────────────────────────────────┐
-│                   DISPOSITIVO HOMOLOGADO VIA+                          │
+│        DISPOSITIVO VIA+ LLAVE EN MANO (OBJETIVO, NO IMPLEMENTADO)      │
 │                                                                        │
 │   [ Hardware COTS ]        Samsung Galaxy Tab S9 (11", IP68, AKG)      │
 │   [ Capa de Control ]      Samsung Knox Configure (Kiosk bloqueado)    │
@@ -183,7 +183,7 @@ VIA+ sigue siendo legalmente un **Software como Dispositivo Médico (SaMD) Clase
 | **[ Hardware COTS ]** | Samsung Galaxy Tab S9 (11", IP68, AKG, Snapdragon 8 Gen 2, 8 GB RAM, 128 GB) | Potencia garantizada para captura PCM a 48 kHz y LPC orden 20 a 60 fps constantes |
 | **[ Capa de Control ]** | Samsung Knox Configure (Kiosk bloqueado) / Android Enterprise (Headwind MDM) | Aislamiento estricto: arranque directo en VIA+, bloqueo de navegación, USB y Play Store |
 | **[ Audio Calibrado ]** | Curva en cámara anecoica vs sonómetro Clase 1 inyectada en build-time | Offset dB SPL/HL sellado de fábrica; micrófono en modo crudo (`UNPROCESSED`) |
-| **[ Cifrado ]** | Knox Vault + SQLite en reposo | Protección criptográfica respaldada por hardware de los datos clínicos locales |
+| **[ Cifrado ]** | Knox Vault + SQLite en reposo | *Objetivo F2, no implementado*: hoy la base local no está cifrada |
 | **[ Software SaMD ]** | VIA+ (Clase IIa · Regla 11 MDR 2017/745, IEC 62304 Clase B) | 13 módulos clínicos y gamificados con arquitectura offline-first |
 | **[ Informes ]** | Motor NLG Determinista (`src/PDF/nlgReportEngine.ts`) | Síntesis clínica por lógica combinatoria con borrador supervisado y firma digital |
 
@@ -269,7 +269,6 @@ via/
 │   ├── Repositories/            # Repositorios singleton por entidad
 │   ├── Database/                # DataSource + driver nitro-sqlite + migraciones
 │   ├── Services/
-│   │   ├── firebase/            # Auth (email/contraseña) + perfil professionals/{uid}
 │   │   └── local/               # Servicios locales core + por módulo
 │   ├── PDF/                     # Plantillas, bloques y motor NLG de informes clínicos
 │   │   ├── nlgReportEngine.ts   # Motor NLG Determinista (reglas combinatorias locales)
@@ -354,7 +353,7 @@ El siguiente flujo es **obligatorio** y no puede omitirse. Cada fase es un prere
       │  Borrador supervisado: pantalla de pre-informe con editor interactivo
       │  Firma digital colegiada mediante SignaturePad propio
       │  Compilación del informe PDF estructurado inmutable con pdf-lib
-      │  Datos clínicos persistidos localmente (Knox Vault + SQLite en reposo)
+      │  Datos clínicos persistidos localmente (SQLite; cifrado en reposo: objetivo F2)
       │  Telemetría de usabilidad: Likert del clínico → QR anónimo (Zero-PHI)
       │  Recompensa de Lúa (ResultadosFinal), ya con los datos sellados y solo si hay aparato
       ▼
@@ -576,13 +575,11 @@ VIA+ implementa un modelo de **privacidad por diseño** (Privacy by Design, GDPR
 | Evaluaciones, umbrales, puntuaciones | SQLite local (`viaplus.db`) | ❌ Nunca |
 | Grabaciones y capturas de audio/vídeo | Almacenamiento local del dispositivo | ❌ Nunca |
 | Informes PDF | Generados en el dispositivo | Solo si el clínico los comparte |
-| Identidad del profesional (correo, ficha) | Firebase Auth + `professionals/{uid}` | ✅ Sí (única sincronización) |
+| Identidad del profesional (correo, ficha, contraseña) | SQLite local; contraseña como PBKDF2-SHA256 con sal | ❌ Nunca |
 | Telemetría de usabilidad | Memoria (singleton efímero) | Solo si el clínico exporta el QR |
 
-> **Alcance de la nube (Firestore):** solo se sincroniza el **perfil del profesional
-> autenticado** (`professionals/{uid}`). Los datos clínicos del paciente (evaluaciones,
-> capturas de audio, informes) **permanecen locales al dispositivo y nunca llegan a
-> Firestore** — así lo imponen las reglas de seguridad de Firestore (`firestore.rules`).
+> **Sin nube.** Desde el 2/11/2026 VIA+ no usa Firebase ni ningún otro servicio remoto: ni
+> los datos clínicos ni la cuenta del profesional salen del dispositivo.
 
 La política de privacidad publicada (obligatoria para la ficha de Google Play) es la
 **declaración pública** de todo esto: [`site/privacidad.html`](./site/privacidad.html).
@@ -604,11 +601,10 @@ Las sesiones y los resultados apuntan a la fila del paciente, no al NHC.
 
 | Control | Estándar | Implementación | Estado |
 |---|---|---|---|
-| Datos clínicos sin salida a la nube | GDPR Art. 25 | Reglas de Firestore + persistencia local | 🟢 Implementado |
-| Cifrado en tránsito | TLS 1.3 | Firebase Auth/Firestore (único tráfico) | 🟢 Implementado |
+| Datos clínicos sin salida a la nube | GDPR Art. 25 | Persistencia solo local; la app no tiene servicio remoto | 🟢 Implementado |
 | Aislamiento de la telemetría | IEC 62366-1 | Singleton en memoria, Zero-PHI | 🟢 Implementado |
 | Consentimiento informado bloqueante | GDPR / LOPDGDD | Firma del tutor previa a la evaluación | 🟢 Implementado |
-| Cifrado en reposo | Knox Vault + SQLite en reposo | Almacenamiento local protegido por hardware en tableta homologada | 🟢 Integrado en modelo llave en mano |
+| Cifrado en reposo | SQLCipher o equivalente + clave en Keystore | Objetivo F2 del plan; hoy `viaplus.db` no está cifrada | 🔴 Planificado |
 | Aislamiento Kiosk y firmware congelado | Samsung Knox Configure (MDCG 2019-16) | Perfil Knox de una sola app, sin tienda ni depuración, ajustes bloqueados | 🟢 Especificación homologada |
 | Seudonimización efectiva | GDPR Art. 4(5) | Esquema listo; HMAC/AES sin cablear | 🔴 Pendiente |
 | Control de acceso | RBAC | Roles: Médico, Logopeda, Psicopedagogo, Enfermero | 🟡 Parcial |
@@ -638,7 +634,7 @@ anónimo** que el clínico o el evaluador de usabilidad captura con otro disposi
 |---|---|
 | **Sin datos del paciente** | El payload no contiene NHC, nombre, ni el `id` clínico. Nada reidentifica al paciente |
 | **`sessionId` no reversible** | 8 caracteres aleatorios (base36), **no** derivado del NHC ni del `id` |
-| **Efímero, en memoria** | Vive en un singleton de módulo; **nunca** toca Firestore, SQLite ni `redux-persist` |
+| **Efímero, en memoria** | Vive en un singleton de módulo; **nunca** toca la red, SQLite ni `redux-persist` |
 | **Aislado de lo clínico** | La captura de telemetría es independiente de las entidades y repositorios clínicos |
 
 ### Arquitectura
@@ -728,12 +724,11 @@ Cada módulo emite eventos con su granularidad natural (tiempo = respuesta; 2.ª
 | **Pulsioximetría BLE** | `react-native-ble-plx` (perfil Pulse Oximeter 0x1822) | Test de Disfagia MECV-V |
 | **Periférico de refuerzo BLE** | `react-native-ble-plx` sobre el GATT de Lúa (`src/Lua`) | Recompensa al cerrar la sesión y silencio clínico; **comparte el mismo `BleManager`** que el pulsioxímetro, ver [Lúa](#lúa-periférico-de-refuerzo) |
 | **Firma digital** | `SignaturePad` propio (`react-native-svg` + `PanResponder`) | Consentimiento informado y cierre firmado del análisis de voz; sin dependencia externa de firma |
-| **Generación de informes y síntesis** | `pdf-lib` + Motor NLG Determinista (`src/PDF/nlgReportEngine.ts`) | Alternativa superior a RAG: síntesis por lógica combinatoria sin alucinaciones + borrador editable |
+| **Generación de informes y síntesis** | `pdf-lib` + Motor NLG Determinista (`src/PDF/nlgReportEngine.ts`) | Síntesis por reglas sin generación estocástica (cada frase, trazable a su regla) + borrador editable |
 | **Telemetría de usabilidad** | `lz-string` · `react-native-qrcode-svg` (sobre `react-native-svg`) | Compresión extrema del payload Zero-PHI + código QR de cierre de batería |
-| **Identidad y backend** | Firebase (`@react-native-firebase` app/auth/firestore) | Autenticación email/contraseña + perfil del profesional en Firestore (`professionals/{uid}`) |
 | **Cifrado en tránsito** | TLS 1.3 | Obligatorio por GDPR para datos sanitarios |
-| **Cifrado en reposo** | Knox Vault + SQLite en reposo | Protección criptográfica respaldada por hardware del almacenamiento local |
-| **Autenticación** | Firebase Authentication + `authSlice` (Redux, en memoria) | Verificación de credenciales y `uid` que ancla el perfil del profesional |
+| **Cifrado en reposo** | Objetivo de la fase F2 (`docs/PLAN-DE-TRABAJO.md`) | **No implementado**: hoy `viaplus.db` no está cifrada |
+| **Autenticación** | Contraseña local (`src/Helpers/passwordHash.ts`, PBKDF2-SHA256) + `authSlice` (Redux, en memoria) | Verificación en el dispositivo, sin red |
 | **Sincronización HCE** | HL7 FHIR R4 REST API | Interoperabilidad con sistemas hospitalarios *(roadmap)* |
 | **Voz neuronal (build-time)** | Piper · Coqui TTS (Celtia) · AhoTTS (Maider) · Matxa-TTS (AINA) + ffmpeg | Síntesis de los recortes fuera del dispositivo; ver [Idiomas y Voz Neuronal](#idiomas-y-voz-neuronal) |
 | **i18n de interfaz** | Catálogo propio en `src/I18n/` (`useT()` en pantallas, `tNow()` en módulos puros) | **Porte de Valeria+**: acceso por propiedad, no por clave de texto, así que una clave mal escrita la caza `tsc`. Siete catálogos (es · gl · eu · ca · es-419 · es-DO · en) y cambio de idioma en caliente sin reiniciar. `i18next` y `react-i18next` se **retiraron**: estaban declarados y no los importaba nadie |
@@ -753,7 +748,6 @@ npm >= 9.x  o  yarn >= 1.22.x
 React Native 0.81.5 (CLI @react-native-community/cli) · módulos Expo instalados sobre flujo bare
 Xcode >= 15 (para iOS)
 Android Studio >= 2023.x (para Android) · AGP 8 (namespace en build.gradle)
-Proyecto Firebase con Authentication (email/contraseña) y Firestore habilitados
 Python 3.11 + ffmpeg      (solo para las herramientas de build-time: voz y acústica)
 ```
 
@@ -768,28 +762,14 @@ cd via
 npm ci --legacy-peer-deps
 ```
 
-### Configuración de Firebase
+### Sin servicios remotos
 
-La identidad del profesional se apoya en Firebase. Añade los archivos de configuración
-que descargas de tu proyecto de Firebase (`.firebaserc` apunta al proyecto por defecto):
+VIA+ no usa Firebase desde el 2/11/2026 ni necesita ningún fichero de configuración de un
+servicio en la nube (`google-services.json` y similares ya no existen en el proyecto). El
+perfil del profesional y su contraseña viven en la base de datos local.
 
-```bash
-# Android
-android/app/google-services.json
-
-# iOS — port nativo SwiftUI (la app RN todavía no tiene proyecto iOS, ver abajo)
-ios-native/VIAPlus/GoogleService-Info.plist
-```
-
-Puedes usar `android/app/google-services.json.example` como plantilla de la estructura
-esperada, sustituyendo los placeholders por los valores de tu proyecto.
-
-> 🔐 **NUNCA versiones los archivos de configuración de Firebase ni ningún `.env` con datos
-> reales.** Están incluidos en `.gitignore`.
->
-> ⚠️ **Identificador del paquete.** Firebase resuelve la configuración por `package_name`: la app
-> Android debe estar registrada como **`eu.futureforkids.via`** (el identificador exigido por Play
-> Console). Un `google-services.json` generado para el identificador anterior no funciona.
+> ⚠️ **Identificador del paquete.** La app Android está registrada como **`eu.futureforkids.via`**
+> (el identificador exigido por Play Console).
 
 ### Configuración de la aplicación
 
@@ -1437,8 +1417,7 @@ Earlify Health
 |---|---|
 | Módulo de Consentimiento Informado | 🟢 Integrado (bloqueante) |
 | Pre-screening clínico (CAP) | 🟢 Integrado (bloqueante) |
-| Autenticación profesional (Firebase Auth) | 🟢 Integrado |
-| Sincronización del perfil (Firestore) | 🟢 Integrado |
+| Autenticación profesional (contraseña local) | 🟡 Escrito el 2/11/2026, sin verificar en dispositivo |
 | Identificación de paciente | 🟢 Integrado |
 | Generación de informes PDF | 🟢 Integrado |
 | Resultados de sesión e historial del paciente | 🟢 Integrado |

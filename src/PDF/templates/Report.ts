@@ -16,6 +16,7 @@ import { AshaMilestoneTestRepository } from '@/Repositories/AshaMilestoneTestRep
 import { getUiLang } from '@/I18n/uiLang';
 import { CATALOGUES } from '@/I18n/catalog';
 import { evaluateSessionNlg, type NlgReportSynthesis, type RuleCategory } from '@/PDF/nlgReportEngine';
+import { installWinAnsiFallback } from '@/PDF/winAnsiFallback';
 import { NlgReportSnapshot } from '@/Models/NlgReportSnapshot/NlgReportSnapshot';
 import { NlgReportSnapshotRepository } from '@/Repositories/NlgReportSnapshotRepository';
 
@@ -77,6 +78,8 @@ export async function generateReport({
   customSynthesisNotes,
   clinicianSignatureSvg,
 }: GenerateReportOptions): Promise<GeneratedReport> {
+  // Antes de dibujar nada: «≤», «≥», «₂»… no tumban el PDF (ver el módulo).
+  installWinAnsiFallback();
   const pdfDoc = await PDFDocument.create();
 
   const fonts = {

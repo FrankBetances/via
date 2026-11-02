@@ -36,7 +36,6 @@ Agradecemos la divulgación responsable y reconoceremos tu contribución
 Entra en alcance cualquier problema que pueda:
 
 - Exponer datos clínicos de pacientes almacenados en el dispositivo.
-- Saltarse las reglas de acceso de Firestore (`firestore.rules`).
 - Filtrar PHI a través de la telemetría, los logs o Sentry.
 - Comprometer el proceso de firmado/publicación (secretos de CI, keystore).
 

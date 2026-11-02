@@ -28,7 +28,6 @@ import { AppDispatch, RootState } from '@/Store';
 import { isRoomVerified, roomNoiseLabel } from '@/Store/slices/roomNoiseSlice';
 import { setActiveEvaluation } from '@/Store/slices/activeEvaluationSlice';
 import { logout } from '@/Store/slices/authSlice';
-import { signOutQuietly } from '@/Services/firebase';
 import { Evaluation } from '@/Models/Evaluation/Evaluation';
 import { EvaluationRepository } from '@/Repositories/EvaluationRepository';
 import { PatientRepository } from '@/Repositories/PatientRepository';
@@ -457,7 +456,6 @@ export default function SeleccionEjerciciosScreen({ navigation }: Props) {
 
             <Pressable
               onPress={() => {
-                signOutQuietly();
                 dispatch(logout());
               }}>
               <HStack alignItems="center" space="xs" px="$4" py="$2" borderRadius={12} bg="#FEF2F2" borderWidth={1} borderColor="#FECACA">

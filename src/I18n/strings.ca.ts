@@ -137,6 +137,12 @@ export const CA: UiStrings = {
     genial: 'GENIAL! ⭐',
   },
   seleccionProfesional: {
+    contrasenaIncorrecta: 'Contrasenya incorrecta.',
+    perfilSinContrasena: 'Aquest perfil encara no té contrasenya en aquest dispositiu. Crea’n una (mínim 6 caràcters) per accedir.',
+    contrasenaCorta: 'La contrasenya ha de tenir almenys 6 caràcters.',
+    contrasenaNoGuardada: (reason: string) =>
+      `No s’ha pogut desar la contrasenya: ${reason}.`,
+    crearYAcceder: 'Crear i accedir →',
     col: 'Col.',
     quienVaEvaluarHoy: 'Qui farà l’avaluació avui?',
     eligeTuPerfilAccedeTu: 'Tria el teu perfil i accedeix amb la teva contrasenya',
@@ -190,6 +196,14 @@ export const CA: UiStrings = {
     viaMedicalSystemMdr2017: 'VIA+ Medical System · MDR 2017/745 · IEC 62304 / ISO 14971',
   },
   registroProfesional: {
+    perfilYaExisteTitulo: 'Aquest perfil ja existeix',
+    perfilYaExiste: 'Ja hi ha un perfil amb aquest correu o número de col·legiat en aquest dispositiu. Accedeix des de la llista de professionals.',
+    registroCompletado: 'Registre completat',
+    bienvenida: (name: string) =>
+      `Benvingut/da, ${name}.`,
+    perfilNoGuardadoTitulo: 'No s’ha pogut registrar',
+    perfilNoGuardado: (reason: string) =>
+      `El perfil no s’ha desat: ${reason}.`,
     perfilProfesionalSolaVez: 'PERFIL PROFESSIONAL · UNA SOLA VEGADA',
     creaTuPerfil: 'Crea el teu perfil',
     responsableEvaluacionesEsteDispositivo: 'Responsable de les avaluacions d’aquest dispositiu',

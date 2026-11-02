@@ -24,17 +24,18 @@ import { loginSuccess } from '@/Store/slices/authSlice';
 import { Professional, ProfessionalRole } from '@/Models/Professional/Professional';
 import { ProfessionalRepository } from '@/Repositories/ProfessionalRepository';
 import { showErrorToast } from '@/Helpers/showToast';
-import { describeAuthError, isFirebaseAvailable, signInWithEmail } from '@/Services/firebase';
+import { hashPassword, hasLocalPassword, PASSWORD_MIN_LENGTH, verifyPassword } from '@/Helpers/passwordHash';
+import { writeWithVerify } from '@/Helpers/dbWrite';
 
 import { useT } from '@/I18n';
 import { atoms } from '@/Theme/styleAtoms';
 /* -------------------------------------------------------------------------- */
 /*  SeleccionProfesionalScreen — acceso del profesional: se elige el perfil    */
-/*  del dispositivo y, si tiene cuenta (email), se pide la contraseña y se     */
-/*  verifica contra Firebase Authentication antes de abrir sesión              */
-/*  (`loginSuccess`; el gate de DefaultNavigator cambia de grupo y aterriza    */
-/*  en Pacientes). Los perfiles antiguos sin email conservan el acceso         */
-/*  directo de siempre.                                                        */
+/*  del dispositivo y se pide su contraseña, verificada EN EL DISPOSITIVO      */
+/*  (`@/Helpers/passwordHash`, PBKDF2) antes de abrir sesión (`loginSuccess`;  */
+/*  el gate de DefaultNavigator aterriza en Pacientes). VIA+ ya no usa         */
+/*  Firebase (2/11/2026). Un perfil sin contraseña local —los creados antes,   */
+/*  cuando el acceso era directo— crea la suya en el mismo modal.             */
 /*  Diseño en el lenguaje visual de Bienvenida/Créditos: saludo según la       */
 /*  hora, tarjetas con avatar en anillo de color y rol con emoji, y alta de    */
 /*  nuevo perfil como tarjeta punteada destacada.                              */
@@ -128,6 +129,8 @@ export default function SeleccionProfesionalScreen({ navigation }: Props) {
   const [password, setPassword] = useState('');
   const [authError, setAuthError] = useState<string | null>(null);
   const [isAuthenticating, setIsAuthenticating] = useState(false);
+  // true = el perfil no tiene contraseña local: el modal la CREA, no la verifica.
+  const creatingPassword = !!authTarget && !hasLocalPassword(authTarget.passwordHash);
 
   // Recarga al volver del alta de profesional.
   useFocusEffect(
@@ -168,29 +171,12 @@ export default function SeleccionProfesionalScreen({ navigation }: Props) {
     [dispatch],
   );
 
-  const handleSelect = useCallback(
-    (professional: Professional) => {
-      if (professional.email && isFirebaseAvailable()) {
-        // Cuenta con credenciales: la contraseña se verifica contra Firebase
-        // Authentication en el modal antes de abrir sesión.
-        setPassword('');
-        setAuthError(null);
-        setAuthTarget(professional);
-        return;
-      }
-      if (professional.email) {
-        // Build sin google-services.json: no hay backend contra el que
-        // verificar la contraseña, así que el perfil conserva el acceso
-        // directo (como los perfiles antiguos) en lugar de quedar bloqueado.
-        showErrorToast('Firebase no configurado', 'Acceso directo: este build no puede verificar la contraseña.');
-        openSession(professional);
-        return;
-      }
-      // Perfil antiguo sin cuenta: acceso directo como hasta ahora.
-      openSession(professional);
-    },
-    [openSession],
-  );
+  const handleSelect = useCallback((professional: Professional) => {
+    // Todos los perfiles pasan por el modal: verificar, o crear la contraseña.
+    setPassword('');
+    setAuthError(null);
+    setAuthTarget(professional);
+  }, []);
 
   const closeAuthModal = useCallback(() => {
     if (isAuthenticating) return;
@@ -200,20 +186,46 @@ export default function SeleccionProfesionalScreen({ navigation }: Props) {
   }, [isAuthenticating]);
 
   const handleConfirmPassword = useCallback(async () => {
-    if (!authTarget?.email || !password || isAuthenticating) return;
+    if (!authTarget || !password || isAuthenticating) return;
     setIsAuthenticating(true);
     setAuthError(null);
+    // PBKDF2 bloquea el hilo de JS un momento: se cede antes para que el
+    // indicador de carga llegue a pintarse.
+    await new Promise<void>(resolve => setTimeout(resolve, 0));
     try {
-      await signInWithEmail(authTarget.email, password);
+      if (!creatingPassword) {
+        if (!verifyPassword(password, authTarget.passwordHash)) {
+          setAuthError(t.seleccionProfesional.contrasenaIncorrecta);
+          return;
+        }
+      } else {
+        if (password.length < PASSWORD_MIN_LENGTH) {
+          setAuthError(t.seleccionProfesional.contrasenaCorta);
+          return;
+        }
+        const stored = hashPassword(password);
+        const updated = Object.assign(new Professional(), authTarget, { passwordHash: stored });
+        try {
+          await writeWithVerify(
+            () => ProfessionalRepository.updateProfessional(updated),
+            async () => {
+              const row = await ProfessionalRepository.getProfessionalById(authTarget.id);
+              return row && row.passwordHash === stored ? row : null;
+            },
+          );
+        } catch (e) {
+          setAuthError(t.seleccionProfesional.contrasenaNoGuardada(e instanceof Error ? e.message : String(e)));
+          return;
+        }
+      }
+      const target = authTarget;
       setAuthTarget(null);
       setPassword('');
-      openSession(authTarget);
-    } catch (e) {
-      setAuthError(describeAuthError(e));
+      openSession(target);
     } finally {
       setIsAuthenticating(false);
     }
-  }, [authTarget, password, isAuthenticating, openSession]);
+  }, [authTarget, password, isAuthenticating, openSession, creatingPassword, t]);
 
   const renderItem = useCallback(
     ({ item, index }: ListRenderItemInfo<Professional>) => (
@@ -287,7 +299,7 @@ export default function SeleccionProfesionalScreen({ navigation }: Props) {
         }
       />
 
-      {/* ----- modal de contraseña (verificación con Firebase Auth) ----- */}
+      {/* ----- modal de contraseña (verificación o alta, en el dispositivo) ----- */}
       <Modal visible={!!authTarget} transparent animationType="fade" onRequestClose={closeAuthModal}>
         <KeyboardAvoidingView style={styles.modalBackdrop} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
           <View style={styles.modalCard}>
@@ -295,7 +307,9 @@ export default function SeleccionProfesionalScreen({ navigation }: Props) {
               <Text style={styles.modalAvatarText}>{authTarget ? initials(authTarget.fullName) : ''}</Text>
             </View>
             <Text style={styles.modalTitle}>{authTarget?.fullName}</Text>
-            <Text style={styles.modalSubtitle}>{authTarget?.email}</Text>
+            <Text style={styles.modalSubtitle}>
+              {creatingPassword ? t.seleccionProfesional.perfilSinContrasena : authTarget?.email}
+            </Text>
 
             <TextInput
               style={styles.modalInput}
@@ -334,7 +348,9 @@ export default function SeleccionProfesionalScreen({ navigation }: Props) {
                 {isAuthenticating ? (
                   <ActivityIndicator color="#FFFFFF" />
                 ) : (
-                  <Text style={styles.modalConfirmText}>{t.seleccionProfesional.acceder}</Text>
+                  <Text style={styles.modalConfirmText}>
+                    {creatingPassword ? t.seleccionProfesional.crearYAcceder : t.seleccionProfesional.acceder}
+                  </Text>
                 )}
               </Pressable>
             </View>

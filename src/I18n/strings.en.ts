@@ -133,6 +133,12 @@ export const EN: UiStrings = {
     genial: 'AWESOME! ⭐',
   },
   seleccionProfesional: {
+    contrasenaIncorrecta: 'Incorrect password.',
+    perfilSinContrasena: 'This profile has no password on this device yet. Create one (at least 6 characters) to sign in.',
+    contrasenaCorta: 'The password must be at least 6 characters long.',
+    contrasenaNoGuardada: (reason: string) =>
+      `The password could not be saved: ${reason}.`,
+    crearYAcceder: 'Create and sign in →',
     col: 'Lic.',
     quienVaEvaluarHoy: 'Who is assessing today?',
     eligeTuPerfilAccedeTu: 'Pick your profile and sign in with your password',
@@ -186,6 +192,14 @@ export const EN: UiStrings = {
     viaMedicalSystemMdr2017: 'VIA+ Medical System · MDR 2017/745 · IEC 62304 / ISO 14971',
   },
   registroProfesional: {
+    perfilYaExisteTitulo: 'That profile already exists',
+    perfilYaExiste: 'A profile with that email or licence number already exists on this device. Sign in from the list of professionals.',
+    registroCompletado: 'Registration complete',
+    bienvenida: (name: string) =>
+      `Welcome, ${name}.`,
+    perfilNoGuardadoTitulo: 'Could not register',
+    perfilNoGuardado: (reason: string) =>
+      `The profile was not saved: ${reason}.`,
     perfilProfesionalSolaVez: 'CLINICIAN PROFILE · ONE TIME ONLY',
     creaTuPerfil: 'Create your profile',
     responsableEvaluacionesEsteDispositivo: 'Responsible for the assessments on this device',
