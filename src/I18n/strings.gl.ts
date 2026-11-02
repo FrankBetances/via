@@ -368,6 +368,26 @@ export const GL: UiStrings = {
   },
 
   resultadosFinal: {
+    toastNoSessionTitle: 'Sen sesión activa',
+    toastNoSessionBody: 'Non hai unha avaliación aberta.',
+    toastPdfOkTitle: 'Informe PDF gardado',
+    toastPdfSavedInApp: 'Gardado no arquivo da app.',
+    toastPdfCopySaved: 'Copia gardada no cartafol escollido.',
+    toastPdfCopyCancelled: 'Non se escolleu cartafol: só queda a copia da app.',
+    toastPdfCopyFailed: (reason: string) =>
+      `A copia externa non se puido gardar: ${reason}.`,
+    toastPdfInAppFailed: (reason: string) =>
+      `O PDF xerouse, pero non se puido gardar na app: ${reason}.`,
+    toastSnapshotFailed: (reason: string) =>
+      `A síntese asinada non se puido arquivar: ${reason}.`,
+    toastPdfErrTitle: 'Erro ao exportar',
+    toastPdfErrBody: 'Non se puido compilar o PDF.',
+    toastFinishOkTitle: 'Sesión finalizada',
+    toastFinishOkBody: 'A avaliación queda marcada como completada.',
+    toastFinishErrTitle: 'Non se puido finalizar',
+    toastFinishErrBody: (reason: string) =>
+      `A avaliación non se marcou como completada: ${reason}.`,
+    luaFinalMessage: 'Parabéns! Completaches a sesión. Lúa entrégache a insignia Campión da Comunicación.',
     audiogramaTonalDbHl: 'Audiograma tonal · dB HL',
     campoLibreBinaural: 'Campo libre · binaural',
     oidoDerechoOd: 'Oído dereito (OD)',
@@ -909,6 +929,7 @@ export const GL: UiStrings = {
    * Estas cadeas non se locutan. */
   nlg: {
     sections: {
+      examConditions: 'Condicións da exploración',
       executiveSummary: 'Síntese clínica global',
       crossFindings: 'Achados cruzados entre módulos',
       audiologyDomain: 'Audición',
@@ -922,6 +943,17 @@ export const GL: UiStrings = {
         'Aviso SaMD Clase IIa. O texto describe medidas e desvíos respecto dos limiares de referencia. A decisión clínica corresponde ao profesional presente.',
     },
     ui: {
+      referralBadge: 'Derivación suxerida',
+      warningBadge: 'Aviso',
+      statModules: 'Módulos con rexistro',
+      statWarnings: 'Avisos',
+      statCross: 'Achados cruzados',
+      statReferrals: 'Derivacións suxeridas',
+      missingModulesLabel: 'Sen rexistro nesta sesión',
+      statusOk: 'Sen desvíos',
+      statusWarn: 'Revisar',
+      statusAlt: 'Fóra de referencia',
+      signatureUnreadable: 'A sinatura debuxada non se puido reproducir no PDF. Asínese a man.',
       draftTitle: 'Síntese clínica global',
       draftSubtitle: 'Borrador calculado por regras. Revíseo antes de asinar.',
       observationsLabel: 'Observacións do profesional',
@@ -981,6 +1013,23 @@ export const GL: UiStrings = {
       labelEfPlanning: 'planificación',
       labelEfOverall: 'índice global',
       labelDecimalSep: ',',
+      labelModCap: 'certificado de aptitude',
+      labelModAudiometry: 'audiometría tonal',
+      labelModVerbal: 'audiometría verbal',
+      labelModVoice: 'análise de voz',
+      labelModProsody: 'prosodia',
+      labelModArticulation: 'articulación (T.A.R.)',
+      labelModAsha: 'fitos ASHA',
+      labelModAutism: 'M-CHAT-R',
+      labelModDysphagia: 'disfaxia (MECV-V)',
+      labelModSahs: 'cribado SAHS',
+      labelModExecutive: 'funcións executivas',
+      summaryCounts: (modules: string | number, warnings: string | number, cross: string | number, referrals: string | number) =>
+        `Módulos con rexistro: ${modules}. Avisos: ${warnings}. Achados cruzados: ${cross}. Derivacións suxeridas: ${referrals}.`,
+      summaryMissing: (list: string | number) =>
+        `Sen rexistro nesta sesión: ${list}.`,
+      referralLine: (domain: string | number, ruleIds: string | number) =>
+        `${domain}: ${ruleIds}.`,
       labelReasonEmpty: 'non se rexistrou audio',
       labelReasonSilent: 'a toma non contén fala por riba do ruído de fondo',
       labelReasonShort: 'a toma é máis curta ca a xanela mínima de análise',

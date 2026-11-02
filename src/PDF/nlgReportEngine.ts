@@ -89,6 +89,101 @@ export interface ClinicalFact {
   measured: Record<string, string | number | boolean | null>;
   evidenceRef: string;
   text: string;
+  /** La frase sugiere derivar a otro profesional (ver `REFERRAL_RULES`). */
+  referral: boolean;
+}
+
+/** Secciones de la síntesis, en el orden en que se leen. */
+export type NlgSectionKey =
+  | 'crossFindings'
+  | 'examConditions'
+  | 'audiologyDomain'
+  | 'voiceDomain'
+  | 'languageDomain'
+  | 'neurodevelopment'
+  | 'swallowingAndSleep';
+
+export const NLG_SECTION_ORDER: readonly NlgSectionKey[] = [
+  'crossFindings',
+  'examConditions',
+  'audiologyDomain',
+  'voiceDomain',
+  'languageDomain',
+  'neurodevelopment',
+  'swallowingAndSleep',
+];
+
+const SECTION_OF: Record<RuleCategory, NlgSectionKey> = {
+  cross: 'crossFindings',
+  cap: 'examConditions',
+  audiometry: 'audiologyDomain',
+  verbal: 'audiologyDomain',
+  voice: 'voiceDomain',
+  prosody: 'voiceDomain',
+  articulation: 'languageDomain',
+  asha: 'neurodevelopment',
+  autism: 'neurodevelopment',
+  executive: 'neurodevelopment',
+  dysphagia: 'swallowingAndSleep',
+  sahs: 'swallowingAndSleep',
+};
+
+/** Módulos de la batería, en orden de la matriz, con su etiqueta en `nlg.rules`. */
+const MODULE_LABEL: readonly (readonly [Exclude<RuleCategory, 'cross'>, keyof NlgPack['rules']])[] = [
+  ['cap', 'labelModCap'],
+  ['audiometry', 'labelModAudiometry'],
+  ['verbal', 'labelModVerbal'],
+  ['voice', 'labelModVoice'],
+  ['prosody', 'labelModProsody'],
+  ['articulation', 'labelModArticulation'],
+  ['asha', 'labelModAsha'],
+  ['autism', 'labelModAutism'],
+  ['dysphagia', 'labelModDysphagia'],
+  ['sahs', 'labelModSahs'],
+  ['executive', 'labelModExecutive'],
+];
+
+/**
+ * Reglas cuya frase sugiere derivar. Son las que ya lo decían en su
+ * plantilla firmada; esto no añade ninguna: solo las hace visibles juntas.
+ * `R-AUT-002` solo con `rec === 2` (derivación directa); con `rec === 1`
+ * sugiere una entrevista de seguimiento, no una derivación.
+ */
+export const REFERRAL_RULES: ReadonlySet<string> = new Set([
+  'R-AUD-004',
+  'R-VER-004',
+  'R-ART-003',
+  'R-ASH-003',
+  'R-CROSS-002',
+  'R-CROSS-003',
+  'R-CROSS-006',
+]);
+
+const isReferral = (ruleId: string, measured: Record<string, unknown>): boolean =>
+  REFERRAL_RULES.has(ruleId) || (ruleId === 'R-AUT-002' && measured.rec === 2);
+
+export interface NlgSection {
+  key: NlgSectionKey;
+  title: string;
+  facts: ClinicalFact[];
+}
+
+export interface NlgSummary {
+  modules: number;
+  warnings: number;
+  cross: number;
+  referrals: number;
+  /** Etiquetas, en la lengua del informe, de los módulos sin ningún hecho. */
+  missingModules: string[];
+  /** Líneas del resumen ya redactadas (recuento y, si procede, ausentes). */
+  lines: string[];
+}
+
+export interface NlgReferral {
+  section: NlgSectionKey;
+  title: string;
+  ruleIds: string[];
+  line: string;
 }
 
 export interface SessionEntities {
@@ -110,6 +205,12 @@ export interface NlgReportSynthesis {
   facts: ClinicalFact[];
   ruleIds: string[];
   crossModuleFindings: ClinicalFact[];
+  /** Hechos agrupados por dominio, solo las secciones con contenido. */
+  sections: NlgSection[];
+  /** `null` cuando no hay hechos o falta el catálogo. */
+  summary: NlgSummary | null;
+  /** Derivaciones sugeridas agrupadas por dominio, con sus reglas. */
+  referrals: NlgReferral[];
   formattedReportText: string;
   /**
    * `catalog-missing` cuando esa lengua no tiene bloque `nlg` (hoy gl, eu, ca
@@ -313,6 +414,7 @@ const makeFact = (
   measured,
   evidenceRef: `${ruleId}@${version}`,
   text: sentenceCase(text),
+  referral: isReferral(ruleId, measured),
 });
 
 /**
@@ -1405,6 +1507,9 @@ const emptySynthesis = (useLang: UiLang, reason: 'catalog-missing'): NlgReportSy
   facts: [],
   ruleIds: [],
   crossModuleFindings: [],
+  sections: [],
+  summary: null,
+  referrals: [],
   formattedReportText: nlgMissingDataMessage(useLang),
   unavailableReason: reason,
 });
@@ -1426,18 +1531,67 @@ export function evaluateSessionNlg(entities: SessionEntities, lang?: UiLang): Nl
     ...evaluateSahsFacts(entities, useLang),
     ...evaluateEfFacts(entities, useLang),
   ];
-  const formattedReportText =
-    facts.length === 0
-      ? ''
-      : `${facts.map(f => f.text).join('\n')}\n${nlg(useLang).sections.metrologicalDisclaimer}`;
-  return {
-    lang: useLang,
+  return assemble(facts, useLang);
+}
+
+/**
+ * Ordena los hechos en secciones, cuenta y redacta el resumen. Determinista:
+ * el orden de secciones es fijo y, dentro de cada una, el de la matriz.
+ */
+function assemble(facts: ClinicalFact[], lang: UiLang): NlgReportSynthesis {
+  const pack = nlg(lang);
+  const base = {
+    lang,
     facts,
     ruleIds: facts.map(f => f.ruleId),
     crossModuleFindings: facts.filter(f => f.category === 'cross'),
-    formattedReportText,
     unavailableReason: null,
   };
+  if (facts.length === 0) {
+    return { ...base, sections: [], summary: null, referrals: [], formattedReportText: '' };
+  }
+
+  const sections: NlgSection[] = [];
+  for (const key of NLG_SECTION_ORDER) {
+    const inSection = facts.filter(f => SECTION_OF[f.category] === key);
+    if (inSection.length) sections.push({ key, title: pack.sections[key], facts: inSection });
+  }
+
+  const referrals: NlgReferral[] = [];
+  for (const section of sections) {
+    const ids = section.facts.filter(f => f.referral).map(f => f.ruleId);
+    const unique = ids.filter((id, i) => ids.indexOf(id) === i);
+    if (!unique.length) continue;
+    referrals.push({
+      section: section.key,
+      title: section.title,
+      ruleIds: unique,
+      line: pack.rules.referralLine(section.title, unique.join(pack.rules.labelListSep)),
+    });
+  }
+
+  const present = new Set(facts.map(f => f.category));
+  const missingModules = MODULE_LABEL.filter(([cat]) => !present.has(cat)).map(
+    ([, label]) => pack.rules[label] as string,
+  );
+  const modules = MODULE_LABEL.length - missingModules.length;
+  const warnings = facts.filter(f => f.category !== 'cross' && f.level === 'warning').length;
+  const cross = base.crossModuleFindings.length;
+  const referralCount = facts.filter(f => f.referral).length;
+  const lines = [pack.rules.summaryCounts(modules, warnings, cross, referralCount)];
+  if (missingModules.length) lines.push(pack.rules.summaryMissing(missingModules.join(pack.rules.labelListSep)));
+  const summary: NlgSummary = { modules, warnings, cross, referrals: referralCount, missingModules, lines };
+
+  const out: string[] = [pack.sections.executiveSummary, ...lines];
+  for (const section of sections) {
+    out.push('', section.title, ...section.facts.map(f => f.text));
+  }
+  if (referrals.length) {
+    out.push('', pack.sections.referrals, ...referrals.map(r => r.line));
+  }
+  out.push('', pack.sections.metrologicalDisclaimer);
+
+  return { ...base, sections, summary, referrals, formattedReportText: out.join('\n') };
 }
 
 export function renderAudiometryInterpretation(

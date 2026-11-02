@@ -371,6 +371,26 @@ export const EU: UiStrings = {
   },
 
   resultadosFinal: {
+    toastNoSessionTitle: 'Saio aktiborik ez',
+    toastNoSessionBody: 'Ez dago ebaluazio irekirik.',
+    toastPdfOkTitle: 'PDF txostena gordeta',
+    toastPdfSavedInApp: 'Aplikazioaren artxiboan gordeta.',
+    toastPdfCopySaved: 'Kopia aukeratutako karpetan gordeta.',
+    toastPdfCopyCancelled: 'Ez da karpetarik aukeratu: aplikazioaren kopia bakarrik geratzen da.',
+    toastPdfCopyFailed: (reason: string) =>
+      `Kanpoko kopia ezin izan da gorde: ${reason}.`,
+    toastPdfInAppFailed: (reason: string) =>
+      `PDFa sortu da, baina ezin izan da aplikazioan gorde: ${reason}.`,
+    toastSnapshotFailed: (reason: string) =>
+      `Sinatutako sintesia ezin izan da artxibatu: ${reason}.`,
+    toastPdfErrTitle: 'Errorea esportatzean',
+    toastPdfErrBody: 'Ezin izan da PDFa konpilatu.',
+    toastFinishOkTitle: 'Saioa amaituta',
+    toastFinishOkBody: 'Ebaluazioa osatutzat markatuta geratzen da.',
+    toastFinishErrTitle: 'Ezin izan da amaitu',
+    toastFinishErrBody: (reason: string) =>
+      `Ebaluazioa ez da osatutzat markatu: ${reason}.`,
+    luaFinalMessage: 'Zorionak! Saioa osatu duzu. Lúak Komunikazioaren Txapeldun intsignia ematen dizu.',
     audiogramaTonalDbHl: 'Audiograma tonala · dB HL',
     campoLibreBinaural: 'Eremu librea · binaurala',
     oidoDerechoOd: 'Eskuineko belarria (EB)',
@@ -912,6 +932,7 @@ export const EU: UiStrings = {
    * Kate hauek ez dira lokutatzen. */
   nlg: {
     sections: {
+      examConditions: 'Azterketaren baldintzak',
       executiveSummary: 'Sintesi kliniko orokorra',
       crossFindings: 'Modulu arteko aurkikuntza gurutzatuak',
       audiologyDomain: 'Entzumena',
@@ -925,6 +946,17 @@ export const EU: UiStrings = {
         'SaMD IIa Klasearen oharra. Testuak neurriak eta erreferentzia-atalaseekiko desbideratzeak deskribatzen ditu. Erabaki klinikoa bertan den profesionalari dagokio.',
     },
     ui: {
+      referralBadge: 'Iradokitako deribazioa',
+      warningBadge: 'Abisua',
+      statModules: 'Erregistroa duten moduluak',
+      statWarnings: 'Abisuak',
+      statCross: 'Aurkikuntza gurutzatuak',
+      statReferrals: 'Iradokitako deribazioak',
+      missingModulesLabel: 'Saio honetan erregistrorik gabe',
+      statusOk: 'Desbiderik gabe',
+      statusWarn: 'Berrikusi',
+      statusAlt: 'Erreferentziatik kanpo',
+      signatureUnreadable: 'Marraztutako sinadura ezin izan da PDFan erreproduzitu. Sinatu eskuz.',
       draftTitle: 'Sintesi kliniko orokorra',
       draftSubtitle: 'Erregelek kalkulatutako zirriborroa. Berrikusi sinatu aurretik.',
       observationsLabel: 'Profesionalaren oharrak',
@@ -984,6 +1016,23 @@ export const EU: UiStrings = {
       labelEfPlanning: 'plangintza',
       labelEfOverall: 'indize globala',
       labelDecimalSep: ',',
+      labelModCap: 'gaitasun-ziurtagiria',
+      labelModAudiometry: 'tonu-audiometria',
+      labelModVerbal: 'hitzezko audiometria',
+      labelModVoice: 'ahots-analisia',
+      labelModProsody: 'prosodia',
+      labelModArticulation: 'artikulazioa (T.A.R.)',
+      labelModAsha: 'ASHA mugarriak',
+      labelModAutism: 'M-CHAT-R',
+      labelModDysphagia: 'disfagia (MECV-V)',
+      labelModSahs: 'SAHS baheketa',
+      labelModExecutive: 'funtzio exekutiboak',
+      summaryCounts: (modules: string | number, warnings: string | number, cross: string | number, referrals: string | number) =>
+        `Erregistroa duten moduluak: ${modules}. Abisuak: ${warnings}. Aurkikuntza gurutzatuak: ${cross}. Iradokitako deribazioak: ${referrals}.`,
+      summaryMissing: (list: string | number) =>
+        `Saio honetan erregistrorik gabe: ${list}.`,
+      referralLine: (domain: string | number, ruleIds: string | number) =>
+        `${domain}: ${ruleIds}.`,
       labelReasonEmpty: 'ez da audiorik erregistratu',
       labelReasonSilent: 'hartuneak ez dauka hizketarik hondoko zarataren gainetik',
       labelReasonShort: 'hartunea analisi-leiho minimoa baino laburragoa da',

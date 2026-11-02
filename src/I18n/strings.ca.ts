@@ -372,6 +372,26 @@ export const CA: UiStrings = {
   },
 
   resultadosFinal: {
+    toastNoSessionTitle: 'Sense sessió activa',
+    toastNoSessionBody: 'No hi ha cap avaluació oberta.',
+    toastPdfOkTitle: 'Informe PDF desat',
+    toastPdfSavedInApp: 'Desat a l’arxiu de l’app.',
+    toastPdfCopySaved: 'Còpia desada a la carpeta triada.',
+    toastPdfCopyCancelled: 'No s’ha triat cap carpeta: només queda la còpia de l’app.',
+    toastPdfCopyFailed: (reason: string) =>
+      `La còpia externa no s’ha pogut desar: ${reason}.`,
+    toastPdfInAppFailed: (reason: string) =>
+      `El PDF s’ha generat, però no s’ha pogut desar a l’app: ${reason}.`,
+    toastSnapshotFailed: (reason: string) =>
+      `La síntesi signada no s’ha pogut arxivar: ${reason}.`,
+    toastPdfErrTitle: 'Error en exportar',
+    toastPdfErrBody: 'No s’ha pogut compilar el PDF.',
+    toastFinishOkTitle: 'Sessió finalitzada',
+    toastFinishOkBody: 'L’avaluació queda marcada com a completada.',
+    toastFinishErrTitle: 'No s’ha pogut finalitzar',
+    toastFinishErrBody: (reason: string) =>
+      `L’avaluació no s’ha marcat com a completada: ${reason}.`,
+    luaFinalMessage: 'Enhorabona! Has completat la sessió. La Lúa et lliura la insígnia Campiona de la Comunicació.',
     audiogramaTonalDbHl: 'Audiograma tonal · dB HL',
     campoLibreBinaural: 'Camp lliure · binaural',
     oidoDerechoOd: 'Orella dreta (OD)',
@@ -913,6 +933,7 @@ export const CA: UiStrings = {
    * Aquestes cadenes no es locuten. */
   nlg: {
     sections: {
+      examConditions: 'Condicions de l’exploració',
       executiveSummary: 'Síntesi clínica global',
       crossFindings: 'Troballes creuades entre mòduls',
       audiologyDomain: 'Audició',
@@ -926,6 +947,17 @@ export const CA: UiStrings = {
         'Avís SaMD Classe IIa. El text descriu mesures i desviacions respecte dels llindars de referència. La decisió clínica correspon al professional present.',
     },
     ui: {
+      referralBadge: 'Derivació suggerida',
+      warningBadge: 'Avís',
+      statModules: 'Mòduls amb registre',
+      statWarnings: 'Avisos',
+      statCross: 'Troballes creuades',
+      statReferrals: 'Derivacions suggerides',
+      missingModulesLabel: 'Sense registre en aquesta sessió',
+      statusOk: 'Sense desviacions',
+      statusWarn: 'Revisar',
+      statusAlt: 'Fora de referència',
+      signatureUnreadable: 'La signatura dibuixada no s’ha pogut reproduir al PDF. Signeu a mà.',
       draftTitle: 'Síntesi clínica global',
       draftSubtitle: 'Esborrany calculat per regles. Reviseu-lo abans de signar.',
       observationsLabel: 'Observacions del professional',
@@ -985,6 +1017,23 @@ export const CA: UiStrings = {
       labelEfPlanning: 'planificació',
       labelEfOverall: 'índex global',
       labelDecimalSep: ',',
+      labelModCap: 'certificat d’aptitud',
+      labelModAudiometry: 'audiometria tonal',
+      labelModVerbal: 'audiometria verbal',
+      labelModVoice: 'anàlisi de veu',
+      labelModProsody: 'prosòdia',
+      labelModArticulation: 'articulació (T.A.R.)',
+      labelModAsha: 'fites ASHA',
+      labelModAutism: 'M-CHAT-R',
+      labelModDysphagia: 'disfàgia (MECV-V)',
+      labelModSahs: 'cribratge SAHS',
+      labelModExecutive: 'funcions executives',
+      summaryCounts: (modules: string | number, warnings: string | number, cross: string | number, referrals: string | number) =>
+        `Mòduls amb registre: ${modules}. Avisos: ${warnings}. Troballes creuades: ${cross}. Derivacions suggerides: ${referrals}.`,
+      summaryMissing: (list: string | number) =>
+        `Sense registre en aquesta sessió: ${list}.`,
+      referralLine: (domain: string | number, ruleIds: string | number) =>
+        `${domain}: ${ruleIds}.`,
       labelReasonEmpty: 'no s’ha enregistrat àudio',
       labelReasonSilent: 'la presa no conté parla per damunt del soroll de fons',
       labelReasonShort: 'la presa és més curta que la finestra mínima d’anàlisi',

@@ -76,6 +76,17 @@ export class EvaluationRepository {
     await repository.update(evaluationId, { consentSignedAt: signedAt });
   }
 
+  /**
+   * Cierra la evaluación: `completed` y la hora. Hasta el 2/11/2026 nada la
+   * marcaba nunca, «Finalizar» decía «sellada y archivada» y el historial la
+   * seguía pintando «en curso». UPDATE parcial, como `markConsentSigned`.
+   */
+  static async markCompleted(evaluationId: number, completedAt: Date): Promise<void> {
+    const instance: EvaluationRepository = this.getInstance();
+    const repository: Repository<Evaluation> = await instance.getRepository();
+    await repository.update(evaluationId, { status: 'completed', completedAt });
+  }
+
   static async getEvaluationById(id: number): Promise<Evaluation | null> {
     const instance: EvaluationRepository = this.getInstance();
     try {

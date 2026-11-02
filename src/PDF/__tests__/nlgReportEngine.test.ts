@@ -2,6 +2,7 @@ import {
   evaluateSessionNlg,
   evaluateVoiceFacts,
   isNlgCatalogReady,
+  REFERRAL_RULES,
   type ClinicalFact,
   type SessionEntities,
 } from '@/PDF/nlgReportEngine';
@@ -578,6 +579,57 @@ describe('nlgReportEngine · null y bordes del plan', () => {
   it('la lengua prestada avisa y el banco propio no', () => {
     expect(textOf(verbal({ language: 'ca' }), 'R-VER-003')).toContain('prestado');
     expect(textOf(verbal({ language: 'es' }), 'R-VER-003')).not.toContain('prestado');
+  });
+});
+
+describe('nlgReportEngine · estructura de la síntesis', () => {
+  const busy = (): SessionEntities => ({
+    ...cap('FULL'),
+    ...air(ear(30)),
+    ...verbal({ levelScores: [{ level: 65, presented: 10, correct: 6, pct: 60 }] }),
+    ...dys({ bolus: [] }),
+  });
+
+  it('agrupa por dominio en orden fijo y sin repetir hechos', () => {
+    const report = reportOf(busy());
+    expect(report.sections.map(s => s.key)).toEqual(['examConditions', 'audiologyDomain', 'swallowingAndSleep']);
+    const inSections = report.sections.flatMap(s => s.facts);
+    expect(inSections).toHaveLength(report.facts.length);
+    expect(new Set(inSections)).toEqual(new Set(report.facts));
+  });
+
+  it('las derivaciones salen juntas y con sus reglas, sin añadir ninguna', () => {
+    const report = reportOf(busy());
+    expect(report.referrals).toHaveLength(1);
+    expect(report.referrals[0].section).toBe('audiologyDomain');
+    expect(report.referrals[0].ruleIds).toEqual(['R-AUD-004', 'R-VER-004']);
+    for (const fact of report.facts) {
+      expect(fact.referral).toBe(REFERRAL_RULES.has(fact.ruleId));
+    }
+    expect(report.formattedReportText).toContain('Derivaciones sugeridas\nAudición: R-AUD-004, R-VER-004.');
+  });
+
+  it('M-CHAT: solo la derivación directa cuenta como derivación', () => {
+    const fact = (score: number) => factOf(mchat(score, true), 'R-AUT-002');
+    expect(fact(8)?.referral).toBe(true);
+    expect(fact(3)?.referral).toBe(false);
+    expect(fact(0)?.referral).toBe(false);
+  });
+
+  it('el resumen cuenta y nombra los módulos sin registro', () => {
+    const summary = reportOf(busy()).summary;
+    expect(summary?.modules).toBe(4);
+    expect(summary?.missingModules).toContain('análisis de voz');
+    expect(summary?.missingModules).not.toContain('audiometría tonal');
+    expect(summary?.lines[1]).toMatch(/^Sin registro en esta sesión: /);
+    expect(summary?.referrals).toBe(3); // R-AUD-004 en cada oído y R-VER-004
+  });
+
+  it('una sesión vacía no tiene secciones ni resumen', () => {
+    const empty = evaluateSessionNlg({}, 'es');
+    expect(empty.sections).toEqual([]);
+    expect(empty.summary).toBeNull();
+    expect(empty.referrals).toEqual([]);
   });
 });
 

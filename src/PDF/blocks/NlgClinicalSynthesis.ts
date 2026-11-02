@@ -15,8 +15,9 @@ import type { PdfBlockOptions, PdfFonts } from './types';
 
 /* -------------------------------------------------------------------------- */
 /*  Síntesis clínica del informe. El texto llega ya renderizado del motor.    */
-/*  Este bloque no redacta frases clínicas: pinta ese texto, los títulos de   */
-/*  sección del catálogo y, aparte, las observaciones y la firma del clínico. */
+/*  Este bloque no redacta frases clínicas: pinta el resumen, las secciones   */
+/*  por dominio y las derivaciones que arma el motor, y aparte las            */
+/*  observaciones y la firma del clínico.                                     */
 /* -------------------------------------------------------------------------- */
 
 const PAGE: [number, number] = [595, 842];
@@ -145,30 +146,39 @@ export async function NlgClinicalSynthesis(
   if (failed) {
     y = await drawWrapped(cursor, y, notice, fonts.regular, PDF_FONT_SIZES.md, fonts, t);
   } else {
+    const pack = CATALOGUES[lang].nlg;
     const title = sectionLabel(lang, 'executiveSummary');
     if (title) {
       y = await drawWrapped(cursor, y, title, fonts.semiBold, PDF_FONT_SIZES.xl, fonts, t);
     }
-    const cross = synthesis.crossModuleFindings;
-    if (cross.length > 0) {
-      const heading = sectionLabel(lang, 'crossFindings');
-      if (heading) {
-        y = await drawWrapped(cursor, y, heading, fonts.semiBold, PDF_FONT_SIZES.lg, fonts, t);
-      }
-      for (const fact of cross) {
-        y = await drawWrapped(cursor, y, fact.text, fonts.regular, PDF_FONT_SIZES.md, fonts, t);
+    // Resumen: recuento y módulos sin registro (nada desaparece en silencio).
+    for (const line of synthesis.summary?.lines ?? []) {
+      y = await drawWrapped(cursor, y, line, fonts.regular, PDF_FONT_SIZES.md, fonts, t);
+    }
+    // Un dominio por sección. El aviso y la derivación se marcan con texto,
+    // no solo con color: el PDF se imprime en blanco y negro.
+    for (const section of synthesis.sections) {
+      y -= 6;
+      y = await drawWrapped(cursor, y, section.title, fonts.semiBold, PDF_FONT_SIZES.lg, fonts, t);
+      for (const fact of section.facts) {
+        const marks: string[] = [];
+        if (fact.referral) marks.push(pack.ui.referralBadge);
+        else if (fact.level === 'warning') marks.push(pack.ui.warningBadge);
+        const prefix = marks.length ? `[${marks.join(' · ')}] ` : '';
+        const font = fact.referral ? fonts.semiBold : fonts.regular;
+        y = await drawWrapped(cursor, y, `${prefix}${fact.text}`, font, PDF_FONT_SIZES.md, fonts, t);
       }
     }
-    for (const fact of synthesis.facts) {
-      if (fact.category === 'cross') continue;
-      y = await drawWrapped(cursor, y, fact.text, fonts.regular, PDF_FONT_SIZES.md, fonts, t);
+    if (synthesis.referrals.length) {
+      y -= 6;
+      y = await drawWrapped(cursor, y, pack.sections.referrals, fonts.semiBold, PDF_FONT_SIZES.lg, fonts, t);
+      for (const referral of synthesis.referrals) {
+        y = await drawWrapped(cursor, y, referral.line, fonts.regular, PDF_FONT_SIZES.md, fonts, t);
+      }
     }
     if (synthesis.facts.length > 0) {
-      const lines = synthesis.formattedReportText.split('\n');
-      const disclaimer = lines[lines.length - 1] ?? '';
-      if (disclaimer.trim()) {
-        y = await drawWrapped(cursor, y, disclaimer, fonts.regular, PDF_FONT_SIZES.sm, fonts, t);
-      }
+      y -= 6;
+      y = await drawWrapped(cursor, y, pack.sections.metrologicalDisclaimer, fonts.regular, PDF_FONT_SIZES.sm, fonts, t);
     }
   }
 
@@ -207,7 +217,12 @@ export async function NlgClinicalSynthesis(
         borderWidth: 1,
       });
     } catch {
-      // Un trazo ilegible no tumba el informe. La síntesis ya está pintada.
+      // Un trazo ilegible no tumba el informe, pero tampoco se pierde en
+      // silencio (regla 4): el PDF dice que hay que firmar a mano.
+      const unreadable = isNlgCatalogReady(lang)
+        ? CATALOGUES[lang].nlg.ui.signatureUnreadable
+        : CATALOGUES.es.nlg.ui.signatureUnreadable;
+      y = await drawWrapped(cursor, y, unreadable, fonts.semiBold, PDF_FONT_SIZES.md, fonts, t);
     }
   }
 

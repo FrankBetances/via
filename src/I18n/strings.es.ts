@@ -434,6 +434,26 @@ export const ES = {
     verInformeDetallado: 'Ver Informe Detallado',
   },
   resultadosFinal: {
+    toastNoSessionTitle: 'Sin sesión activa',
+    toastNoSessionBody: 'No hay una evaluación abierta.',
+    toastPdfOkTitle: 'Informe PDF guardado',
+    toastPdfSavedInApp: 'Guardado en el archivo de la app.',
+    toastPdfCopySaved: 'Copia guardada en la carpeta elegida.',
+    toastPdfCopyCancelled: 'No se eligió carpeta: solo queda la copia de la app.',
+    toastPdfCopyFailed: (reason: string) =>
+      `La copia externa no se pudo guardar: ${reason}.`,
+    toastPdfInAppFailed: (reason: string) =>
+      `El PDF se generó, pero no se pudo guardar en la app: ${reason}.`,
+    toastSnapshotFailed: (reason: string) =>
+      `La síntesis firmada no se pudo archivar: ${reason}.`,
+    toastPdfErrTitle: 'Error al exportar',
+    toastPdfErrBody: 'No se pudo compilar el PDF.',
+    toastFinishOkTitle: 'Sesión finalizada',
+    toastFinishOkBody: 'La evaluación queda marcada como completada.',
+    toastFinishErrTitle: 'No se pudo finalizar',
+    toastFinishErrBody: (reason: string) =>
+      `La evaluación no se marcó como completada: ${reason}.`,
+    luaFinalMessage: '¡Enhorabuena! Has completado la sesión. Lúa te entrega la insignia Campeón de la Comunicación.',
     audiogramaTonalDbHl: 'Audiograma tonal · dB HL',
     campoLibreBinaural: 'Campo libre · binaural',
     oidoDerechoOd: 'Oído derecho (OD)',
@@ -970,6 +990,7 @@ export const ES = {
    * Estas cadenas no se locutan: no entran en el corpus de voz. */
   nlg: {
     sections: {
+      examConditions: 'Condiciones de la exploración',
       executiveSummary: 'Síntesis clínica global',
       crossFindings: 'Hallazgos cruzados entre módulos',
       audiologyDomain: 'Audición',
@@ -982,6 +1003,17 @@ export const ES = {
       metrologicalDisclaimer: 'Aviso SaMD Clase IIa. El texto describe medidas y desvíos respecto a umbrales de referencia. La decisión clínica corresponde al profesional presente.',
     },
     ui: {
+      referralBadge: 'Derivación sugerida',
+      warningBadge: 'Aviso',
+      statModules: 'Módulos con registro',
+      statWarnings: 'Avisos',
+      statCross: 'Hallazgos cruzados',
+      statReferrals: 'Derivaciones sugeridas',
+      missingModulesLabel: 'Sin registro en esta sesión',
+      statusOk: 'Sin desvíos',
+      statusWarn: 'Revisar',
+      statusAlt: 'Fuera de referencia',
+      signatureUnreadable: 'La firma dibujada no se pudo reproducir en el PDF. Fírmese a mano.',
       draftTitle: 'Síntesis clínica global',
       draftSubtitle: 'Borrador calculado por reglas. Revíselo antes de firmar.',
       observationsLabel: 'Observaciones del profesional',
@@ -1041,6 +1073,23 @@ export const ES = {
       labelEfPlanning: 'planificación',
       labelEfOverall: 'índice global',
       labelDecimalSep: ',',
+      labelModCap: 'certificado de aptitud',
+      labelModAudiometry: 'audiometría tonal',
+      labelModVerbal: 'audiometría verbal',
+      labelModVoice: 'análisis de voz',
+      labelModProsody: 'prosodia',
+      labelModArticulation: 'articulación (T.A.R.)',
+      labelModAsha: 'hitos ASHA',
+      labelModAutism: 'M-CHAT-R',
+      labelModDysphagia: 'disfagia (MECV-V)',
+      labelModSahs: 'cribado SAHS',
+      labelModExecutive: 'funciones ejecutivas',
+      summaryCounts: (modules: string | number, warnings: string | number, cross: string | number, referrals: string | number) =>
+        `Módulos con registro: ${modules}. Avisos: ${warnings}. Hallazgos cruzados: ${cross}. Derivaciones sugeridas: ${referrals}.`,
+      summaryMissing: (list: string | number) =>
+        `Sin registro en esta sesión: ${list}.`,
+      referralLine: (domain: string | number, ruleIds: string | number) =>
+        `${domain}: ${ruleIds}.`,
       labelReasonEmpty: 'no se registró audio',
       labelReasonSilent: 'la toma no contiene habla por encima del ruido de fondo',
       labelReasonShort: 'la toma es más corta que la ventana mínima de análisis',
