@@ -43,6 +43,8 @@ export interface GenerateReportOptions {
  */
 export interface GeneratedReport {
   bytes: Uint8Array;
+  /** El mismo PDF en base64, para escribirlo a fichero (`@/PDF/reportFile`). */
+  base64: string;
   snapshotSaved: boolean;
   snapshotError: string | null;
 }
@@ -273,6 +275,7 @@ export async function generateReport({
   }
 
   const bytes = await pdfDoc.save();
+  const base64 = await pdfDoc.saveAsBase64();
 
   // Constancia de lo firmado: texto exacto, reglas, versión, notas y firma.
   let snapshotSaved = false;
@@ -307,5 +310,5 @@ export async function generateReport({
     snapshotError = e instanceof Error ? e.message : String(e);
   }
 
-  return { bytes, snapshotSaved, snapshotError };
+  return { bytes, base64, snapshotSaved, snapshotError };
 }

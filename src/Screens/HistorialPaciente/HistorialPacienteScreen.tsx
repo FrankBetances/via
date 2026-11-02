@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { STATUS_TONE } from '@/Theme/clinicalTone';
 import { ScrollView } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { Box, Card, HStack, Icon, VStack } from '@gluestack-ui/themed';
@@ -33,11 +34,6 @@ import { atoms } from '@/Theme/styleAtoms';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'HistorialPaciente'>;
 
-const STATUS_TOKENS: Record<ResultStatus, { fg: string; bg: string; label: string }> = {
-  ok: { fg: '$success700', bg: '$success50', label: 'Normal' },
-  warn: { fg: '$warning800', bg: '$warning50', label: 'Revisar' },
-  alt: { fg: '$error700', bg: '$error50', label: 'Alterado' },
-};
 
 interface SessionBlock {
   evaluationId: number;
@@ -53,6 +49,13 @@ const formatDate = (d: Date | null): string => {
 
 export default function HistorialPacienteScreen({ navigation, route }: Props) {
   const t = useT();
+  // Colores con significado fijo (`@/Theme/clinicalTone`) y etiqueta del
+  // catálogo: antes, «Normal» en castellano fijo y con contraste < 4,5:1.
+  const STATUS_TOKENS: Record<ResultStatus, { fg: string; bg: string; label: string }> = {
+    ok: { ...STATUS_TONE.ok, label: t.nlg.ui.statusOk },
+    warn: { ...STATUS_TONE.warn, label: t.nlg.ui.statusWarn },
+    alt: { ...STATUS_TONE.alt, label: t.nlg.ui.statusAlt },
+  };
   const { patientId, patientName, nhc } = route.params;
 
   const [sessions, setSessions] = useState<SessionBlock[]>([]);

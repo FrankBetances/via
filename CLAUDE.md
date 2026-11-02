@@ -72,7 +72,15 @@ nuevo**, no se busca un equivalente y no se sustituye una pieza por otra
 «parecida». Inventar donde ya hay algo probado no es criterio de ingeniería,
 es preferencia propia disfrazada.
 
-**Valeria+ (`github.com/FrankBetances/Valeria`) es la referencia.** Si Frank
+**Alcance de Valeria+ (Frank, 2/11/2026).** Valeria+ es un proyecto
+**exclusivamente educativo**; su aspecto clínico se descartó hace meses. Es
+referencia SOLO de lo que dice la tabla de abajo (arquitectura de voz, audio y
+ASR). **No es referencia de UX/UI, de diseño ni de nada clínico, y no se cita
+en esas decisiones.** Cuando Frank pide mejorar VIA+, se trabaja en VIA+: no se
+propone pilotar primero en Valeria+ ni se espera a lo que haga allí.
+
+**Valeria+ (`github.com/FrankBetances/Valeria`) es la referencia** de la
+arquitectura de voz, audio y ASR. Si Frank
 dice «copia la arquitectura de Valeria», se copia: mismas librerías, mismas
 versiones, mismo patrón de uso. No se buscan equivalentes. No se sustituye un
 motor por otro «parecido».
@@ -616,6 +624,13 @@ descargado, y las imágenes de AVD no lo traen. **Eso no es una avería.**
   de 65 dB «pérdida severa» en la tarjeta y «entre 41 y 70» en la síntesis. Todo
   corte que pinte o redacte va en `src/PDF/nlgThresholds.ts`; la paridad la
   vigila `nlgReportEngine.test.ts`.
+- **El PDF ya se guarda y «Finalizar» ya cierra la evaluación (2/11/2026),
+  sin verificar en dispositivo.** Antes «Exportar PDF» descartaba los bytes y
+  «Finalizar» decía «sellada y archivada» sin escribir nada. Ahora el PDF va a
+  `<documents>/informes/` y se ofrece una copia por el selector de carpetas de
+  Android (`src/PDF/reportFile.ts`, `expo-file-system/legacy`), y la
+  evaluación pasa a `completed`. **Nadie ha visto aún el selector abrirse en el
+  emulador**: es lo primero que hay que probar.
 - **«No medido» no es «sin respuesta».** `null` en `AudiometryTest.thresholds`
   significa «no determinado»; la ausencia de respuesta al máximo va en
   `noResponseAtMax`. Los registros anteriores al 2/11/2026 no tienen esa

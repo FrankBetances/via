@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { FACT_TONE, STATUS_TONE, factTone } from '@/Theme/clinicalTone';
 import { Platform, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import Svg, {
@@ -74,6 +75,8 @@ import { EF_DOMAIN_META, EF_DOMAIN_ORDER, efLabelFromTest, efStatus } from '@/Sc
 import { ASHA_DOMAIN_META, getMilestonesForAgeBand } from '@/Screens/AshaScreening/ashaMilestones';
 import { ASHA_RISK_LABELS } from '@/Screens/AshaScreening/ashaCdssEngine';
 import { generateReport } from '@/PDF/templates/Report';
+import { exportReportCopy, reportFileName, saveReportInApp } from '@/PDF/reportFile';
+import { EvaluationRepository } from '@/Repositories/EvaluationRepository';
 import { evaluateSessionNlg, nlgMissingDataMessage, type SessionEntities } from '@/PDF/nlgReportEngine';
 import { showErrorToast, showSuccessToast } from '@/Helpers/showToast';
 
@@ -120,11 +123,6 @@ interface TestDetail {
   interp: string;
 }
 
-const STATUS_TOKENS: Record<StatusKind, { fg: string; bg: string; label: string }> = {
-  ok: { fg: '#059669', bg: '#ECFDF5', label: 'Normal' },
-  warn: { fg: '#D97706', bg: '#FEF3C7', label: 'Revisar' },
-  alt: { fg: '#DC2626', bg: '#FEE2E2', label: 'Alterado' },
-};
 
 /**
  * Gráfico Audiograma Clínico SVG.
@@ -323,8 +321,21 @@ function ClinicalAudiogramChart({
   );
 }
 
+/** Valores medidos de un hecho, legibles: «pta: 65 · ear: OD» y no JSON. */
+const formatMeasured = (measured: Record<string, string | number | boolean | null>): string =>
+  Object.entries(measured)
+    .map(([key, value]) => `${key}: ${value === null ? '—' : String(value)}`)
+    .join(' · ');
+
 export default function ResultadosFinalScreen({ navigation }: Props) {
   const t = useT();
+  // Colores con significado fijo (`@/Theme/clinicalTone`) y etiqueta del
+  // catálogo: antes, «Normal» en castellano fijo y con contraste < 4,5:1.
+  const STATUS_TOKENS: Record<StatusKind, { fg: string; bg: string; label: string }> = {
+    ok: { ...STATUS_TONE.ok, label: t.nlg.ui.statusOk },
+    warn: { ...STATUS_TONE.warn, label: t.nlg.ui.statusWarn },
+    alt: { ...STATUS_TONE.alt, label: t.nlg.ui.statusAlt },
+  };
   const activeEvaluation = useClassSelector(Evaluation, (state: RootState) => state.activeEvaluation.evaluation);
   const patient = activeEvaluation?.patient;
   const { patientLabel, initials } = describePatient(patient);
@@ -841,10 +852,11 @@ export default function ResultadosFinalScreen({ navigation }: Props) {
     !nlgWaiting && (nlgReadFailed || !evaluationId || nlgCatalogMissing || !nlgUi || !nlgSections || !nlgAudit);
 
   const handleExportPdf = async () => {
+    const rf = t.resultadosFinal;
     // Sin evaluación activa no hay informe que compilar: no se anuncia un PDF
     // que nunca se generó.
     if (!activeEvaluation) {
-      showErrorToast('Sin sesión activa', 'No hay una evaluación abierta que exportar.');
+      showErrorToast(rf.toastNoSessionTitle, rf.toastNoSessionBody);
       return;
     }
     setIsGenerating(true);
@@ -855,24 +867,46 @@ export default function ResultadosFinalScreen({ navigation }: Props) {
         customSynthesisNotes: notes.trim() || undefined,
         clinicianSignatureSvg: signatureSvg,
       });
-      if (report.snapshotSaved) {
-        showSuccessToast('Informe Oficial PDF', 'Documento clínico generado y archivado correctamente.');
-      } else {
-        // El PDF existe, pero lo firmado no quedó archivado: decirlo (regla 4).
-        showErrorToast(
-          'Síntesis no archivada',
-          `El PDF se generó, pero la síntesis firmada no se pudo guardar: ${report.snapshotError ?? 'motivo desconocido'}.`,
-        );
+      // Cada eslabón dice qué pasó: PDF en la app, copia fuera, síntesis archivada.
+      const name = reportFileName(activeEvaluation.id, new Date());
+      const inApp = await saveReportInApp(report.base64, name);
+      if (!inApp.ok) {
+        showErrorToast(rf.toastPdfErrTitle, rf.toastPdfInAppFailed(inApp.error));
+        return;
       }
-    } catch (e) {
-      showErrorToast('Error al exportar', 'No se pudo compilar el PDF.');
+      const copy = await exportReportCopy(report.base64, name);
+      const parts = [rf.toastPdfSavedInApp];
+      if (copy.status === 'saved') parts.push(rf.toastPdfCopySaved);
+      else if (copy.status === 'cancelled') parts.push(rf.toastPdfCopyCancelled);
+      else parts.push(rf.toastPdfCopyFailed(copy.error));
+      if (!report.snapshotSaved) {
+        parts.push(rf.toastSnapshotFailed(report.snapshotError ?? '—'));
+        showErrorToast(rf.toastPdfOkTitle, parts.join(' '));
+      } else if (copy.status === 'failed') {
+        showErrorToast(rf.toastPdfOkTitle, parts.join(' '));
+      } else {
+        showSuccessToast(rf.toastPdfOkTitle, parts.join(' '));
+      }
+    } catch {
+      showErrorToast(rf.toastPdfErrTitle, rf.toastPdfErrBody);
     } finally {
       setIsGenerating(false);
     }
   };
 
-  const handleFinishAndArchive = () => {
-    showSuccessToast('Sesión Finalizada', 'Evaluación sellada y archivada con éxito.');
+  const handleFinishAndArchive = async () => {
+    const rf = t.resultadosFinal;
+    if (!evaluationId) {
+      showErrorToast(rf.toastNoSessionTitle, rf.toastNoSessionBody);
+      return;
+    }
+    try {
+      await EvaluationRepository.markCompleted(evaluationId, new Date());
+    } catch (e) {
+      showErrorToast(rf.toastFinishErrTitle, rf.toastFinishErrBody(e instanceof Error ? e.message : String(e)));
+      return;
+    }
+    showSuccessToast(rf.toastFinishOkTitle, rf.toastFinishOkBody);
     navigation.navigate('Pacientes');
   };
 
@@ -1048,28 +1082,83 @@ export default function ResultadosFinalScreen({ navigation }: Props) {
                 <View>
                   <Text style={styles.nlgTitle}>{nlgUi.draftTitle}</Text>
                   <Text style={styles.nlgSubtitle}>{nlgUi.draftSubtitle}</Text>
-                  {nlgSynthesis.crossModuleFindings.length > 0 ? (
-                    <View style={styles.nlgBlock}>
-                      <Text style={styles.nlgLabel}>{nlgSections.crossFindings}</Text>
-                      {nlgSynthesis.crossModuleFindings.map((fact, index) => (
-                        <View key={`${index}-${fact.ruleId}`} style={styles.nlgCrossRow}>
-                          <Text style={styles.nlgBadge}>{nlgUi.crossAlertBadge}</Text>
-                          <Text style={styles.nlgBody}>{fact.text}</Text>
-                        </View>
+                  {nlgSynthesis.summary ? (
+                    <View>
+                      <View style={styles.nlgStatRow}>
+                        {(
+                          [
+                            [nlgUi.statModules, nlgSynthesis.summary.modules, 'info'],
+                            [nlgUi.statWarnings, nlgSynthesis.summary.warnings, 'warning'],
+                            [nlgUi.statCross, nlgSynthesis.summary.cross, 'cross'],
+                            [nlgUi.statReferrals, nlgSynthesis.summary.referrals, 'referral'],
+                          ] as const
+                        ).map(([label, value, tone]) => {
+                          const colors = value > 0 ? FACT_TONE[tone] : FACT_TONE.info;
+                          return (
+                            <View
+                              key={label}
+                              style={[styles.nlgStat, { backgroundColor: colors.bg, borderColor: colors.bar }]}
+                              accessible
+                              accessibilityLabel={`${label}: ${value}`}>
+                              <Text style={[styles.nlgStatValue, { color: colors.fg }]}>{value}</Text>
+                              <Text style={styles.nlgStatLabel}>{label}</Text>
+                            </View>
+                          );
+                        })}
+                      </View>
+                      {nlgSynthesis.summary.missingModules.length > 0 ? (
+                        <Text style={styles.nlgMeta}>
+                          {nlgUi.missingModulesLabel}: {nlgSynthesis.summary.missingModules.join(', ')}
+                        </Text>
+                      ) : null}
+                    </View>
+                  ) : (
+                    <Text style={styles.nlgNotice}>{nlgUi.missingData}</Text>
+                  )}
+                  {nlgSynthesis.referrals.length > 0 ? (
+                    <View
+                      style={[
+                        styles.nlgReferralBox,
+                        { backgroundColor: FACT_TONE.referral.bg, borderColor: FACT_TONE.referral.bar },
+                      ]}>
+                      <Text style={[styles.nlgSectionTitle, { color: FACT_TONE.referral.fg }]}>
+                        {nlgSections.referrals}
+                      </Text>
+                      {nlgSynthesis.referrals.map(referral => (
+                        <Text key={referral.section} style={styles.nlgBody}>
+                          {referral.line}
+                        </Text>
                       ))}
                     </View>
                   ) : null}
-                  {nlgSynthesis.formattedReportText ? (
-                    <Text style={styles.nlgBody}>{nlgSynthesis.formattedReportText}</Text>
-                  ) : null}
-                  <Text style={styles.nlgLabel}>{nlgUi.rulesBadge}</Text>
-                  <View style={styles.nlgChipRow}>
-                    {nlgSynthesis.ruleIds.map((ruleId, index) => (
-                      <View key={`${index}-${ruleId}`} style={styles.nlgChip}>
-                        <Text style={styles.nlgChipText}>{ruleId}</Text>
-                      </View>
-                    ))}
-                  </View>
+                  {nlgSynthesis.sections.map(section => (
+                    <View key={section.key} style={styles.nlgSection}>
+                      <Text style={styles.nlgSectionTitle}>{section.title}</Text>
+                      {section.facts.map((fact, index) => {
+                        const tone = factTone(fact);
+                        const colors = FACT_TONE[tone];
+                        const badge =
+                          tone === 'referral'
+                            ? nlgUi.referralBadge
+                            : tone === 'cross'
+                              ? nlgUi.crossAlertBadge
+                              : tone === 'warning'
+                                ? nlgUi.warningBadge
+                                : null;
+                        return (
+                          <View
+                            key={`${index}-${fact.ruleId}`}
+                            style={[styles.nlgFactRow, { backgroundColor: colors.bg, borderLeftColor: colors.bar }]}>
+                            {badge ? (
+                              <Text style={[styles.nlgFactBadge, { color: colors.fg }]}>{badge}</Text>
+                            ) : null}
+                            <Text style={styles.nlgBody}>{fact.text}</Text>
+                          </View>
+                        );
+                      })}
+                    </View>
+                  ))}
+                  <Text style={styles.nlgDisclaimer}>{nlgSections.metrologicalDisclaimer}</Text>
                   <Text style={styles.nlgLabel}>{nlgUi.observationsLabel}</Text>
                   <TextInput
                     style={styles.nlgInput}
@@ -1100,7 +1189,9 @@ export default function ResultadosFinalScreen({ navigation }: Props) {
                         <View key={`${index}-${fact.evidenceRef}`} style={styles.nlgAuditRow}>
                           <Text style={styles.nlgAuditId}>{fact.ruleId}</Text>
                           <Text style={styles.nlgMeta}>{nlgAudit.columnModule}: {fact.module}</Text>
-                          <Text style={styles.nlgMeta}>{nlgAudit.columnMeasured}: {JSON.stringify(fact.measured)}</Text>
+                          <Text style={styles.nlgMeta}>
+                            {nlgAudit.columnMeasured}: {formatMeasured(fact.measured)}
+                          </Text>
                           <Text style={styles.nlgMeta}>{nlgAudit.columnEvidence}: {fact.evidenceRef}</Text>
                         </View>
                       ))
@@ -1130,7 +1221,7 @@ export default function ResultadosFinalScreen({ navigation }: Props) {
                 emotion={LuaEmotion.Pride}
                 activeBadge={LUA_CLINICAL_BADGES.final_champion}
                 level={12}
-                message="¡Enhorabuena! Has completado la valoración clínica. Lúa te entrega la insignia Campeón de la Comunicación."
+                message={t.resultadosFinal.luaFinalMessage}
               />
             </View>
 
@@ -1749,6 +1840,65 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#FFFFFF',
   },
+  nlgStatRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginTop: 12,
+    marginBottom: 8,
+  },
+  nlgStat: {
+    flexGrow: 1,
+    flexBasis: 120,
+    borderWidth: 1,
+    borderRadius: 12,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+  },
+  nlgStatValue: {
+    fontSize: 22,
+    fontWeight: '800',
+  },
+  nlgStatLabel: {
+    fontSize: 12,
+    color: '#475569',
+    marginTop: 2,
+  },
+  nlgReferralBox: {
+    borderWidth: 1,
+    borderRadius: 12,
+    padding: 12,
+    marginTop: 12,
+  },
+  nlgSection: {
+    marginTop: 16,
+  },
+  nlgSectionTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#0F172A',
+    marginBottom: 6,
+  },
+  nlgFactRow: {
+    borderLeftWidth: 4,
+    borderRadius: 8,
+    paddingVertical: 8,
+    paddingHorizontal: 10,
+    marginBottom: 6,
+  },
+  nlgFactBadge: {
+    fontSize: 11,
+    fontWeight: '800',
+    textTransform: 'uppercase',
+    letterSpacing: 0.4,
+    marginBottom: 2,
+  },
+  nlgDisclaimer: {
+    fontSize: 11,
+    color: '#64748B',
+    marginTop: 14,
+    marginBottom: 6,
+  },
   nlgCard: {
     backgroundColor: '#FFFFFF',
     borderRadius: 16,
@@ -1786,40 +1936,6 @@ const styles = StyleSheet.create({
     lineHeight: 19,
     color: '#334155',
     marginTop: 8,
-  },
-  nlgBlock: {
-    marginTop: 4,
-  },
-  nlgCrossRow: {
-    marginTop: 8,
-  },
-  nlgBadge: {
-    alignSelf: 'flex-start',
-    backgroundColor: '#FEF3C7',
-    color: '#92400E',
-    fontSize: 11,
-    fontWeight: '700',
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 999,
-    overflow: 'hidden',
-    marginBottom: 4,
-  },
-  nlgChipRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 6,
-  },
-  nlgChip: {
-    backgroundColor: '#F1F5F9',
-    borderRadius: 999,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-  },
-  nlgChipText: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: '#334155',
   },
   nlgInput: {
     minHeight: 72,

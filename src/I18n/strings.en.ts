@@ -368,6 +368,26 @@ export const EN: UiStrings = {
   },
 
   resultadosFinal: {
+    toastNoSessionTitle: 'No active session',
+    toastNoSessionBody: 'There is no open evaluation.',
+    toastPdfOkTitle: 'PDF report saved',
+    toastPdfSavedInApp: 'Saved in the app archive.',
+    toastPdfCopySaved: 'Copy saved in the chosen folder.',
+    toastPdfCopyCancelled: 'No folder chosen: only the app copy remains.',
+    toastPdfCopyFailed: (reason: string) =>
+      `The external copy could not be saved: ${reason}.`,
+    toastPdfInAppFailed: (reason: string) =>
+      `The PDF was generated but could not be saved in the app: ${reason}.`,
+    toastSnapshotFailed: (reason: string) =>
+      `The signed synthesis could not be archived: ${reason}.`,
+    toastPdfErrTitle: 'Export error',
+    toastPdfErrBody: 'The PDF could not be compiled.',
+    toastFinishOkTitle: 'Session finished',
+    toastFinishOkBody: 'The evaluation is now marked as completed.',
+    toastFinishErrTitle: 'Could not finish',
+    toastFinishErrBody: (reason: string) =>
+      `The evaluation was not marked as completed: ${reason}.`,
+    luaFinalMessage: 'Well done! You have completed the session. Lúa gives you the Communication Champion badge.',
     audiogramaTonalDbHl: 'Pure-tone audiogram · dB HL',
     campoLibreBinaural: 'Sound field · binaural',
     oidoDerechoOd: 'Right ear (R)',
@@ -909,6 +929,7 @@ export const EN: UiStrings = {
    * These strings are not spoken. */
   nlg: {
     sections: {
+      examConditions: 'Examination conditions',
       executiveSummary: 'Overall clinical synthesis',
       crossFindings: 'Cross-module findings',
       audiologyDomain: 'Hearing',
@@ -922,6 +943,17 @@ export const EN: UiStrings = {
         'SaMD Class IIa notice. The text describes measurements and deviations from reference thresholds. The clinical decision belongs to the professional present.',
     },
     ui: {
+      referralBadge: 'Suggested referral',
+      warningBadge: 'Warning',
+      statModules: 'Modules recorded',
+      statWarnings: 'Warnings',
+      statCross: 'Cross findings',
+      statReferrals: 'Suggested referrals',
+      missingModulesLabel: 'Not recorded in this session',
+      statusOk: 'No deviations',
+      statusWarn: 'Review',
+      statusAlt: 'Outside reference',
+      signatureUnreadable: 'The drawn signature could not be reproduced in the PDF. Please sign by hand.',
       draftTitle: 'Overall clinical synthesis',
       draftSubtitle: 'Draft computed by rules. Review it before signing.',
       observationsLabel: 'Professional observations',
@@ -981,6 +1013,23 @@ export const EN: UiStrings = {
       labelEfPlanning: 'planning',
       labelEfOverall: 'overall index',
       labelDecimalSep: '.',
+      labelModCap: 'aptitude certificate',
+      labelModAudiometry: 'pure-tone audiometry',
+      labelModVerbal: 'speech audiometry',
+      labelModVoice: 'voice analysis',
+      labelModProsody: 'prosody',
+      labelModArticulation: 'articulation (T.A.R.)',
+      labelModAsha: 'ASHA milestones',
+      labelModAutism: 'M-CHAT-R',
+      labelModDysphagia: 'dysphagia (MECV-V)',
+      labelModSahs: 'SAHS screening',
+      labelModExecutive: 'executive functions',
+      summaryCounts: (modules: string | number, warnings: string | number, cross: string | number, referrals: string | number) =>
+        `Modules recorded: ${modules}. Warnings: ${warnings}. Cross findings: ${cross}. Suggested referrals: ${referrals}.`,
+      summaryMissing: (list: string | number) =>
+        `Not recorded in this session: ${list}.`,
+      referralLine: (domain: string | number, ruleIds: string | number) =>
+        `${domain}: ${ruleIds}.`,
       labelReasonEmpty: 'no audio was recorded',
       labelReasonSilent: 'the take contains no speech above the background noise',
       labelReasonShort: 'the take is shorter than the minimum analysis window',
