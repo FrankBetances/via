@@ -21,6 +21,8 @@ export class CreateAudiometry1718900000100 implements MigrationInterface {
           { name: 'method', type: 'varchar', default: "'play'" },
           { name: 'transducer', type: 'varchar', default: "'air'" },
           { name: 'thresholds', type: 'text' }, // simple-json
+          // Frecuencias sin respuesta al máximo (≠ «no medida»). Nula en registros antiguos.
+          { name: 'noResponseAtMax', type: 'text', isNullable: true }, // simple-json
           { name: 'ptaOD', type: 'integer', isNullable: true },
           { name: 'ptaOI', type: 'integer', isNullable: true },
           { name: 'reliability', type: 'integer', isNullable: true },

@@ -7,9 +7,16 @@ import {
 } from '@/PDF/nlgReportEngine';
 import { BLOCKING_FINDINGS } from '@/Screens/ClinicalAssessment/clinicalAssessmentResult';
 import { severityOf } from '@/Screens/Audiometry/audiometryResult';
-import { EF_OK_CUT, EF_WARN_CUT } from '@/Screens/ExecutiveFunctions/executiveFunctionsGame';
+import { EF_OK_CUT, EF_WARN_CUT, efStatus } from '@/Screens/ExecutiveFunctions/executiveFunctionsGame';
 import { DISCRIMINATION_WARN_CUT } from '@/Screens/VerbalAudiometry/verbalAudiometryResult';
-import { VOICE_NORMS } from '@/Screens/VoiceAnalysis/voiceAnalysisResult';
+import {
+  statusF0,
+  statusHnr,
+  statusJitter,
+  statusShimmer,
+  VOICE_NORMS,
+} from '@/Screens/VoiceAnalysis/voiceAnalysisResult';
+import { DISC_MIN, EF_DOMAIN_CUT, VOICE_REF } from '@/PDF/nlgThresholds';
 
 /* El proyecto no incluye @types/node (tipado RN puro): los globals que Jest sí
  * provee se declaran localmente, como en `luaProtocolGate.test.ts`. */
@@ -200,6 +207,7 @@ const ef = (over: Record<string, unknown> = {}): SessionEntities => ({
 
 const reportOf = (entities: SessionEntities) => evaluateSessionNlg(entities, 'es');
 const ids = (entities: SessionEntities): string[] => reportOf(entities).ruleIds;
+const joined = (entities: SessionEntities): string => reportOf(entities).formattedReportText;
 const has = (entities: SessionEntities, id: string): boolean => ids(entities).includes(id);
 const textOf = (entities: SessionEntities, id: string): string =>
   reportOf(entities)
@@ -230,8 +238,18 @@ const cases: RuleCase[] = [
   { id: 'R-CAP-003', fire: cap('BLOCKED'), quiet: cap('FULL') },
   { id: 'R-AUD-001', fire: air({}, ear(10)), quiet: air(ear(10)) },
   { id: 'R-AUD-002', fire: air(ear(10)), quiet: air({}, {}) },
-  { id: 'R-AUD-003', fire: air(ear(10, { 4000: null })), quiet: air(ear(10)) },
+  {
+    id: 'R-AUD-003',
+    fire: aud({ OD: ear(10, { 4000: null }), OI: ear(10) } as never, { noResponseAtMax: { OD: [4000], OI: [] } }),
+    // Mismo hueco sin constancia de «sin respuesta»: no se afirma.
+    quiet: aud({ OD: ear(10, { 4000: null }), OI: ear(10) } as never, { noResponseAtMax: { OD: [], OI: [] } }),
+  },
   { id: 'R-AUD-004', fire: air(ear(21)), quiet: air(ear(20)) },
+  {
+    id: 'R-AUD-006',
+    fire: aud({ OD: ear(10, { 4000: null }), OI: ear(10) } as never, { noResponseAtMax: { OD: [], OI: [] } }),
+    quiet: aud({ OD: ear(10, { 4000: null }), OI: ear(10) } as never, { noResponseAtMax: { OD: [4000], OI: [] } }),
+  },
   {
     id: 'R-AUD-005',
     fire: aud({ OD: ear(10), OI: ear(10), CL: ear(10) } as never, { transducer: 'soundfield' }),
@@ -278,6 +296,7 @@ const cases: RuleCase[] = [
   { id: 'R-DYS-001', fire: dys({}), quiet: dys({ bolus: [] }) },
   { id: 'R-DYS-002', fire: dys({ efficacyAltered: true }), quiet: dys({ bolus: [] }) },
   { id: 'R-DYS-003', fire: dys({ safetyAltered: true }), quiet: dys({}) },
+  { id: 'R-DYS-004', fire: dys({ bolus: [] }), quiet: dys({}) },
   { id: 'R-SAH-001', fire: sahs('low'), quiet: {} },
   { id: 'R-EF-001', fire: ef({ overallScore: 80 }), quiet: ef(doneEf) },
   { id: 'R-EF-002', fire: ef(doneEf), quiet: ef({ overallScore: 80 }) },
@@ -380,6 +399,18 @@ describe('nlgReportEngine · cada ruleId', () => {
     expect([...new Set(fromMatrix)].sort()).toEqual([...fromCases].sort());
   });
 
+  it('cada regla de la matriz tiene su fila de firma clínica', () => {
+    const matrix = fs.readFileSync(path.join(ROOT, 'docs/design/matriz-evidencia-nlg.md'), 'utf8');
+    const signed = [...matrix.matchAll(/^\| `(R-[A-Z]+-\d+)` \| ([^|]+?) \| ([^|]+?) \|$/gm)];
+    const byId = new Map(signed.map(m => [m[1], { who: m[2].trim(), when: m[3].trim() }]));
+    for (const item of cases) {
+      const row = byId.get(item.id);
+      expect(row).toBeDefined();
+      expect(row?.who).not.toBe('');
+      expect(row?.when).toMatch(/\d{1,2}\/\d{1,2}\/\d{4}/);
+    }
+  });
+
   it('evidenceRef lleva la versión 1.0.0', () => {
     const fact = factOf(cap('FULL'), 'R-CAP-001');
     expect(fact?.evidenceRef).toBe('R-CAP-001@1.0.0');
@@ -442,8 +473,8 @@ describe('nlgReportEngine · null y bordes del plan', () => {
     expect(textOf(air(ear(91)), 'R-AUD-002')).toContain('por encima de 90');
     expect(textOf(air(ear(10, { 500: 10, 4000: 25 })), 'R-AUD-002')).toContain('descendente');
     expect(textOf(air(ear(10, { 500: 30, 4000: 15 })), 'R-AUD-002')).toContain('ascendente');
-    expect(textOf(air(ear(10)), 'R-AUD-002')).toContain('curva plana');
-    expect(textOf(air(ear(10, { 4000: null })), 'R-AUD-002')).toContain('morfología no afirmable');
+    expect(textOf(air(ear(10)), 'R-AUD-002')).toContain('Curva plana');
+    expect(textOf(air(ear(10, { 4000: null })), 'R-AUD-002')).toContain('Morfología no afirmable');
     expect(factOf(air(ear(20)), 'R-AUD-002')?.level).toBe('info');
     expect(factOf(air(ear(21)), 'R-AUD-002')?.level).toBe('warning');
   });
@@ -476,9 +507,36 @@ describe('nlgReportEngine · null y bordes del plan', () => {
     expect(has(over, 'R-CROSS-003')).toBe(true);
   });
 
-  it('un bolo vacío no inventa ausencia de compromiso', () => {
+  it('un bolo vacío no inventa ausencia de compromiso y lo dice', () => {
     const empty = dys({ bolus: [] });
-    expect(ids(empty).filter(id => id.startsWith('R-DYS'))).toEqual([]);
+    expect(ids(empty).filter(id => id.startsWith('R-DYS'))).toEqual(['R-DYS-004']);
+    expect(textOf(empty, 'R-DYS-004')).toContain('Exploración incompleta');
+  });
+
+  it('un hueco tonal sin constancia no se escribe como «sin respuesta»', () => {
+    // Registro anterior al 2/11/2026: no guarda la distinción.
+    const legacy = air(ear(10, { 2000: null }));
+    expect(has(legacy, 'R-AUD-003')).toBe(false);
+    expect(textOf(legacy, 'R-AUD-006')).toContain('no se afirma ninguna de las dos');
+    expect(joined(legacy)).not.toContain('sin respuesta al nivel máximo de salida');
+    // Registro nuevo con el hueco medido como no explorado.
+    const fresh = aud({ OD: ear(10, { 2000: null }), OI: ear(10) } as never, {
+      noResponseAtMax: { OD: [], OI: [] },
+    });
+    expect(textOf(fresh, 'R-AUD-006')).toContain('no consta ausencia de respuesta');
+    // La derivación es conservadora en los dos casos: un hueco no se da por bueno.
+    expect(has(legacy, 'R-AUD-004')).toBe(true);
+    expect(has(fresh, 'R-AUD-004')).toBe(true);
+  });
+
+  it('el cruce ASHA × M-CHAT no usa un cuestionario incompleto', () => {
+    expect(has({ ...asha('red', ['receptive']), ...mchat(8, false) }, 'R-CROSS-006')).toBe(false);
+  });
+
+  it('cada oración del informe empieza en mayúscula', () => {
+    const text = textOf(air(ear(65, { 500: 10, 4000: 30 }), ear(10)), 'R-AUD-002');
+    expect(text).not.toMatch(/[.!?]\s+\p{Ll}/u);
+    expect(text.charAt(0)).toBe(text.charAt(0).toUpperCase());
   });
 
   it('la seguridad sin SpO2 no fabrica la caída medida', () => {
@@ -513,7 +571,7 @@ describe('nlgReportEngine · null y bordes del plan', () => {
     const text = textOf(ef({ overallScore: 90 }), 'R-EF-001');
     expect(text).toContain('sin mini-juegos completados');
     expect(text).not.toContain('iguales o superiores');
-    expect(textOf(ef({ ...doneEf, attentionScore: 64 }), 'R-EF-002')).toContain('attention');
+    expect(textOf(ef({ ...doneEf, attentionScore: 64 }), 'R-EF-002')).toContain('atención');
     expect(textOf(ef(doneEf), 'R-EF-002')).toContain('iguales o superiores');
   });
 
@@ -524,19 +582,18 @@ describe('nlgReportEngine · null y bordes del plan', () => {
 });
 
 describe('nlgReportEngine · paridad de cifras', () => {
-  it('el informe usa el plan; la pantalla conserva los cortes de color', () => {
-    // Igualar estos números recolorea tarjetas y mueve verbalNeedsReferral.
-    // Esta oleada no lo hace. El test falla si el motor se aparta del plan
-    // o si la pantalla cambia de corte sin que el informe lo acompañe.
-    expect(VOICE_NORMS.f0).toEqual({ min: 200, max: 320 });
-    expect(VOICE_NORMS.jitter.max).toBe(1);
-    expect(VOICE_NORMS.shimmer.max).toBe(3);
-    expect(VOICE_NORMS.hnr.min).toBe(20);
-    expect(DISCRIMINATION_WARN_CUT).toBe(70);
-    expect(EF_OK_CUT).toBe(80);
+  it('pantalla e informe leen los mismos umbrales (los del plan)', () => {
+    // Hasta el 2/11/2026 este test CONGELABA la divergencia: la tarjeta y la
+    // síntesis tenían cortes distintos y se contradecían en la misma pantalla.
+    // Ahora las dos leen `nlgThresholds.ts`; si alguien separa una, falla.
+    expect(VOICE_NORMS).toBe(VOICE_REF);
+    expect(VOICE_NORMS.f0).toEqual({ min: 220, max: 320 });
+    expect(VOICE_NORMS.jitter.max).toBe(1.04);
+    expect(VOICE_NORMS.shimmer.max).toBe(3.81);
+    expect(VOICE_NORMS.hnr.min).toBe(12);
+    expect(DISCRIMINATION_WARN_CUT).toBe(DISC_MIN);
+    expect(EF_OK_CUT).toBe(EF_DOMAIN_CUT);
     expect(EF_WARN_CUT).toBe(60);
-    expect(severityOf(65)?.key).toBe('severe');
-    expect(textOf(air(ear(65)), 'R-AUD-002')).toContain('41 y 70');
     expect(BLOCKING_FINDINGS).toEqual(['Cerumen', 'OMA', 'Perforación']);
     for (const finding of BLOCKING_FINDINGS) {
       expect(
@@ -544,15 +601,55 @@ describe('nlgReportEngine · paridad de cifras', () => {
       ).toBe(true);
     }
     expect(has({ ...cap('FULL', { domains: domains({ od: 'OME' }) }), ...air(ear(10)) }, 'R-CROSS-001')).toBe(false);
-    // 1,01 supera el corte de pantalla (1,0) y no el del informe (1,04).
-    expect(has(voice({ ...withinVoice, jitter: 1.01 }), 'R-VOZ-003')).toBe(false);
-    // 75 % deriva en el informe (corte 80) y no en verbalNeedsReferral (corte 70).
-    expect(
-      has(
-        verbal({ levelScores: [{ level: 65, presented: 4, correct: 3, pct: 75 }] }),
-        'R-VER-004',
-      ),
-    ).toBe(true);
+  });
+
+  it('la banda de la tarjeta y la del informe coinciden en cada borde', () => {
+    const band: Record<string, string> = {
+      normal: 'rango de referencia',
+      mild: '21 y 40',
+      moderate: '41 y 70',
+      severe: '71 y 90',
+      profound: 'por encima de 90',
+    };
+    for (const db of [0, 20, 21, 40, 41, 65, 70, 71, 90, 91, 100]) {
+      const key = severityOf(db)?.key ?? '';
+      expect(textOf(air(ear(db)), 'R-AUD-002')).toContain(band[key]);
+    }
+    expect(severityOf(20)?.label).not.toMatch(/normal/i);
+  });
+
+  it('el indicador de voz y la frase no se contradicen', () => {
+    const voiceCases = [
+      { f0: 250, jitter: 0.8, shimmer: 3.5, hnr: 15 },
+      { f0: 210, jitter: 0.8, shimmer: 2, hnr: 20 },
+      { f0: 250, jitter: 1.2, shimmer: 2, hnr: 20 },
+      { f0: 250, jitter: 0.8, shimmer: 4.2, hnr: 20 },
+      { f0: 250, jitter: 0.8, shimmer: 2, hnr: 10 },
+    ];
+    for (const p of voiceCases) {
+      const allOk =
+        statusF0(p.f0) === 'normal' &&
+        statusJitter(p.jitter) === 'normal' &&
+        statusShimmer(p.shimmer) === 'normal' &&
+        statusHnr(p.hnr) === 'normal';
+      const entity = voice({ ...p, formants: { f1: 500, f2: 1500, f3: 2500 } });
+      expect(has(entity, 'R-VOZ-003')).toBe(!allOk);
+      expect(textOf(entity, 'R-VOZ-002').includes('sin desvíos por encima del umbral de alerta')).toBe(allOk);
+    }
+  });
+
+  it('la tarjeta verbal deriva donde el informe deriva', () => {
+    for (const pct of [70, 75, 79, 80, 90]) {
+      const fires = has(verbal({ levelScores: [{ level: 65, presented: 100, correct: pct, pct }] }), 'R-VER-004');
+      expect(fires).toBe(pct < DISCRIMINATION_WARN_CUT);
+    }
+  });
+
+  it('el semáforo de funciones ejecutivas y la frase coinciden', () => {
+    for (const score of [60, 64, 65, 70, 80]) {
+      const below = textOf(ef({ ...doneEf, attentionScore: score }), 'R-EF-002').includes('Por debajo');
+      expect(below).toBe(efStatus(score) !== 'ok');
+    }
   });
 });
 

@@ -3,7 +3,7 @@ import type { UiStrings } from '@/I18n/catalog';
 import { getUiLang } from '@/I18n/uiLang';
 import type { UiLang } from '@/I18n/uiLang';
 import type { ClinicalAssessment, ClinicalDomains } from '@/Models/ClinicalAssessment/ClinicalAssessment';
-import type { AudiometryTest, AudiometryThresholds } from '@/Models/Audiometry/AudiometryTest';
+import type { AudiometryNoResponse, AudiometryTest, AudiometryThresholds } from '@/Models/Audiometry/AudiometryTest';
 import type { VerbalAudiometryTest } from '@/Models/VerbalAudiometry/VerbalAudiometryTest';
 import type { GrbasScores, VoiceAnalysis, VoiceFormants } from '@/Models/VoiceAnalysis/VoiceAnalysis';
 import type { ProsodyAnalysis, ProsodyMetricsRecord } from '@/Models/ProsodyAnalysis/ProsodyAnalysis';
@@ -13,9 +13,26 @@ import type { Screening } from '@/Models/Screening/Screening';
 import type { DysphagiaTest } from '@/Models/DysphagiaTest/DysphagiaTest';
 import type { SahsScreening } from '@/Models/SahsScreening/SahsScreening';
 import type { ExecutiveFunctionsTest } from '@/Models/ExecutiveFunctions/ExecutiveFunctionsTest';
+import {
+  ACUTE_DB,
+  AUDIO_FREQS,
+  CONV_LEVEL,
+  DISC_MIN,
+  EF_DOMAIN_CUT,
+  EF_OVERALL_CROSS,
+  MCHAT_FOLLOW,
+  MCHAT_REFER,
+  MORPH_DB,
+  PTA_BAND_MILD_MAX,
+  PTA_BAND_MODERATE_MAX,
+  PTA_BAND_SEVERE_MAX,
+  PTA_REF_MAX,
+  SRT_MARGIN,
+  VOICE_REF,
+} from '@/PDF/nlgThresholds';
 
 /* -------------------------------------------------------------------------- */
-/*  Motor NLG determinista. Oleada 2.                                          */
+/*  Motor NLG determinista.                                                    */
 /*                                                                            */
 /*  Lee entidades ya guardadas y rellena las plantillas de `nlg.rules`. No    */
 /*  calcula un veredicto nuevo: si el dato no está, no entra en la frase de   */
@@ -23,39 +40,29 @@ import type { ExecutiveFunctionsTest } from '@/Models/ExecutiveFunctions/Executi
 /*                                                                            */
 /*  No importa los intérpretes de pantalla (`audiometryResult`,               */
 /*  `verbalAudiometryResult`, `voiceAnalysisResult`, `executiveFunctionsGame`) */
-/*  porque la oleada 3 los hará importar este fichero. Las cifras de abajo    */
-/*  son las del plan del motor, no VOICE_NORMS ni severityOf.                 */
+/*  porque son ellos los que importan este fichero. Las cifras de abajo       */
+/*  salen de `nlgThresholds.ts`, que también leen las pantallas.              */
 /*                                                                            */
 /*  No importa `prosodyDsp`: la prosodia entra por la entidad ya persistida.  */
 /*  Tampoco importa React, pantallas ni el PDF.                               */
 /*                                                                            */
-/*  Bolos de MECV-V vacíos: no hay ruleId para «exploración incompleta». No   */
-/*  se emite R-DYS-001 (diría que no hubo compromiso) ni se inventa frase.    */
+/*  Bolos de MECV-V vacíos: R-DYS-004, «exploración incompleta». Nunca        */
+/*  R-DYS-001, que diría que no hubo compromiso.                              */
 /* -------------------------------------------------------------------------- */
 
-const FREQS = [500, 1000, 2000, 4000] as const;
-const F0_LO = 220;
-const F0_HI = 320;
-const JITTER_MAX = 1.04;
-const SHIMMER_MAX = 3.81;
-const HNR_MIN = 12;
-const PTA_REF_MAX = 20;
-const DISC_MIN = 80;
-const CONV_LEVEL = 65;
-const SRT_MARGIN = 15;
-const ACUTE_DB = 25;
-const MORPH_DB = 15;
-const EF_DOMAIN_CUT = 65;
-const EF_OVERALL_CROSS = 70;
-const MCHAT_FOLLOW = 3;
-const MCHAT_REFER = 8;
+const FREQS = AUDIO_FREQS;
+const F0_LO = VOICE_REF.f0.min;
+const F0_HI = VOICE_REF.f0.max;
+const JITTER_MAX = VOICE_REF.jitter.max;
+const SHIMMER_MAX = VOICE_REF.shimmer.max;
+const HNR_MIN = VOICE_REF.hnr.min;
 
 const EF_FIELDS = [
-  ['attention', 'attentionScore'],
-  ['inhibition', 'inhibitionScore'],
-  ['flexibility', 'flexibilityScore'],
-  ['workingMemory', 'workingMemoryScore'],
-  ['planning', 'planningScore'],
+  ['labelEfAttention', 'attentionScore'],
+  ['labelEfInhibition', 'inhibitionScore'],
+  ['labelEfFlexibility', 'flexibilityScore'],
+  ['labelEfWorkingMemory', 'workingMemoryScore'],
+  ['labelEfPlanning', 'planningScore'],
 ] as const;
 
 export type RuleCategory =
@@ -143,6 +150,8 @@ interface AudRow {
   id: number;
   transducer: string;
   thresholds: AudiometryThresholds;
+  /** `undefined`/`null` = registro anterior a la distinción (ver modelo). */
+  noResponseAtMax?: AudiometryNoResponse | null;
   ptaOD: number | null;
   ptaOI: number | null;
 }
@@ -281,6 +290,14 @@ const nlg = (lang: UiLang): NlgPack => {
   return pack;
 };
 
+/**
+ * Mayúscula al principio de cada oración. Las plantillas componen etiquetas
+ * que también van a mitad de frase («oído derecho», «umbral entre…») y el
+ * informe salía con «…dB HL. umbral entre 41 y 70…».
+ */
+export const sentenceCase = (text: string): string =>
+  text.replace(/(^|[.!?]\s+)(\p{Ll})/gu, (_m, lead: string, ch: string) => `${lead}${ch.toUpperCase()}`);
+
 const makeFact = (
   ruleId: string,
   category: RuleCategory,
@@ -295,8 +312,19 @@ const makeFact = (
   module: category,
   measured,
   evidenceRef: `${ruleId}@${version}`,
-  text,
+  text: sentenceCase(text),
 });
+
+/**
+ * Separador decimal de la lengua. Las medidas llegan como `number` y se
+ * interpolaban con punto («jitter 0.5 %») dentro de frases que escriben
+ * «1,04 %». Se aplica a la salida de cada regla, solo entre dos dígitos.
+ */
+const localizeDecimals = (facts: ClinicalFact[], lang: UiLang): ClinicalFact[] => {
+  const sep = nlg(lang).rules.labelDecimalSep;
+  if (sep === '.') return facts;
+  return facts.map(f => ({ ...f, text: f.text.replace(/(\d)\.(\d)/g, `$1${sep}$2`) }));
+};
 
 const joinText = (facts: ClinicalFact[]): string => facts.map(f => f.text).join(' ');
 
@@ -382,10 +410,10 @@ const earLabel = (side: EarSide, rules: NlgPack['rules']): string => {
 };
 
 const ptaBand = (pta: number, rules: NlgPack['rules']): string => {
-  if (pta <= 20) return rules.labelBandRef;
-  if (pta <= 40) return rules.labelBand21;
-  if (pta <= 70) return rules.labelBand41;
-  if (pta <= 90) return rules.labelBand71;
+  if (pta <= PTA_REF_MAX) return rules.labelBandRef;
+  if (pta <= PTA_BAND_MILD_MAX) return rules.labelBand21;
+  if (pta <= PTA_BAND_MODERATE_MAX) return rules.labelBand41;
+  if (pta <= PTA_BAND_SEVERE_MAX) return rules.labelBand71;
   return rules.labelBand90;
 };
 
@@ -598,14 +626,19 @@ const sodaText = (counts: ArtRow['sodaCounts'], rules: NlgPack['rules']): string
   );
 };
 
-const efDomainSlots = (row: EfRow, unavail: string, sep: string): { text: string; below: string; anyBelow: number; done: number } => {
+const efDomainSlots = (
+  row: EfRow,
+  rules: NlgPack['rules'],
+): { text: string; below: string; anyBelow: number; done: number } => {
+  const unavail = rules.labelUnavailable;
+  const sep = rules.labelListSep;
   const parts: string[] = [];
   const below: string[] = [];
-  for (const [code, field] of EF_FIELDS) {
+  for (const [labelKey, field] of EF_FIELDS) {
     const score = row[field];
     if (!isNum(score)) continue;
-    parts.push(`${code} ${score}/100`);
-    if (score < EF_DOMAIN_CUT) below.push(code);
+    parts.push(`${rules[labelKey]} ${score}/100`);
+    if (score < EF_DOMAIN_CUT) below.push(rules[labelKey]);
   }
   const done = parts.length;
   const text = done ? `(${done}/${EF_FIELDS.length}) ${parts.join(sep)}` : unavail;
@@ -617,19 +650,19 @@ const efDomainSlots = (row: EfRow, unavail: string, sep: string): { text: string
   };
 };
 
-const efCrossDetail = (row: EfRow, sep: string): string | null => {
+const efCrossDetail = (row: EfRow, rules: NlgPack['rules']): string | null => {
   const bits: string[] = [];
   if (isNum(row.overallScore) && row.overallScore < EF_OVERALL_CROSS) {
-    bits.push(`overall ${row.overallScore}`);
+    bits.push(`${rules.labelEfOverall} ${row.overallScore}`);
   }
   if (isNum(row.attentionScore) && row.attentionScore < EF_DOMAIN_CUT) {
-    bits.push(`attention ${row.attentionScore}`);
+    bits.push(`${rules.labelEfAttention} ${row.attentionScore}`);
   }
   if (isNum(row.inhibitionScore) && row.inhibitionScore < EF_DOMAIN_CUT) {
-    bits.push(`inhibition ${row.inhibitionScore}`);
+    bits.push(`${rules.labelEfInhibition} ${row.inhibitionScore}`);
   }
   if (!bits.length) return null;
-  return bits.join(sep);
+  return bits.join(rules.labelListSep);
 };
 
 const meanOf = (values: readonly (number | null)[]): number | null => {
@@ -662,7 +695,7 @@ const factsFromCap = (rows: readonly CapRow[], lang: UiLang): ClinicalFact[] => 
       out.push(makeFact('R-CAP-003', 'cap', 'warning', rules.rCap003, measured, pack.audit.evidenceVersion));
     }
   }
-  return out;
+  return localizeDecimals(out, lang);
 };
 
 const factsFromAud = (rows: readonly AudRow[], lang: UiLang): ClinicalFact[] => {
@@ -699,21 +732,43 @@ const factsFromAud = (rows: readonly AudRow[], lang: UiLang): ClinicalFact[] => 
         ),
       );
     }
+    // Una frecuencia sin umbral es «sin respuesta al máximo» SOLO si la toma
+    // lo registró. Si no, es «no determinada», y en un registro antiguo, que
+    // no guardaba la distinción, no se afirma ninguna de las dos (regla 0).
+    const legacy = !row.noResponseAtMax;
     for (const s of sides) {
       if (!determinedFreqs(s.ear).length) continue;
       const missing = missingFreqs(s.ear);
       if (!missing.length) continue;
-      const freqs = missing.map(hz => `${hz} Hz`).join(rules.labelListSep);
-      out.push(
-        makeFact(
-          'R-AUD-003',
-          'audiometry',
-          'warning',
-          rules.rAud003(earLabel(s.side, rules), freqs),
-          { id: row.id, ear: s.side, freqs },
-          version,
-        ),
-      );
+      const nr = new Set(row.noResponseAtMax?.[s.side] ?? []);
+      const noResp = missing.filter(hz => nr.has(hz));
+      const undetermined = missing.filter(hz => !nr.has(hz));
+      if (noResp.length) {
+        const freqs = noResp.map(hz => `${hz} Hz`).join(rules.labelListSep);
+        out.push(
+          makeFact(
+            'R-AUD-003',
+            'audiometry',
+            'warning',
+            rules.rAud003(earLabel(s.side, rules), freqs),
+            { id: row.id, ear: s.side, freqs },
+            version,
+          ),
+        );
+      }
+      if (undetermined.length) {
+        const freqs = undetermined.map(hz => `${hz} Hz`).join(rules.labelListSep);
+        out.push(
+          makeFact(
+            'R-AUD-006',
+            'audiometry',
+            'warning',
+            rules.rAud006(earLabel(s.side, rules), freqs, legacy ? 1 : 0),
+            { id: row.id, ear: s.side, freqs, legacy },
+            version,
+          ),
+        );
+      }
     }
     for (const s of sides) {
       if (!needsReferral(s.ear)) continue;
@@ -732,7 +787,7 @@ const factsFromAud = (rows: readonly AudRow[], lang: UiLang): ClinicalFact[] => 
       out.push(makeFact('R-AUD-005', 'audiometry', 'info', rules.rAud005, { id: row.id }, version));
     }
   }
-  return out;
+  return localizeDecimals(out, lang);
 };
 
 const levelAt = (row: VerRow, level: number): VerRow['levelScores'][number] | undefined =>
@@ -744,7 +799,7 @@ const factsFromVer = (rows: readonly VerRow[], lang: UiLang): ClinicalFact[] => 
   const out: ClinicalFact[] = [];
   for (const row of byNumericId(rows)) {
     const version = pack.audit.evidenceVersion;
-    const srt = slotNum(row.srtDb, rules.labelUnavailable);
+    const srt = isNum(row.srtDb) ? `${row.srtDb} dB` : rules.labelUnavailable;
     if (row.presentedCount === 0) {
       out.push(makeFact('R-VER-001', 'verbal', 'warning', rules.rVer001, { id: row.id }, version));
     } else {
@@ -788,7 +843,7 @@ const factsFromVer = (rows: readonly VerRow[], lang: UiLang): ClinicalFact[] => 
       );
     }
   }
-  return out;
+  return localizeDecimals(out, lang);
 };
 
 const voiceOutsideBits = (row: VoiceRow): string[] => {
@@ -856,7 +911,7 @@ const factsFromVoice = (rows: readonly VoiceRow[], lang: UiLang): ClinicalFact[]
       );
     }
   }
-  return out;
+  return localizeDecimals(out, lang);
 };
 
 const rateSlot = (v: number | null | undefined, unavail: string): string => (isNum(v) ? String(v) : unavail);
@@ -885,7 +940,7 @@ const factsFromPro = (rows: readonly ProRow[], lang: UiLang): ClinicalFact[] => 
     const syllableCount = m?.syllableCount;
     const pauseCount = m?.pauseCount;
     const f0RangeSt = m?.f0RangeSt;
-    const rates = `${rateSlot(m?.speechRateSps, rules.labelUnavailable)}/${rateSlot(m?.articulationRateSps, rules.labelUnavailable)}`;
+    const rates = `${rateSlot(m?.speechRateSps, rules.labelUnavailable)} / ${rateSlot(m?.articulationRateSps, rules.labelUnavailable)}`;
     out.push(
       makeFact(
         'R-PRO-002',
@@ -909,7 +964,7 @@ const factsFromPro = (rows: readonly ProRow[], lang: UiLang): ClinicalFact[] => 
       ),
     );
   }
-  return out;
+  return localizeDecimals(out, lang);
 };
 
 const factsFromArt = (rows: readonly ArtRow[], lang: UiLang): ClinicalFact[] => {
@@ -955,7 +1010,7 @@ const factsFromArt = (rows: readonly ArtRow[], lang: UiLang): ClinicalFact[] => 
       );
     }
   }
-  return out;
+  return localizeDecimals(out, lang);
 };
 
 const factsFromAsha = (rows: readonly AshaRow[], lang: UiLang): ClinicalFact[] => {
@@ -974,7 +1029,7 @@ const factsFromAsha = (rows: readonly AshaRow[], lang: UiLang): ClinicalFact[] =
       out.push(makeFact('R-ASH-003', 'asha', 'warning', rules.rAsh003(row.ageBand, domains), measured, version));
     }
   }
-  return out;
+  return localizeDecimals(out, lang);
 };
 
 const factsFromAut = (rows: readonly AutRow[], lang: UiLang): ClinicalFact[] => {
@@ -1000,7 +1055,7 @@ const factsFromAut = (rows: readonly AutRow[], lang: UiLang): ClinicalFact[] => 
       ),
     );
   }
-  return out;
+  return localizeDecimals(out, lang);
 };
 
 const bolusPresent = (row: DysRow): boolean => Array.isArray(row.bolus) && row.bolus.length > 0;
@@ -1010,8 +1065,12 @@ const factsFromDys = (rows: readonly DysRow[], lang: UiLang): ClinicalFact[] => 
   const rules = pack.rules;
   const out: ClinicalFact[] = [];
   for (const row of byNumericId(rows)) {
-    if (!bolusPresent(row)) continue;
     const version = pack.audit.evidenceVersion;
+    if (!bolusPresent(row)) {
+      // Sin bolos no hay exploración: decirlo, no callar (regla 4).
+      out.push(makeFact('R-DYS-004', 'dysphagia', 'warning', rules.rDys004, { id: row.id }, version));
+      continue;
+    }
     const recom = textOrUnavail(row.recommendation, rules.labelUnavailable);
     if (row.safetyAltered === true) {
       out.push(
@@ -1036,7 +1095,7 @@ const factsFromDys = (rows: readonly DysRow[], lang: UiLang): ClinicalFact[] => 
       out.push(makeFact('R-DYS-001', 'dysphagia', 'info', rules.rDys001, { id: row.id }, version));
     }
   }
-  return out;
+  return localizeDecimals(out, lang);
 };
 
 const factsFromSahs = (rows: readonly SahsRow[], lang: UiLang): ClinicalFact[] => {
@@ -1068,7 +1127,7 @@ const factsFromSahs = (rows: readonly SahsRow[], lang: UiLang): ClinicalFact[] =
       ),
     );
   }
-  return out;
+  return localizeDecimals(out, lang);
 };
 
 const factsFromEf = (rows: readonly EfRow[], lang: UiLang): ClinicalFact[] => {
@@ -1077,7 +1136,7 @@ const factsFromEf = (rows: readonly EfRow[], lang: UiLang): ClinicalFact[] => {
   const out: ClinicalFact[] = [];
   for (const row of byNumericId(rows)) {
     const version = pack.audit.evidenceVersion;
-    const slots = efDomainSlots(row, rules.labelUnavailable, rules.labelListSep);
+    const slots = efDomainSlots(row, rules);
     const overall = row.overallScore;
     if (!isNum(overall) || slots.done === 0) {
       out.push(
@@ -1108,7 +1167,7 @@ const factsFromEf = (rows: readonly EfRow[], lang: UiLang): ClinicalFact[] => {
       ),
     );
   }
-  return out;
+  return localizeDecimals(out, lang);
 };
 
 const factsFromCross = (entities: SessionEntities, lang: UiLang): ClinicalFact[] => {
@@ -1258,7 +1317,7 @@ const factsFromCross = (entities: SessionEntities, lang: UiLang): ClinicalFact[]
     const domains = domainList(asha.failedDomains ?? [], rules, sep);
     const ashaDetail = domains === rules.labelUnavailable ? asha.ageBand : `${asha.ageBand}${sep}${domains}`;
     for (const aut of autisms) {
-      if (!isNum(aut.score) || aut.score < MCHAT_FOLLOW) continue;
+      if (!mchatComplete(aut) || aut.score < MCHAT_FOLLOW) continue;
       out.push(
         makeFact(
           'R-CROSS-006',
@@ -1275,7 +1334,7 @@ const factsFromCross = (entities: SessionEntities, lang: UiLang): ClinicalFact[]
   for (const sah of sahsRows) {
     if (sah.suspicionLevel !== 'med' && sah.suspicionLevel !== 'high') continue;
     for (const ef of efs) {
-      const detail = efCrossDetail(ef, sep);
+      const detail = efCrossDetail(ef, rules);
       if (!detail) continue;
       out.push(
         makeFact(
@@ -1290,7 +1349,7 @@ const factsFromCross = (entities: SessionEntities, lang: UiLang): ClinicalFact[]
     }
   }
 
-  return out;
+  return localizeDecimals(out, lang);
 };
 
 export function evaluateCapFacts(entities: SessionEntities, lang: UiLang): ClinicalFact[] {
@@ -1381,11 +1440,15 @@ export function evaluateSessionNlg(entities: SessionEntities, lang?: UiLang): Nl
   };
 }
 
-export function renderAudiometryInterpretation(thresholds: AudiometryThresholds, lang: UiLang): string {
+export function renderAudiometryInterpretation(
+  thresholds: AudiometryThresholds,
+  lang: UiLang,
+  noResponseAtMax: AudiometryNoResponse | null = null,
+): string {
   if (!catalogPack(lang)) return nlgMissingDataMessage(lang);
   const transducer = hasCl(thresholds) ? 'soundfield' : 'air';
   return joinText(
-    factsFromAud([{ id: 0, transducer, thresholds, ptaOD: null, ptaOI: null }], lang),
+    factsFromAud([{ id: 0, transducer, thresholds, noResponseAtMax, ptaOD: null, ptaOI: null }], lang),
   );
 }
 

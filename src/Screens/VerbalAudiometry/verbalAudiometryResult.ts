@@ -15,6 +15,7 @@
 /* -------------------------------------------------------------------------- */
 
 import { getUiLang } from '@/I18n/uiLang';
+import { DISC_MIN } from '@/PDF/nlgThresholds';
 import { renderVerbalInterpretation } from '@/PDF/nlgReportEngine';
 
 import type { AgeBand, CardModality } from './verbalAudiometryTypes';
@@ -66,11 +67,13 @@ export const DEFAULT_LEVEL = 65;
 export const MAX_REPEATS = 2;
 
 /**
- * Cortes orientativos de discriminación a voz conversacional (a validar
- * clínicamente): ≥ OK_CUT esperado · ≥ WARN_CUT revisar · < WARN_CUT derivar.
+ * Cortes de discriminación a voz conversacional: ≥ OK_CUT esperado ·
+ * ≥ WARN_CUT revisar · < WARN_CUT derivar. WARN_CUT es el 80 % del plan del
+ * motor (`nlgThresholds.ts`, `DISC_MIN`), el mismo que redacta R-VER-004:
+ * antes era 70 y la tarjeta no derivaba lo que el informe sí.
  */
 export const DISCRIMINATION_OK_CUT = 90;
-export const DISCRIMINATION_WARN_CUT = 70;
+export const DISCRIMINATION_WARN_CUT = DISC_MIN;
 
 /** Etiquetas cortas de nivel para chips/tablas ('65 dB · voz normal'). */
 export const LEVEL_LABEL: Record<number, string> = {

@@ -100,7 +100,7 @@ export async function loadEvaluationResultCards(evaluationId: number): Promise<R
         key: `audio-${a.id}`,
         title: a.method === 'conditioned' ? 'Audiometría Condicionada' : 'Audiometría Infantil',
         status: catalogReady ? status : 'warn',
-        headline: catalogReady ? interpretAudiometry(a.thresholds) : missing,
+        headline: catalogReady ? interpretAudiometry(a.thresholds, a.noResponseAtMax ?? null) : missing,
         metric,
       });
     });

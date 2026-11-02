@@ -978,6 +978,13 @@ export const CA: UiStrings = {
       labelAshaReceptive: 'recepció',
       labelAshaExpressive: 'expressió',
       labelAshaPragmatic: 'pragmàtica',
+      labelEfAttention: 'atenció',
+      labelEfInhibition: 'inhibició',
+      labelEfFlexibility: 'flexibilitat cognitiva',
+      labelEfWorkingMemory: 'memòria de treball',
+      labelEfPlanning: 'planificació',
+      labelEfOverall: 'índex global',
+      labelDecimalSep: ',',
       labelReasonEmpty: 'no s’ha enregistrat àudio',
       labelReasonSilent: 'la presa no conté parla per damunt del soroll de fons',
       labelReasonShort: 'la presa és més curta que la finestra mínima d’anàlisi',
@@ -1022,8 +1029,14 @@ export const CA: UiStrings = {
       rAud003: (ear: string | number, freqs: string | number) =>
         `${ear}: sense resposta al nivell màxim de sortida a ${freqs}.`,
       rAud004: (ear: string | number) =>
-        `${ear}: algun llindar supera 20 dB HL o ha quedat sense resposta al nivell màxim. Se suggereix derivació a ORL/audiologia.`,
+        `${ear}: algun llindar supera 20 dB HL, ha quedat sense resposta al nivell màxim o no s’ha determinat. Se suggereix derivació a ORL/audiologia.`,
       rAud005: 'Camp lliure: estima la resposta de la millor orella i no permet avaluar cada orella per separat.',
+      rAud006: (ear: string | number, freqs: string | number, legacy: string | number) => {
+        if (Number(legacy) === 1) {
+          return `${ear}: llindar no determinat a ${freqs}. Aquest registre és anterior a la distinció entre «sense resposta al nivell màxim» i «freqüència no explorada»; no s’afirma cap de les dues.`;
+        }
+        return `${ear}: llindar no determinat a ${freqs} (freqüència no explorada o sense confirmar; no consta absència de resposta al nivell màxim).`;
+      },
       rVer001: 'Audiometria verbal: sense estímuls presentats. Exploració incompleta.',
       rVer002: (
         band: string | number,
@@ -1033,7 +1046,7 @@ export const CA: UiStrings = {
         presented: string | number,
         srt: string | number,
       ) =>
-        `Audiometria verbal, banda ${band}: reconeixement ${pct} % (${correct}/${presented}) a ${level} dB. URV/SRT estimat: ${srt} dB.`,
+        `Audiometria verbal, banda ${band}: reconeixement ${pct} % (${correct}/${presented}) a ${level} dB. URV/SRT estimat: ${srt}.`,
       rVer003: (langLabel: string | number, borrowed: string | number) => {
         if (Number(borrowed) === 1) {
           return `Variant lingüística: ${langLabel}. El banc d’estímuls d’aquesta llengua és manllevat; el resultat no es compara com si el banc fos propi.`;
@@ -1069,7 +1082,7 @@ export const CA: UiStrings = {
         rangeSt: string | number,
         rates: string | number,
       ) =>
-        `Registre descriptiu de parla connectada: ${span} s, ${syllables} nuclis sil·làbics, ${pauses} pauses, rang tonal ${rangeSt} semitons, velocitat ${rates}. No hi ha barem poblacional de referència per a aquestes mesures. La lectura correspon al professional.`,
+        `Registre descriptiu de parla connectada: durada ${span} s; nuclis sil·làbics: ${syllables}; pauses: ${pauses}; rang tonal: ${rangeSt} semitons; velocitat de parla / d’articulació: ${rates} síl·labes/s. No hi ha barem poblacional de referència per a aquestes mesures. La lectura correspon al professional.`,
       rArt001: 'Articulació: sense ítems avaluats. Exploració incompleta.',
       rArt002: (evaluated: string | number, total: string | number, pct: string | number, soda: string | number) =>
         `T.A.R.: ${evaluated} de ${total} ítems avaluats, ${pct} % de producció concordant. Desglossament SODA (substitució, omissió, distorsió, addició): ${soda}.`,
@@ -1092,6 +1105,7 @@ export const CA: UiStrings = {
         return `M-CHAT-R: puntuació ${score} sobre 20, banda ${band}. La puntuació queda per sota de 3.`;
       },
       rDys001: 'MECV-V: sense signes de compromís d’eficàcia ni de seguretat en els bols avaluats.',
+      rDys004: 'MECV-V: no hi ha bols registrats. Exploració incompleta; no s’emet valoració d’eficàcia ni de seguretat.',
       rDys002: (recom: string | number) =>
         `Compromís d’eficàcia deglutòria (segell labial, residu oral o deglució fraccionada), sense signes de compromís respiratori. Recomanació registrada: ${recom}.`,
       rDys003: (minSpO2: string | number, maxDrop: string | number, recom: string | number) =>

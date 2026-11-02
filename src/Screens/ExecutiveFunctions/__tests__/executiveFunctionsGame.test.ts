@@ -144,9 +144,11 @@ describe('agregación e interpretación', () => {
     ).toBe(90);
   });
 
-  it('semáforo orientativo', () => {
+  it('semáforo orientativo (corte 65 del plan, el mismo que el informe)', () => {
     expect(efStatus(85)).toBe('ok');
-    expect(efStatus(70)).toBe('warn');
+    expect(efStatus(70)).toBe('ok');
+    expect(efStatus(65)).toBe('ok');
+    expect(efStatus(64)).toBe('warn');
     expect(efStatus(40)).toBe('alt');
   });
 
@@ -160,7 +162,7 @@ describe('agregación e interpretación', () => {
     });
     expect(text).toContain('banda B');
     expect(text).toContain('81/100');
-    expect(text).toContain('inhibition 50/100');
+    expect(text).toContain('inhibición 50/100');
     expect(text).toContain('Por debajo del umbral orientativo (< 65/100)');
     expect(text).not.toContain('valoración neuropsicológica');
     expect(text).not.toContain('no constituye diagnóstico');

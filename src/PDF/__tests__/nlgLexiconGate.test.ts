@@ -24,6 +24,11 @@ const BANNED = [
   'rules out',
 ];
 
+/* «normal» como palabra suelta, en las cinco lenguas: es el término central
+ * que el plan veta (§4.3) y no estaba en la lista. Va aparte porque es una
+ * palabra corta que como subcadena salta en «normalizado», «anormal»… */
+const BANNED_WORDS = /(?<![\p{L}])(normal|normales|normala|normalak|normalidad|normalidade|normalitat|normality)(?![\p{L}])/iu;
+
 const looseWord = (words: string[]): RegExp =>
   new RegExp(`(?<![\\p{L}\\p{N}_-])(${words.join('|')})(?![\\p{L}\\p{N}_])`, 'iu');
 
@@ -39,7 +44,10 @@ const FOREIGN: Partial<Record<UiLang, RegExp>> = {
 
 const hits = (text: string): string[] => {
   const lower = text.toLowerCase();
-  return BANNED.filter(pattern => lower.includes(pattern.toLowerCase()));
+  const found = BANNED.filter(pattern => lower.includes(pattern.toLowerCase()));
+  const word = text.match(BANNED_WORDS);
+  if (word) found.push(word[0]);
+  return found;
 };
 
 const collect = (value: unknown, out: string[], seen: Set<unknown>): void => {

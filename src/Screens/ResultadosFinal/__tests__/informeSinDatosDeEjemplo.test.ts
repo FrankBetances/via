@@ -60,8 +60,17 @@ describe('informe y hub · sin datos de ejemplo', () => {
     // Un umbral ausente no se rellena con una audición normal.
     expect(src).not.toMatch(/thresholds\.(OD|OI)\[f\]\s*\?\?\s*\d/);
     // La interpretación y el estado se calculan.
-    expect(src).toContain('interpretAudiometry(a.thresholds)');
+    expect(src).toContain('interpretAudiometry(a.thresholds, a.noResponseAtMax ?? null)');
     expect(src).toContain('buildVoiceInterpretation(');
+  });
+
+  it('sin evaluación activa no se abre la del último paciente', () => {
+    // Hasta el 2/11/2026 un efecto cargaba la última evaluación del último
+    // paciente de la base; desde que esta pantalla firma, eso era firmar el
+    // informe de otro niño.
+    const src = read('ResultadosFinal/ResultadosFinalScreen.tsx');
+    expect(src).not.toContain('getAllPatients');
+    expect(src).not.toContain('setActiveEvaluation(');
   });
 
   it('la firma del informe es la del profesional de la sesión', () => {

@@ -1,12 +1,19 @@
-import { AudiometryThresholds } from '@/Models/Audiometry/AudiometryTest';
+import { AudiometryNoResponse, AudiometryThresholds } from '@/Models/Audiometry/AudiometryTest';
 import { getUiLang } from '@/I18n/uiLang';
 import { renderAudiometryInterpretation } from '@/PDF/nlgReportEngine';
+import {
+  AUDIO_FREQS,
+  PTA_BAND_MILD_MAX,
+  PTA_BAND_MODERATE_MAX,
+  PTA_BAND_SEVERE_MAX,
+  PTA_REF_MAX,
+} from '@/PDF/nlgThresholds';
 
 /* -------------------------------------------------------------------------- */
 /*  Lógica clínica de audiometría tonal (fuente única para ambas pantallas).   */
 /* -------------------------------------------------------------------------- */
 
-export const FREQS = [500, 1000, 2000, 4000] as const;
+export const FREQS = AUDIO_FREQS;
 export type Freq = (typeof FREQS)[number];
 export const DB_STEPS = [20, 30, 40, 50, 60, 70, 80] as const;
 
@@ -54,21 +61,30 @@ export interface Severity {
   token: string; // token Gluestack
 }
 
+/**
+ * Banda del PTA. Cortes del plan (BIAP 02/1 bis, `nlgThresholds.ts`), los
+ * mismos que redacta el informe. La etiqueta de la banda de referencia no
+ * dice «normal»: el producto no clasifica al niño (README, «¿Qué NO hace?»).
+ */
 export const severityOf = (value: number | null): Severity | null => {
   if (value === null) return null;
-  if (value <= 20) return { key: 'normal', label: 'Audición normal', color: '#2A7948', token: '$success600' };
-  if (value <= 40) return { key: 'mild', label: 'Pérdida leve', color: '#C99A3A', token: '$warning600' };
-  if (value <= 60) return { key: 'moderate', label: 'Pérdida moderada', color: '#C2742E', token: '$warning700' };
-  if (value <= 80) return { key: 'severe', label: 'Pérdida severa', color: '#C2554E', token: '$error500' };
+  if (value <= PTA_REF_MAX) {
+    return { key: 'normal', label: 'Rango de referencia (≤ 20 dB HL)', color: '#2A7948', token: '$success600' };
+  }
+  if (value <= PTA_BAND_MILD_MAX) return { key: 'mild', label: 'Pérdida leve', color: '#C99A3A', token: '$warning600' };
+  if (value <= PTA_BAND_MODERATE_MAX) {
+    return { key: 'moderate', label: 'Pérdida moderada', color: '#C2742E', token: '$warning700' };
+  }
+  if (value <= PTA_BAND_SEVERE_MAX) return { key: 'severe', label: 'Pérdida severa', color: '#C2554E', token: '$error500' };
   return { key: 'profound', label: 'Pérdida profunda', color: '#9B2C2C', token: '$error700' };
 };
 
-/** Bandas de severidad para pintar el fondo del audiograma. */
+/** Bandas de severidad para pintar el fondo del audiograma (mismos cortes). */
 export const SEVERITY_BANDS = [
-  { from: -10, to: 20, color: '#EAF7EF', label: 'NORMAL' },
-  { from: 20, to: 40, color: '#FBF4E3', label: 'LEVE' },
-  { from: 40, to: 60, color: '#FBEDDD', label: 'MODERADA' },
-  { from: 60, to: 90, color: '#FBE6E2', label: 'SEVERA' },
+  { from: -10, to: PTA_REF_MAX, color: '#EAF7EF', label: 'REFERENCIA' },
+  { from: PTA_REF_MAX, to: PTA_BAND_MILD_MAX, color: '#FBF4E3', label: 'LEVE' },
+  { from: PTA_BAND_MILD_MAX, to: PTA_BAND_MODERATE_MAX, color: '#FBEDDD', label: 'MODERADA' },
+  { from: PTA_BAND_MODERATE_MAX, to: PTA_BAND_SEVERE_MAX, color: '#FBE6E2', label: 'SEVERA' },
 ];
 
 /**
@@ -78,9 +94,11 @@ export const SEVERITY_BANDS = [
  */
 export const soundfieldNeedsReferral = (cl: Record<number, number | null>): boolean => {
   const p = pta(cl);
-  if (p === null || p > 20) return true;
-  return FREQS.some(f => cl[f] === null || cl[f]! > 20);
+  if (p === null || p > PTA_REF_MAX) return true;
+  return FREQS.some(f => cl[f] === null || cl[f]! > PTA_REF_MAX);
 };
 
-export const interpretAudiometry = (thresholds: AudiometryThresholds): string =>
-  renderAudiometryInterpretation(thresholds, getUiLang());
+export const interpretAudiometry = (
+  thresholds: AudiometryThresholds,
+  noResponseAtMax: AudiometryNoResponse | null = null,
+): string => renderAudiometryInterpretation(thresholds, getUiLang(), noResponseAtMax);

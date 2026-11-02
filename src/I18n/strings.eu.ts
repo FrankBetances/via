@@ -977,6 +977,13 @@ export const EU: UiStrings = {
       labelAshaReceptive: 'harrera',
       labelAshaExpressive: 'adierazpena',
       labelAshaPragmatic: 'pragmatika',
+      labelEfAttention: 'arreta',
+      labelEfInhibition: 'inhibizioa',
+      labelEfFlexibility: 'malgutasun kognitiboa',
+      labelEfWorkingMemory: 'laneko memoria',
+      labelEfPlanning: 'plangintza',
+      labelEfOverall: 'indize globala',
+      labelDecimalSep: ',',
       labelReasonEmpty: 'ez da audiorik erregistratu',
       labelReasonSilent: 'hartuneak ez dauka hizketarik hondoko zarataren gainetik',
       labelReasonShort: 'hartunea analisi-leiho minimoa baino laburragoa da',
@@ -1021,9 +1028,15 @@ export const EU: UiStrings = {
       rAud003: (ear: string | number, freqs: string | number) =>
         `${ear}: irteera-maila maximoan erantzunik ez ${freqs} maiztasunetan.`,
       rAud004: (ear: string | number) =>
-        `${ear}: atalaseren batek 20 dB HL gainditzen du edo irteera-maila maximoan erantzunik gabe geratu da. ORL/audiologiara deribatzea iradokitzen da.`,
+        `${ear}: atalaseren batek 20 dB HL gainditzen du, irteera-maila maximoan erantzunik gabe geratu da edo ez da zehaztu. ORL/audiologiara deribatzea iradokitzen da.`,
       rAud005:
         'Eremu librea: belarri onenaren erantzuna estimatzen du eta ez du belarri bakoitza bereiz ebaluatzen uzten.',
+      rAud006: (ear: string | number, freqs: string | number, legacy: string | number) => {
+        if (Number(legacy) === 1) {
+          return `${ear}: atalasea zehaztu gabe ${freqs} maiztasunetan. Erregistro hau «irteera-maila maximoan erantzunik ez» eta «aztertu gabeko maiztasuna» bereizi aurrekoa da; ez da bietako bat ere baieztatzen.`;
+        }
+        return `${ear}: atalasea zehaztu gabe ${freqs} maiztasunetan (aztertu gabeko edo berretsi gabeko maiztasuna; ez da jasotzen maila maximoan erantzunik ez dagoenik).`;
+      },
       rVer001: 'Hitzezko audiometria: ez da estimulurik aurkeztu. Esplorazio osatugabea.',
       rVer002: (
         band: string | number,
@@ -1033,7 +1046,7 @@ export const EU: UiStrings = {
         presented: string | number,
         srt: string | number,
       ) =>
-        `Hitzezko audiometria, ${band} banda: errekonozimendua ${pct} % (${correct}/${presented}) ${level} dB-tan. Estimaturiko URV/SRT: ${srt} dB.`,
+        `Hitzezko audiometria, ${band} banda: errekonozimendua ${pct} % (${correct}/${presented}) ${level} dB-tan. Estimaturiko URV/SRT: ${srt}.`,
       rVer003: (langLabel: string | number, borrowed: string | number) => {
         if (Number(borrowed) === 1) {
           return `Hizkuntza-aldaera: ${langLabel}. Hizkuntza honetako estimulu-bankua mailegatua da; emaitza ez da alderatzen bankua berezkoa balitz bezala.`;
@@ -1068,7 +1081,7 @@ export const EU: UiStrings = {
         rangeSt: string | number,
         rates: string | number,
       ) =>
-        `Hizketa jarraituaren erregistro deskribatzailea: ${span} s, ${syllables} silaba-nukleo, ${pauses} isilune, tonu-bitartea ${rangeSt} tonuerdi, abiadura ${rates}. Neurri hauetarako ez dago populazio-erreferentziarik. Irakurketa profesionalari dagokio.`,
+        `Hizketa jarraituaren erregistro deskribatzailea: iraupena ${span} s; silaba-nukleoak: ${syllables}; isiluneak: ${pauses}; tonu-bitartea: ${rangeSt} tonuerdi; hizketa- / artikulazio-abiadura: ${rates} silaba/s. Neurri hauetarako ez dago populazio-erreferentziarik. Irakurketa profesionalari dagokio.`,
       rArt001: 'Artikulazioa: ebaluatutako itemik ez. Esplorazio osatugabea.',
       rArt002: (evaluated: string | number, total: string | number, pct: string | number, soda: string | number) =>
         `T.A.R.: ${total} itemetik ${evaluated} ebaluatuta, ekoizpen bat-etortzailea ${pct} %. SODA banaketa (ordezkapena, omisioa, distortsioa, gehikuntza): ${soda}.`,
@@ -1091,6 +1104,7 @@ export const EU: UiStrings = {
         return `M-CHAT-R: puntuazioa 20tik ${score}, ${band} banda. Puntuazioa 3tik behera dago.`;
       },
       rDys001: 'MECV-V: ebaluatutako boloetan ez dago eraginkortasun-arriskurik, ezta segurtasun-arriskurik ere.',
+      rDys004: 'MECV-V: ez dago bolorik erregistratuta. Azterketa osatu gabea; ez da eraginkortasunaren ez segurtasunaren baloraziorik ematen.',
       rDys002: (recom: string | number) =>
         `Irenste-eraginkortasunaren arriskua (ezpain-itxiera, aho-hondarra edo irenste zatikatua), arnas-arriskuaren zeinurik gabe. Erregistratutako gomendioa: ${recom}.`,
       rDys003: (minSpO2: string | number, maxDrop: string | number, recom: string | number) =>

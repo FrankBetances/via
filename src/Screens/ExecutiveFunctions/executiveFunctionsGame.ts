@@ -1,4 +1,5 @@
 import { getUiLang } from '@/I18n/uiLang';
+import { EF_DOMAIN_CUT } from '@/PDF/nlgThresholds';
 import { renderExecutiveInterpretation } from '@/PDF/nlgReportEngine';
 
 /* -------------------------------------------------------------------------- */
@@ -513,8 +514,13 @@ export const EMPTY_EF_SCORES: EfDomainScores = {
   planning: null,
 };
 
-/** Cortes orientativos (a validar clínicamente). */
-export const EF_OK_CUT = 80;
+/**
+ * Cortes orientativos. OK_CUT es el 65/100 del plan del motor
+ * (`nlgThresholds.ts`, `EF_DOMAIN_CUT`), el mismo que redacta R-EF-002: antes
+ * era 80 y un 70 salía en ámbar con el texto «igual o superior al umbral».
+ * WARN_CUT no lo fija el plan y se conserva.
+ */
+export const EF_OK_CUT = EF_DOMAIN_CUT;
 export const EF_WARN_CUT = 60;
 
 export const efStatus = (score: number): EfStatus =>

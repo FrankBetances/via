@@ -1,5 +1,6 @@
 import { GrbasScores, VoiceFormants, VoiceParamStatus } from '@/Models/VoiceAnalysis/VoiceAnalysis';
 import { getUiLang } from '@/I18n/uiLang';
+import { VOICE_REF } from '@/PDF/nlgThresholds';
 import { renderGrbasSeverityLabel, renderVoiceInterpretation } from '@/PDF/nlgReportEngine';
 
 /* -------------------------------------------------------------------------- */
@@ -8,12 +9,12 @@ import { renderGrbasSeverityLabel, renderVoiceInterpretation } from '@/PDF/nlgRe
 /*  Ajuste los umbrales a su protocolo/normativa de referencia si procede.     */
 /* -------------------------------------------------------------------------- */
 
-export const VOICE_NORMS = {
-  f0: { min: 200, max: 320 }, // Hz (infantil)
-  jitter: { max: 1.0 }, // %
-  shimmer: { max: 3.0 }, // %
-  hnr: { min: 20 }, // dB
-};
+/**
+ * Intervalo de referencia de la voz: el mismo que redacta el informe
+ * (`nlgThresholds.ts`, cifras del plan del motor). Antes eran 200–320 Hz,
+ * 1,0 %, 3,0 % y 20 dB, y la tarjeta y la síntesis se contradecían.
+ */
+export const VOICE_NORMS = VOICE_REF;
 
 export interface VoiceParams {
   f0: number;

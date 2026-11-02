@@ -974,6 +974,13 @@ export const EN: UiStrings = {
       labelAshaReceptive: 'reception',
       labelAshaExpressive: 'expression',
       labelAshaPragmatic: 'pragmatics',
+      labelEfAttention: 'attention',
+      labelEfInhibition: 'inhibition',
+      labelEfFlexibility: 'cognitive flexibility',
+      labelEfWorkingMemory: 'working memory',
+      labelEfPlanning: 'planning',
+      labelEfOverall: 'overall index',
+      labelDecimalSep: '.',
       labelReasonEmpty: 'no audio was recorded',
       labelReasonSilent: 'the take contains no speech above the background noise',
       labelReasonShort: 'the take is shorter than the minimum analysis window',
@@ -1018,9 +1025,15 @@ export const EN: UiStrings = {
       rAud003: (ear: string | number, freqs: string | number) =>
         `${ear}: no response at the maximum output level at ${freqs}.`,
       rAud004: (ear: string | number) =>
-        `${ear}: a threshold is above 20 dB HL or there was no response at the maximum level. Referral to ENT/audiology is suggested.`,
+        `${ear}: a threshold is above 20 dB HL, there was no response at the maximum level, or a threshold was not determined. Referral to ENT/audiology is suggested.`,
       rAud005:
         'Sound field: it estimates the better ear response and does not allow each ear to be assessed separately.',
+      rAud006: (ear: string | number, freqs: string | number, legacy: string | number) => {
+        if (Number(legacy) === 1) {
+          return `${ear}: threshold not determined at ${freqs}. This record predates the distinction between “no response at the maximum level” and “frequency not tested”; neither is stated.`;
+        }
+        return `${ear}: threshold not determined at ${freqs} (frequency not tested or not confirmed; no absence of response at the maximum level is recorded).`;
+      },
       rVer001: 'Speech audiometry: no stimuli presented. Incomplete examination.',
       rVer002: (
         band: string | number,
@@ -1030,7 +1043,7 @@ export const EN: UiStrings = {
         presented: string | number,
         srt: string | number,
       ) =>
-        `Speech audiometry, band ${band}: recognition ${pct} % (${correct}/${presented}) at ${level} dB. Estimated SRT/URV: ${srt} dB.`,
+        `Speech audiometry, band ${band}: recognition ${pct} % (${correct}/${presented}) at ${level} dB. Estimated SRT/URV: ${srt}.`,
       rVer003: (langLabel: string | number, borrowed: string | number) => {
         if (Number(borrowed) === 1) {
           return `Language variant: ${langLabel}. The stimulus bank for this language is borrowed; the result is not compared as if the bank were its own.`;
@@ -1066,7 +1079,7 @@ export const EN: UiStrings = {
         rangeSt: string | number,
         rates: string | number,
       ) =>
-        `Descriptive record of connected speech: ${span} s, ${syllables} syllabic nuclei, ${pauses} pauses, pitch range ${rangeSt} semitones, rate ${rates}. There is no population reference scale for these measures. Reading them belongs to the professional.`,
+        `Descriptive record of connected speech: duration ${span} s; syllabic nuclei: ${syllables}; pauses: ${pauses}; pitch range: ${rangeSt} semitones; speech / articulation rate: ${rates} syllables/s. There is no population reference scale for these measures. Reading them belongs to the professional.`,
       rArt001: 'Articulation: no items scored. Incomplete examination.',
       rArt002: (evaluated: string | number, total: string | number, pct: string | number, soda: string | number) =>
         `T.A.R.: ${evaluated} of ${total} items scored, ${pct} % concordant production. SODA breakdown (substitution, omission, distortion, addition): ${soda}.`,
@@ -1089,6 +1102,7 @@ export const EN: UiStrings = {
         return `M-CHAT-R: score ${score} out of 20, band ${band}. The score is below 3.`;
       },
       rDys001: 'MECV-V: no signs of efficacy or safety concern in the boluses assessed.',
+      rDys004: 'MECV-V: no boluses recorded. Incomplete examination; no efficacy or safety assessment is given.',
       rDys002: (recom: string | number) =>
         `Swallowing-efficacy concern (lip seal, oral residue or piecemeal deglutition), with no signs of respiratory concern. Recorded recommendation: ${recom}.`,
       rDys003: (minSpO2: string | number, maxDrop: string | number, recom: string | number) =>

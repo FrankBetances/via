@@ -2,9 +2,63 @@
 
 Versión de todas las reglas: `1.0.0`.
 
-Este documento es el expediente de las reglas que la oleada 2 escribirá en `src/PDF/nlgReportEngine.ts`. Las plantillas en castellano viven en `src/I18n/strings.es.ts`, bloque `nlg`. Las otras seis lenguas aún no tienen el bloque: hasta que lo tengan, `npx tsc --noEmit` queda en rojo. Esta oleada no cambia pantallas, PDF ni umbrales del código de hoy.
+Este documento es el expediente de las reglas de `src/PDF/nlgReportEngine.ts`. Las plantillas viven en el bloque `nlg` de `src/I18n/strings.es.ts` (que heredan es-419 y es-DO), `strings.gl.ts`, `strings.eu.ts`, `strings.ca.ts` y `strings.en.ts`. Los umbrales viven en `src/PDF/nlgThresholds.ts`, que leen a la vez el motor y las pantallas.
 
-Frank cerró el 31/10/2026 que, donde el plan del motor y el código discrepen, manda el plan. Las cifras de abajo son las del plan. `VOICE_NORMS`, `severityOf`, `DISCRIMINATION_WARN_CUT` y `EF_OK_CUT` / `EF_WARN_CUT` siguen en sus ficheros y no se han tocado.
+Frank cerró el 31/10/2026 que, donde el plan del motor y el código discrepen, manda el plan. El 2/11/2026 lo confirmó para los umbrales («las que están en el plan») y asumió la firma de las reglas («las reglas las firmo yo»). Desde ese día no hay dos juegos de cifras: `VOICE_NORMS`, `severityOf`, `DISCRIMINATION_WARN_CUT` y `EF_OK_CUT` leen `nlgThresholds.ts`, y `nlgReportEngine.test.ts` («paridad de cifras») falla si una pantalla y el informe vuelven a separarse.
+
+## Firma clínica
+
+Firmante de las reglas: **Frank Betances**. Fecha: **2/11/2026**. Constancia: respuesta escrita de Frank en la sesión de Claude Code de esa fecha, «las reglas las firmo yo», sobre la lista de reglas de esta matriz y los umbrales del plan.
+
+Qué cubre esta firma y qué no:
+
+- Cubre la **regla**: condición, umbral y efecto (incluidas las derivaciones sugeridas). Una regla nueva o un umbral cambiado necesita firma nueva y sube la versión.
+- **No** cubre la **traducción** de las plantillas a gl, eu, ca y en. Las escribió un agente (Cursor, 31/10/2026; retocadas por Claude, 2/11/2026) y no tienen acta de revisión lingüística ni clínica en esas lenguas. El oro exacto de `nlgReportEngine.golden.test.ts` detecta cambios; no certifica la traducción.
+- **No** convierte en fuente primaria lo que aquí se cita como «plan del motor». Para la mayoría de las filas la fuente escrita es el plan (`docs/PLAN_NLG_ENGINE.md`), no un artículo. Ver «Qué no demuestra esta matriz».
+
+| Regla | Firma | Fecha |
+| --- | --- | --- |
+| `R-CROSS-001` | Frank Betances | 2/11/2026 |
+| `R-CROSS-002` | Frank Betances | 2/11/2026 |
+| `R-CROSS-003` | Frank Betances | 2/11/2026 |
+| `R-CROSS-004` | Frank Betances | 2/11/2026 |
+| `R-CROSS-005` | Frank Betances | 2/11/2026 |
+| `R-CROSS-006` | Frank Betances | 2/11/2026 |
+| `R-CROSS-007` | Frank Betances | 2/11/2026 |
+| `R-CAP-001` | Frank Betances | 2/11/2026 |
+| `R-CAP-002` | Frank Betances | 2/11/2026 |
+| `R-CAP-003` | Frank Betances | 2/11/2026 |
+| `R-AUD-001` | Frank Betances | 2/11/2026 |
+| `R-AUD-002` | Frank Betances | 2/11/2026 |
+| `R-AUD-003` | Frank Betances | 2/11/2026 |
+| `R-AUD-006` | Frank Betances | 2/11/2026 |
+| `R-AUD-004` | Frank Betances | 2/11/2026 |
+| `R-AUD-005` | Frank Betances | 2/11/2026 |
+| `R-VER-001` | Frank Betances | 2/11/2026 |
+| `R-VER-002` | Frank Betances | 2/11/2026 |
+| `R-VER-003` | Frank Betances | 2/11/2026 |
+| `R-VER-004` | Frank Betances | 2/11/2026 |
+| `R-VOZ-001` | Frank Betances | 2/11/2026 |
+| `R-VOZ-002` | Frank Betances | 2/11/2026 |
+| `R-VOZ-003` | Frank Betances | 2/11/2026 |
+| `R-VOZ-004` | Frank Betances | 2/11/2026 |
+| `R-PRO-001` | Frank Betances | 2/11/2026 |
+| `R-PRO-002` | Frank Betances | 2/11/2026 |
+| `R-ART-001` | Frank Betances | 2/11/2026 |
+| `R-ART-002` | Frank Betances | 2/11/2026 |
+| `R-ART-003` | Frank Betances | 2/11/2026 |
+| `R-ASH-001` | Frank Betances | 2/11/2026 |
+| `R-ASH-002` | Frank Betances | 2/11/2026 |
+| `R-ASH-003` | Frank Betances | 2/11/2026 |
+| `R-AUT-001` | Frank Betances | 2/11/2026 |
+| `R-AUT-002` | Frank Betances | 2/11/2026 |
+| `R-DYS-001` | Frank Betances | 2/11/2026 |
+| `R-DYS-002` | Frank Betances | 2/11/2026 |
+| `R-DYS-003` | Frank Betances | 2/11/2026 |
+| `R-DYS-004` | Frank Betances | 2/11/2026 |
+| `R-SAH-001` | Frank Betances | 2/11/2026 |
+| `R-EF-001` | Frank Betances | 2/11/2026 |
+| `R-EF-002` | Frank Betances | 2/11/2026 |
 
 ## Convenciones
 
@@ -41,7 +95,7 @@ El plan nombra atajos (`cap.earRight`, `evaluateAssessment`, `computeSahsResult`
 
 ## Bandas y cortes de esta versión
 
-Estas cifras sustituyen, en el texto del motor, a las del código de hoy. El código de pantalla no se ha cambiado en esta oleada.
+Estas cifras están en `src/PDF/nlgThresholds.ts` y las leen el motor y las pantallas.
 
 - Voz, intervalo de referencia: F0 de 220 a 320 Hz inclusive; jitter hasta 1,04 % inclusive; shimmer hasta 3,81 % inclusive; HNR desde 12 dB inclusive. Fuera: F0 por debajo de 220 o por encima de 320, jitter por encima de 1,04, shimmer por encima de 3,81, HNR por debajo de 12.
 - Audiometría, banda del PTA entero en dB HL: ≤ 20 rango de referencia; 21–40; 41–70; 71–90; 91 o más (por encima de 90). No se usan las etiquetas «pérdida leve», «moderada», «severa» ni «profunda».
@@ -102,7 +156,7 @@ Estas cifras sustituyen, en el texto del motor, a las del código de hoy. El có
 ## R-CROSS-006
 
 - Identificador: `R-CROSS-006`. Versión `1.0.0`. Módulos: ASHA y M-CHAT-R.
-- Condición: una `AshaMilestoneTest` tiene `riskLevel === 'red'` o `failedDomains` incluye `receptive` o `pragmatic`, y una `Screening` con `instrument === 'autism-tea'` tiene `score >= 3`. `expressive` solo no basta. Una fila que no sea `autism-tea` no cuenta. `score` ausente no se lee como 0.
+- Condición: una `AshaMilestoneTest` tiene `riskLevel === 'red'` o `failedDomains` incluye `receptive` o `pragmatic`, y una `Screening` con `instrument === 'autism-tea'` tiene `score >= 3` **con el cuestionario completo** (el mismo criterio que `R-AUT-001`). `expressive` solo no basta. Una fila que no sea `autism-tea` no cuenta. `score` ausente no se lee como 0. Hasta el 2/11/2026 un M-CHAT a medias, del que `R-AUT-001` decía «no se emite banda», alimentaba aquí una derivación prioritaria.
 - Entrada: detalle ASHA (banda y dominios) y puntuación.
 - Efecto: se sugiere derivación prioritaria conjunta a neuropediatría y atención temprana.
 - Fuente: ASHA, percentil 75, y Robins y colaboradores (M-CHAT-R/F), citadas por el plan.
@@ -165,16 +219,25 @@ Estas cifras sustituyen, en el texto del motor, a las del código de hoy. El có
 ## R-AUD-003
 
 - Identificador: `R-AUD-003`. Versión `1.0.0`. Módulo: audiometría tonal.
-- Condición: en un lado con algún otro dato, una o más frecuencias de 500, 1000, 2000 o 4000 Hz están a `null` (sin respuesta al nivel máximo). Si todas están a `null`, manda `R-AUD-001` y no se duplica aquí.
+- Condición: en un lado con algún otro dato, una o más frecuencias de 500, 1000, 2000 o 4000 Hz están a `null` **y** constan en `AudiometryTest.noResponseAtMax` de ese lado. La toma las registra cuando el niño no responde con el estímulo al máximo de salida (80 dB HL). Si todas están a `null`, manda `R-AUD-001`.
 - Entrada: lado y lista de frecuencias sin respuesta.
 - Efecto: constancia de las frecuencias sin respuesta al máximo de salida.
 - Fuente: protocolo de audiometría de VIA+ (`missingFreqs` en el plan).
-- Mitigación: `null` no se sustituye por el máximo del audiómetro.
+- Mitigación: hasta el 2/11/2026 esta regla leía cualquier `null` como «sin respuesta», y en el modelo `null` es «no determinado»: un 2 kHz que el clínico no exploró salía en el informe como un niño que no respondió. Ahora un `null` sin constancia va a `R-AUD-006`.
+
+## R-AUD-006
+
+- Identificador: `R-AUD-006`. Versión `1.0.0`. Módulo: audiometría tonal.
+- Condición: en un lado con algún otro dato, una frecuencia está a `null` y **no** consta en `noResponseAtMax`. `legacy` es `1` cuando la fila no tiene la columna (registro anterior al 2/11/2026).
+- Entrada: lado, frecuencias y `legacy`.
+- Efecto: umbral no determinado. Con `legacy` `1`, la frase dice que el registro no distingue «sin respuesta» de «no explorada» y no afirma ninguna de las dos.
+- Fuente: regla de datos ausentes del plan (§2, punto 2) y regla 0 de `CLAUDE.md`.
+- Mitigación: no es la rama favorable. `R-AUD-004` sigue derivando ese lado: un hueco no se da por bueno.
 
 ## R-AUD-004
 
 - Identificador: `R-AUD-004`. Versión `1.0.0`. Módulo: audiometría tonal.
-- Condición: cualquier umbral determinado es mayor de 20 dB HL, o hay alguna frecuencia sin respuesta (`R-AUD-003` o lado vacío en `R-AUD-001`).
+- Condición: cualquier umbral determinado es mayor de 20 dB HL, o hay alguna frecuencia sin umbral (`R-AUD-003`, `R-AUD-006` o lado vacío en `R-AUD-001`). La plantilla nombra las tres causas sin decir cuál fue: esa la dicen `R-AUD-003` y `R-AUD-006`.
 - Entrada: lado.
 - Efecto: se sugiere derivación a ORL/audiología.
 - Fuente: el plan del motor. El corte > 20 dB HL ya es el de `soundfieldNeedsReferral` para el PTA; aquí se aplica también a cada umbral suelto, como dice el plan («cualquier umbral supera 20 dB HL»).
@@ -260,6 +323,7 @@ Estas cifras sustituyen, en el texto del motor, a las del código de hoy. El có
 - Efecto: la estimación ciclo a ciclo del shimmer comprime la cifra entre 1,3 y 1,7 veces respecto a Praat. Si los formantes son `null`, la misma frase dice que no pudieron estimarse.
 - Fuente: `tools/acoustics/README.md`, tabla a 220 Hz (4 % → Praat 5,4 y VIA+ 4,1; 8 % → 9,6 y 6,2; 16 % → 17,6 y 10,2). El plan pide el factor 1,3–1,7. Esta oleada no modifica ese README ni `voiceDsp.ts`. El 3,5 % que el README menciona como lectura de consulta no sustituye al 3,81 % del plan: el corte del texto es el del plan; el factor de compresión es el del README.
 - Mitigación: quien lea el shimmer en el informe ve el factor en la misma página. El banco de Praat no se relaja para igualar las cifras.
+- **Riesgo abierto (señalado el 2/11/2026).** El corte de 3,81 % está en la escala de Praat y se compara con el shimmer de VIA+, que sale comprimido. Con la tabla del README, una voz de 5,4 % en Praat se lee 4,1 % en VIA+: una voz por encima del corte en Praat puede quedar por debajo en VIA+ y salir como «dentro del intervalo de referencia». Es una inferencia sobre la tabla del README (senoides, no voz de niño), no una medida. Frank mantuvo el umbral del plan tras el aviso; no se ha aplicado ningún factor de corrección, porque elegir uno sería inventar una cifra.
 
 ## R-PRO-001
 
@@ -358,7 +422,7 @@ Estas cifras sustituyen, en el texto del motor, a las del código de hoy. El có
 - Entrada: ninguna. Plantilla fija.
 - Efecto: sin signos de compromiso de eficacia ni de seguridad en los bolos evaluados.
 - Fuente: plan del motor y Clavé y colaboradores (MECV-V).
-- Mitigación: si uno de los dos booleanos faltara, no se elige esta rama. Hoy el modelo los persiste como boolean, con defecto `false`: un registro creado sin pasar por la pantalla podría llegar en falso. La oleada 2 solo emite `R-DYS-001` cuando los dos son `false` y `bolus` no está vacío. `bolus` vacío es exploración incompleta y no esta regla (se trata como dato ausente, nivel de aviso, sin `ruleId` de compromiso ausente). Esta salvaguarda no está en el plan como `ruleId`; queda aquí para no cumplir `R-DYS-001` con una fila vacía.
+- Mitigación: si uno de los dos booleanos faltara, no se elige esta rama. Hoy el modelo los persiste como boolean, con defecto `false`: un registro creado sin pasar por la pantalla podría llegar en falso. La oleada 2 solo emite `R-DYS-001` cuando los dos son `false` y `bolus` no está vacío. `bolus` vacío es exploración incompleta: `R-DYS-004`, nunca esta regla.
 
 ## R-DYS-002
 
@@ -377,6 +441,15 @@ Estas cifras sustituyen, en el texto del motor, a las del código de hoy. El có
 - Efecto: compromiso de seguridad, con la SpO2 mínima, la caída máxima y la recomendación de viscosidad o volumen que ya guardó la pantalla.
 - Fuente: plan del motor y Clavé y colaboradores (MECV-V).
 - Mitigación: si `maxDrop` es `null`, la frase no inventa una caída de 3 %. El booleano `safetyAltered` sigue siendo el que dispara la regla, porque es el veredicto persistido.
+
+## R-DYS-004
+
+- Identificador: `R-DYS-004`. Versión `1.0.0`. Módulo: disfagia MECV-V.
+- Condición: `bolus` vacío o ausente.
+- Entrada: ninguna. Plantilla fija.
+- Efecto: exploración incompleta; no se emite valoración de eficacia ni de seguridad.
+- Fuente: regla de datos ausentes del plan (§2, punto 2) y regla 4 de `CLAUDE.md`. Hasta el 2/11/2026 una MECV-V sin bolos no emitía nada y el módulo desaparecía de la síntesis en silencio.
+- Mitigación: no es la rama favorable.
 
 ## R-SAH-001
 
@@ -402,12 +475,12 @@ Estas cifras sustituyen, en el texto del motor, a las del código de hoy. El có
 - Condición: `overallScore` es numérico. `anyBelow` es `1` si atención, inhibición, flexibilidad, memoria de trabajo o planificación, estando completada, es menor de 65. Un dominio `null` se lista como no completado, no como por debajo del umbral. La frase de «iguales o superiores al umbral orientativo (≥ 65/100)» solo sale cuando `anyBelow` es `0` y hay al menos un dominio completado (si no, habría disparado `R-EF-001`).
 - Entrada: banda `A`–`D`, índice global, dominios completados con su puntuación, dominios por debajo de 65 y el indicador `anyBelow`.
 - Efecto: índice y dominios. Por debajo de 65, se nombran. En el otro caso, la frase de sustitución del plan, que reemplaza «Rendimiento dentro de lo esperado en todos los dominios explorados».
-- Fuente: plan del motor. Corte 65, no el 80 ni el 60 del juego.
+- Fuente: plan del motor. Corte 65, que desde el 2/11/2026 es también `EF_OK_CUT` (antes 80). `EF_WARN_CUT` (60) solo separa ámbar de rojo en la tarjeta y no entra en el texto. Los dominios se nombran en la lengua del informe (`labelEf*`), no con el código interno (`attention`, `workingMemory`).
 - Mitigación: el índice se acompaña de los dominios que lo forman. Un solo dominio completado no se presenta como batería entera: la plantilla dice «dominios completados» y el motor incluye el recuento en ese hueco.
 
 ## Qué no demuestra esta matriz
 
-- No demuestra que el motor exista. `src/PDF/nlgReportEngine.ts` no está escrito. Lo escribe la oleada 2.
-- No demuestra las otras seis lenguas. Sin ellas el tipo `UiStrings` no cierra.
-- No cambia `VOICE_NORMS` ni el audiograma. Hasta la oleada 3 la pantalla puede seguir mostrando la etiqueta vieja mientras el catálogo `nlg` ya tiene la frase nueva. Es el corte previsto: esta oleada solo deja el contrato en castellano.
-- No recorre un informe en el emulador. No hay llamada desde `ResultadosFinalScreen`.
+- **No es una revisión de la literatura.** La mayoría de las filas citan «el plan del motor» como fuente: es la especificación que la dirección aprobó, no un artículo. Que jitter 1,04 %, shimmer 3,81 % y HNR 12 dB sean válidos en voz infantil **está por verificar** contra una fuente primaria pediátrica; esas cifras coinciden con referencias de adulto muy citadas (inferencia, no comprobada desde aquí).
+- **No demuestra las traducciones** (ver «Firma clínica»).
+- **No recorre un informe en el emulador.** Nada de esto se ha visto en pantalla ni en un PDF real; está comprobado con `tsc` y `jest`.
+- **No mide el rendimiento en la tableta.** `nlgReportEngine.bench.test.ts` mide en Node, en el CI, y publica el número; la cifra del dispositivo está por medir.

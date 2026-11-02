@@ -597,11 +597,29 @@ descargado, y las imágenes de AVD no lo traen. **Eso no es una avería.**
 
 - **Decisión de producto del 20/10/2026: dispositivo llave en mano + motor NLG
   determinista.** Está en `docs/PLAN-DE-TRABAJO.md`, con lo que es hecho, objetivo
-  y dato por verificar. **Nada de eso está implementado.** No escribas en ningún
-  sitio «hardware homologado», «calibración sellada», «cifrado por hardware»,
-  «2 ms» ni «cero alucinaciones» como hechos: el §2 del plan dice por qué y cómo
-  se escribe cada uno. F0 (consulta al organismo notificado) bloquea las fases de
-  plataforma y calibración; F1 (NLG) y F2 (cifrado) se pueden empezar ya.
+  y dato por verificar. **De todo eso solo está ESCRITO el motor NLG (F1)**, en
+  `main` desde el 2/11/2026 (`src/PDF/nlgReportEngine.ts`, umbrales en
+  `src/PDF/nlgThresholds.ts`, matriz firmada por Frank en
+  `docs/design/matriz-evidencia-nlg.md`). Escrito no es hecho: **nadie lo ha
+  visto en el emulador ni en un PDF real**, y quedan abiertos la revisión
+  lingüística de gl/eu/ca/en, una fuente primaria pediátrica para los cortes de
+  voz y el riesgo del shimmer comprimido frente al corte en escala Praat (todo en
+  la matriz). Plataforma, calibración y cifrado siguen sin existir. No escribas en
+  ningún sitio «hardware homologado», «calibración sellada», «cifrado por
+  hardware», «2 ms» ni «cero alucinaciones» como hechos: el §2 del plan dice por
+  qué y cómo se escribe cada uno. F0 (consulta al organismo notificado) bloquea
+  las fases de plataforma y calibración; F2 (cifrado) se puede empezar ya.
+- **Un umbral clínico vive en UN sitio.** Coste real (rama `NLG`, 31/10/2026):
+  el motor tomó las cifras del plan y las pantallas conservaron las suyas, y un
+  test congelaba la diferencia «a propósito». Resultado: la misma toma de voz con
+  indicador ámbar y la frase «dentro de los intervalos de referencia», y un PTA
+  de 65 dB «pérdida severa» en la tarjeta y «entre 41 y 70» en la síntesis. Todo
+  corte que pinte o redacte va en `src/PDF/nlgThresholds.ts`; la paridad la
+  vigila `nlgReportEngine.test.ts`.
+- **«No medido» no es «sin respuesta».** `null` en `AudiometryTest.thresholds`
+  significa «no determinado»; la ausencia de respuesta al máximo va en
+  `noResponseAtMax`. Los registros anteriores al 2/11/2026 no tienen esa
+  columna y el informe lo dice en vez de elegir una de las dos.
 - **Verificar en el emulador el resto de la batería.** La cadena de AUDIO ya
   está comprobada en dispositivo (las cuatro escuchas, 3/9/2026 — ver abajo).
   Lo que sigue abierto es todo lo demás: **ningún módulo clínico se ha recorrido

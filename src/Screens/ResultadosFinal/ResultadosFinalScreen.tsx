@@ -1,7 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Platform, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { useDispatch } from 'react-redux';
 import Svg, {
   Circle,
   G,
@@ -35,11 +34,8 @@ import SignaturePad from '@/Components/Common/SignaturePad';
 import ViaIcon from '@/Components/Common/ViaIcon';
 import RadialBackground from '@/Components/Themed/RadialBackground';
 import { RootStackParamList } from '@/Navigators';
-import { AppDispatch, RootState } from '@/Store';
-import { setActiveEvaluation } from '@/Store/slices/activeEvaluationSlice';
+import { RootState } from '@/Store';
 import { Evaluation } from '@/Models/Evaluation/Evaluation';
-import { EvaluationRepository } from '@/Repositories/EvaluationRepository';
-import { PatientRepository } from '@/Repositories/PatientRepository';
 import { useClassSelector } from '@/Helpers/ClassTransformer';
 import { describePatient } from '@/Helpers/patientHeader';
 import { useTelemetryTracker, compressTelemetry } from '@/Telemetry';
@@ -329,56 +325,16 @@ function ClinicalAudiogramChart({
 
 export default function ResultadosFinalScreen({ navigation }: Props) {
   const t = useT();
-  const dispatch = useDispatch<AppDispatch>();
   const activeEvaluation = useClassSelector(Evaluation, (state: RootState) => state.activeEvaluation.evaluation);
   const patient = activeEvaluation?.patient;
   const { patientLabel, initials } = describePatient(patient);
 
   const evaluationId = activeEvaluation?.id;
 
-  useEffect(() => {
-    if (!patient || !evaluationId) {
-      let mounted = true;
-      (async () => {
-        try {
-          const patients = await PatientRepository.getAllPatients();
-          if (patients.length > 0 && mounted) {
-            const latestPatient = patients[patients.length - 1];
-            const evals = await EvaluationRepository.getEvaluationsByPatient(latestPatient.id);
-            const latestEval = evals[0];
-            if (latestEval && mounted) {
-              dispatch(
-                setActiveEvaluation({
-                  id: latestEval.id,
-                  status: latestEval.status,
-                  patient: {
-                    id: latestPatient.id,
-                    name: latestPatient.nameEnc.split(' ')[0] ?? latestPatient.nameEnc,
-                    lastName: latestPatient.nameEnc.split(' ').slice(1).join(' '),
-                    nhc: latestPatient.idHash,
-                    nameEnc: latestPatient.nameEnc,
-                    idHash: latestPatient.idHash,
-                  },
-                  professional: latestEval.professional
-                    ? {
-                        id: latestEval.professional.id,
-                        name: latestEval.professional.fullName,
-                        licenseNumber: latestEval.professional.licenseNumber,
-                      }
-                    : null,
-                }),
-              );
-            }
-          }
-        } catch {
-          // ignore
-        }
-      })();
-      return () => {
-        mounted = false;
-      };
-    }
-  }, [dispatch, evaluationId, patient]);
+  // Sin evaluación activa NO se carga otra. Hasta el 2/11/2026 este efecto
+  // abría la última evaluación del último paciente de la base, y desde que
+  // esta pantalla firma, eso era firmar el informe de otro niño. Ahora la
+  // pantalla dice que no hay sesión (aviso NLG) y la exportación se niega.
 
   // La firma es la del profesional que conduce la sesión, no una fija.
   const professional = activeEvaluation?.professional ?? null;
@@ -533,7 +489,7 @@ export default function ResultadosFinalScreen({ navigation }: Props) {
               od,
               oi,
               cl,
-              interp: interpretAudiometry(a.thresholds),
+              interp: interpretAudiometry(a.thresholds, a.noResponseAtMax ?? null),
             });
           });
         });
@@ -894,12 +850,20 @@ export default function ResultadosFinalScreen({ navigation }: Props) {
     setIsGenerating(true);
     try {
       const signatureSvg = signaturePaths.length > 0 ? signaturePaths.join(' ') : null;
-      await generateReport({
+      const report = await generateReport({
         evaluation: activeEvaluation as unknown as Evaluation,
         customSynthesisNotes: notes.trim() || undefined,
         clinicianSignatureSvg: signatureSvg,
       });
-      showSuccessToast('Informe Oficial PDF', 'Documento clínico generado y archivado correctamente.');
+      if (report.snapshotSaved) {
+        showSuccessToast('Informe Oficial PDF', 'Documento clínico generado y archivado correctamente.');
+      } else {
+        // El PDF existe, pero lo firmado no quedó archivado: decirlo (regla 4).
+        showErrorToast(
+          'Síntesis no archivada',
+          `El PDF se generó, pero la síntesis firmada no se pudo guardar: ${report.snapshotError ?? 'motivo desconocido'}.`,
+        );
+      }
     } catch (e) {
       showErrorToast('Error al exportar', 'No se pudo compilar el PDF.');
     } finally {
