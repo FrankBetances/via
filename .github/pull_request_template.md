@@ -27,5 +27,4 @@
 
 - [ ] No introduce PHI de pacientes en la nube, los logs, Sentry ni la telemetría
 - [ ] No añade secretos, claves ni tokens al repositorio
-- [ ] Los cambios en `firestore.rules` mantienen el principio de denegación por defecto
 - [ ] Las dependencias nuevas se han revisado (licencia y seguridad)

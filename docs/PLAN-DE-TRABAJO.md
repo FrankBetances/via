@@ -110,10 +110,10 @@ Ordenados por capacidad de tumbar la decisión.
    seguridad limitada. Hay que tener desde el principio un **procedimiento de cambio de modelo**
    (nueva cualificación, nueva campaña de calibración, cambio significativo o no a efectos del
    MDR). *La ventana de soporte del Tab S9 está por verificar con Samsung.*
-6. **El quiosco y la identidad del profesional.** Hoy el acceso se hace con Firebase Auth, que
-   necesita red. En un dispositivo cerrado hay que decidir si el acceso sigue siendo en línea,
-   pasa a local (PIN o biometría del profesional) o es mixto. Afecta a GDPR y a la operación en
-   el hospital.
+6. **El quiosco y la identidad del profesional.** *Decidido el 2/11/2026: acceso local.* VIA+
+   dejó Firebase; la contraseña del profesional se guarda como PBKDF2-SHA256 con sal y se
+   verifica en el dispositivo, sin red. Queda por decidir si se añade biometría y cómo se
+   recupera una contraseña olvidada en un quiosco sin conexión.
 7. **iOS sale de la ruta comercial.** El README describe tabletas «iOS/Android» y hay un port
    SwiftUI parcial (`ios-native/`). Con un único modelo Samsung, ese port deja de estar en la
    ruta del producto. Hay que decirlo para no seguir invirtiendo en él por inercia.
@@ -311,7 +311,7 @@ y valen igual si F0 obligara a cambiar de modelo.
    **audiometría calibrada** con IEC 60645-1? Cambia el alcance de F4 entero.
 2. ¿Modelo exacto: Wi-Fi o 5G? (El 5G añade módem y otra superficie de red en un quiosco que
    quizá no la necesite.)
-3. ¿Acceso del profesional en línea (Firebase), local o mixto dentro del quiosco?
+3. ~~¿Acceso del profesional en línea (Firebase), local o mixto?~~ Local (2/11/2026). Abierto: biometría y recuperación de contraseña.
 4. ¿Se congela el port iOS (`ios-native/`)?
 5. ¿Quién firma las plantillas del NLG en cada lengua: los mismos equipos que firmaron las
    locuciones (ACOPROS, Ulertuz, Quisqueya Habla)?

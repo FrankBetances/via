@@ -203,6 +203,12 @@ export const ES = {
     genial: '¡GENIAL! ⭐',
   },
   seleccionProfesional: {
+    contrasenaIncorrecta: 'Contraseña incorrecta.',
+    perfilSinContrasena: 'Este perfil aún no tiene contraseña en este dispositivo. Crea una (mínimo 6 caracteres) para acceder.',
+    contrasenaCorta: 'La contraseña debe tener al menos 6 caracteres.',
+    contrasenaNoGuardada: (reason: string) =>
+      `No se pudo guardar la contraseña: ${reason}.`,
+    crearYAcceder: 'Crear y acceder →',
     col: 'Col.',
     quienVaEvaluarHoy: '¿Quién va a evaluar hoy?',
     eligeTuPerfilAccedeTu: 'Elige tu perfil y accede con tu contraseña',
@@ -259,6 +265,14 @@ export const ES = {
     viaMedicalSystemMdr2017: 'VIA+ Medical System · MDR 2017/745 · IEC 62304 / ISO 14971',
   },
   registroProfesional: {
+    perfilYaExisteTitulo: 'Ese perfil ya existe',
+    perfilYaExiste: 'Ya hay un perfil con ese correo o número de colegiado en este dispositivo. Accede desde la lista de profesionales.',
+    registroCompletado: 'Registro completado',
+    bienvenida: (name: string) =>
+      `Bienvenido/a, ${name}.`,
+    perfilNoGuardadoTitulo: 'No se pudo registrar',
+    perfilNoGuardado: (reason: string) =>
+      `El perfil no se guardó: ${reason}.`,
     perfilProfesionalSolaVez: 'PERFIL PROFESIONAL · UNA SOLA VEZ',
     creaTuPerfil: 'Crea tu perfil',
     responsableEvaluacionesEsteDispositivo: 'Responsable de las evaluaciones de este dispositivo',

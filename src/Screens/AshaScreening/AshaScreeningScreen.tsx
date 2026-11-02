@@ -140,6 +140,13 @@ export default function AshaScreeningScreen({ navigation }: Props) {
       return;
     }
 
+    // Sin evaluación activa no se guarda: la fila quedaría huérfana, no
+    // saldría en ningún resultado y aun así se anunciaba «Guardado».
+    if (!activeEvaluation) {
+      showErrorToast('No se puede guardar', 'No hay una evaluación activa asociada al paciente.');
+      return;
+    }
+
     setIsSaving(true);
     try {
       tracker.classifyReactivo('asha-submitting');
@@ -154,9 +161,9 @@ export default function AshaScreeningScreen({ navigation }: Props) {
       testRecord.notes = data.notes.trim();
       testRecord.completedAt = new Date();
 
-      if (activeEvaluation) {
-        testRecord.evaluation = activeEvaluation;
-      }
+      // Solo el id, como el resto de módulos: el objeto del estado de la app
+      // trae paciente y profesional en otra forma que la entidad.
+      testRecord.evaluation = { id: activeEvaluation.id } as Evaluation;
 
       await AshaMilestoneTestRepository.createAshaTest(testRecord);
       showSuccessToast('Cribado ASHA Guardado', `Nivel de riesgo: ${cdssResult.riskLabel}`);

@@ -133,6 +133,12 @@ export const GL: UiStrings = {
     genial: 'XENIAL! ⭐',
   },
   seleccionProfesional: {
+    contrasenaIncorrecta: 'Contrasinal incorrecto.',
+    perfilSinContrasena: 'Este perfil aínda non ten contrasinal neste dispositivo. Crea un (mínimo 6 caracteres) para acceder.',
+    contrasenaCorta: 'O contrasinal debe ter polo menos 6 caracteres.',
+    contrasenaNoGuardada: (reason: string) =>
+      `Non se puido gardar o contrasinal: ${reason}.`,
+    crearYAcceder: 'Crear e acceder →',
     col: 'Col.',
     quienVaEvaluarHoy: 'Quen vai avaliar hoxe?',
     eligeTuPerfilAccedeTu: 'Escolle o teu perfil e accede coa túa contrasinal',
@@ -186,6 +192,14 @@ export const GL: UiStrings = {
     viaMedicalSystemMdr2017: 'VIA+ Medical System · MDR 2017/745 · IEC 62304 / ISO 14971',
   },
   registroProfesional: {
+    perfilYaExisteTitulo: 'Ese perfil xa existe',
+    perfilYaExiste: 'Xa hai un perfil con ese correo ou número de colexiado neste dispositivo. Accede desde a lista de profesionais.',
+    registroCompletado: 'Rexistro completado',
+    bienvenida: (name: string) =>
+      `Benvido/a, ${name}.`,
+    perfilNoGuardadoTitulo: 'Non se puido rexistrar',
+    perfilNoGuardado: (reason: string) =>
+      `O perfil non se gardou: ${reason}.`,
     perfilProfesionalSolaVez: 'PERFIL PROFESIONAL · UNHA SOA VEZ',
     creaTuPerfil: 'Crea o teu perfil',
     responsableEvaluacionesEsteDispositivo: 'Responsable das avaliacións deste dispositivo',

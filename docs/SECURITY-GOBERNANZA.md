@@ -14,7 +14,7 @@ cambios no autorizados o accidentales. Se divide en dos partes:
 
 | Fichero | Qué hace |
 |---|---|
-| `.github/CODEOWNERS` | Define quién debe aprobar cada parte del código. Rutas sensibles (Firestore, auth, Database, telemetría, CI) exigen a `@FrankBetances`. |
+| `.github/CODEOWNERS` | Define quién debe aprobar cada parte del código. Rutas sensibles (acceso del profesional, Database, telemetría, CI) exigen a `@FrankBetances`. |
 | `.github/SECURITY.md` | Política de divulgación responsable de vulnerabilidades. |
 | `.github/dependabot.yml` | Actualizaciones automáticas de dependencias npm y Actions + alertas de seguridad. |
 | `.github/workflows/codeql.yml` | Análisis estático de seguridad (CodeQL) en cada push/PR a `main` y semanalmente. |

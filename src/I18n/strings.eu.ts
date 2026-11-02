@@ -136,6 +136,12 @@ export const EU: UiStrings = {
     genial: 'BIKAIN! ⭐',
   },
   seleccionProfesional: {
+    contrasenaIncorrecta: 'Pasahitz okerra.',
+    perfilSinContrasena: 'Profil honek ez du oraindik pasahitzik gailu honetan. Sortu bat (gutxienez 6 karaktere) sartzeko.',
+    contrasenaCorta: 'Pasahitzak gutxienez 6 karaktere izan behar ditu.',
+    contrasenaNoGuardada: (reason: string) =>
+      `Ezin izan da pasahitza gorde: ${reason}.`,
+    crearYAcceder: 'Sortu eta sartu →',
     col: 'Kol.',
     quienVaEvaluarHoy: 'Nork ebaluatuko du gaur?',
     eligeTuPerfilAccedeTu: 'Hautatu zure profila eta sartu zure pasahitzarekin',
@@ -189,6 +195,14 @@ export const EU: UiStrings = {
     viaMedicalSystemMdr2017: 'VIA+ Medical System · MDR 2017/745 · IEC 62304 / ISO 14971',
   },
   registroProfesional: {
+    perfilYaExisteTitulo: 'Profil hori badago',
+    perfilYaExiste: 'Gailu honetan badago helbide elektroniko edo elkargokide-zenbaki hori duen profil bat. Sartu profesionalen zerrendatik.',
+    registroCompletado: 'Erregistroa osatuta',
+    bienvenida: (name: string) =>
+      `Ongi etorri, ${name}.`,
+    perfilNoGuardadoTitulo: 'Ezin izan da erregistratu',
+    perfilNoGuardado: (reason: string) =>
+      `Profila ez da gorde: ${reason}.`,
     perfilProfesionalSolaVez: 'PROFESIONAL PROFILA · BEHIN BAKARRIK',
     creaTuPerfil: 'Sortu zure profila',
     responsableEvaluacionesEsteDispositivo: 'Gailu honetako ebaluazioen arduraduna',

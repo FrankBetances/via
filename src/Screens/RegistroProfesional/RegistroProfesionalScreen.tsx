@@ -22,19 +22,18 @@ import { Professional, ProfessionalRole } from '@/Models/Professional/Profession
 import { ProfessionalRepository } from '@/Repositories/ProfessionalRepository';
 import { showErrorToast, showSuccessToast } from '@/Helpers/showToast';
 import { writeWithVerify } from '@/Helpers/dbWrite';
-import { describeAuthError, isFirebaseAvailable, registerWithEmail, saveProfessionalProfile } from '@/Services/firebase';
+import { hashPassword } from '@/Helpers/passwordHash';
 
 import { useT } from '@/I18n';
 import { atoms } from '@/Theme/styleAtoms';
 /* -------------------------------------------------------------------------- */
 /*  RegistroProfesionalScreen — alta del profesional responsable. Nombre,      */
-/*  rol, email y contraseña son obligatorios: la cuenta se crea en Firebase    */
-/*  Authentication (email/contraseña) y el perfil se sincroniza a Firestore   */
-/*  (professionals/{uid}). Al confirmar abre sesión (`loginSuccess`): el gate  */
-/*  de DefaultNavigator cambia al grupo de sesión y aterriza en Pacientes.     */
-/*  La persistencia local (SQLite) y la sincronización a Firestore corren en   */
-/*  segundo plano; el alta remota en Firebase Auth sí es bloqueante porque     */
-/*  valida las credenciales.                                                   */
+/*  rol, email y contraseña son obligatorios. Todo es LOCAL: el perfil va a    */
+/*  SQLite y la contraseña se guarda como PBKDF2 (`@/Helpers/passwordHash`).   */
+/*  VIA+ ya no usa Firebase (2/11/2026). Al confirmar abre sesión              */
+/*  (`loginSuccess`): el gate de DefaultNavigator aterriza en Pacientes. La    */
+/*  sesión se abre DESPUÉS de guardar, no antes: un perfil que no llegó a      */
+/*  guardarse no puede quedar con la sesión abierta.                           */
 /*                                                                             */
 /*  Diseño: lenguaje visual de Bienvenida/Créditos (crema + naranja + mono),   */
 /*  con VISTA PREVIA EN VIVO del perfil según se escribe y roles como chips    */
@@ -98,105 +97,55 @@ export default function RegistroProfesionalScreen({ navigation: _navigation }: P
     const trimmedEmail = email.trim().toLowerCase();
     const role = selectedRole?.value ?? 'medico';
 
-    // El alta en Firebase Auth es bloqueante: valida email/contraseña y
-    // devuelve el uid que ancla el perfil remoto. Pero si el build no incluye
-    // google-services.json (Firebase sin inicializar), degradamos a alta solo
-    // local en lugar de dejar la pantalla bloqueada.
-    let uid: string | null = null;
-    if (isFirebaseAvailable()) {
-      try {
-        const user = await registerWithEmail(trimmedEmail, password);
-        uid = user.uid;
-      } catch (e) {
-        console.error('VIA+: error creando cuenta Firebase', e);
-        showErrorToast('No se pudo crear la cuenta', describeAuthError(e));
+    // Mismo correo o mismo colegiado: NO se reutiliza el perfil ni se abre su
+    // sesión. Antes se reutilizaba en silencio, lo que con contraseñas locales
+    // sería entrar en un perfil ajeno sin conocer su contraseña.
+    try {
+      const existing =
+        (await ProfessionalRepository.getProfessionalByEmail(trimmedEmail)) ??
+        (trimmedLicense ? await ProfessionalRepository.getProfessionalByLicense(trimmedLicense) : null);
+      if (existing) {
+        showErrorToast(t.registroProfesional.perfilYaExisteTitulo, t.registroProfesional.perfilYaExiste);
         setIsSaving(false);
         return;
       }
-    } else {
-      console.warn('VIA+: Firebase no configurado (falta google-services.json); alta solo local.');
-      showErrorToast(
-        'Firebase no configurado',
-        'Este build no incluye google-services.json: el perfil se guardará solo en este dispositivo, sin cuenta en la nube.',
+    } catch {
+      // Si la lectura falla, se sigue: la escritura dirá si hay un problema.
+    }
+
+    // PBKDF2 bloquea el hilo de JS un momento: se cede antes para que el
+    // indicador de guardado llegue a pintarse.
+    await new Promise<void>(resolve => setTimeout(resolve, 0));
+    try {
+      const professional = new Professional();
+      professional.fullName = trimmedName;
+      professional.role = role;
+      professional.licenseNumber = trimmedLicense;
+      professional.email = trimmedEmail;
+      professional.passwordHash = hashPassword(password);
+      professional.centerId = null;
+      const saved = await writeWithVerify(
+        () => ProfessionalRepository.createProfessional(professional),
+        () => ProfessionalRepository.getProfessionalByEmail(trimmedEmail),
       );
+      dispatch(
+        loginSuccess({
+          id: saved.id,
+          fullName: saved.fullName,
+          licenseNumber: saved.licenseNumber,
+          role: saved.role,
+          email: saved.email ?? trimmedEmail,
+          centerId: saved.centerId,
+          createdAt: saved.createdAt?.toISOString?.() ?? new Date().toISOString(),
+        }),
+      );
+      showSuccessToast(t.registroProfesional.registroCompletado, t.registroProfesional.bienvenida(trimmedName));
+    } catch (e) {
+      const detail = e instanceof Error && e.message ? e.message : String(e);
+      showErrorToast(t.registroProfesional.perfilNoGuardadoTitulo, t.registroProfesional.perfilNoGuardado(detail));
+    } finally {
+      setIsSaving(false);
     }
-
-    // Con la cuenta creada, la sesión se abre INMEDIATAMENTE (optimista):
-    // si la escritura local se demorase, el usuario no queda bloqueado. El id
-    // real se reconcilia en segundo plano y el gate aterriza en Pacientes.
-    dispatch(
-      loginSuccess({
-        id: 0,
-        fullName: trimmedName,
-        licenseNumber: trimmedLicense,
-        role,
-        email: trimmedEmail,
-        centerId: null,
-        createdAt: new Date().toISOString(),
-      }),
-    );
-    showSuccessToast('Registro completado', `Bienvenido/a, ${trimmedName}.`);
-
-    // Sincronización del perfil a Firestore (professionals/{uid}) en segundo
-    // plano: solo datos del evaluador, nunca datos de pacientes.
-    if (uid) {
-      saveProfessionalProfile(uid, {
-        fullName: trimmedName,
-        role,
-        licenseNumber: trimmedLicense,
-        email: trimmedEmail,
-      }).catch(e => console.error('VIA+: error sincronizando perfil a Firestore', e));
-    }
-
-    // Persistencia local + reconciliación del id en segundo plano.
-    (async () => {
-      try {
-        // Si ya hay un perfil con ese email o nº de colegiado, se reutiliza en
-        // lugar de duplicarlo (el registro es "una sola vez por dispositivo").
-        const existing =
-          (await ProfessionalRepository.getProfessionalByEmail(trimmedEmail)) ??
-          (trimmedLicense ? await ProfessionalRepository.getProfessionalByLicense(trimmedLicense) : null);
-
-        let saved: Professional;
-        if (existing) {
-          saved = existing;
-        } else {
-          const professional = new Professional();
-          professional.fullName = trimmedName;
-          professional.role = role;
-          professional.licenseNumber = trimmedLicense;
-          // Las credenciales viven en Firebase Auth; localmente solo se guarda
-          // el email para localizar el perfil en la pantalla de acceso.
-          professional.email = trimmedEmail;
-          professional.passwordHash = '';
-          professional.centerId = null;
-          saved = await writeWithVerify(
-            () => ProfessionalRepository.createProfessional(professional),
-            () => ProfessionalRepository.getProfessionalByEmail(trimmedEmail),
-          );
-        }
-
-        dispatch(
-          loginSuccess({
-            id: saved.id,
-            fullName: saved.fullName,
-            licenseNumber: saved.licenseNumber,
-            role: saved.role,
-            email: saved.email ?? trimmedEmail,
-            centerId: saved.centerId,
-            createdAt: saved.createdAt?.toISOString?.() ?? new Date().toISOString(),
-          }),
-        );
-      } catch (e) {
-        // La sesión ya está abierta; solo se informa de que el perfil no quedó
-        // persistido para que el usuario pueda reintentar el alta más tarde.
-        const detail = e instanceof Error && e.message ? ` (${e.message})` : '';
-        console.error('VIA+: error registrando profesional', e);
-        showErrorToast('Aviso', `El perfil no se pudo persistir todavía.${detail}`);
-      } finally {
-        setIsSaving(false);
-      }
-    })();
   };
 
   const previewInitials = initials(nombre);

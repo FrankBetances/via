@@ -25,7 +25,7 @@
   <p class="entradilla">
     Cómo trata VIA+ los datos de las personas evaluadas y de los profesionales que la utilizan.
   </p>
-  <p class="fecha">Versión 1.0 · en vigor desde el 29 de julio de 2026</p>
+  <p class="fecha">Versión 1.1 · en vigor desde el 2 de noviembre de 2026 (la versión 1.0, del 29 de julio de 2026, incluía Google Firebase para la cuenta del profesional)</p>
 
   <div class="tarjeta destacado">
     <h3>Lo esencial, en tres frases</h3>
@@ -35,8 +35,8 @@
       servidor nuestro ni de terceros.
     </p>
     <p>
-      Lo único que sí viaja a la nube es la <strong>cuenta del profesional</strong> que usa la
-      aplicación: su correo electrónico y su ficha profesional, para poder iniciar sesión.
+      Tampoco sale la <strong>cuenta del profesional</strong> que usa la aplicación: su ficha y su
+      contraseña se guardan en el mismo dispositivo, y la contraseña se verifica allí, sin conexión.
     </p>
     <p>
       <strong>No hay publicidad, ni perfilado, ni venta de datos</strong>, ni herramientas de
@@ -118,12 +118,13 @@
       <tr>
         <td>Cuenta del profesional: correo electrónico y contraseña</td>
         <td>Iniciar sesión en la aplicación</td>
-        <td>Firebase Authentication (Google)</td>
+        <td><strong>Solo en el dispositivo</strong>. La contraseña no se guarda tal cual: se guarda su
+          resumen criptográfico (PBKDF2-SHA256 con sal)</td>
       </tr>
       <tr>
         <td>Ficha del profesional: nombre, rol, número de colegiado y correo</td>
-        <td>Firmar los informes y recuperar el perfil al cambiar de dispositivo</td>
-        <td>Cloud Firestore (Google), en un documento privado del propio profesional</td>
+        <td>Firmar los informes</td>
+        <td><strong>Solo en el dispositivo</strong></td>
       </tr>
       <tr>
         <td>Telemetría de usabilidad</td>
@@ -173,7 +174,8 @@
       </tr>
       <tr>
         <td>Internet</td>
-        <td>Iniciar sesión del profesional y sincronizar únicamente su ficha profesional</td>
+        <td>La declara la plantilla de React Native sobre la que está construida la aplicación. VIA+
+          no envía ningún dato a servidores propios ni de terceros</td>
       </tr>
       <tr>
         <td>Vibración</td>
@@ -229,16 +231,10 @@
 
   <h2>8. Con quién se comparten los datos</h2>
   <p>
-    Los datos de la persona evaluada <strong>no se comparten con nadie</strong>: no salen del
-    dispositivo. Para la cuenta del profesional se utiliza un único proveedor:
+    Los datos de la persona evaluada y la cuenta del profesional <strong>no se comparten con
+    nadie</strong>: no salen del dispositivo. La aplicación no utiliza ningún proveedor externo como
+    encargado del tratamiento.
   </p>
-  <ul>
-    <li>
-      <strong>Google Firebase</strong> (Firebase Authentication y Cloud Firestore), como encargado
-      del tratamiento, para autenticar al profesional y guardar su ficha. Consulte
-      <a href="https://firebase.google.com/support/privacy" rel="noopener">la información de privacidad de Firebase</a>.
-    </li>
-  </ul>
   <p>
     No se venden ni se ceden datos a terceros, ni se utilizan para publicidad, elaboración de
     perfiles o entrenamiento de modelos de inteligencia artificial. VIA+ no ejecuta ningún modelo de
@@ -255,16 +251,15 @@
       aplicable al profesional o al centro, no la aplicación.
     </li>
     <li>
-      <strong>Cuenta del profesional</strong>: se conserva mientras la cuenta esté activa. Al
-      solicitar su baja se elimina la cuenta y su ficha.
+      <strong>Cuenta del profesional</strong>: se conserva en el dispositivo mientras el perfil
+      exista. Desinstalar la aplicación la borra junto con el resto de la base de datos local.
     </li>
   </ul>
 
   <h2>10. Seguridad</h2>
   <p>
-    La comunicación con Firebase va cifrada en tránsito (TLS). El acceso a la ficha del profesional
-    está restringido por reglas de seguridad de Firestore, de modo que cada profesional solo puede
-    leer y escribir su propio documento.
+    La aplicación no transmite datos por la red. El acceso a cada perfil profesional exige su
+    contraseña, verificada en el propio dispositivo.
   </p>
   <p>
     Como los datos clínicos residen en el dispositivo, su protección depende también de cómo esté

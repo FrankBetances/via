@@ -17,15 +17,13 @@
 # --- Propietario por defecto de TODO el repositorio ---
 *                               @FrankBetances
 
-# --- Configuración de seguridad y datos clínicos (revisión obligatoria) ---
-/firestore.rules                @FrankBetances
-/firestore.indexes.json         @FrankBetances
-/firebase.json                  @FrankBetances
-/.firebaserc                    @FrankBetances
+# --- Acceso del profesional (contraseña local, sin Firebase desde el 2/11/2026) ---
+/src/Helpers/passwordHash.ts    @FrankBetances
+/src/Screens/SeleccionProfesional/ @FrankBetances
+/src/Screens/RegistroProfesional/  @FrankBetances
 
 # --- Capa de persistencia local (PHI en el dispositivo) ---
 /src/Database/                  @FrankBetances
-/src/Services/firebase/         @FrankBetances
 /src/Services/local/            @FrankBetances
 /src/Models/                    @FrankBetances
 

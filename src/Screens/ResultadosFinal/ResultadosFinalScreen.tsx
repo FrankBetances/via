@@ -887,8 +887,11 @@ export default function ResultadosFinalScreen({ navigation }: Props) {
       } else {
         showSuccessToast(rf.toastPdfOkTitle, parts.join(' '));
       }
-    } catch {
-      showErrorToast(rf.toastPdfErrTitle, rf.toastPdfErrBody);
+    } catch (e) {
+      // El motivo va en el aviso: «No se pudo compilar el PDF» a secas no
+      // permitió ver que era un carácter que Helvetica no codifica (regla 4).
+      const reason = e instanceof Error && e.message ? e.message : String(e);
+      showErrorToast(rf.toastPdfErrTitle, `${rf.toastPdfErrBody} (${reason})`);
     } finally {
       setIsGenerating(false);
     }
