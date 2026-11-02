@@ -1,4 +1,4 @@
-import type { AgeBand } from './verbalAudiometryResult';
+import type { AgeBand } from './verbalAudiometryTypes';
 import { VerbalBandDef } from './verbalAudiometryLists';
 import { ES_DO_VERBAL_BANDS } from './verbalAudiometryLists.es-DO';
 

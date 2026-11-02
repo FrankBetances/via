@@ -1,3 +1,7 @@
+import { getUiLang } from '@/I18n/uiLang';
+import { EF_DOMAIN_CUT } from '@/PDF/nlgThresholds';
+import { renderExecutiveInterpretation } from '@/PDF/nlgReportEngine';
+
 /* -------------------------------------------------------------------------- */
 /*  Lógica pura de la Exploración de Funciones Ejecutivas (sin UI/DB).         */
 /*                                                                            */
@@ -510,8 +514,13 @@ export const EMPTY_EF_SCORES: EfDomainScores = {
   planning: null,
 };
 
-/** Cortes orientativos (a validar clínicamente). */
-export const EF_OK_CUT = 80;
+/**
+ * Cortes orientativos. OK_CUT es el 65/100 del plan del motor
+ * (`nlgThresholds.ts`, `EF_DOMAIN_CUT`), el mismo que redacta R-EF-002: antes
+ * era 80 y un 70 salía en ámbar con el texto «igual o superior al umbral».
+ * WARN_CUT no lo fija el plan y se conserva.
+ */
+export const EF_OK_CUT = EF_DOMAIN_CUT;
 export const EF_WARN_CUT = 60;
 
 export const efStatus = (score: number): EfStatus =>
@@ -553,40 +562,9 @@ export const EF_BAND_LABEL: Record<EfAgeBand, string> = {
   D: 'Banda D · 9–12 años',
 };
 
-/** Interpretación clínica orientativa (misma voz que el resto de módulos). */
-export const interpretExecutiveFunctions = (band: EfAgeBand, scores: EfDomainScores): string => {
-  const overall = efOverallScore(scores);
-  if (overall === null) {
-    return 'Exploración de funciones ejecutivas: sin juegos completados, no interpretable.';
-  }
-  const parts: string[] = [
-    `Exploración lúdica de funciones ejecutivas (${EF_BAND_LABEL[band]}): índice global ${overall}/100`,
-  ];
-  const flagged: string[] = [];
-  const pending: string[] = [];
-  for (const domain of EF_DOMAIN_ORDER) {
-    const s = scores[domain];
-    const meta = EF_DOMAIN_META[domain];
-    if (s === null) {
-      pending.push(meta.title.toLowerCase());
-      continue;
-    }
-    parts.push(`${meta.title.toLowerCase()} ${s}/100`);
-    if (efStatus(s) !== 'ok') flagged.push(`${meta.title.toLowerCase()} (${s})`);
-  }
-  let text = parts.join(' · ') + '.';
-  if (pending.length) text += ` Juegos no completados: ${pending.join(', ')}.`;
-  if (flagged.length) {
-    text +=
-      ` Rendimiento por debajo de lo esperado en: ${flagged.join(', ')}.` +
-      ' Se recomienda valoración neuropsicológica con instrumentos estandarizados.';
-  } else {
-    text += ' Rendimiento dentro de lo esperado en todos los dominios explorados.';
-  }
-  text +=
-    ' Cribado orientativo mediante juego de tarjetas con dificultad graduada por edad: no constituye diagnóstico.';
-  return text;
-};
+/** Interpretación clínica. Cortes del juego no entran en esta frase: la da el motor. */
+export const interpretExecutiveFunctions = (band: EfAgeBand, scores: EfDomainScores): string =>
+  renderExecutiveInterpretation(band, scores, getUiLang());
 
 /**
  * Misma etiqueta, partiendo de los campos del MODELO persistido (el informe y

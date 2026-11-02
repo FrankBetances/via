@@ -21,6 +21,7 @@ import { ArticulationTest } from '@/Models/ArticulationTest/ArticulationTest';
 import { VerbalAudiometryTest } from '@/Models/VerbalAudiometry/VerbalAudiometryTest';
 import { ExecutiveFunctionsTest } from '@/Models/ExecutiveFunctions/ExecutiveFunctionsTest';
 import { AshaMilestoneTest } from '@/Models/Asha/AshaMilestoneTest';
+import { NlgReportSnapshot } from '@/Models/NlgReportSnapshot/NlgReportSnapshot';
 
 /* -------------------------------------------------------------------------- */
 /*  TypeORM DataSource — VIA+ (offline-first, SQLite local).                  */
@@ -70,6 +71,8 @@ export const AppDataSource = new DataSource({
     VerbalAudiometryTest,
     ExecutiveFunctionsTest,
     AshaMilestoneTest,
+    // INFORME: lo que se firmó, tal cual (ver el modelo)
+    NlgReportSnapshot,
   ],
   migrations: [],
   subscribers: [],

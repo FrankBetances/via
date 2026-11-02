@@ -14,12 +14,13 @@
 /*  Diseño: docs/design/audiometria-verbal.md                                  */
 /* -------------------------------------------------------------------------- */
 
-/** Franja de edad → lista de estímulos y modalidad de tarjeta. */
+import { getUiLang } from '@/I18n/uiLang';
+import { DISC_MIN } from '@/PDF/nlgThresholds';
+import { renderVerbalInterpretation } from '@/PDF/nlgReportEngine';
 
-export type AgeBand = 'A' | 'B' | 'C' | 'D';
+import type { AgeBand, CardModality } from './verbalAudiometryTypes';
 
-/** Modalidad de la tarjeta de selección (WordCard). */
-export type CardModality = 'images' | 'mixed' | 'words';
+export type { AgeBand, CardModality };
 
 /** Modo de la prueba: % a nivel fijo o búsqueda del URV por descenso. */
 export type VerbalMode = 'discrimination' | 'threshold';
@@ -66,11 +67,13 @@ export const DEFAULT_LEVEL = 65;
 export const MAX_REPEATS = 2;
 
 /**
- * Cortes orientativos de discriminación a voz conversacional (a validar
- * clínicamente): ≥ OK_CUT esperado · ≥ WARN_CUT revisar · < WARN_CUT derivar.
+ * Cortes de discriminación a voz conversacional: ≥ OK_CUT esperado ·
+ * ≥ WARN_CUT revisar · < WARN_CUT derivar. WARN_CUT es el 80 % del plan del
+ * motor (`nlgThresholds.ts`, `DISC_MIN`), el mismo que redacta R-VER-004:
+ * antes era 70 y la tarjeta no derivaba lo que el informe sí.
  */
 export const DISCRIMINATION_OK_CUT = 90;
-export const DISCRIMINATION_WARN_CUT = 70;
+export const DISCRIMINATION_WARN_CUT = DISC_MIN;
 
 /** Etiquetas cortas de nivel para chips/tablas ('65 dB · voz normal'). */
 export const LEVEL_LABEL: Record<number, string> = {
@@ -95,23 +98,14 @@ export const MODALITY_LABEL: Record<CardModality, string> = {
  * Etiquetas del idioma/variante de la sesión (claves = bancos registrados en
  * `verbalAudiometryBanks.ts`; aquí como strings planos para no importar el
  * banco desde la lógica pura de resultado).
- */
-/**
- * Etiqueta legible de cada lengua de la prueba.
  *
- * Tenía TRES de las siete —faltaban `eu`, `ca`, `es-419` y `en`—, así que el
- * aviso de la pantalla y el bloque del PDF enseñaban el CÓDIGO en crudo («ca»)
- * donde debía ir el nombre.
+ * Etiqueta legible de cada lengua de la prueba. Tenía tres de las siete, y
+ * la pantalla y el PDF enseñaban el código en crudo.
  *
- * Se escribe aquí, y no se deriva de `SESSION_LANG_LABEL`, porque este fichero
- * lo COMPILA `scripts/check-verbal-coverage.js` con `tsc` suelto y lo ejecuta
- * en Node: un import fuera de esta carpeta mueve el `rootDir` inferido y el
- * gate deja de encontrar su propia salida. Es la lección que Valeria+ dejó
- * escrita en su `i18n/catalog.ts` — lo que consume un gate de Node no puede
- * depender de la resolución de módulos de la app.
- *
- * Que sea una lista aparte NO la deja derivar: `verbalBorrowedBank.test.ts`
- * exige que coincida exactamente con `SESSION_LANG_LABEL`.
+ * El gate de cobertura compila el banco, no este fichero: los tipos que el
+ * banco necesita están en `verbalAudiometryTypes.ts`. Esta lista no se
+ * deriva de `SESSION_LANG_LABEL`; `verbalBorrowedBank.test.ts` exige que
+ * coincidan.
  */
 export const VERBAL_LANG_LABEL: Record<string, string> = {
   es: 'Español (España)',
@@ -220,61 +214,13 @@ export const verbalNeedsReferral = (score: VerbalScore): boolean => {
   return score.discriminationPct < DISCRIMINATION_WARN_CUT;
 };
 
-const statusText = (pct: number): string => {
-  const st = verbalDiscriminationStatus(pct);
-  if (st === 'ok') return 'reconocimiento verbal dentro de lo esperado';
-  if (st === 'warn') return 'reconocimiento verbal reducido';
-  return 'reconocimiento verbal alterado';
-};
-
 /**
- * Interpretación clínica orientativa (misma voz que `interpretAudiometry`):
- * resumen por nivel + URV + recomendación + disclaimers de campo libre.
+ * Interpretación clínica. El texto lo arma el motor NLG con las cifras del
+ * plan. La firma no cambia.
  */
 export const interpretVerbal = (
   band: AgeBand,
   score: VerbalScore,
   srtDb: number | null,
   lang: string = 'es',
-): string => {
-  const parts: string[] = [];
-
-  if (!score.presentedCount) {
-    parts.push('Audiometría verbal: sin respuestas suficientes para valorar la discriminación');
-  } else {
-    const main =
-      score.levelScores.find(ls => ls.level === DEFAULT_LEVEL) ?? score.levelScores[0];
-    parts.push(
-      `Audiometría verbal en campo libre (${BAND_LABEL[band]}): discriminación ${main.pct} % ` +
-        `(${main.correct}/${main.presented}) a ${main.level} dB` +
-        (LEVEL_LABEL[main.level] ? ` (${LEVEL_LABEL[main.level]})` : '') +
-        ` — ${statusText(main.pct)}`,
-    );
-    for (const ls of score.levelScores) {
-      if (ls.level === main.level) continue;
-      parts.push(
-        `a ${ls.level} dB` +
-          (LEVEL_LABEL[ls.level] ? ` (${LEVEL_LABEL[ls.level]})` : '') +
-          `: ${ls.pct} % (${ls.correct}/${ls.presented})`,
-      );
-    }
-    if (srtDb !== null) parts.push(`URV estimado ≈ ${srtDb} dB`);
-  }
-
-  // Variante lingüística: el banco/voz usados condicionan la comparabilidad
-  // entre informes, así que se deja constancia explícita cuando no es `es`.
-  if (lang !== 'es') {
-    parts.push(`variante lingüística: ${VERBAL_LANG_LABEL[lang] ?? lang}`);
-  }
-
-  let text = parts.join(' · ') + '.';
-  if (verbalNeedsReferral(score)) {
-    text +=
-      ' Ante indicios de dificultad de reconocimiento verbal, se recomienda derivación a un centro' +
-      ' especializado (ORL/audiología) para logoaudiometría diagnóstica.';
-  }
-  text +=
-    ' Prueba de conjunto cerrado en campo libre binaural con nivel orientativo: estima el mejor' +
-    ' oído y no descarta una pérdida unilateral.';
-  return text;
-};
+): string => renderVerbalInterpretation(band, score, srtDb, lang, getUiLang());

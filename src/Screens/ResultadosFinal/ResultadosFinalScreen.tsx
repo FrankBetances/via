@@ -1,7 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Platform, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { useDispatch } from 'react-redux';
 import Svg, {
   Circle,
   G,
@@ -31,20 +30,19 @@ import {
 } from 'lucide-react-native';
 
 import { Content, Text } from '@/Components/Common';
+import SignaturePad from '@/Components/Common/SignaturePad';
 import ViaIcon from '@/Components/Common/ViaIcon';
 import RadialBackground from '@/Components/Themed/RadialBackground';
 import { RootStackParamList } from '@/Navigators';
-import { AppDispatch, RootState } from '@/Store';
-import { setActiveEvaluation } from '@/Store/slices/activeEvaluationSlice';
+import { RootState } from '@/Store';
 import { Evaluation } from '@/Models/Evaluation/Evaluation';
-import { EvaluationRepository } from '@/Repositories/EvaluationRepository';
-import { PatientRepository } from '@/Repositories/PatientRepository';
 import { useClassSelector } from '@/Helpers/ClassTransformer';
 import { describePatient } from '@/Helpers/patientHeader';
 import { useTelemetryTracker, compressTelemetry } from '@/Telemetry';
 import { useLuaClosingReward, LuaEmotion, LUA_CLINICAL_BADGES } from '@/Lua';
 import { LuaCompanionWidget } from '@/Components/Mascot/LuaCompanionWidget';
 
+import { ClinicalAssessmentRepository } from '@/Repositories/ClinicalAssessmentRepository';
 import { AudiometryRepository } from '@/Repositories/AudiometryRepository';
 import { VoiceAnalysisRepository } from '@/Repositories/VoiceAnalysisRepository';
 import { DysphagiaTestRepository } from '@/Repositories/DysphagiaTestRepository';
@@ -76,9 +74,11 @@ import { EF_DOMAIN_META, EF_DOMAIN_ORDER, efLabelFromTest, efStatus } from '@/Sc
 import { ASHA_DOMAIN_META, getMilestonesForAgeBand } from '@/Screens/AshaScreening/ashaMilestones';
 import { ASHA_RISK_LABELS } from '@/Screens/AshaScreening/ashaCdssEngine';
 import { generateReport } from '@/PDF/templates/Report';
+import { evaluateSessionNlg, nlgMissingDataMessage, type SessionEntities } from '@/PDF/nlgReportEngine';
 import { showErrorToast, showSuccessToast } from '@/Helpers/showToast';
 
 import { useT } from '@/I18n';
+import { getUiLang } from '@/I18n/uiLang';
 import { atoms } from '@/Theme/styleAtoms';
 /* -------------------------------------------------------------------------- */
 /*  ResultadosFinalScreen — Arquitectura Master-Detail en Tableta (4:3)        */
@@ -325,56 +325,16 @@ function ClinicalAudiogramChart({
 
 export default function ResultadosFinalScreen({ navigation }: Props) {
   const t = useT();
-  const dispatch = useDispatch<AppDispatch>();
   const activeEvaluation = useClassSelector(Evaluation, (state: RootState) => state.activeEvaluation.evaluation);
   const patient = activeEvaluation?.patient;
   const { patientLabel, initials } = describePatient(patient);
 
   const evaluationId = activeEvaluation?.id;
 
-  useEffect(() => {
-    if (!patient || !evaluationId) {
-      let mounted = true;
-      (async () => {
-        try {
-          const patients = await PatientRepository.getAllPatients();
-          if (patients.length > 0 && mounted) {
-            const latestPatient = patients[patients.length - 1];
-            const evals = await EvaluationRepository.getEvaluationsByPatient(latestPatient.id);
-            const latestEval = evals[0];
-            if (latestEval && mounted) {
-              dispatch(
-                setActiveEvaluation({
-                  id: latestEval.id,
-                  status: latestEval.status,
-                  patient: {
-                    id: latestPatient.id,
-                    name: latestPatient.nameEnc.split(' ')[0] ?? latestPatient.nameEnc,
-                    lastName: latestPatient.nameEnc.split(' ').slice(1).join(' '),
-                    nhc: latestPatient.idHash,
-                    nameEnc: latestPatient.nameEnc,
-                    idHash: latestPatient.idHash,
-                  },
-                  professional: latestEval.professional
-                    ? {
-                        id: latestEval.professional.id,
-                        name: latestEval.professional.fullName,
-                        licenseNumber: latestEval.professional.licenseNumber,
-                      }
-                    : null,
-                }),
-              );
-            }
-          }
-        } catch {
-          // ignore
-        }
-      })();
-      return () => {
-        mounted = false;
-      };
-    }
-  }, [dispatch, evaluationId, patient]);
+  // Sin evaluación activa NO se carga otra. Hasta el 2/11/2026 este efecto
+  // abría la última evaluación del último paciente de la base, y desde que
+  // esta pantalla firma, eso era firmar el informe de otro niño. Ahora la
+  // pantalla dice que no hay sesión (aviso NLG) y la exportación se niega.
 
   // La firma es la del profesional que conduce la sesión, no una fija.
   const professional = activeEvaluation?.professional ?? null;
@@ -390,6 +350,13 @@ export default function ResultadosFinalScreen({ navigation }: Props) {
   const [activeId, setActiveId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [nlgEntities, setNlgEntities] = useState<SessionEntities>({});
+  const [nlgReadFailed, setNlgReadFailed] = useState(false);
+  const [nlgLoaded, setNlgLoaded] = useState(false);
+  const [notes, setNotes] = useState('');
+  const [signaturePaths, setSignaturePaths] = useState<string[]>([]);
+  const [scrollEnabled, setScrollEnabled] = useState(true);
+  const [showAudit, setShowAudit] = useState(false);
 
   // Telemetría Zero-PHI (Likert 1-5 estrellas)
   const telemetry = useTelemetryTracker();
@@ -411,9 +378,20 @@ export default function ResultadosFinalScreen({ navigation }: Props) {
   useEffect(() => {
     if (!evaluationId) {
       setIsLoading(false);
+      setNlgEntities({});
+      setNlgReadFailed(true);
+      setNlgLoaded(true);
+      setNotes('');
+      setSignaturePaths([]);
+      setShowAudit(false);
       return;
     }
     let mounted = true;
+    setNlgLoaded(false);
+    setNlgReadFailed(false);
+    setNotes('');
+    setSignaturePaths([]);
+    setShowAudit(false);
     (async () => {
       try {
         const result: TestDetail[] = [];
@@ -427,6 +405,61 @@ export default function ResultadosFinalScreen({ navigation }: Props) {
             console.warn(`VIA+: no se pudieron leer los resultados de ${label}`, e);
           }
         };
+
+        /* La síntesis no reutiliza el `collect` de las tarjetas: si una de las
+           once lecturas falla, el borrador muestra el aviso y no una lista de
+           cero reglas. Las tarjetas siguen aislando su propio fallo. */
+        try {
+          const [
+            clinicalAssessments,
+            screenings,
+            audiometries,
+            verbalAudiometries,
+            voiceAnalyses,
+            prosodyAnalyses,
+            executiveFunctions,
+            dysphagias,
+            sahsScreenings,
+            articulations,
+            ashaTests,
+          ] = await Promise.all([
+            ClinicalAssessmentRepository.getClinicalAssessmentsByEvaluation(evaluationId),
+            ScreeningRepository.getScreeningsByEvaluation(evaluationId),
+            AudiometryRepository.getAudiometryByEvaluation(evaluationId),
+            VerbalAudiometryRepository.getVerbalAudiometryByEvaluation(evaluationId),
+            VoiceAnalysisRepository.getVoiceAnalysisByEvaluation(evaluationId),
+            ProsodyAnalysisRepository.getProsodyAnalysisByEvaluation(evaluationId),
+            ExecutiveFunctionsRepository.getExecutiveFunctionsByEvaluation(evaluationId),
+            DysphagiaTestRepository.getDysphagiaByEvaluation(evaluationId),
+            SahsScreeningRepository.getSahsScreeningsByEvaluation(evaluationId),
+            ArticulationTestRepository.getArticulationByEvaluation(evaluationId),
+            AshaMilestoneTestRepository.getAshaTestsByEvaluation(evaluationId),
+          ]);
+          if (mounted) {
+            setNlgEntities({
+              clinicalAssessments,
+              screenings,
+              audiometries,
+              verbalAudiometries,
+              voiceAnalyses,
+              prosodyAnalyses,
+              executiveFunctions,
+              dysphagias,
+              sahsScreenings,
+              articulations,
+              ashaTests,
+            });
+            setNlgReadFailed(false);
+            setNlgLoaded(true);
+          }
+        } catch (e) {
+          console.warn('VIA+: no se pudo leer la sesión para la síntesis NLG', e);
+          if (mounted) {
+            setNlgEntities({});
+            setNlgReadFailed(true);
+            setNlgLoaded(true);
+          }
+        }
 
         /* ---------------------------- Audiometría tonal --------------------- */
         await collect('audiometría', async () => {
@@ -456,7 +489,7 @@ export default function ResultadosFinalScreen({ navigation }: Props) {
               od,
               oi,
               cl,
-              interp: interpretAudiometry(a.thresholds),
+              interp: interpretAudiometry(a.thresholds, a.noResponseAtMax ?? null),
             });
           });
         });
@@ -784,6 +817,29 @@ export default function ResultadosFinalScreen({ navigation }: Props) {
 
   const active = useMemo(() => tests.find(item => item.id === activeId) ?? tests[0] ?? null, [tests, activeId]);
 
+  const uiLang = getUiLang();
+  const nlgSynthesis = useMemo(() => {
+    if (!nlgLoaded || nlgReadFailed || !evaluationId) return null;
+    try {
+      return evaluateSessionNlg(nlgEntities, uiLang);
+    } catch (e) {
+      console.warn('VIA+: la síntesis NLG no se pudo calcular', e);
+      return null;
+    }
+  }, [nlgEntities, nlgLoaded, nlgReadFailed, evaluationId, uiLang]);
+
+  const nlgUi = t.nlg?.ui;
+  const nlgSections = t.nlg?.sections;
+  const nlgAudit = t.nlg?.audit;
+  const nlgWaiting = Boolean(evaluationId) && !nlgLoaded;
+  const nlgCatalogMissing = nlgSynthesis?.unavailableReason != null;
+  const nlgNotice =
+    (nlgCatalogMissing ? nlgSynthesis?.formattedReportText : null) ||
+    nlgUi?.missingData ||
+    nlgMissingDataMessage(uiLang);
+  const nlgShowNotice =
+    !nlgWaiting && (nlgReadFailed || !evaluationId || nlgCatalogMissing || !nlgUi || !nlgSections || !nlgAudit);
+
   const handleExportPdf = async () => {
     // Sin evaluación activa no hay informe que compilar: no se anuncia un PDF
     // que nunca se generó.
@@ -793,8 +849,21 @@ export default function ResultadosFinalScreen({ navigation }: Props) {
     }
     setIsGenerating(true);
     try {
-      await generateReport({ evaluation: activeEvaluation as unknown as Evaluation });
-      showSuccessToast('Informe Oficial PDF', 'Documento clínico generado y archivado correctamente.');
+      const signatureSvg = signaturePaths.length > 0 ? signaturePaths.join(' ') : null;
+      const report = await generateReport({
+        evaluation: activeEvaluation as unknown as Evaluation,
+        customSynthesisNotes: notes.trim() || undefined,
+        clinicianSignatureSvg: signatureSvg,
+      });
+      if (report.snapshotSaved) {
+        showSuccessToast('Informe Oficial PDF', 'Documento clínico generado y archivado correctamente.');
+      } else {
+        // El PDF existe, pero lo firmado no quedó archivado: decirlo (regla 4).
+        showErrorToast(
+          'Síntesis no archivada',
+          `El PDF se generó, pero la síntesis firmada no se pudo guardar: ${report.snapshotError ?? 'motivo desconocido'}.`,
+        );
+      }
     } catch (e) {
       showErrorToast('Error al exportar', 'No se pudo compilar el PDF.');
     } finally {
@@ -944,8 +1013,102 @@ export default function ResultadosFinalScreen({ navigation }: Props) {
           <ScrollView
             style={styles.detailStage}
             contentContainerStyle={styles.detailStageContent}
+            scrollEnabled={scrollEnabled}
             showsVerticalScrollIndicator={false}>
-            
+            <View style={styles.nlgCard}>
+              {nlgWaiting ? (
+                <Text style={styles.nlgNotice}>{t.resultadosFinal.cargandoResultados}</Text>
+              ) : nlgShowNotice || !nlgUi || !nlgSections || !nlgAudit || !nlgSynthesis ? (
+                <View>
+                  <Text style={styles.nlgNotice}>{nlgNotice}</Text>
+                  {nlgUi ? (
+                    <View>
+                      <Text style={styles.nlgLabel}>{nlgUi.observationsLabel}</Text>
+                      <TextInput
+                        style={styles.nlgInput}
+                        value={notes}
+                        onChangeText={setNotes}
+                        placeholder={nlgUi.observationsPlaceholder}
+                        placeholderTextColor="#94A3B8"
+                        multiline
+                        accessibilityLabel={nlgUi.observationsLabel}
+                      />
+                      <Text style={styles.nlgLabel}>{nlgUi.signatureLabel}</Text>
+                      <SignaturePad
+                        paths={signaturePaths}
+                        onAddPath={path => setSignaturePaths(prev => [...prev, path])}
+                        onClear={() => setSignaturePaths([])}
+                        setScrollEnabled={setScrollEnabled}
+                        placeholder={nlgUi.signatureLabel}
+                      />
+                    </View>
+                  ) : null}
+                </View>
+              ) : (
+                <View>
+                  <Text style={styles.nlgTitle}>{nlgUi.draftTitle}</Text>
+                  <Text style={styles.nlgSubtitle}>{nlgUi.draftSubtitle}</Text>
+                  {nlgSynthesis.crossModuleFindings.length > 0 ? (
+                    <View style={styles.nlgBlock}>
+                      <Text style={styles.nlgLabel}>{nlgSections.crossFindings}</Text>
+                      {nlgSynthesis.crossModuleFindings.map((fact, index) => (
+                        <View key={`${index}-${fact.ruleId}`} style={styles.nlgCrossRow}>
+                          <Text style={styles.nlgBadge}>{nlgUi.crossAlertBadge}</Text>
+                          <Text style={styles.nlgBody}>{fact.text}</Text>
+                        </View>
+                      ))}
+                    </View>
+                  ) : null}
+                  {nlgSynthesis.formattedReportText ? (
+                    <Text style={styles.nlgBody}>{nlgSynthesis.formattedReportText}</Text>
+                  ) : null}
+                  <Text style={styles.nlgLabel}>{nlgUi.rulesBadge}</Text>
+                  <View style={styles.nlgChipRow}>
+                    {nlgSynthesis.ruleIds.map((ruleId, index) => (
+                      <View key={`${index}-${ruleId}`} style={styles.nlgChip}>
+                        <Text style={styles.nlgChipText}>{ruleId}</Text>
+                      </View>
+                    ))}
+                  </View>
+                  <Text style={styles.nlgLabel}>{nlgUi.observationsLabel}</Text>
+                  <TextInput
+                    style={styles.nlgInput}
+                    value={notes}
+                    onChangeText={setNotes}
+                    placeholder={nlgUi.observationsPlaceholder}
+                    placeholderTextColor="#94A3B8"
+                    multiline
+                    accessibilityLabel={nlgUi.observationsLabel}
+                  />
+                  <Text style={styles.nlgLabel}>{nlgUi.signatureLabel}</Text>
+                  <SignaturePad
+                    paths={signaturePaths}
+                    onAddPath={path => setSignaturePaths(prev => [...prev, path])}
+                    onClear={() => setSignaturePaths([])}
+                    setScrollEnabled={setScrollEnabled}
+                    placeholder={nlgUi.signatureLabel}
+                  />
+                  <Pressable
+                    style={styles.nlgToggle}
+                    onPress={() => setShowAudit(prev => !prev)}
+                    accessibilityRole="button"
+                    accessibilityLabel={nlgUi.auditTrailToggle}>
+                    <Text style={styles.nlgToggleText}>{nlgUi.auditTrailToggle}</Text>
+                  </Pressable>
+                  {showAudit
+                    ? nlgSynthesis.facts.map((fact, index) => (
+                        <View key={`${index}-${fact.evidenceRef}`} style={styles.nlgAuditRow}>
+                          <Text style={styles.nlgAuditId}>{fact.ruleId}</Text>
+                          <Text style={styles.nlgMeta}>{nlgAudit.columnModule}: {fact.module}</Text>
+                          <Text style={styles.nlgMeta}>{nlgAudit.columnMeasured}: {JSON.stringify(fact.measured)}</Text>
+                          <Text style={styles.nlgMeta}>{nlgAudit.columnEvidence}: {fact.evidenceRef}</Text>
+                        </View>
+                      ))
+                    : null}
+                </View>
+              )}
+            </View>
+
             {/* Sin pruebas registradas no se dibuja un informe de ejemplo. */}
             {!active ? (
               <View style={styles.emptyStage}>
@@ -1585,5 +1748,121 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '700',
     color: '#FFFFFF',
+  },
+  nlgCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#EDE7DC',
+    padding: 16,
+    marginBottom: 16,
+  },
+  nlgTitle: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: '#0F172A',
+    marginBottom: 4,
+  },
+  nlgSubtitle: {
+    fontSize: 13,
+    color: '#64748B',
+    marginBottom: 12,
+  },
+  nlgNotice: {
+    fontSize: 14,
+    lineHeight: 20,
+    color: '#92400E',
+    fontWeight: '600',
+  },
+  nlgLabel: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#334155',
+    marginTop: 12,
+    marginBottom: 6,
+  },
+  nlgBody: {
+    fontSize: 13,
+    lineHeight: 19,
+    color: '#334155',
+    marginTop: 8,
+  },
+  nlgBlock: {
+    marginTop: 4,
+  },
+  nlgCrossRow: {
+    marginTop: 8,
+  },
+  nlgBadge: {
+    alignSelf: 'flex-start',
+    backgroundColor: '#FEF3C7',
+    color: '#92400E',
+    fontSize: 11,
+    fontWeight: '700',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 999,
+    overflow: 'hidden',
+    marginBottom: 4,
+  },
+  nlgChipRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+  },
+  nlgChip: {
+    backgroundColor: '#F1F5F9',
+    borderRadius: 999,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+  },
+  nlgChipText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#334155',
+  },
+  nlgInput: {
+    minHeight: 72,
+    borderWidth: 1,
+    borderColor: '#E5DED2',
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    fontSize: 14,
+    color: '#0F172A',
+    backgroundColor: '#FDFCFA',
+    textAlignVertical: 'top',
+  },
+  nlgToggle: {
+    alignSelf: 'flex-start',
+    marginTop: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: '#CBD5E1',
+    backgroundColor: '#FFFFFF',
+  },
+  nlgToggleText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#334155',
+  },
+  nlgAuditRow: {
+    marginTop: 8,
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: '#EDE7DC',
+  },
+  nlgAuditId: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#0F172A',
+  },
+  nlgMeta: {
+    fontSize: 11,
+    lineHeight: 16,
+    color: '#64748B',
+    marginTop: 2,
   },
 });

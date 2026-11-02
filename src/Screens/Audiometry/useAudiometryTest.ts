@@ -1,8 +1,10 @@
 import { useCallback, useRef, useState } from 'react';
 import {
+  AudiometryNoResponse,
   AudiometryThresholds,
   Ear,
 } from '@/Models/Audiometry/AudiometryTest';
+import { AUDIO_MAX_DB } from '@/PDF/nlgThresholds';
 import { cloneThresholds, emptySoundfieldThresholds, emptyThresholds, FREQS, pta } from './audiometryResult';
 
 /* -------------------------------------------------------------------------- */
@@ -84,6 +86,10 @@ export function useAudiometryTest(options: AudiometryTestOptions = {}) {
   const [presentations, setPresentations] = useState(0);
   const [consistent, setConsistent] = useState(0);
   const [lastConfirmed, setLastConfirmed] = useState<{ ear: Ear; freq: number; db: number } | null>(null);
+  /** Frecuencias sin respuesta al nivel máximo (no es lo mismo que «no medida»). */
+  const [noResponseAtMax, setNoResponseAtMax] = useState<AudiometryNoResponse>(() =>
+    soundfield ? { OD: [], OI: [], CL: [] } : { OD: [], OI: [] },
+  );
 
   // Canal efectivo de registro/presentación (campo libre ignora `ear`).
   const channel: ToneChannel = soundfield ? 'CL' : ear;
@@ -137,6 +143,7 @@ export function useAudiometryTest(options: AudiometryTestOptions = {}) {
       });
       setStars(s => s + 1);
       setLastConfirmed({ ear, freq, db: level });
+      setNoResponseAtMax(nr => ({ ...nr, [channel]: (nr[channel] ?? []).filter(f => f !== freq) }));
       confirmed = true;
     } else if (!already) {
       setDb(d => Math.max(20, d - 10)); // desciende 10 dB
@@ -148,8 +155,14 @@ export function useAudiometryTest(options: AudiometryTestOptions = {}) {
   const noResponse = useCallback(() => {
     setPresentations(p => p + 1);
     if (typeof freq !== 'number') return;
-    setDb(d => Math.min(80, d + 5));
-  }, [freq]);
+    if (db >= AUDIO_MAX_DB) {
+      setNoResponseAtMax(nr => {
+        const list = nr[channel] ?? [];
+        return list.includes(freq) ? nr : { ...nr, [channel]: [...list, freq].sort((x, y) => x - y) };
+      });
+    }
+    setDb(d => Math.min(AUDIO_MAX_DB, d + 5));
+  }, [freq, db, channel]);
 
   const reset = useCallback(() => {
     stop();
@@ -163,6 +176,7 @@ export function useAudiometryTest(options: AudiometryTestOptions = {}) {
     setPresentations(0);
     setConsistent(0);
     setLastConfirmed(null);
+    setNoResponseAtMax(soundfield ? { OD: [], OI: [], CL: [] } : { OD: [], OI: [] });
   }, [stop, soundfield]);
 
   const ptaOD = pta(thresholds.OD);
@@ -184,6 +198,7 @@ export function useAudiometryTest(options: AudiometryTestOptions = {}) {
     db,
     playing,
     thresholds,
+    noResponseAtMax,
     stars,
     presentations,
     reliability,

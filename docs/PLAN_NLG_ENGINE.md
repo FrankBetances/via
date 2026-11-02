@@ -1,7 +1,12 @@
 # Plan de Integración: Motor NLG Determinista en VIA+ (SaMD Clase IIa)
 
 > **Estado:** Plan técnico ejecutable (Fase F1 de [`docs/PLAN-DE-TRABAJO.md`](./PLAN-DE-TRABAJO.md)).
-> **Rama activa:** `NLG`
+> **Rama activa:** `NLG`, fusionada en `main` el 2/11/2026.
+> **Ejecución:** las desviaciones respecto a este plan y sus motivos están en
+> [`design/matriz-evidencia-nlg.md`](./design/matriz-evidencia-nlg.md). Las más importantes: la
+> pantalla y el informe comparten umbrales (`src/PDF/nlgThresholds.ts`), R-AUD-003 solo afirma
+> «sin respuesta» si la toma lo registró (nueva R-AUD-006 para «no determinado») y una MECV-V sin
+> bolos emite R-DYS-004.
 > **Marco regulatorio:** Reglamento (UE) 2017/745 (MDR, Clase IIa · Regla 11) · IEC 62304:2006+AMD1:2015 (Clase B) · ISO 14971:2019 · IEC 62366-1:2015 · ADR Cero IA en Dispositivo ([`docs/design/adr-inferencia-en-dispositivo.md`](./design/adr-inferencia-en-dispositivo.md)).
 
 ---
@@ -133,7 +138,7 @@ flowchart TD
 |---|---|---|---|---|
 | `R-CROSS-001` | CAP × Audiometría Tonal | `cap.earRight` (o `earLeft`) $\in$ `['OMA', 'Cerumen', 'Perforación']` y existe umbral tonal medido en ese oído | Invalida técnicamente el PTA del oído afectado por hallazgo obstructivo/inflamatorio en otoscopia previa; recomienda reevaluación tras resolución médica | Protocolo CAP VIA+ / ISO 14971 |
 | `R-CROSS-002` | CAP × Audiometría Tonal | `cap.earRight` (o `earLeft`) `=== 'OME'` y `PTA > 20 dB HL` en el oído homolateral | Señala concordancia entre elevación de umbral tonal y hallazgo otoscópico de otitis media con efusión (OME); sugiere valoración ORL e impedanciometría | BIAP Rec. 02/1 bis · Guía SEORL |
-| `R-CROSS-003` | Audiometría Tonal × Verbal | Mejor PTA tonal `<= 20 dB HL` y (`discriminationPct < 80%` a 60 dB o `|srtDb - mejorPTA| > 15 dB`) | Señala disociación fono-audiométrica (umbrales tonales conservados con reconocimiento verbal reducido); sugiere explorar procesamiento auditivo o comprensión léxica | ASHA Central Auditory Processing |
+| `R-CROSS-003` | Audiometría Tonal × Verbal | Mejor PTA tonal `<= 20 dB HL` y (`discriminationPct < 80%` a 60 dB o `abs(srtDb - mejorPTA) > 15 dB`) | Señala disociación fono-audiométrica (umbrales tonales conservados con reconocimiento verbal reducido); sugiere explorar procesamiento auditivo o comprensión léxica | ASHA Central Auditory Processing |
 | `R-CROSS-004` | Audiometría Tonal × T.A.R. | Umbral en `2000 Hz` o `4000 Hz > 25 dB HL` y `affectedPhonemes` incluye fricativas/sibilantes (`/s/`, `/f/`, `/z/`) | Señala correlación acústico-articulatoria: el descenso de sensibilidad en frecuencias agudas puede comprometer la percepción y producción de consonantes fricativas | Fonética acústica clínica / BIAP |
 | `R-CROSS-005` | Voz Acústica × Disfagia | (`jitter > 1.04%` o `shimmer > 3.81%` o `hnr < 12 dB`) y `dysphagia.safetyAltered === true` | Alerta de precaución laringo-faríngea: coexistencia de perturbación acústica glótica y signos de compromiso de seguridad deglutoria en MECV-V | Clavé et al. (MECV-V) / ORL Pediátrica |
 | `R-CROSS-006` | ASHA × Autismo M-CHAT-R | (`asha.riskLevel === 'red'` o fallo en dominio `pragmatic`/`receptive`) y `mchat.score >= 3` | Activa recomendación de derivación prioritaria conjunta a Neuropediatría y Atención Temprana por convergencia de alertas comunicativas y conductuales | ASHA P75 · Robins et al. (M-CHAT-R/F) |

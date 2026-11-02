@@ -308,10 +308,11 @@ export default function AudiometryConditionedScreen({ navigation }: Props) {
       item.method = 'conditioned';
       item.transducer = 'soundfield';
       item.thresholds = a.thresholds;
+      item.noResponseAtMax = a.noResponseAtMax;
       item.ptaOD = null;
       item.ptaOI = null;
       item.reliability = a.reliability;
-      item.interpretation = interpretAudiometry(a.thresholds);
+      item.interpretation = interpretAudiometry(a.thresholds, a.noResponseAtMax);
       item.notes = notes.trim();
       item.evaluatorName = evaluatorName.trim();
       item.evaluatorLicense = evaluatorLicense.trim();

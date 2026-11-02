@@ -50,6 +50,9 @@ function loadBanks() {
   const out = fs.mkdtempSync(path.join(os.tmpdir(), 'verbal-cov-'));
   const tsc = path.join(ROOT, 'node_modules', '.bin', 'tsc');
   const srcDir = path.join(ROOT, 'src', 'Screens', 'VerbalAudiometry');
+  /* El banco solo puede importar dentro de esta carpeta. `verbalAudiometryResult`
+   * importa el motor NLG (`@/`); meterlo aquí mueve el rootDir y este tsc no
+   * resuelve el alias. Los tipos del banco están en `verbalAudiometryTypes.ts`. */
   execFileSync(tsc, [
     path.join(srcDir, 'verbalAudiometryBanks.ts'),
     '--outDir', out, '--module', 'commonjs', '--target', 'es2019', '--skipLibCheck',

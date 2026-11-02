@@ -38,6 +38,8 @@ import { showErrorToast, showSuccessToast } from '@/Helpers/showToast';
 import { usePulseOximeter, PulseOximeterState } from './pulseOximeter';
 
 import { useT } from '@/I18n';
+import { getUiLang } from '@/I18n/uiLang';
+import { renderDysphagiaInterpretation } from '@/PDF/nlgReportEngine';
 import { atoms } from '@/Theme/styleAtoms';
 /* -------------------------------------------------------------------------- */
 /*  Configuración clínica MECV-V                                               */
@@ -489,12 +491,15 @@ export default function DysphagiaTestScreen() {
           efficacy: { ...s.efficacy },
         };
       });
-      const interpretation =
-        verdict === 'safety'
-          ? `Alteración de la seguridad de la deglución (tos, cambio de voz o desaturación ≥3 % vs basal). SpO₂ mínima ${analysis.minSpO2}% (caída máx. −${analysis.maxDrop}%). Recomendación: ${analysis.recom}.`
-          : verdict === 'efficacy'
-            ? `Alteración de la eficacia de la deglución (sello labial, residuo o deglución fraccionada) sin signos de riesgo de seguridad. Recomendación: ${analysis.recom}.`
-            : `Exploración MECV-V sin signos de alteración de seguridad ni eficacia. Recomendación: ${analysis.recom}.`;
+      const interpretation = renderDysphagiaInterpretation(
+        {
+          verdict,
+          minSpO2: analysis.minSpO2,
+          maxDrop: analysis.maxDrop,
+          recommendation: analysis.recom,
+        },
+        getUiLang(),
+      );
 
       const item = new DysphagiaTest();
       item.basalSpO2 = basalSpO2;

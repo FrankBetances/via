@@ -105,10 +105,11 @@ export default function AudiometryScreen({ navigation }: Props) {
       item.method = 'play';
       item.transducer = 'air';
       item.thresholds = a.thresholds;
+      item.noResponseAtMax = a.noResponseAtMax;
       item.ptaOD = a.ptaOD;
       item.ptaOI = a.ptaOI;
       item.reliability = a.reliability;
-      item.interpretation = interpretAudiometry(a.thresholds);
+      item.interpretation = interpretAudiometry(a.thresholds, a.noResponseAtMax);
       item.notes = notes.trim();
       item.evaluatorName = evaluatorName.trim();
       item.evaluatorLicense = evaluatorLicense.trim();

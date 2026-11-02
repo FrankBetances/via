@@ -215,6 +215,14 @@ ha compilado.
 
 ### F1 · Motor NLG determinista (solo software; puede empezar ya)
 
+> **Estado (2/11/2026): escrito y en `main`, no verificado en dispositivo.** Lo implementó
+> Cursor en la rama `NLG` (31/10) y se corrigió antes de fusionar: umbrales únicos
+> (`src/PDF/nlgThresholds.ts`), «sin respuesta» separado de «no medido», instantánea de lo
+> firmado (`nlg_report_snapshot`), sin carga del «último paciente» y matriz firmada por Frank.
+> El primer paso de abajo («sin cambiar ningún texto») **no se hizo así**: se extrajo y se
+> corrigió en la misma rama. Abierto de la salida de F1: el acta de revisión de las plantillas
+> en gl, eu y es-DO, y el recorrido en el emulador.
+
 - Extraer las seis funciones a un módulo `src/Reports/` (nombre provisional) con el contrato de
   §4.2, **sin cambiar ningún texto** en un primer paso, y con los tests actuales en verde.
 - Mover las plantillas al catálogo de `src/I18n/` y añadir la traza.

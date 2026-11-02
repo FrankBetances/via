@@ -1,4 +1,7 @@
 import { GrbasScores, VoiceFormants, VoiceParamStatus } from '@/Models/VoiceAnalysis/VoiceAnalysis';
+import { getUiLang } from '@/I18n/uiLang';
+import { VOICE_REF } from '@/PDF/nlgThresholds';
+import { renderGrbasSeverityLabel, renderVoiceInterpretation } from '@/PDF/nlgReportEngine';
 
 /* -------------------------------------------------------------------------- */
 /*  Lógica clínica del análisis acústico de voz (fuente única de verdad).      */
@@ -6,12 +9,12 @@ import { GrbasScores, VoiceFormants, VoiceParamStatus } from '@/Models/VoiceAnal
 /*  Ajuste los umbrales a su protocolo/normativa de referencia si procede.     */
 /* -------------------------------------------------------------------------- */
 
-export const VOICE_NORMS = {
-  f0: { min: 200, max: 320 }, // Hz (infantil)
-  jitter: { max: 1.0 }, // %
-  shimmer: { max: 3.0 }, // %
-  hnr: { min: 20 }, // dB
-};
+/**
+ * Intervalo de referencia de la voz: el mismo que redacta el informe
+ * (`nlgThresholds.ts`, cifras del plan del motor). Antes eran 200–320 Hz,
+ * 1,0 %, 3,0 % y 20 dB, y la tarjeta y la síntesis se contradecían.
+ */
+export const VOICE_NORMS = VOICE_REF;
 
 export interface VoiceParams {
   f0: number;
@@ -73,29 +76,10 @@ export const grbasTotal = (g: GrbasScores): number => g.g + g.r + g.b + g.a + g.
 export const grbasSummary = (g: GrbasScores): string =>
   `G${g.g} R${g.r} B${g.b} A${g.a} S${g.s} · total ${grbasTotal(g)}/15`;
 
-/** Interpretación del grado global G (dimensión rectora de la escala). */
-export const grbasSeverityLabel = (g: GrbasScores): string => {
-  const grade = Math.min(3, Math.max(0, g.g));
-  return grade === 0
-    ? 'Voz perceptualmente normal'
-    : `Disfonía ${GRBAS_SCORE_LABELS[grade].toLowerCase()}`;
-};
+/** Interpretación del grado global G. El texto lo da el motor, no esta etiqueta. */
+export const grbasSeverityLabel = (g: GrbasScores): string =>
+  renderGrbasSeverityLabel(g, getUiLang());
 
-/** Texto de interpretación clínica automática. */
-export const buildInterpretation = (p: VoiceParams): string => {
-  const flags: string[] = [];
-  if (statusF0(p.f0) !== 'normal') flags.push('F0 fuera del rango infantil esperado');
-  if (statusJitter(p.jitter) !== 'normal') flags.push('jitter elevado (inestabilidad de frecuencia)');
-  if (statusShimmer(p.shimmer) !== 'normal') flags.push('shimmer elevado (inestabilidad de amplitud)');
-  if (statusHnr(p.hnr) !== 'normal') flags.push('HNR reducido (mayor componente de ruido)');
-
-  const formantNote =
-    p.formants === null
-      ? ' Los formantes F1–F3 no pudieron estimarse en esta toma.'
-      : '';
-
-  if (flags.length === 0) {
-    return `Parámetros acústicos dentro de los rangos normativos para voz infantil. Calidad vocal sin signos de perturbación significativa.${formantNote}`;
-  }
-  return `Se observa: ${flags.join('; ')}. Considere valoración perceptual (GRBAS) y seguimiento de la calidad vocal.${formantNote}`;
-};
+/** Texto de interpretación acústica. Cifras y frase: el motor NLG. */
+export const buildInterpretation = (p: VoiceParams): string =>
+  renderVoiceInterpretation(p, getUiLang());

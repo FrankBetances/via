@@ -142,6 +142,7 @@ flowchart TD
 - **Archivos a crear:**
   - `[NEW] src/PDF/nlgReportEngine.ts`
 - **Interfaz pública obligatoria:**
+
   ```typescript
   export interface SessionEntities {
     clinicalAssessments?: ClinicalAssessment[];
@@ -162,6 +163,7 @@ flowchart TD
     lang?: UiLang,
   ): NlgReportSynthesis;
   ```
+
 - **Criterios de aceptación:**
   - Módulo 100 % puro: importa únicamente tipos de `@/Models/*`, helpers matemáticos de resultados y `CATALOGUES` / `getUiLang` de `@/I18n/catalog` y `@/I18n/uiLang`.
   - Orden determinista fijo de evaluación: CAP -> Reglas Cruzadas -> Audiometría Tonal -> Audiometría Verbal -> Voz -> Prosodia -> Articulación -> ASHA -> Autismo M-CHAT -> Disfagia -> SAHS -> Funciones Ejecutivas.

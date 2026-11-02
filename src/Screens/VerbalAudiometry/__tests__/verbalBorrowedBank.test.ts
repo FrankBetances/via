@@ -151,9 +151,8 @@ describe('etiquetas de lengua · sin listas paralelas', () => {
   });
 
   it('coincide EXACTAMENTE con el registro único de lenguas de sesión', () => {
-    // `verbalAudiometryResult.ts` no puede importar fuera de su carpeta (lo
-    // compila un gate de Node con tsc suelto), así que la lista está escrita
-    // dos veces. Este test es lo que impide que se separen.
+    // La lista de nombres vive en el resultado y `SESSION_LANG_LABEL` en el
+    // store. Este test es lo que impide que se separen.
     expect(VERBAL_LANG_LABEL).toEqual({ ...SESSION_LANG_LABEL });
   });
 });

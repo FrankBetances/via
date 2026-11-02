@@ -1,4 +1,4 @@
-import type { AgeBand, CardModality } from './verbalAudiometryResult';
+import type { AgeBand, CardModality } from './verbalAudiometryTypes';
 
 /* -------------------------------------------------------------------------- */
 /*  Banco de estímulos de la Audiometría Verbal (lógica pura, sin UI/DB).      */

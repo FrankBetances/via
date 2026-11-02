@@ -97,10 +97,12 @@ function loadVerbalModules(lang) {
   const out = fs.mkdtempSync(path.join(os.tmpdir(), 'verbal-cjs-'));
   const tsc = path.join(ROOT, 'node_modules', '.bin', 'tsc');
   const srcDir = path.join(ROOT, 'src', 'Screens', 'VerbalAudiometry');
+  /* Sin `verbalAudiometryResult.ts`: importa el motor NLG por `@/` y este tsc
+   * suelto no lo resuelve ni debe mover el rootDir. El banco toma sus tipos de
+   * `verbalAudiometryTypes.ts`. */
   execFileSync(tsc, [
     path.join(srcDir, 'verbalAudiometryBanks.ts'),
     path.join(srcDir, 'verbalAudiometryAudit.es-DO.ts'),
-    path.join(srcDir, 'verbalAudiometryResult.ts'),
     path.join(srcDir, 'verbalAudiometryGlyphs.ts'),
     '--outDir', out, '--module', 'commonjs', '--target', 'es2019', '--skipLibCheck',
   ]);

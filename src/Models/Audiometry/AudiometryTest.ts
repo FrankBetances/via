@@ -27,11 +27,20 @@ export interface AudiometryThresholds {
   CL?: Record<number, number | null>;
 }
 
+/**
+ * Frecuencias en las que el niño NO respondió al nivel máximo de salida, por
+ * canal. Distingue «sin respuesta» de «no medido», que en `thresholds` son el
+ * mismo `null`. `null` en la columna = registro anterior al 2/11/2026, que no
+ * guardaba la distinción: el informe lo dice y no afirma ninguna de las dos.
+ */
+export type AudiometryNoResponse = Partial<Record<'OD' | 'OI' | 'CL', number[]>>;
+
 export interface AudiometryTestDTO {
   id: number;
   method: AudiometryMethod; // 'play' (juego de instrumentos) | 'conditioned' (tren / CRA)
   transducer: string; // 'air' | 'soundfield'
   thresholds: AudiometryThresholds;
+  noResponseAtMax: AudiometryNoResponse | null;
   ptaOD: number | null;
   ptaOI: number | null;
   reliability: number | null; // %
@@ -68,6 +77,9 @@ export class AudiometryTest {
 
   @Column('simple-json')
   thresholds: AudiometryThresholds;
+
+  @Column({ type: 'simple-json', nullable: true })
+  noResponseAtMax: AudiometryNoResponse | null;
 
   @Column({ type: 'integer', nullable: true })
   ptaOD: number | null;

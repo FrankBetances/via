@@ -1,4 +1,4 @@
-import type { AgeBand } from './verbalAudiometryResult';
+import type { AgeBand } from './verbalAudiometryTypes';
 import { assetKeyForWord, VerbalBandDef, VerbalItem } from './verbalAudiometryLists';
 
 /* -------------------------------------------------------------------------- */
