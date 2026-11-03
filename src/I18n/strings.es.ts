@@ -148,8 +148,8 @@ export const ES = {
      * en un SaMD Clase IIa, afirma disponibilidad aunque no lo escriba; el art.
      * 7 del MDR prohíbe inducir a error sobre lo que existe. El pie es la
      * diferencia entre enseñar un diseño y enseñar un producto. */
-    mascotRenderCaption: 'Representación de diseño: el aparato aún no tiene versión fabricada.',
-    mascotImageA11y: 'Representación de diseño de Lúa, la mascota acompañante.',
+    mascotRenderCaption: 'Representación de diseño de Lúa V5: aún no está fabricada y la luz del cubo todavía no tiene programa.',
+    mascotImageA11y: 'Representación de diseño de Lúa V5: cabeza cúbica turquesa con orejas y un cuerpo en cubo que se ilumina en naranja, azul y verde.',
     emblemFootnote: 'Dispositivo complementario · en desarrollo',
     cardTitle: 'DISPOSITIVO FÍSICO OPCIONAL',
     empathyName: 'Empatía y Calma Clínica',

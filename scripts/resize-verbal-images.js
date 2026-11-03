@@ -268,4 +268,6 @@ function main() {
   if (dryRun) console.log('  (--dry-run: no se ha escrito nada)');
 }
 
-main();
+if (require.main === module) main();
+
+module.exports = { resizeRgba };

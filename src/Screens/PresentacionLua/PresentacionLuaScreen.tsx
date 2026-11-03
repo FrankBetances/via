@@ -15,6 +15,7 @@ import Animated, {
   cancelAnimation,
   interpolate,
   useAnimatedStyle,
+  useReducedMotion,
   useSharedValue,
   withDelay,
   withRepeat,
@@ -63,6 +64,9 @@ export default function PresentacionLuaScreen({ navigation }: Props) {
   const ring1 = useSharedValue(0);
   const ring2 = useSharedValue(0);
   const float = useSharedValue(0);
+  // Luz del cubo de Lúa V5: 0 naranja → 1 azul → 2 verde → 3 (= naranja otra vez).
+  const light = useSharedValue(0);
+  const reduceMotion = useReducedMotion();
 
   // Animaciones de entrada escalonada y botón
   const introOpacity = useSharedValue(0);
@@ -93,7 +97,13 @@ export default function PresentacionLuaScreen({ navigation }: Props) {
       -1,
       false,
     );
+    // La luz cambia de color con un fundido lento (3 s por color). Con
+    // «reducir movimiento» del sistema se queda fija en naranja.
+    if (!reduceMotion) {
+      light.value = withRepeat(withTiming(3, { duration: 9000, easing: Easing.linear }), -1, false);
+    }
     return () => {
+      cancelAnimation(light);
       cancelAnimation(ring1);
       cancelAnimation(ring2);
       cancelAnimation(float);
@@ -102,7 +112,7 @@ export default function PresentacionLuaScreen({ navigation }: Props) {
     };
     /* Los `useSharedValue` son referencias estables: listarlas no reprograma
      * las animaciones en cada render, y calla al linter sin desactivarlo. */
-  }, [float, introOpacity, introTranslateY, ring1, ring2]);
+  }, [float, introOpacity, introTranslateY, light, reduceMotion, ring1, ring2]);
 
   const introStyle = useAnimatedStyle(() => ({
     opacity: introOpacity.value,
@@ -119,6 +129,14 @@ export default function PresentacionLuaScreen({ navigation }: Props) {
   }));
   const floatStyle = useAnimatedStyle(() => ({
     transform: [{ translateY: float.value }],
+  }));
+  // Cada color se ve entero en su punto (0, 1, 2) y se funde con el vecino.
+  // El naranja vuelve en 3 para que la vuelta no salte.
+  const lightBlueStyle = useAnimatedStyle(() => ({
+    opacity: interpolate(light.value, [0, 1, 2, 3], [0, 1, 0, 0], 'clamp'),
+  }));
+  const lightGreenStyle = useAnimatedStyle(() => ({
+    opacity: interpolate(light.value, [0, 1, 2, 3], [0, 0, 1, 0], 'clamp'),
   }));
 
   const btnAnimatedStyle = useAnimatedStyle(() => ({
@@ -292,16 +310,33 @@ export default function PresentacionLuaScreen({ navigation }: Props) {
                     { width: imageSize, height: imageSize },
                     floatStyle,
                   ]}>
+                  {/* Lúa V5, la de verdad (repositorio lua-firmware,
+                   * `docs/cad/lua-v5/luz/`): tres renders del cubo encendido,
+                   * superpuestos. El naranja va debajo, siempre opaco; azul y
+                   * verde se funden encima. Preparados por
+                   * `scripts/build-lua-device-image.js`. Los ficheros son
+                   * `…@2x.png` y el `require` va sin el sufijo, como manda RN. */}
                   <Image
-                    /* El fichero es `lua_mascot_device@2x.png` —el sufijo lo
-                     * resuelve Metro y evita que Android reescale un mdpi—,
-                     * pero el `require` va sin él, como manda React Native. */
-                    source={require('@/../assets/img/lua_mascot_device.png')}
+                    source={require('@/../assets/img/lua_v5_luz_naranja.png')}
                     style={styles.deviceImage}
                     resizeMode="contain"
                     accessible
                     accessibilityRole="image"
                     accessibilityLabel={t.luaIntro.mascotImageA11y}
+                  />
+                  <Animated.Image
+                    source={require('@/../assets/img/lua_v5_luz_azul.png')}
+                    style={[styles.deviceImageLayer, lightBlueStyle]}
+                    resizeMode="contain"
+                    accessible={false}
+                    importantForAccessibility="no"
+                  />
+                  <Animated.Image
+                    source={require('@/../assets/img/lua_v5_luz_verde.png')}
+                    style={[styles.deviceImageLayer, lightGreenStyle]}
+                    resizeMode="contain"
+                    accessible={false}
+                    importantForAccessibility="no"
                   />
                 </Animated.View>
               </View>
@@ -756,8 +791,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   deviceImage: {
-    /* Sin `borderRadius`: lo llevaba para suavizar el canto del JPG cuadrado y
-     * el PNG ya no tiene canto —el fondo se funde a transparente. */
+    /* Sin `borderRadius`: el PNG no tiene canto, el fondo es transparente. */
+    width: '100%',
+    height: '100%',
+  },
+  deviceImageLayer: {
+    ...StyleSheet.absoluteFillObject,
     width: '100%',
     height: '100%',
   },

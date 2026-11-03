@@ -655,6 +655,16 @@ descargado, y las imágenes de AVD no lo traen. **Eso no es una avería.**
   activa (fila huérfana, invisible) y anunciaba «Guardado». Vigilado por
   `evaluationResultsAsha.test.ts`. **Si añades un módulo, añádelo también a
   `evaluationResults.ts`.**
+- **La Lúa de «Conoce a Lúa» es la V5 de `lua-firmware` (3/11/2026).** Antes
+  la pantalla enseñaba una gata astronauta que no es Lúa. Ahora son los tres
+  renders del cubo encendido (`docs/cad/lua-v5/luz/`) fundiéndose de naranja a
+  azul y verde, preparados por `scripts/build-lua-device-image.js` (necesita
+  `lua-firmware` clonado al lado; deja commit y SHA-256 en
+  `assets/img/lua_v5_luz.origen.json`, y `luaDeviceImage.test.js` falla si se
+  retocan a mano). **Son renders**: según el `CLAUDE.md` del firmware, la V5
+  está dibujada y medida, no fabricada, y el cubo no tiene programa; el pie de
+  la imagen lo dice. Si cambian los renders, se regeneran con el script, no a
+  mano.
 - **«No medido» no es «sin respuesta».** `null` en `AudiometryTest.thresholds`
   significa «no determinado»; la ausencia de respuesta al máximo va en
   `noResponseAtMax`. Los registros anteriores al 2/11/2026 no tienen esa

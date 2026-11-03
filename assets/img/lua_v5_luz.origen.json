@@ -1,0 +1,66 @@
+{
+  "fuente": "github.com/FrankBetances/lua-firmware",
+  "commit": "c3d44393dd7fac3f952fb3bffd99f12906e67935",
+  "ruta": "docs/cad/lua-v5/luz",
+  "generadoPor": "scripts/build-lua-device-image.js",
+  "nota": "Renders de diseño de Lúa V5: no es una foto de un aparato fabricado.",
+  "colores": {
+    "naranja": {
+      "fuenteSha256": "cb389cfb9f59c94f84581e99390e48d9fd04c20838ce69dfb433d181301cdb04",
+      "recorte": {
+        "x": 325,
+        "y": 115,
+        "w": 521,
+        "h": 818
+      },
+      "salidas": {
+        "lua_v5_luz_naranja.png": {
+          "lado": 256,
+          "sha256": "8b12dd006549b36fd92450047d8adb48a86e339ce05daa1db88fdd38bbf31769"
+        },
+        "lua_v5_luz_naranja@2x.png": {
+          "lado": 512,
+          "sha256": "d3f03444d1822e4202199346483af76569c829281eabd9c0390b71dbb7be6aad"
+        }
+      }
+    },
+    "azul": {
+      "fuenteSha256": "e1f40599cab021654ef4f940dc38bed96c9caff8014f3d0238573679546dbdb4",
+      "recorte": {
+        "x": 325,
+        "y": 115,
+        "w": 521,
+        "h": 818
+      },
+      "salidas": {
+        "lua_v5_luz_azul.png": {
+          "lado": 256,
+          "sha256": "f8469c103f84bc897240315bff89ada11ca1bccc98a0b341649e26ed88ce1c91"
+        },
+        "lua_v5_luz_azul@2x.png": {
+          "lado": 512,
+          "sha256": "df7d3a56e5617ff3b82968a58f3a30c7f8c29dec338ae0054c9ce5badbc0dcd9"
+        }
+      }
+    },
+    "verde": {
+      "fuenteSha256": "c04efa02b09dc9e62342a2d1488226244baa0bd68bf35c6075b25f50cafd10e3",
+      "recorte": {
+        "x": 325,
+        "y": 115,
+        "w": 521,
+        "h": 818
+      },
+      "salidas": {
+        "lua_v5_luz_verde.png": {
+          "lado": 256,
+          "sha256": "a98e8b56a5f0c81697fd8bafe26750e1bcba3f1b4cad86a53bc1e820c664b15b"
+        },
+        "lua_v5_luz_verde@2x.png": {
+          "lado": 512,
+          "sha256": "fbaf8189b25a6f9f35bb3a2939627565ffae05193c62fd1036c12894e2d22e7d"
+        }
+      }
+    }
+  }
+}
