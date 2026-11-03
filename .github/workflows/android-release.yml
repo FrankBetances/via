@@ -25,6 +25,10 @@ on:
       - "android/**"
       - "src/**"
       - "assets/audio/**"
+      # Las imágenes también van dentro del APK. El 3/11/2026 el arreglo de la
+      # Lúa de «Conoce a Lúa» (7cd040a) solo tocaba assets/img/ y NO lanzó
+      # ningún build: la app seguía con la imagen del visor vacío.
+      - "assets/img/**"
       - "scripts/check-verbal-coverage.js"
       - "package.json"
       - "package-lock.json"
