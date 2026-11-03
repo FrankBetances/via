@@ -492,6 +492,17 @@ son hechos sobre ti, no sobre lo que la app hace.
 `android-release.yml` lanza un build completo por push. No empujes el mismo
 commit a dos ramas sin necesidad.
 
+**Un push a `main` compila, pero NO deja ni APK ni AAB.** Los dos pasos de
+subida llevan `if: env.IS_RELEASE == 'true'`, y eso solo es verdad con
+`workflow_dispatch` (lanzado a mano) o con una etiqueta `v*`. Coste real
+(3/11/2026): se le dijo a Frank «el APK estará en los artefactos de ese run»
+sobre un run de push (el 168), terminó en verde y sin un solo fichero. Si Frank
+necesita la app, se lanza `workflow_dispatch` sobre `main` y se comprueba que
+el run tenga `viaplus-release-apk` y `viaplus-release-aab` antes de decírselo.
+Y el filtro `paths` decide si un push compila siquiera: un cambio que solo
+toque una carpeta fuera de la lista no lanza nada (así pasó con `assets/img/`,
+ya añadida).
+
 ---
 
 ### 7. El banco de pruebas es el emulador de Android Studio, y Valeria+ funciona ahí
