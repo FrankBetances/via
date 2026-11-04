@@ -322,7 +322,6 @@ export default function PresentacionLuaScreen({ navigation }: Props) {
                     resizeMode="contain"
                     accessible
                     accessibilityRole="image"
-                    accessibilityLabel={t.luaIntro.mascotImageA11y}
                   />
                   <Animated.Image
                     source={require('@/../assets/img/lua_v5_luz_azul.png')}
