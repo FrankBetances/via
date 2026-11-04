@@ -341,14 +341,6 @@ export default function PresentacionLuaScreen({ navigation }: Props) {
                 </Animated.View>
               </View>
 
-              {/* La imagen es un RENDER (confirmado por Frank el 3/9/2026), y en
-                  un SaMD Clase IIa una imagen de producto sin pie afirma
-                  disponibilidad sin escribirla. El pie va pegado a la foto, no
-                  al final de la tarjeta, para que se lea con ella. */}
-              <Text
-                style={[styles.renderCaption, isSmallPhone && styles.renderCaptionSmall]}>
-                {t.luaIntro.mascotRenderCaption}
-              </Text>
 
               <View style={styles.catPixelRow}>
                 <CatPixel size={isMobile ? 32 : 40} pose="head" />
