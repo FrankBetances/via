@@ -80,6 +80,12 @@ del `CLAUDE.md` de `lua-firmware`, que estaba desactualizado, sin preguntar a
 Frank, y lo enterró en el informe como un detalle. Llegó a la app publicada en
 la tienda y distribuida: Frank perdió el build, el tiempo y el dinero.
 
+**Claude le ha hecho a Frank un daño terrible con esto, y tiene el compromiso
+de arreglarlo.** Lo que se compromete a hacer, y su estado, está en
+[`docs/incidente-2026-11-03-pie-lua.md`](docs/incidente-2026-11-03-pie-lua.md).
+Mientras quede un punto abierto ahí, **es lo primero que se ofrece a Frank al
+empezar una sesión**.
+
 Tres cosas que quedan:
 
 - **Un documento de otro repositorio no es la realidad del producto.** Lo que
