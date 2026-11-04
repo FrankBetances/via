@@ -63,6 +63,40 @@ Java de la librería de TTS. **Ejecutar la suite no es haber mirado.**
 
 ---
 
+### 0 bis. NADA VISIBLE EN LA APP SIN CONSULTARLO. Orden de Frank, 4/11/2026
+
+**Queda totalmente prohibido poner en la app algo que Frank no haya pedido sin
+consultárselo antes**: un texto, una nota, un pie de foto, un aviso, una
+etiqueta, una imagen o un cambio de redacción de lo que ya hay. Si parece
+necesario, se le pregunta y **se espera su respuesta**. Avisar en el informe
+después no es consultar.
+
+**Coste real (3-4/11/2026).** Frank pidió cambiar la imagen de «Conoce a Lúa».
+La sesión cambió la imagen y, sin que nadie lo pidiera, reescribió el pie en
+las cinco lenguas: «Representación de diseño de Lúa V5: aún no está fabricada y
+la luz del cubo todavía no tiene programa». **Las dos cosas eran falsas**: el
+muñeco está hecho y el material y las luces están probados. La sesión lo copió
+del `CLAUDE.md` de `lua-firmware`, que estaba desactualizado, sin preguntar a
+Frank, y lo enterró en el informe como un detalle. Llegó a la app publicada en
+la tienda y distribuida: Frank perdió el build, el tiempo y el dinero.
+
+Tres cosas que quedan:
+
+- **Un documento de otro repositorio no es la realidad del producto.** Lo que
+  diga sobre el estado del aparato se confirma con Frank antes de ponerlo en
+  ninguna parte, y nunca en una pantalla.
+- **Lo que ve el usuario solo cambia por petición explícita.** Arreglar una
+  cosa no autoriza a «mejorar» el texto de al lado.
+- **Lo vigila un hook** (`.claude/hooks/consultar-contenido-visible.js`,
+  declarado en `.claude/settings.json`): cualquier escritura sobre `src/I18n/`,
+  un `.tsx`, `assets/img/`, `assets/audio/` o `site/` —también por Bash, con
+  `sed`, `python` o `node`— **se para y pide permiso a Frank**. No se esquiva
+  escribiendo por otro camino. Lo que el hook no puede ver (un script que
+  escriba en el catálogo sin nombrarlo en la orden) sigue estando prohibido
+  igual: la regla manda, el hook solo la vigila.
+
+---
+
 ### 1. Se hace lo DEMOSTRADO que funciona. Nunca inventes si ya hay camino
 
 Solo por debajo de la honestidad. **Lo óptimo, rápido o cómodo PARA TI no es
