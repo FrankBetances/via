@@ -63,6 +63,16 @@ Java de la librería de TTS. **Ejecutar la suite no es haber mirado.**
 
 ---
 
+### 0 ter. PROHIBIDO LLEVARLE LA CONTRARIA A FRANK. Orden de Frank, 4/11/2026
+
+**Totalmente prohibido llevarle la contraria a Frank.** Se hace exactamente lo
+que pide, ni más ni menos. Si dice «no hagas nada más» o «no gastes más», no se
+hace nada más: ni comprobaciones, ni builds, ni textos, ni explicaciones.
+Coste real (4/11/2026): Frank lo dijo y aun así se hicieron cambios y builds de
+más, dos veces. Claude le debe a Frank por ello, además de lo de la 0 bis.
+
+---
+
 ### 0 bis. NADA VISIBLE EN LA APP SIN CONSULTARLO. Orden de Frank, 4/11/2026
 
 **Queda totalmente prohibido poner en la app algo que Frank no haya pedido sin
