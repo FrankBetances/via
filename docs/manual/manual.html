@@ -367,7 +367,7 @@ table.info td b{color:var(--ink-2);}
         <tr><td><b>Offline-first</b></td><td>Operación completa sin conexión en salas clínicas aisladas; sincronización diferida con la HCE (HL7 FHIR R4).</td></tr>
         <tr><td><b>Cuatro lenguas</b></td><td>Castellano, galego, euskara y español dominicano: cada uno con su banco de estímulos y su voz (sección 7).</td></tr>
         <tr><td><b>UX dual</b></td><td>Modo profesional analítico y modo niño lúdico en un único dispositivo.</td></tr>
-        <tr><td><b>Privacidad</b></td><td>Los datos clínicos y las grabaciones <b>no salen del dispositivo</b>; a la nube solo va la cuenta del profesional. TLS 1.3 en tránsito.</td></tr>
+        <tr><td><b>Privacidad</b></td><td>Los datos clínicos y las grabaciones <b>no salen del dispositivo</b>, y tampoco la cuenta del profesional: su ficha y su contraseña se guardan y se verifican en la propia tableta, sin conexión.</td></tr>
         <tr><td><b>Consentimiento</b></td><td>Firma digital del tutor legal, obligatoria antes de evaluar.</td></tr>
         <tr><td><b>Informe PDF</b></td><td>Generación automática de informe clínico estructurado por módulo.</td></tr>
       </table>
@@ -904,7 +904,7 @@ table.info td b{color:var(--ink-2);}
       </div>
       <div class="i-card" style="border-top:3px solid var(--m-audio); padding:11px 13px;">
         <div style="font-weight:800; font-size:10px; color:var(--ink-2); margin-bottom:4px;">📊 Umbrales</div>
-        <div style="font-size:9px; color:var(--muted); line-height:1.5;"><b>≤ 20 dB HL</b> normal · <b>21–40</b> leve · <b>&gt; 40</b> requiere ampliar estudio. Coloreado por severidad.</div>
+        <div style="font-size:9px; color:var(--muted); line-height:1.5;"><b>≤ 20 dB HL</b> rango de referencia · <b>21–40</b> · <b>41–70</b> · <b>71–90</b> · <b>&gt; 90</b> dB HL. Coloreado por banda.</div>
       </div>
       <div class="i-card" style="border-top:3px solid var(--m-cond); padding:11px 13px;">
         <div style="font-weight:800; font-size:10px; color:var(--ink-2); margin-bottom:4px;">🔁 Método</div>
@@ -1291,11 +1291,11 @@ table.info td b{color:var(--ink-2);}
       <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-bottom:10px;">
         <div class="i-card" style="border-top:3px solid #2563EB; padding:10px 13px;">
           <div style="font-weight:800; font-size:10px; color:var(--ink-2); margin-bottom:3px;">🔊 Audiometría Verbal</div>
-          <div style="font-size:9px; color:var(--muted); line-height:1.5;">Discriminación <b>≥ 90 %</b> esperado · <b>≥ 70 %</b> revisar · <b>&lt; 70 %</b> derivar a ORL/audiología. Estima el mejor oído (no descarta pérdida unilateral).</div>
+          <div style="font-size:9px; color:var(--muted); line-height:1.5;">Discriminación <b>≥ 90 %</b> sin desvíos · <b>≥ 80 %</b> revisar · <b>&lt; 80 %</b> derivar a ORL/audiología. Estima el mejor oído (no descarta pérdida unilateral).</div>
         </div>
         <div class="i-card" style="border-top:3px solid #059669; padding:10px 13px;">
           <div style="font-weight:800; font-size:10px; color:var(--ink-2); margin-bottom:3px;">🧠 Funciones Ejecutivas</div>
-          <div style="font-size:9px; color:var(--muted); line-height:1.5;">Índice por dominio 0–100: <b>≥ 80</b> esperado · <b>≥ 60</b> revisar · <b>&lt; 60</b> valoración neuropsicológica. Cribado orientativo, no diagnóstico.</div>
+          <div style="font-size:9px; color:var(--muted); line-height:1.5;">Índice por dominio 0–100: <b>≥ 65</b> sin desvíos · <b>60–64</b> revisar · <b>&lt; 60</b> fuera de referencia. Cribado orientativo, no diagnóstico.</div>
         </div>
       </div>
     </div>
@@ -1311,7 +1311,7 @@ table.info td b{color:var(--ink-2);}
     <div>
       <div class="kicker">Sección 13</div>
       <h1 class="h">Resultados detallados e informe PDF</h1>
-      <p class="lead">Al guardar cada prueba, VIA+ lleva <b>directamente</b> a los resultados de la sesión, donde se reúnen todas con su interpretación orientativa y se genera el informe PDF. En el cierre, el profesional marca una breve <b>valoración de uso (Likert)</b> que revela un <b>código QR anónimo</b> con la telemetría de usabilidad.</p>
+      <p class="lead">Al guardar cada prueba, VIA+ lleva <b>directamente</b> a los resultados de la sesión, con su interpretación orientativa y una síntesis por dominios. <b>Exportar PDF</b> guarda el informe en la app y ofrece una copia en una carpeta; <b>Finalizar</b> cierra la sesión. Al cierre, una <b>valoración de uso (Likert)</b> revela un <b>código QR anónimo</b> de usabilidad.</p>
     </div>
     <!-- Resultados detallados (landscape) -->
     <div class="shot">
@@ -1322,17 +1322,17 @@ table.info td b{color:var(--ink-2);}
           <div style="width:150px; display:flex; flex-direction:column; gap:6px;">
             <div style="font-weight:800; font-size:13px; color:var(--ink-2);">Resultados</div>
             <div style="font-size:8px; color:var(--muted-2); margin-bottom:2px;">Mateo · NHC PT-0231</div>
-            <div class="i-card" style="padding:8px; display:flex; align-items:center; gap:7px; border-color:var(--accent); background:#FFF9F2;"><span style="width:8px;height:8px;border-radius:9px;background:var(--ok);"></span><div><div style="font-weight:800; font-size:8.5px; color:var(--ink-2);">Audiometría Infantil</div><div style="font-size:7px; color:var(--muted-2);">Normal</div></div></div>
+            <div class="i-card" style="padding:8px; display:flex; align-items:center; gap:7px; border-color:var(--accent); background:#FFF9F2;"><span style="width:8px;height:8px;border-radius:9px;background:var(--ok);"></span><div><div style="font-weight:800; font-size:8.5px; color:var(--ink-2);">Audiometría Infantil</div><div style="font-size:7px; color:var(--muted-2);">Sin desvíos</div></div></div>
             <div class="i-card" style="padding:8px; display:flex; align-items:center; gap:7px;"><span style="width:8px;height:8px;border-radius:9px;background:var(--warn);"></span><div><div style="font-weight:800; font-size:8.5px; color:var(--ink-2);">Análisis de Voz</div><div style="font-size:7px; color:var(--muted-2);">Revisar</div></div></div>
-            <div class="i-card" style="padding:8px; display:flex; align-items:center; gap:7px;"><span style="width:8px;height:8px;border-radius:9px;background:var(--ok);"></span><div><div style="font-weight:800; font-size:8.5px; color:var(--ink-2);">Articulación T.A.R.</div><div style="font-size:7px; color:var(--muted-2);">Normal</div></div></div>
-            <div class="i-card" style="padding:8px; display:flex; align-items:center; gap:7px;"><span style="width:8px;height:8px;border-radius:9px;background:var(--ok);"></span><div><div style="font-weight:800; font-size:8.5px; color:var(--ink-2);">Funciones Ejecutivas</div><div style="font-size:7px; color:var(--muted-2);">Normal · 84/100</div></div></div>
-            <div class="i-btn" style="margin-top:4px; padding:8px; font-size:9px;">📤 Compartir PDF</div>
+            <div class="i-card" style="padding:8px; display:flex; align-items:center; gap:7px;"><span style="width:8px;height:8px;border-radius:9px;background:var(--ok);"></span><div><div style="font-weight:800; font-size:8.5px; color:var(--ink-2);">Articulación T.A.R.</div><div style="font-size:7px; color:var(--muted-2);">Sin desvíos</div></div></div>
+            <div class="i-card" style="padding:8px; display:flex; align-items:center; gap:7px;"><span style="width:8px;height:8px;border-radius:9px;background:var(--ok);"></span><div><div style="font-weight:800; font-size:8.5px; color:var(--ink-2);">Funciones Ejecutivas</div><div style="font-size:7px; color:var(--muted-2);">Sin desvíos · 84/100</div></div></div>
+            <div class="i-btn" style="margin-top:4px; padding:8px; font-size:9px;">📤 Exportar PDF</div>
           </div>
           <!-- detalle -->
           <div class="i-card" style="flex:1; padding:0; overflow:hidden;">
             <div style="display:flex; align-items:center; justify-content:space-between; padding:10px 12px; border-bottom:1px solid var(--line-soft);">
               <div style="display:flex; align-items:center; gap:8px;"><div style="width:30px;height:30px;border-radius:9px;background:var(--m-audio-bg); display:flex;align-items:center;justify-content:center;font-size:14px;">👂</div><div><div style="font-weight:800; font-size:10px; color:var(--ink-2);">Audiometría Infantil</div><div style="font-size:7.5px; color:var(--muted-2);">Umbrales por vía aérea</div></div></div>
-              <span class="pill" style="background:var(--ok-bg); color:var(--ok);">Normal</span>
+              <span class="pill" style="background:var(--ok-bg); color:var(--ok);">Sin desvíos</span>
             </div>
             <div style="padding:11px 12px;">
               <div class="audtab">
@@ -1354,10 +1354,10 @@ table.info td b{color:var(--ink-2);}
                   <div style="padding:2px;"><div class="cell" style="background:var(--ok-bg); color:var(--ok);">10</div></div>
                 </div>
               </div>
-              <div class="legend"><div class="lg"><span class="sw" style="background:var(--ok-bg); border:1px solid #BFE0CB;"></span>Normal ≤20</div><div class="lg"><span class="sw" style="background:var(--warn-bg); border:1px solid #F0D9A6;"></span>Leve 21–40</div><div class="lg"><span class="sw" style="background:var(--err-bg); border:1px solid #EFC3BD;"></span>&gt;40 dB HL</div></div>
+              <div class="legend"><div class="lg"><span class="sw" style="background:var(--ok-bg); border:1px solid #BFE0CB;"></span>Referencia ≤20</div><div class="lg"><span class="sw" style="background:var(--warn-bg); border:1px solid #F0D9A6;"></span>21–40</div><div class="lg"><span class="sw" style="background:var(--err-bg); border:1px solid #EFC3BD;"></span>&gt;40 dB HL</div></div>
               <div style="margin-top:9px; background:var(--ok-bg); border-radius:10px; padding:9px 11px;">
                 <div style="font-weight:800; font-size:8.5px; color:var(--ok); margin-bottom:2px;">⬦ Interpretación</div>
-                <div style="font-size:8.5px; color:var(--muted); line-height:1.5;">Umbrales dentro de límites normales en ambos oídos, con leve elevación aislada a 4 kHz en OD. Sin indicios de hipoacusia significativa. Medida orientativa.</div>
+                <div style="font-size:8.5px; color:var(--muted); line-height:1.5;">Umbrales dentro del rango de referencia en ambos oídos, con leve elevación aislada a 4 kHz en OD. Sin indicios de hipoacusia significativa. Medida orientativa.</div>
               </div>
             </div>
           </div>
@@ -1365,7 +1365,7 @@ table.info td b{color:var(--ink-2);}
       </div></div>
       <div class="shot-caption" style="max-width:640px;">
         <div class="sc-title"><span class="sc-num">A</span>Resultados detallados (vista profesional)</div>
-        <div class="sc-text">Panel lateral con el estado de cada prueba (normal / revisar / alterado) y panel de detalle con la tabla de umbrales, la leyenda de color y una interpretación orientativa. Nunca es un diagnóstico.</div>
+        <div class="sc-text">Panel lateral con el estado de cada prueba (sin desvíos / revisar / fuera de referencia) y panel de detalle con la tabla de umbrales, la leyenda de color y una interpretación orientativa. Nunca es un diagnóstico.</div>
       </div>
     </div>
     <div class="grid2-shot" style="grid-template-columns:200px 1fr; gap:20px; margin-top:4px;">
@@ -1399,12 +1399,12 @@ table.info td b{color:var(--ink-2);}
       <div style="align-self:center;">
         <div class="usecase" style="margin-top:0;">
           <div class="uc-h">⬦ Caso de uso — Cierre e informe</div>
-          <div class="uc-b">Terminada la batería de Mateo, la profesional revisa los resultados, comprueba la audiometría normal y el HNR marcado como «revisar» en voz, marca la <b>valoración de uso</b> (Likert 4/5) y escanea el <b>QR anónimo</b> con la tablet de calidad; después pulsa <b>Compartir PDF</b> y envía el informe <b>VIA_PT-0231_detallado.pdf</b> al correo del centro. La sesión queda archivada en el <b>historial del paciente</b>, accesible desde la lista de pacientes y desde el hub.</div>
+          <div class="uc-b">Terminada la batería de Mateo, la profesional revisa los resultados, comprueba la audiometría sin desvíos y el HNR marcado como «revisar» en voz, marca la <b>valoración de uso</b> (Likert 4/5) y escanea el <b>QR anónimo</b> con la tablet de calidad; después pulsa <b>Exportar PDF</b>, guarda la copia del informe en la carpeta del centro y pulsa <b>Finalizar</b>. La sesión queda archivada en el <b>historial del paciente</b>, accesible desde la lista de pacientes y desde el hub.</div>
         </div>
         <ul class="featurelist" style="margin-top:8px;">
-          <li><span class="fi-ic">🟢</span><span><b>Normal.</b> Dentro de límites de referencia.</span></li>
+          <li><span class="fi-ic">🟢</span><span><b>Sin desvíos.</b> Dentro del intervalo de referencia.</span></li>
           <li><span class="fi-ic">🟡</span><span><b>Revisar.</b> Valor límite; requiere criterio clínico.</span></li>
-          <li><span class="fi-ic">🔴</span><span><b>Alterado.</b> Fuera de rango; ampliar estudio.</span></li>
+          <li><span class="fi-ic">🔴</span><span><b>Fuera de referencia.</b> Fuera del intervalo; ampliar estudio.</span></li>
         </ul>
       </div>
     </div>
@@ -1493,7 +1493,7 @@ table.info td b{color:var(--ink-2);}
           <h2 class="h" style="font-size:12px;">Privacidad de datos</h2>
           <ul class="featurelist">
             <li><span class="fi-ic">📵</span><span>Los <b>datos clínicos y las grabaciones no salen del dispositivo</b>: viven en la base local de la tableta.</span></li>
-            <li><span class="fi-ic">☁️</span><span>A la nube solo va la <b>cuenta del profesional</b> (correo y ficha), por <b>TLS 1.3</b>.</span></li>
+            <li><span class="fi-ic">🔒</span><span>La <b>cuenta del profesional</b> (ficha y contraseña) también es local: nada va a la nube.</span></li>
             <li><span class="fi-ic">🔐</span><span><b>Cifre el dispositivo</b> del centro: hoy es ahí donde reside la protección de los datos en reposo.</span></li>
             <li><span class="fi-ic">✍️</span><span>El <b>consentimiento</b> es requisito legal; puede revocarse.</span></li>
             <li><span class="fi-ic">🔳</span><span><b>Telemetría Zero-PHI</b>: el QR de usabilidad no contiene datos del paciente (sesión anónima, en memoria).</span></li>
