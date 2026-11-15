@@ -187,7 +187,7 @@ notificado.
 
 | Id | Paquete | Visible | Necesita de Frank |
 | --- | --- | --- | --- |
-| A1 | Cortes del T.A.R. a `nlgThresholds.ts`, usados por las cuatro líneas de H1; test de paridad como el de `nlgReportEngine.test.ts` | **sí** (un color cambiará en una de las dos pantallas) | **Abierto (15/11/2026):** los dos juegos de cortes los escribió Claude y ninguno tiene fuente citada en el repositorio. Frank decide: una fuente para el corte, o que el T.A.R. muestre el porcentaje sin semáforo |
+| A1 | Cortes del T.A.R. a `nlgThresholds.ts`, usados por las cuatro líneas de H1; test de paridad como el de `nlgReportEngine.test.ts` | **sí** (un color cambiará en una de las dos pantallas) | **Decidido (15/11/2026): porcentaje con semáforo.** Al abrir el paquete falta una sola cifra: qué corte único usan las cuatro líneas (hoy 85/60 y 90/70, ambos sin fuente en el repositorio) |
 | A2 | Barrido de cortes numéricos sueltos en `src/Screens/**` y `src/PDF/**` fuera de `nlgThresholds.ts`; solo **informe**, sin cambios | no | Decidir uno a uno los que aparezcan |
 | A3 | `ResultadosFinalScreen` consume `loadEvaluationResultCards` en vez de releer los repositorios; test que falla si una vista muestra un módulo que la otra no | no (razonado, no visto) | Nada |
 | A4 | Estado observable de «módulo no leído»: `loadEvaluationResultCards` devuelve también la lista de módulos que fallaron | no | Nada |
@@ -297,9 +297,8 @@ valor es real, pero ninguna reduce el riesgo clínico o de datos, y E2 consume r
 ## 6. Lo que Frank tiene que decidir
 
 1. Incidente de Lúa: ¿la pantalla queda sin pie? ¿Qué se escribe en el `CLAUDE.md` del firmware?
-2. T.A.R.: **abierto**. Los cortes 85/60 y 90/70 son los dos de Claude y sin fuente en el
-   repositorio (ni README, ni `docs/design/`, ni la matriz de evidencia). ¿Fuente para un corte,
-   o porcentaje sin semáforo?
+2. ~~T.A.R.~~ Porcentaje con semáforo (15/11/2026). Queda fijar el corte único al abrir A1:
+   hoy conviven 85/60 y 90/70, los dos sin fuente en el repositorio.
 3. ~~¿`ClinicalAssessment` debe tener tarjeta en los resultados?~~ Sí (15/11/2026).
 4. ~~¿Se acepta `sqljs` como dependencia de desarrollo?~~ Sí (15/11/2026).
 5. Política de acceso: intentos, inactividad, recuperación de contraseña.
@@ -307,7 +306,7 @@ valor es real, pero ninguna reduce el riesgo clínico o de datos, y E2 consume r
 7. `react-native-ble-plx`: ¿entra en esta versión?
 8. ¿Quién revisa los textos nuevos de gl, eu, ca y en?
 
-Con 3 y 4 decididas, la fase B y los paquetes A3, A4 y A6 quedan desbloqueados. A1 espera a la 2.
+Con 3 y 4 decididas, la fase B y los paquetes A3, A4 y A6 quedan desbloqueados. A1 solo necesita la cifra del corte.
 
 ---
 
