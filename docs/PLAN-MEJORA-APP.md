@@ -187,18 +187,18 @@ notificado.
 
 | Id | Paquete | Visible | Necesita de Frank |
 | --- | --- | --- | --- |
-| A1 | Cortes del T.A.R. a `nlgThresholds.ts`, usados por las cuatro líneas de H1; test de paridad como el de `nlgReportEngine.test.ts` | **sí** (un color cambiará en una de las dos pantallas) | **Qué corte es el bueno (85/60 o 90/70) y su fuente**, para la matriz de evidencia |
+| A1 | Cortes del T.A.R. a `nlgThresholds.ts`, usados por las cuatro líneas de H1; test de paridad como el de `nlgReportEngine.test.ts` | **sí** (un color cambiará en una de las dos pantallas) | **Abierto (15/11/2026):** los dos juegos de cortes los escribió Claude y ninguno tiene fuente citada en el repositorio. Frank decide: una fuente para el corte, o que el T.A.R. muestre el porcentaje sin semáforo |
 | A2 | Barrido de cortes numéricos sueltos en `src/Screens/**` y `src/PDF/**` fuera de `nlgThresholds.ts`; solo **informe**, sin cambios | no | Decidir uno a uno los que aparezcan |
 | A3 | `ResultadosFinalScreen` consume `loadEvaluationResultCards` en vez de releer los repositorios; test que falla si una vista muestra un módulo que la otra no | no (razonado, no visto) | Nada |
 | A4 | Estado observable de «módulo no leído»: `loadEvaluationResultCards` devuelve también la lista de módulos que fallaron | no | Nada |
 | A5 | Pintar ese estado en Resultados preliminares, Resultados finales e Historial | **sí** (aviso nuevo) | El texto del aviso, en las cinco lenguas |
-| A6 | Test de registro de módulos: toda entidad de módulo de `config.ts` tiene lectura en `evaluationResults.ts` o una excepción escrita con motivo | no | Confirmar si `ClinicalAssessment` debe tener tarjeta (hoy no la tiene) |
+| A6 | Test de registro de módulos: toda entidad de módulo de `config.ts` tiene lectura en `evaluationResults.ts` o una excepción escrita con motivo | no | **Decidido (15/11/2026): `ClinicalAssessment` lleva tarjeta.** Falta aprobar su título y su texto, que son visibles |
 
 ### Fase B · La capa de datos, con red
 
 | Id | Paquete | Visible | Necesita de Frank |
 | --- | --- | --- | --- |
-| B1 | Banco de pruebas de persistencia en Node: los repositorios reales contra SQLite en memoria. *Propuesta:* driver `sqljs` de TypeORM como dependencia de desarrollo (JS puro, no entra en el APK); **compatibilidad por verificar** en el propio paquete | no | Aceptar la dependencia de desarrollo |
+| B1 | Banco de pruebas de persistencia en Node: los repositorios reales contra SQLite en memoria. *Propuesta:* driver `sqljs` de TypeORM como dependencia de desarrollo (JS puro, no entra en el APK); **compatibilidad por verificar** en el propio paquete | no | **Aceptada (15/11/2026)** |
 | B2 | Tests de ida y vuelta por repositorio (guardar → leer → mismos datos), incluidos `null` de umbrales y `noResponseAtMax` | no | Nada |
 | B3 | Test de `writeWithVerify` (plazo vencido con fila guardada, plazo vencido sin fila) | no | Nada |
 | B4 | Migración de línea base que reproduce el esquema actual, registrada, con test que compara el esquema por migraciones con el de `synchronize` | no | Nada |
@@ -297,15 +297,17 @@ valor es real, pero ninguna reduce el riesgo clínico o de datos, y E2 consume r
 ## 6. Lo que Frank tiene que decidir
 
 1. Incidente de Lúa: ¿la pantalla queda sin pie? ¿Qué se escribe en el `CLAUDE.md` del firmware?
-2. T.A.R.: ¿85/60 o 90/70, y con qué fuente?
-3. ¿`ClinicalAssessment` debe tener tarjeta en los resultados?
-4. ¿Se acepta `sqljs` como dependencia de desarrollo para probar la persistencia?
+2. T.A.R.: **abierto**. Los cortes 85/60 y 90/70 son los dos de Claude y sin fuente en el
+   repositorio (ni README, ni `docs/design/`, ni la matriz de evidencia). ¿Fuente para un corte,
+   o porcentaje sin semáforo?
+3. ~~¿`ClinicalAssessment` debe tener tarjeta en los resultados?~~ Sí (15/11/2026).
+4. ~~¿Se acepta `sqljs` como dependencia de desarrollo?~~ Sí (15/11/2026).
 5. Política de acceso: intentos, inactividad, recuperación de contraseña.
 6. Ruido de sala en el informe: ¿consta o no?
 7. `react-native-ble-plx`: ¿entra en esta versión?
 8. ¿Quién revisa los textos nuevos de gl, eu, ca y en?
 
-Las decisiones 2, 3 y 4 desbloquean las fases A y B, que son las primeras.
+Con 3 y 4 decididas, la fase B y los paquetes A3, A4 y A6 quedan desbloqueados. A1 espera a la 2.
 
 ---
 
