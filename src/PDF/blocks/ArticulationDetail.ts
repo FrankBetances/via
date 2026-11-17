@@ -1,6 +1,7 @@
 import { ArticulationTest } from '@/Models/ArticulationTest/ArticulationTest';
 import { BlockOptions } from './types';
 import { PDF_FONT_SIZES, PDF_MARGINS, PDF_COLORS } from '@/PDF/utils';
+import { TAR_PCT } from '@/PDF/nlgThresholds';
 import { Logo } from './Logo';
 
 interface ArticulationDetailProps {
@@ -17,7 +18,7 @@ const SODA_LABEL: Record<string, string> = {
 
 /** Color del % de acierto: verde alto, ámbar medio, rojo bajo. */
 const pctColor = (pct: number) =>
-  pct >= 85 ? PDF_COLORS.green500 : pct >= 60 ? PDF_COLORS.amber500 : PDF_COLORS.red500;
+  pct >= TAR_PCT.ok ? PDF_COLORS.green500 : pct >= TAR_PCT.warn ? PDF_COLORS.amber500 : PDF_COLORS.red500;
 
 /**
  * Página de detalle de un Test de Articulación a la Repetición (T.A.R.) dentro

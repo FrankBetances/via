@@ -99,7 +99,10 @@ El plan nombra atajos (`cap.earRight`, `evaluateAssessment`, `computeSahsResult`
 
 Estas cifras están en `src/PDF/nlgThresholds.ts` y las leen el motor y las pantallas.
 
-- Voz, intervalo de referencia: F0 de 220 a 320 Hz inclusive; jitter hasta 1,04 % inclusive; shimmer hasta 3,81 % inclusive; HNR desde 12 dB inclusive. Fuera: F0 por debajo de 220 o por encima de 320, jitter por encima de 1,04, shimmer por encima de 3,81, HNR por debajo de 12.
+- Voz, intervalo de referencia: F0 de 200 a 320 Hz inclusive; jitter hasta 1,0 % inclusive; shimmer hasta 3,0 % inclusive; HNR desde 20 dB inclusive. Fuera: F0 por debajo de 200 o por encima de 320, jitter por encima de 1,0, shimmer por encima de 3,0, HNR por debajo de 20.
+  - **Decisión de Frank (17/11/2026): el color usa las cifras de los rótulos.** Hasta esa fecha el color y la síntesis usaban 220–320 Hz, 1,04 %, 3,81 % y 12 dB (las del plan del motor), y el rótulo de las pantallas decía 200–320 Hz, < 1.0 %, < 3.0 % y > 20 dB. Desde entonces el rótulo sale de las mismas cifras (`VOICE_REF_LABEL`).
+- Articulación (T.A.R.), semáforo del % de producción correcta: verde desde 90, ámbar de 70 a 89, rojo por debajo de 70 (`TAR_PCT`, `tarStatus`). Lo usan la pantalla de la prueba, las tarjetas de resultados y el PDF.
+  - **Decisión de Frank (17/11/2026): 90/70 en los cinco sitios.** Antes la pantalla de la prueba y el PDF usaban 85/60. Sin fuente bibliográfica registrada en el repositorio.
 - Audiometría, banda del PTA entero en dB HL: ≤ 20 rango de referencia; 21–40; 41–70; 71–90; 91 o más (por encima de 90). No se usan las etiquetas «pérdida leve», «moderada», «severa» ni «profunda».
 - Morfología, solo con 500 Hz y 4000 Hz determinados en ese oído. Margen 15 dB, el mismo que el plan ya usa entre URV y PTA. Sea `d = umbral(4000) − umbral(500)`:
   - `d ≥ 15`: curva descendente en agudos.
@@ -149,7 +152,7 @@ Estas cifras están en `src/PDF/nlgThresholds.ts` y las leen el motor y las pant
 ## R-CROSS-005
 
 - Identificador: `R-CROSS-005`. Versión `1.0.0`. Módulos: voz y disfagia.
-- Condición: `DysphagiaTest.safetyAltered === true` y, en una `VoiceAnalysis` de la sesión, al menos un parámetro numérico cumple jitter > 1,04, o shimmer > 3,81, o HNR < 12. Un parámetro `null` no cumple su comparación y tampoco la da por dentro. Si los tres son `null`, la regla no dispara aunque la deglución tenga la seguridad comprometida: eso lo cuenta `R-DYS-003`, sin afirmar una perturbación acústica que no se midió.
+- Condición: `DysphagiaTest.safetyAltered === true` y, en una `VoiceAnalysis` de la sesión, al menos un parámetro numérico cumple jitter > 1,0, o shimmer > 3,0, o HNR < 20 (cifras desde el 17/11/2026; antes 1,04, 3,81 y 12). Un parámetro `null` no cumple su comparación y tampoco la da por dentro. Si los tres son `null`, la regla no dispara aunque la deglución tenga la seguridad comprometida: eso lo cuenta `R-DYS-003`, sin afirmar una perturbación acústica que no se midió.
 - Entrada: jitter, shimmer y HNR tal como se midieron, o `labelUnavailable` si ese parámetro es `null`.
 - Efecto: precaución laringo-faríngea. Correlacionar en consulta.
 - Fuente: Clavé y colaboradores (MECV-V) y ORL pediátrica, citadas por el plan. Intervalos acústicos: plan del motor, no `VOICE_NORMS`.
@@ -314,7 +317,7 @@ Estas cifras están en `src/PDF/nlgThresholds.ts` y las leen el motor y las pant
 - Condición: algún parámetro numérico cae fuera del intervalo de la sección de cortes. Los `null` no se cuentan como fuera ni como dentro.
 - Entrada: lista de parámetros fuera, con su valor.
 - Efecto: señalamiento descriptivo, sin clasificar la voz.
-- Fuente: plan del motor (F0 220–320 Hz, jitter 1,04 %, shimmer 3,81 %, HNR 12 dB).
+- Fuente: decisión de Frank del 17/11/2026, las cifras de los rótulos (F0 200–320 Hz, jitter 1,0 %, shimmer 3,0 %, HNR 20 dB). Antes, plan del motor (220–320 Hz, 1,04 %, 3,81 %, 12 dB).
 - Mitigación: el hecho nombra el parámetro y el valor. No usa «patológico» ni «normal».
 
 ## R-VOZ-004
@@ -323,9 +326,9 @@ Estas cifras están en `src/PDF/nlgThresholds.ts` y las leen el motor y las pant
 - Condición: se emite en toda voz que tenga shimmer numérico. `formantsMissing` es `1` cuando `formants` es `null`.
 - Entrada: ese indicador.
 - Efecto: la estimación ciclo a ciclo del shimmer comprime la cifra entre 1,3 y 1,7 veces respecto a Praat. Si los formantes son `null`, la misma frase dice que no pudieron estimarse.
-- Fuente: `tools/acoustics/README.md`, tabla a 220 Hz (4 % → Praat 5,4 y VIA+ 4,1; 8 % → 9,6 y 6,2; 16 % → 17,6 y 10,2). El plan pide el factor 1,3–1,7. Esta oleada no modifica ese README ni `voiceDsp.ts`. El 3,5 % que el README menciona como lectura de consulta no sustituye al 3,81 % del plan: el corte del texto es el del plan; el factor de compresión es el del README.
+- Fuente: `tools/acoustics/README.md`, tabla a 220 Hz (4 % → Praat 5,4 y VIA+ 4,1; 8 % → 9,6 y 6,2; 16 % → 17,6 y 10,2). El plan pide el factor 1,3–1,7. Esta oleada no modifica ese README ni `voiceDsp.ts`. El corte del texto es el de la sección de cortes (3,0 % desde el 17/11/2026; antes 3,81 %); el factor de compresión es el del README.
 - Mitigación: quien lea el shimmer en el informe ve el factor en la misma página. El banco de Praat no se relaja para igualar las cifras.
-- **Riesgo abierto (señalado el 2/11/2026).** El corte de 3,81 % está en la escala de Praat y se compara con el shimmer de VIA+, que sale comprimido. Con la tabla del README, una voz de 5,4 % en Praat se lee 4,1 % en VIA+: una voz por encima del corte en Praat puede quedar por debajo en VIA+ y salir como «dentro del intervalo de referencia». Es una inferencia sobre la tabla del README (senoides, no voz de niño), no una medida. Frank mantuvo el umbral del plan tras el aviso; no se ha aplicado ningún factor de corrección, porque elegir uno sería inventar una cifra.
+- **Riesgo abierto (señalado el 2/11/2026; el corte pasó de 3,81 % a 3,0 % el 17/11/2026).** El corte de 3,81 % estaba en la escala de Praat y se compara con el shimmer de VIA+, que sale comprimido. Con la tabla del README, una voz de 5,4 % en Praat se lee 4,1 % en VIA+: una voz por encima del corte en Praat puede quedar por debajo en VIA+ y salir como «dentro del intervalo de referencia». Es una inferencia sobre la tabla del README (senoides, no voz de niño), no una medida. Frank mantuvo el umbral del plan tras el aviso; no se ha aplicado ningún factor de corrección, porque elegir uno sería inventar una cifra.
 
 ## R-PRO-001
 

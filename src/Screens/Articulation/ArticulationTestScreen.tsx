@@ -64,6 +64,7 @@ import { useLuaCompanion, LuaEmotion } from '@/Lua';
 
 import { useT } from '@/I18n';
 import { atoms } from '@/Theme/styleAtoms';
+import { TAR_PCT } from '@/PDF/nlgThresholds';
 /* -------------------------------------------------------------------------- */
 /*  Test de Articulación a la Repetición (T.A.R.)                              */
 /* -------------------------------------------------------------------------- */
@@ -271,10 +272,10 @@ export default function ArticulationTestScreen({ navigation }: Props) {
   /* report visual config ------------------------------------------------- */
 
   const reportTheme = useMemo(() => {
-    if (score.correctPct >= 85) {
+    if (score.correctPct >= TAR_PCT.ok) {
       return { bg: '$success50', border: '$success300', fg: '$success700', icon: CheckCircle2, color: '$success600' };
     }
-    if (score.correctPct >= 60) {
+    if (score.correctPct >= TAR_PCT.warn) {
       return { bg: '$warning50', border: '$warning300', fg: '$warning800', icon: AlertTriangle, color: '$warning700' };
     }
     return { bg: '$error50', border: '$error300', fg: '$error700', icon: AlertTriangle, color: '$error500' };

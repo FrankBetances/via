@@ -83,6 +83,7 @@ import { showErrorToast, showSuccessToast } from '@/Helpers/showToast';
 import { useT } from '@/I18n';
 import { getUiLang } from '@/I18n/uiLang';
 import { atoms } from '@/Theme/styleAtoms';
+import { tarStatus, VOICE_REF_LABEL } from '@/PDF/nlgThresholds';
 /* -------------------------------------------------------------------------- */
 /*  ResultadosFinalScreen — Arquitectura Master-Detail en Tableta (4:3)        */
 /*  Sidebar de navegación con telemetría/QR a la izquierda y escenario         */
@@ -575,10 +576,10 @@ export default function ResultadosFinalScreen({ navigation }: Props) {
             }
             const toKind = (s: string): StatusKind => (s === 'normal' ? 'ok' : s === 'borderline' ? 'warn' : 'alt');
             const params: ParamRow[] = [
-              { label: 'F0 · frecuencia fundamental', value: `${Math.round(v.f0)} Hz`, status: toKind(statusF0(v.f0)), ref: '200–320 Hz' },
-              { label: 'Jitter', value: `${v.jitter.toFixed(1)} %`, status: toKind(statusJitter(v.jitter)), ref: '< 1.0 %' },
-              { label: 'Shimmer', value: `${v.shimmer.toFixed(1)} %`, status: toKind(statusShimmer(v.shimmer)), ref: '< 3.0 %' },
-              { label: 'HNR · relación armónico-ruido', value: `${Math.round(v.hnr)} dB`, status: toKind(statusHnr(v.hnr)), ref: '> 20 dB' },
+              { label: 'F0 · frecuencia fundamental', value: `${Math.round(v.f0)} Hz`, status: toKind(statusF0(v.f0)), ref: VOICE_REF_LABEL.f0 },
+              { label: 'Jitter', value: `${v.jitter.toFixed(1)} %`, status: toKind(statusJitter(v.jitter)), ref: VOICE_REF_LABEL.jitter },
+              { label: 'Shimmer', value: `${v.shimmer.toFixed(1)} %`, status: toKind(statusShimmer(v.shimmer)), ref: VOICE_REF_LABEL.shimmer },
+              { label: 'HNR · relación armónico-ruido', value: `${Math.round(v.hnr)} dB`, status: toKind(statusHnr(v.hnr)), ref: VOICE_REF_LABEL.hnr },
             ];
             const overall: StatusKind = params.some(p => p.status === 'alt')
               ? 'alt'
@@ -640,7 +641,7 @@ export default function ResultadosFinalScreen({ navigation }: Props) {
               {
                 label: 'Ítems acertados',
                 value: `${a.evaluatedCount} / ${a.totalCount}`,
-                status: a.correctPct >= 90 ? 'ok' : a.correctPct >= 70 ? 'warn' : 'alt',
+                status: tarStatus(a.correctPct),
                 tag: `${a.correctPct} %`,
               },
               {
@@ -656,7 +657,7 @@ export default function ResultadosFinalScreen({ navigation }: Props) {
             result.push({
               id: `art-${a.id}`,
               kind: 'rows',
-              status: a.correctPct >= 90 ? 'ok' : a.correctPct >= 70 ? 'warn' : 'alt',
+              status: tarStatus(a.correctPct),
               title: 'Articulación · T.A.R.',
               subtitle: 'Test de Articulación a la Repetición · registro SODA',
               icon: Speech,

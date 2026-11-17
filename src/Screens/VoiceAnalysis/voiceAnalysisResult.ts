@@ -10,9 +10,11 @@ import { renderGrbasSeverityLabel, renderVoiceInterpretation } from '@/PDF/nlgRe
 /* -------------------------------------------------------------------------- */
 
 /**
- * Intervalo de referencia de la voz: el mismo que redacta el informe
- * (`nlgThresholds.ts`, cifras del plan del motor). Antes eran 200–320 Hz,
- * 1,0 %, 3,0 % y 20 dB, y la tarjeta y la síntesis se contradecían.
+ * Intervalo de referencia de la voz: el mismo que redacta el informe y el
+ * mismo que pinta el rótulo (`nlgThresholds.ts`). Desde el 17/11/2026, por
+ * decisión de Frank, son las cifras de los rótulos (200–320 Hz, 1,0 %, 3,0 %,
+ * 20 dB); entre el 2/11 y esa fecha el color usaba las del plan del motor
+ * (220–320 Hz, 1,04 %, 3,81 %, 12 dB) y el rótulo no cuadraba con él.
  */
 export const VOICE_NORMS = VOICE_REF;
 

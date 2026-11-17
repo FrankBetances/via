@@ -17,7 +17,7 @@ import {
   statusShimmer,
   VOICE_NORMS,
 } from '@/Screens/VoiceAnalysis/voiceAnalysisResult';
-import { DISC_MIN, EF_DOMAIN_CUT, VOICE_REF } from '@/PDF/nlgThresholds';
+import { DISC_MIN, EF_DOMAIN_CUT, VOICE_REF, VOICE_REF_LABEL } from '@/PDF/nlgThresholds';
 
 /* El proyecto no incluye @types/node (tipado RN puro): los globals que Jest sí
  * provee se declaran localmente, como en `luaProtocolGate.test.ts`. */
@@ -115,9 +115,9 @@ const voice = (over: Record<string, unknown> = {}): SessionEntities => ({
 
 const withinVoice = {
   f0: 250,
-  jitter: 1.04,
-  shimmer: 3.81,
-  hnr: 12,
+  jitter: 1.0,
+  shimmer: 3.0,
+  hnr: 20,
   formants: { f1: 500, f2: 1500, f3: 2500 },
 };
 
@@ -275,7 +275,7 @@ const cases: RuleCase[] = [
   { id: 'R-VOZ-001', fire: voice(), quiet: voice(withinVoice) },
   { id: 'R-VOZ-002', fire: voice(withinVoice), quiet: voice() },
   { id: 'R-VOZ-003', fire: voice({ ...withinVoice, jitter: 1.05 }), quiet: voice(withinVoice) },
-  { id: 'R-VOZ-004', fire: voice(withinVoice), quiet: voice({ f0: 250, jitter: 0.4, shimmer: null, hnr: 18 }) },
+  { id: 'R-VOZ-004', fire: voice(withinVoice), quiet: voice({ f0: 250, jitter: 0.4, shimmer: null, hnr: 22 }) },
   {
     id: 'R-PRO-001',
     fire: prosody('silent', { pauseCount: 0, syllableCount: 0, spanSec: 0 }),
@@ -430,7 +430,7 @@ describe('nlgReportEngine · null y bordes del plan', () => {
   });
 
   it('un parámetro de voz null no cae en la frase de intervalo cumplido', () => {
-    const partial = voice({ f0: 250, jitter: null, shimmer: 2, hnr: 18 });
+    const partial = voice({ f0: 250, jitter: null, shimmer: 2, hnr: 22 });
     const text = textOf(partial, 'R-VOZ-002');
     expect(factOf(partial, 'R-VOZ-002')?.level).toBe('warning');
     expect(text).toContain('no disponible');
@@ -446,13 +446,14 @@ describe('nlgReportEngine · null y bordes del plan', () => {
     expect(textOf(voice(withinVoice), 'R-VOZ-004')).toContain('1,7');
   });
 
-  it('F0 219 y 321, HNR 11.99 y shimmer 3.82 salen del intervalo', () => {
-    expect(has(voice({ ...withinVoice, f0: 219 }), 'R-VOZ-003')).toBe(true);
+  it('F0 199 y 321, HNR 19.99, jitter 1.01 y shimmer 3.01 salen del intervalo', () => {
+    expect(has(voice({ ...withinVoice, f0: 199 }), 'R-VOZ-003')).toBe(true);
     expect(has(voice({ ...withinVoice, f0: 321 }), 'R-VOZ-003')).toBe(true);
-    expect(has(voice({ ...withinVoice, f0: 220 }), 'R-VOZ-003')).toBe(false);
+    expect(has(voice({ ...withinVoice, f0: 200 }), 'R-VOZ-003')).toBe(false);
     expect(has(voice({ ...withinVoice, f0: 320 }), 'R-VOZ-003')).toBe(false);
-    expect(has(voice({ ...withinVoice, hnr: 11.99 }), 'R-VOZ-003')).toBe(true);
-    expect(has(voice({ ...withinVoice, shimmer: 3.82 }), 'R-VOZ-003')).toBe(true);
+    expect(has(voice({ ...withinVoice, hnr: 19.99 }), 'R-VOZ-003')).toBe(true);
+    expect(has(voice({ ...withinVoice, jitter: 1.01 }), 'R-VOZ-003')).toBe(true);
+    expect(has(voice({ ...withinVoice, shimmer: 3.01 }), 'R-VOZ-003')).toBe(true);
   });
 
   it('el campo libre no trata los oídos vacíos como sin respuesta', () => {
@@ -639,10 +640,13 @@ describe('nlgReportEngine · paridad de cifras', () => {
     // síntesis tenían cortes distintos y se contradecían en la misma pantalla.
     // Ahora las dos leen `nlgThresholds.ts`; si alguien separa una, falla.
     expect(VOICE_NORMS).toBe(VOICE_REF);
-    expect(VOICE_NORMS.f0).toEqual({ min: 220, max: 320 });
-    expect(VOICE_NORMS.jitter.max).toBe(1.04);
-    expect(VOICE_NORMS.shimmer.max).toBe(3.81);
-    expect(VOICE_NORMS.hnr.min).toBe(12);
+    // Cifras de los rótulos, por decisión de Frank (17/11/2026).
+    expect(VOICE_NORMS.f0).toEqual({ min: 200, max: 320 });
+    expect(VOICE_NORMS.jitter.max).toBe(1.0);
+    expect(VOICE_NORMS.shimmer.max).toBe(3.0);
+    expect(VOICE_NORMS.hnr.min).toBe(20);
+    // El rótulo de la pantalla sale de las mismas cifras que el color.
+    expect(VOICE_REF_LABEL).toEqual({ f0: '200–320 Hz', jitter: '< 1.0 %', shimmer: '< 3.0 %', hnr: '> 20 dB' });
     expect(DISCRIMINATION_WARN_CUT).toBe(DISC_MIN);
     expect(EF_OK_CUT).toBe(EF_DOMAIN_CUT);
     expect(EF_WARN_CUT).toBe(60);

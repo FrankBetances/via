@@ -1074,7 +1074,7 @@ export const EU: UiStrings = {
       rCross004: (freqs: string | number, phonemes: string | number) =>
         `${freqs} maiztasunetan atalasea 25 dB HL-tik gora, frikari edo sibilanteetan errorearekin (${phonemes}). Maiztasun akutuotan sentikortasun-jaitsierak kontsonante horien pertzepzioa eta ekoizpena arriskuan jar ditzake.`,
       rCross005: (jitter: string | number, shimmer: string | number, hnr: string | number) =>
-        `Erreferentzia-tartetik kanpoko neurri akustiko glotiko bat eta MECV-Vko irenste-segurtasunaren arrisku-zeinuak batera daude (jitter ${jitter} %, shimmer ${shimmer} %, HNR ${hnr} dB; bertsio honetako erreferentzia: jitter 1,04 %, shimmer 3,81 %, HNR 12 dB). Laringe-faringe arreta: kontsultan korrelazionatu.`,
+        `Erreferentzia-tartetik kanpoko neurri akustiko glotiko bat eta MECV-Vko irenste-segurtasunaren arrisku-zeinuak batera daude (jitter ${jitter} %, shimmer ${shimmer} %, HNR ${hnr} dB; bertsio honetako erreferentzia: jitter 1,0 %, shimmer 3,0 %, HNR 20 dB). Laringe-faringe arreta: kontsultan korrelazionatu.`,
       rCross006: (ashaDetail: string | number, score: string | number) =>
         `Komunikazio-aurkikuntzen eta jokabide-aurkikuntzen bat-etortzea: ASHA baheketa (${ashaDetail}) eta M-CHAT-R puntuazioa 20tik ${score}. Deribazio lehentasunezkoa iradokitzen da neuropediatrian eta arreta goiztiarrean batera.`,
       rCross007: (sahsLevel: string | number, efDetail: string | number) =>
@@ -1128,7 +1128,7 @@ export const EU: UiStrings = {
       ) =>
         `Hartune honetan neurtutako parametroak: F0 ${f0} Hz, zikloz zikloko jitter lokala ${jitter} %, zikloz zikloko shimmer lokala ${shimmer} %, HNR ${hnr} dB. F1–F3 formanteak: ${formants}.`,
       rVoz003: (which: string | number) =>
-        `Bertsio honetako haur-erreferentzia-tartetik kanpoko parametroak (F0 220–320 Hz-ko tartetik kanpo, jitter 1,04 %tik gora, shimmer 3,81 %tik gora, HNR 12 dB-tik behera): ${which}.`,
+        `Bertsio honetako haur-erreferentzia-tartetik kanpoko parametroak (F0 200–320 Hz-ko tartetik kanpo, jitter 1,0 %tik gora, shimmer 3,0 %tik gora, HNR 20 dB-tik behera): ${which}.`,
       rVoz004: (formantsMissing: string | number) => {
         const note = 'Shimmer-en zikloz zikloko estimazioak zifra 1,3 eta 1,7 aldiz konprimitzen du Praaten aldean.';
         if (Number(formantsMissing) === 1) {

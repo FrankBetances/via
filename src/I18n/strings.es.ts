@@ -1130,7 +1130,7 @@ export const ES = {
       rCross004: (freqs: string | number, phonemes: string | number) =>
         `Umbral por encima de 25 dB HL en ${freqs}, con error en fricativas o sibilantes (${phonemes}). El descenso de sensibilidad en frecuencias agudas puede comprometer la percepción y la producción de esas consonantes.`,
       rCross005: (jitter: string | number, shimmer: string | number, hnr: string | number) =>
-        `Coexisten una medida acústica glótica fuera del intervalo de referencia (jitter ${jitter} %, shimmer ${shimmer} %, HNR ${hnr} dB; referencia de esta versión: jitter 1,04 %, shimmer 3,81 %, HNR 12 dB) y signos de compromiso de seguridad deglutoria en MECV-V. Precaución laringo-faríngea: correlacionar en consulta.`,
+        `Coexisten una medida acústica glótica fuera del intervalo de referencia (jitter ${jitter} %, shimmer ${shimmer} %, HNR ${hnr} dB; referencia de esta versión: jitter 1,0 %, shimmer 3,0 %, HNR 20 dB) y signos de compromiso de seguridad deglutoria en MECV-V. Precaución laringo-faríngea: correlacionar en consulta.`,
       rCross006: (ashaDetail: string | number, score: string | number) =>
         `Convergencia de hallazgos comunicativos y conductuales: cribado ASHA (${ashaDetail}) y puntuación M-CHAT-R ${score} sobre 20. Se sugiere derivación prioritaria conjunta a neuropediatría y atención temprana.`,
       rCross007: (sahsLevel: string | number, efDetail: string | number) =>
@@ -1183,7 +1183,7 @@ export const ES = {
       ) =>
         `Parámetros medidos en esta toma: F0 ${f0} Hz, jitter local ciclo a ciclo ${jitter} %, shimmer local ciclo a ciclo ${shimmer} %, HNR ${hnr} dB. Formantes F1–F3: ${formants}.`,
       rVoz003: (which: string | number) =>
-        `Parámetros fuera del intervalo de referencia pediátrico de esta versión (F0 fuera de 220–320 Hz, jitter por encima de 1,04 %, shimmer por encima de 3,81 %, HNR por debajo de 12 dB): ${which}.`,
+        `Parámetros fuera del intervalo de referencia pediátrico de esta versión (F0 fuera de 200–320 Hz, jitter por encima de 1,0 %, shimmer por encima de 3,0 %, HNR por debajo de 20 dB): ${which}.`,
       rVoz004: (formantsMissing: string | number) => {
         const note = 'La estimación ciclo a ciclo del shimmer comprime la cifra entre 1,3 y 1,7 veces respecto a Praat.';
         if (Number(formantsMissing) === 1) {

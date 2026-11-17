@@ -10,6 +10,7 @@ import { ExecutiveFunctionsRepository } from '@/Repositories/ExecutiveFunctionsR
 import { AshaMilestoneTestRepository } from '@/Repositories/AshaMilestoneTestRepository';
 
 import { getUiLang } from '@/I18n/uiLang';
+import { tarStatus } from '@/PDF/nlgThresholds';
 import {
   evaluateAshaFacts,
   evaluateVoiceFacts,
@@ -249,7 +250,7 @@ export async function loadEvaluationResultCards(evaluationId: number): Promise<R
   await collect('articulación', async () => {
     const articulations = await ArticulationTestRepository.getArticulationByEvaluation(evaluationId);
     articulations.forEach(a => {
-      const status: ResultStatus = a.correctPct >= 90 ? 'ok' : a.correctPct >= 70 ? 'warn' : 'alt';
+      const status: ResultStatus = tarStatus(a.correctPct);
       cards.push({
         key: `art-${a.id}`,
         title: 'Articulación · T.A.R.',

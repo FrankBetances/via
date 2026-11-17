@@ -1071,7 +1071,7 @@ export const EN: UiStrings = {
       rCross004: (freqs: string | number, phonemes: string | number) =>
         `Threshold above 25 dB HL at ${freqs}, with an error on fricatives or sibilants (${phonemes}). Reduced sensitivity at high frequencies can affect perception and production of those consonants.`,
       rCross005: (jitter: string | number, shimmer: string | number, hnr: string | number) =>
-        `A glottic acoustic measure outside the reference interval (jitter ${jitter} %, shimmer ${shimmer} %, HNR ${hnr} dB; reference in this version: jitter 1.04 %, shimmer 3.81 %, HNR 12 dB) coexists with signs of swallowing-safety concern on MECV-V. Laryngopharyngeal caution: correlate in clinic.`,
+        `A glottic acoustic measure outside the reference interval (jitter ${jitter} %, shimmer ${shimmer} %, HNR ${hnr} dB; reference in this version: jitter 1.0 %, shimmer 3.0 %, HNR 20 dB) coexists with signs of swallowing-safety concern on MECV-V. Laryngopharyngeal caution: correlate in clinic.`,
       rCross006: (ashaDetail: string | number, score: string | number) =>
         `Communicative and behavioral findings converge: ASHA screening (${ashaDetail}) and M-CHAT-R score ${score} out of 20. Priority joint referral to neurodevelopmental pediatrics and early intervention is suggested.`,
       rCross007: (sahsLevel: string | number, efDetail: string | number) =>
@@ -1125,7 +1125,7 @@ export const EN: UiStrings = {
       ) =>
         `Parameters measured in this take: F0 ${f0} Hz, cycle-to-cycle local jitter ${jitter} %, cycle-to-cycle local shimmer ${shimmer} %, HNR ${hnr} dB. Formants F1–F3: ${formants}.`,
       rVoz003: (which: string | number) =>
-        `Parameters outside the pediatric reference interval of this version (F0 outside 220–320 Hz, jitter above 1.04 %, shimmer above 3.81 %, HNR below 12 dB): ${which}.`,
+        `Parameters outside the pediatric reference interval of this version (F0 outside 200–320 Hz, jitter above 1.0 %, shimmer above 3.0 %, HNR below 20 dB): ${which}.`,
       rVoz004: (formantsMissing: string | number) => {
         const note =
           'The cycle-to-cycle shimmer estimate compresses the figure between 1.3 and 1.7 times relative to Praat.';

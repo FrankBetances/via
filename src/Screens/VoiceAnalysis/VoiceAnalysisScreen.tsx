@@ -55,6 +55,7 @@ import {
   statusShimmer,
 } from './voiceAnalysisResult';
 import { atoms } from '@/Theme/styleAtoms';
+import { VOICE_REF_LABEL } from '@/PDF/nlgThresholds';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'VoiceAnalysis'>;
 
@@ -682,12 +683,12 @@ export default function VoiceAnalysisScreen({ navigation }: Props) {
             {r ? (
               <>
                 <HStack space="sm">
-                  <ParamCard label={t.voiceAnalysis.f0PitchMedio} value={`${r.f0} Hz`} norm="200–320 Hz" status={statusF0(r.f0)} />
-                  <ParamCard label={t.voiceAnalysis.hnr} value={`${r.hnr} dB`} norm="> 20 dB" status={statusHnr(r.hnr)} />
+                  <ParamCard label={t.voiceAnalysis.f0PitchMedio} value={`${r.f0} Hz`} norm={VOICE_REF_LABEL.f0} status={statusF0(r.f0)} />
+                  <ParamCard label={t.voiceAnalysis.hnr} value={`${r.hnr} dB`} norm={VOICE_REF_LABEL.hnr} status={statusHnr(r.hnr)} />
                 </HStack>
                 <HStack space="sm">
-                  <ParamCard label={t.voiceAnalysis.jitter} value={`${r.jitter} %`} norm="< 1.0 %" status={statusJitter(r.jitter)} />
-                  <ParamCard label={t.voiceAnalysis.shimmer} value={`${r.shimmer} %`} norm="< 3.0 %" status={statusShimmer(r.shimmer)} />
+                  <ParamCard label={t.voiceAnalysis.jitter} value={`${r.jitter} %`} norm={VOICE_REF_LABEL.jitter} status={statusJitter(r.jitter)} />
+                  <ParamCard label={t.voiceAnalysis.shimmer} value={`${r.shimmer} %`} norm={VOICE_REF_LABEL.shimmer} status={statusShimmer(r.shimmer)} />
                 </HStack>
 
                 {/* Los límites de la medida constan en PANTALLA, no solo en el

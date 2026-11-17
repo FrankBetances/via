@@ -1075,7 +1075,7 @@ export const CA: UiStrings = {
       rCross004: (freqs: string | number, phonemes: string | number) =>
         `Llindar per sobre de 25 dB HL a ${freqs}, amb error en fricatives o sibilants (${phonemes}). La baixada de sensibilitat en freqüències agudes pot comprometre la percepció i la producció d’aquestes consonants.`,
       rCross005: (jitter: string | number, shimmer: string | number, hnr: string | number) =>
-        `Coexisteixen una mesura acústica glòtica fora de l’interval de referència (jitter ${jitter} %, shimmer ${shimmer} %, HNR ${hnr} dB; referència d’aquesta versió: jitter 1,04 %, shimmer 3,81 %, HNR 12 dB) i signes de compromís de seguretat deglutòria a MECV-V. Precaució laringofaríngia: correlacionar-ho a la consulta.`,
+        `Coexisteixen una mesura acústica glòtica fora de l’interval de referència (jitter ${jitter} %, shimmer ${shimmer} %, HNR ${hnr} dB; referència d’aquesta versió: jitter 1,0 %, shimmer 3,0 %, HNR 20 dB) i signes de compromís de seguretat deglutòria a MECV-V. Precaució laringofaríngia: correlacionar-ho a la consulta.`,
       rCross006: (ashaDetail: string | number, score: string | number) =>
         `Convergència de troballes comunicatives i conductuals: cribratge ASHA (${ashaDetail}) i puntuació M-CHAT-R ${score} sobre 20. Se suggereix derivació prioritària conjunta a neuropediatria i atenció precoç.`,
       rCross007: (sahsLevel: string | number, efDetail: string | number) =>
@@ -1128,7 +1128,7 @@ export const CA: UiStrings = {
       ) =>
         `Paràmetres mesurats en aquesta presa: F0 ${f0} Hz, jitter local cicle a cicle ${jitter} %, shimmer local cicle a cicle ${shimmer} %, HNR ${hnr} dB. Formants F1–F3: ${formants}.`,
       rVoz003: (which: string | number) =>
-        `Paràmetres fora de l’interval de referència pediàtric d’aquesta versió (F0 fora de 220–320 Hz, jitter per sobre de 1,04 %, shimmer per sobre de 3,81 %, HNR per sota de 12 dB): ${which}.`,
+        `Paràmetres fora de l’interval de referència pediàtric d’aquesta versió (F0 fora de 200–320 Hz, jitter per sobre de 1,0 %, shimmer per sobre de 3,0 %, HNR per sota de 20 dB): ${which}.`,
       rVoz004: (formantsMissing: string | number) => {
         const note =
           'L’estimació cicle a cicle del shimmer comprimeix la xifra entre 1,3 i 1,7 vegades respecte de Praat.';
