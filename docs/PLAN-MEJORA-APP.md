@@ -208,7 +208,7 @@ varios paquetes antes de empezar. Lo que dependa de Frank o del emulador no cuen
 | Id | Paquete | Visible | Necesita de Frank |
 | --- | --- | --- | --- |
 | P0.1 | Cerrar el incidente de Lúa: actualizar su tabla de estado, lanzar `workflow_dispatch` y comprobar APK y AAB, corregir el `CLAUDE.md` de `lua-firmware` **[S]** | no | Confirmar que la pantalla queda sin pie; el estado real del aparato para el punto 3 |
-| P0.2 | Ejecutar los diez gates sobre `main` y anotar el resultado real (este análisis no pudo) **[S]** | no | Nada |
+| P0.2 | ~~Ejecutar los diez gates sobre `main`~~ **Hecho el 17/11/2026 sobre `2e1e918` (= `main`)**: los diez en verde, con `npm ci --legacy-peer-deps` como el CI. `tsc` limpio; `jest` 94 suites, 1188 tests; `eslint` 0 errores y 0 avisos; los siete scripts y `lint:md` sin fallos. Dice que el código compila y pasa sus tests, **no** que la app funcione en dispositivo **[S]** | no | Nada |
 
 ### Fase A · Una sola verdad para los resultados
 
