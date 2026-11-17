@@ -46,9 +46,9 @@ Para el consumo de cupo de esta sesión, el cauce es el soporte de Anthropic.
 
 | Punto | Estado |
 | --- | --- |
-| 1. Pie y descripción | **Pendiente**: espera el texto de Frank |
-| 2. Build con la corrección | Pendiente del punto 1 |
-| 3. `CLAUDE.md` de `lua-firmware` | **Pendiente**: espera lo que confirme Frank |
+| 1. Pie y descripción | Hecho (`5a27b95`, `b696f7f`): sin pie y sin descripción. Frank confirma el 17/11/2026 que la pantalla se queda así |
+| 2. Build con la corrección | Lanzado el 17/11/2026 sobre `main` (`workflow_dispatch`) |
+| 3. `CLAUDE.md` de `lua-firmware` | Cerrado por decisión de Frank (17/11/2026): no se escribe nada sobre el aparato |
 | 4. Regla 0 bis y hook | Hecho (`e06829d`) |
 
 Cuando se cierre un punto, se marca aquí el mismo día, con el commit.

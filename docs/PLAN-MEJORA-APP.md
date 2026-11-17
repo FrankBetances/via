@@ -160,6 +160,21 @@ Detalle en [`informes/2026-11-17-a2-cortes-sueltos.md`](./informes/2026-11-17-a2
 y en el §7 de [`recorrido-emulador.md`](./recorrido-emulador.md). Ninguno está arreglado: todos
 cambian lo que se ve y esperan decisión de Frank.
 
+**H12 · Hallazgos del 17/11/2026, de los tests de B2 y C2/C3.** Fijados con `it.failing`
+(`// FALLO REAL:`), sin arreglar:
+
+- **SAHS sin datos sale «Sospecha baja».** `computeSahsScore` no devuelve nunca `'inc'`; sin
+  respuestas y sin exploración da `low`, y la pantalla deja llegar al informe sin la exploración
+  completa (`SahsScreeningScreen.tsx:228-229`) y pinta el banner verde. Regla 4. Solo el guardado
+  está bloqueado. Sin confirmar en el emulador.
+- **M-CHAT-R calcula en la pantalla, no en su `.ts`.** `AutismScreeningScreen.tsx:238-306` repite
+  puntuación, bandas y rótulos a mano; cambiar el corte en `autismScreeningResult.ts` no cambia la
+  pantalla. Hoy las cifras coinciden (3 y 8) con `nlgThresholds.ts` y con el instrumento.
+- **ASHA: «la última prueba» la decide el azar** si dos se guardan en el mismo segundo:
+  `AshaMilestoneTestRepository` ordena solo por `createdAt` (resolución de un segundo) y la clave
+  es un UUID.
+- **SAHS, a revisar clínicamente:** una apnea presenciada sola (total 2) queda en «Sospecha baja».
+
 ### 2.3 Lo que ya estaba abierto y sigue igual
 
 No se repite aquí: está en `CLAUDE.md` § *Pendiente* y en el README § *Lo que sigue abierto*.
@@ -372,3 +387,22 @@ Con 3 y 4 decididas, la fase B y los paquetes A3, A4 y A6 quedan desbloqueados. 
 - Que alguno de los paquetes esté empezado: no hay una sola línea de código cambiada.
 - Plazos. No se dan porque dependen de decisiones del §6 y de pruebas en emulador que no se
   pueden estimar desde aquí.
+
+## 8. Estado de ejecución (17/11/2026)
+
+| Paquete | Estado |
+| --- | --- |
+| P0.2 | Hecho: los diez gates en verde sobre `main` |
+| A1 | Escrito: 90/70 en los cinco sitios (`TAR_PCT`). **No compilado ni visto en el emulador** |
+| Voz | Escrito: el color usa las cifras de los rótulos y el rótulo sale de `VOICE_REF_LABEL`. **No compilado ni visto** |
+| A2, E1, D1 | Informes en `docs/informes/` |
+| B1, B2, B3 | Tests en verde sobre `sql.js` (no es el driver del dispositivo) |
+| C2, C3 | Tests en verde; tres fallos reales fijados (H12) |
+| D2 | Primitivas escritas y probadas; **sin cablear**, los datos siguen en claro |
+| G1 | Guion en `recorrido-emulador.md`, sin aprobar |
+| A0 | Decidido (exportar y finalizar si el profesional lo decide); falta el texto del aviso |
+| P0.1 | Pantalla sin pie (decidido); no se escribe nada sobre el aparato; build manual pendiente |
+| Resto | Sin empezar |
+
+Comprobado con los diez gates de `CLAUDE.md` §2 al final: `tsc` limpio, 108 suites y 1444 tests,
+eslint 0/0, los siete scripts y `lint:md` sin fallos.
