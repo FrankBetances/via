@@ -76,6 +76,7 @@
     "patch-package": "^8.0.1",
     "prettier": "^3.3.3",
     "react-test-renderer": "19.1.0",
+    "sql.js": "1.16.0",
     "typescript": "5.4.5"
   },
   "engines": {
@@ -84,7 +85,9 @@
   "jest": {
     "preset": "react-native",
     "moduleNameMapper": {
-      "\\.(m4a|mp3|wav|aac)$": "<rootDir>/jest/assetMock.js"
+      "\\.(m4a|mp3|wav|aac)$": "<rootDir>/jest/assetMock.js",
+      "^typeorm$": "<rootDir>/node_modules/typeorm/index.js",
+      "^uuid$": "<rootDir>/node_modules/uuid/dist/cjs/index.js"
     },
     "transformIgnorePatterns": [
       "node_modules/(?!((jest-)?react-native|@react-native(-community)?|react-native-reanimated|react-native-svg|react-redux|@reduxjs|immer)/)"

@@ -21,16 +21,22 @@ describe('prosodia · registro en el DataSource', () => {
    * en el array `entities` de `src/Database/config.ts`. Si se olvida, el
    * modelo, el repositorio y los servicios compilan y pasan el typecheck sin
    * una queja: el fallo aparece en ejecución, con la primera escritura de un
-   * paciente real. */
+   * paciente real. La lista vive en `src/Database/entities.ts` (compartida con el
+   * banco de persistencia de los tests) y `config.ts` la consume. */
   const config = read('src/Database/config.ts');
+  const entitiesFile = read('src/Database/entities.ts');
 
   it('la entidad está importada', () => {
-    expect(config).toContain("from '@/Models/ProsodyAnalysis/ProsodyAnalysis'");
+    expect(entitiesFile).toContain("from '@/Models/ProsodyAnalysis/ProsodyAnalysis'");
   });
 
   it('la entidad está en el array `entities`', () => {
-    const entities = config.slice(config.indexOf('entities: ['), config.indexOf('migrations:'));
+    const entities = entitiesFile.slice(entitiesFile.indexOf('ENTITIES = ['));
     expect(entities).toContain('ProsodyAnalysis');
+  });
+
+  it('config.ts usa esa lista', () => {
+    expect(config).toContain('entities: ENTITIES');
   });
 
   it('la migración opcional no colisiona de timestamp', () => {
