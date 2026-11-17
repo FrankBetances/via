@@ -406,3 +406,63 @@ Con 3 y 4 decididas, la fase B y los paquetes A3, A4 y A6 quedan desbloqueados. 
 
 Comprobado con los diez gates de `CLAUDE.md` §2 al final: `tsc` limpio, 108 suites y 1444 tests,
 eslint 0/0, los siete scripts y `lint:md` sin fallos.
+
+## 9. Para la siguiente sesión (cierre del 17/11/2026)
+
+**Empieza aquí.** Lo hecho está en `main`; el build manual 176 (`b3f502b`) dejó APK y AAB.
+Nada de lo hecho se ha visto en el emulador.
+
+### 9.1 Arreglos que Frank pidió el 17/11/2026 y siguen sin hacer
+
+Casi todos tocan `.tsx`: el hook de la regla 0 bis pide permiso a Frank en cada edición, así que
+**hacen falta con Frank delante**. En esta sesión dos ediciones se perdieron porque la sesión se
+reinició con la aprobación pendiente.
+
+1. **SAHS sin datos sale «Sospecha baja».** Media hecha: la parte de
+   `sahsScreeningResult.ts` está en
+   [`informes/2026-11-17-sahs-incompleto.patch`](./informes/2026-11-17-sahs-incompleto.patch)
+   (`git apply` limpio sobre `main`). Sola **rompe `tsc`**. Falta en `SahsScreeningScreen.tsx`:
+   - `handleNext`: en la vista `exam`, no avanzar sin Brodsky e IMC;
+   - `NavRow`: prop `nextDisabled`, y `nextDisabled={!examComplete}` en la fila de la exploración;
+   - `reportTheme`: rama `'inc'` en ámbar con `rec.desc`, y `[score.level, rec.desc]` de deps;
+   - `handleSave`: salir si `score.level === 'inc'`.
+   - Quitar los tres `it.failing` de `sahsScreeningResult.test.ts` (pasan a cumplirse).
+   - **Textos nuevos, sin aprobar por Frank:** «Cribado incompleto» / «Faltan respuestas del PSQ
+     o la exploración (Brodsky e IMC). Complete el cribado antes de valorar el resultado.» / «—».
+2. **M-CHAT-R calcula en la pantalla.** `AutismScreeningScreen.tsx:238-306` debe usar
+   `levelFromScore` y `rangeLabelFromScore` de `autismScreeningResult.ts`. Sin cambio visible.
+3. **ASHA: la «última» prueba la decide el azar.** `AshaMilestoneTestRepository` ordena solo por
+   `createdAt` (un segundo). Añadir un criterio de desempate estable; quitar su `it.failing`.
+   No toca `.tsx`.
+4. **«Sesión Sellada · Informe Listo» se ve antes de finalizar** (`ResultadosFinalScreen.tsx:965`).
+   Mostrarla solo con la evaluación `completed`.
+5. **El CAP no bloquea nada**: `capApproved` solo se escribe `false`. **Falta la decisión de
+   Frank**: ¿«NO APTO» bloquea las pruebas o solo avisa?
+6. **«Iniciar batería» solo abre la primera prueba.** **Falta la decisión de Frank**: ¿encadenar
+   la siguiente al terminar cada prueba y acabar en Resultados preliminares? (recomendado)
+7. **A0 · consentimiento ilegible en el PDF.** Decidido: se puede exportar y finalizar si el
+   profesional lo decide. Texto aprobado (es): «No se ha podido leer el consentimiento informado
+   de esta evaluación. Compruébelo antes de firmar el informe.» Falta escribirlo en `Report.ts` y
+   el catálogo, y traducirlo a gl, eu, ca y en (traducciones sin revisar por los firmantes).
+
+### 9.2 Paquetes del plan sin empezar
+
+- A3a/A3b · una sola lectura de resultados para pantalla y PDF (H2). A4/A5 · aviso de módulo no
+  leído. A6 · tarjeta de la evaluación clínica previa (decidido: sí; falta su texto).
+- C1 (disfagia), C4 (consentimiento), C5 (acceso del profesional).
+- D3/D4 · cifrado de `viaplus.db`: el informe D1 recomienda `op-sqlite` con SQLCipher y
+  `expo-secure-store`; **Frank decide** antes, porque no está demostrado en ningún sitio (regla 1).
+  D5 · intentos y bloqueo (política de Frank). D6 · auditoría. D7 · medir PBKDF2 en Hermes.
+- E2 · migrar al catálogo los 50 toasts y 345 textos de `.ts` (informe E1). E3/E4 · accesibilidad.
+  E5 · ruido de sala en el PDF (decisión de producto).
+- F1–F4 · estructura, `any`, README frente al plan (H7), `react-native-ble-plx` (decisión).
+- G2 · Frank recorre `recorrido-emulador.md` en el emulador. Es lo de más valor que queda.
+
+### 9.3 Notas de trabajo que costaron tiempo aquí
+
+- Las copias de trabajo de los agentes (`.claude/worktrees/`) hacen que `npx jest` y
+  `npm run lint:md` recojan sus ficheros y salgan en rojo. Bórralas al integrar.
+- Las copias nacen de `main`, no de la rama de trabajo: integra sus commits uno a uno.
+- Un script (`python`, `sed`) que escriba un `.tsx` lo bloquea el sistema: usar la herramienta
+  de edición, que pasa por el hook.
+- El build manual 175 se colgó 41 min en «Install Android NDK»: cancelar y relanzar lo resolvió.

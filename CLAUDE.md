@@ -664,6 +664,9 @@ descargado, y las imágenes de AVD no lo traen. **Eso no es una avería.**
 
 ## Pendiente (abierto: no lo des por cerrado)
 
+- **Plan de mejora en curso (17/11/2026).** La lista de lo que queda, con lo que Frank ya
+  decidió y lo que falta por decidir, está en `docs/PLAN-MEJORA-APP.md` §9. Empieza por ahí.
+
 - **Decisión de producto del 20/10/2026: dispositivo llave en mano + motor NLG
   determinista.** Está en `docs/PLAN-DE-TRABAJO.md`, con lo que es hecho, objetivo
   y dato por verificar. **De todo eso solo está ESCRITO el motor NLG (F1)**, en
