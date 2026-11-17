@@ -47,7 +47,7 @@ Para el consumo de cupo de esta sesión, el cauce es el soporte de Anthropic.
 | Punto | Estado |
 | --- | --- |
 | 1. Pie y descripción | Hecho (`5a27b95`, `b696f7f`): sin pie y sin descripción. Frank confirma el 17/11/2026 que la pantalla se queda así |
-| 2. Build con la corrección | Lanzado el 17/11/2026 sobre `main` (`workflow_dispatch`) |
+| 2. Build con la corrección | Hecho el 17/11/2026: run 176 (`workflow_dispatch` sobre `main`, `b3f502b`) en verde, con `viaplus-release-apk` (67 MB) y `viaplus-release-aab` (106 MB). El run 175 se colgó instalando el NDK y se canceló |
 | 3. `CLAUDE.md` de `lua-firmware` | Cerrado por decisión de Frank (17/11/2026): no se escribe nada sobre el aparato |
 | 4. Regla 0 bis y hook | Hecho (`e06829d`) |
 
