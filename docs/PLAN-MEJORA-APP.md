@@ -141,6 +141,25 @@ no se puede probar sin extraerla.
 (build con la corrección) y 3 (`CLAUDE.md` de `lua-firmware`) siguen abiertos. **Va antes que
 cualquier paquete de este plan** (regla 0 bis).
 
+**H11 · Hallazgos del 17/11/2026, de los informes A2 y G1.** Comprobados leyendo el código:
+
+- **«Sesión Sellada · Informe Listo» se pinta siempre** en Resultados finales
+  (`ResultadosFinalScreen.tsx:965-967`), antes de pulsar «Finalizar». Es un certificado que nadie
+  ha emitido: la misma figura que el «Sala verificada» de la regla 4.
+- **El CAP no bloquea nada.** `capApproved` solo se escribe como `false` en todo `src/`
+  (`ConsentimientoScreen.tsx:196`, `RegistroPacienteScreen.tsx:147`,
+  `ClinicalAssessmentScreen.tsx:324`, `PacientesScreen.tsx:191`). El manual dice lo contrario.
+- **«Iniciar batería» solo abre la primera prueba** (`SeleccionEjerciciosScreen.tsx:212`): no hay
+  cola que lleve a las siguientes.
+- **El T.A.R. tiene un quinto sitio con cortes**: el PDF colorea con 85/60
+  (`src/PDF/blocks/ArticulationDetail.ts:20`).
+- **Los rótulos de voz no dicen las cifras que deciden el color** (`ResultadosFinalScreen.tsx:578-581`
+  frente a `VOICE_REF`).
+
+Detalle en [`informes/2026-11-17-a2-cortes-sueltos.md`](./informes/2026-11-17-a2-cortes-sueltos.md)
+y en el §7 de [`recorrido-emulador.md`](./recorrido-emulador.md). Ninguno está arreglado: todos
+cambian lo que se ve y esperan decisión de Frank.
+
 ### 2.3 Lo que ya estaba abierto y sigue igual
 
 No se repite aquí: está en `CLAUDE.md` § *Pendiente* y en el README § *Lo que sigue abierto*.
