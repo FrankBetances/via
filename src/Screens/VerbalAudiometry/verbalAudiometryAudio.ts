@@ -255,7 +255,7 @@ export const speechLevelToGain = (levelDb: number): number =>
  *
  * `expo-speech` es el motor que usa Valeria+ (`src/valeriaVoice.ts`), que
  * locuta con voz neural en el mismo emulador donde VIA+ se quedaba mudo. */
-const optionalTts = (): any => {
+const optionalTts = (): typeof import('expo-speech') | null => {
   try {
     const mod = require('expo-speech');
     return typeof mod?.speak === 'function' ? mod : null;
@@ -472,7 +472,7 @@ export function installVerbalAudioAdapter(opts: VerbalAudioAdapterOptions = {}):
     // react-native-tts, esa lista venía vacía en dispositivos perfectamente
     // capaces. Nunca más se falla cerrado por no poder enumerar.
     try {
-      ttsVoices = ((await ttsEngine.getAvailableVoicesAsync?.()) ?? []).map((v: any) => ({
+      ttsVoices = ((await ttsEngine.getAvailableVoicesAsync?.()) ?? []).map(v => ({
         id: v.identifier,
         name: v.name,
         language: v.language,

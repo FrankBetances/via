@@ -25,9 +25,13 @@
 /*  T.A.R. cambie lo mínimo y el cambio se pueda revisar de un vistazo.         */
 /* -------------------------------------------------------------------------- */
 
+import type { ExpoSpeechRecognitionResultEvent } from 'expo-speech-recognition';
+
+type SpeechRecognitionModule = (typeof import('expo-speech-recognition'))['ExpoSpeechRecognitionModule'];
+
 /* Metro exige literales en `require(...)`; opcional para que los tests y los
  * targets sin el módulo nativo sigan compilando. */
-const optionalSpeechRecognition = (): any => {
+const optionalSpeechRecognition = (): SpeechRecognitionModule | null => {
   try {
     const mod = require('expo-speech-recognition');
     return mod?.ExpoSpeechRecognitionModule ?? null;
@@ -116,9 +120,9 @@ export function createSpeechRecognizer(): SpeechRecognizer | null {
   };
 
   const subs: Array<{ remove?: () => void }> = [];
-  const listen = (event: string, fn: (payload: any) => void) => {
+  const track = (subscribe: () => { remove?: () => void } | undefined) => {
     try {
-      const sub = mod.addListener?.(event, fn);
+      const sub = subscribe();
       if (sub) subs.push(sub);
     } catch {
       /* un evento que el módulo no expone no puede tumbar la pantalla */
@@ -126,26 +130,30 @@ export function createSpeechRecognizer(): SpeechRecognizer | null {
   };
 
   /** Extrae las transcripciones candidatas del evento nativo. */
-  const valuesOf = (ev: any): string[] => {
+  const valuesOf = (ev: ExpoSpeechRecognitionResultEvent): string[] => {
     const results = Array.isArray(ev?.results) ? ev.results : [];
-    return results.map((r: any) => String(r?.transcript ?? '')).filter(Boolean);
+    return results.map(r => String(r?.transcript ?? '')).filter(Boolean);
   };
 
-  listen('start', () => handlers.onSpeechStart?.());
-  listen('end', () => handlers.onSpeechEnd?.());
-  listen('result', (ev: any) => {
-    const value = valuesOf(ev);
-    if (!value.length) return;
-    // `isFinal` distingue la transcripción definitiva de las parciales, que es
-    // lo que la pantalla usa para ir mostrando lo que el niño va diciendo.
-    if (ev?.isFinal) handlers.onSpeechResults?.({ value });
-    else handlers.onSpeechPartialResults?.({ value });
-  });
-  listen('error', (ev: any) =>
-    handlers.onSpeechError?.({
-      code: String(ev?.error ?? 'unknown'),
-      message: String(ev?.message ?? 'fallo del reconocedor'),
+  track(() => mod.addListener?.('start', () => handlers.onSpeechStart?.()));
+  track(() => mod.addListener?.('end', () => handlers.onSpeechEnd?.()));
+  track(() =>
+    mod.addListener?.('result', ev => {
+      const value = valuesOf(ev);
+      if (!value.length) return;
+      // `isFinal` distingue la transcripción definitiva de las parciales, que es
+      // lo que la pantalla usa para ir mostrando lo que el niño va diciendo.
+      if (ev?.isFinal) handlers.onSpeechResults?.({ value });
+      else handlers.onSpeechPartialResults?.({ value });
     }),
+  );
+  track(() =>
+    mod.addListener?.('error', ev =>
+      handlers.onSpeechError?.({
+        code: String(ev?.error ?? 'unknown'),
+        message: String(ev?.message ?? 'fallo del reconocedor'),
+      }),
+    ),
   );
 
   handlers.start = async (locale: string) => {

@@ -20,6 +20,7 @@ import {
   createSpeechRecognizer,
   isRecognitionAvailable,
   supportsOnDeviceRecognition,
+  type RecognitionResultEvent,
   type SpeechRecognizer,
 } from './speechRecognitionBridge';
 import {
@@ -69,7 +70,7 @@ import {
  * librería esté instalada. Por eso cada caso usa su propio `require` literal. */
 type OptionalLibName = 'react-native-permissions';
 
-const optionalRequire = (name: OptionalLibName): any => {
+const optionalRequire = (name: OptionalLibName): any => { // any: `Platform` no lo exporta react-native-permissions; tiparlo cambiaría la lógica de requestMicPermission
   try {
     switch (name) {
       case 'react-native-permissions':
@@ -119,11 +120,12 @@ const TAIL_DRAIN_MS = 250;
  * El TTS ya no aparece aquí: el modelo hablado lo sirve `@/Voice`.
  * ─────────────────────────────────────────────────────────────────────────── */
 // import * as PermissionsLib from 'react-native-permissions';
-let RN_PERMISSIONS: any = null;
+let RN_PERMISSIONS: any = null; // any: ver optionalRequire
 // RN_PERMISSIONS = PermissionsLib;
 
 /** Resuelve una lib: usa el import literal (si está activado) o cae al require dinámico. */
-const resolveLib = (literal: any, name: OptionalLibName): any => literal ?? optionalRequire(name);
+const resolveLib = (literal: any, name: OptionalLibName): any =>
+  literal ??  optionalRequire(name);
 
 export type RecStatus = 'idle' | 'recording' | 'ready';
 
@@ -398,7 +400,7 @@ export function useArticulationAudio(lang: string = 'es'): ArticulationAudio {
        * viaja a Apple o a Google». Ahora la decisión la toma la puerta, tras
        * interrogar a la capa nativa. */
       Voice.onSpeechStart = () => setRecognizing(true);
-      const handleResults = (e: any) => {
+      const handleResults = (e: RecognitionResultEvent) => {
         const text: string = (e?.value && e.value[0]) || '';
         if (!text) return;
         setTranscript(text);
