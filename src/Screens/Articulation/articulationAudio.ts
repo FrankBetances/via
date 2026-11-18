@@ -124,8 +124,8 @@ let RN_PERMISSIONS: any = null; // any: ver optionalRequire
 // RN_PERMISSIONS = PermissionsLib;
 
 /** Resuelve una lib: usa el import literal (si está activado) o cae al require dinámico. */
-const resolveLib = (literal: any, name: OptionalLibName): any =>
-  literal ??  optionalRequire(name);
+const resolveLib = (literal: any, name: OptionalLibName): any => // any: ver optionalRequire
+  literal ?? optionalRequire(name);
 
 export type RecStatus = 'idle' | 'recording' | 'ready';
 
