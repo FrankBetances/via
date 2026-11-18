@@ -28,10 +28,14 @@
 /*  empaquetado (offline-first inviolable, P1).                                 */
 /* -------------------------------------------------------------------------- */
 
+import type { AudioPlayer, AudioStatus } from 'expo-audio';
+
+type ExpoAudioModule = typeof import('expo-audio');
+
 /* Carga perezosa del módulo nativo (mismo patrón que Valeria+): si expo-audio
  * no está en este binario, `playVoiceAsset` devuelve `false` y el llamante cae
  * a la voz del sistema en vez de romperse. */
-const optionalExpoAudio = (): any => {
+const optionalExpoAudio = (): ExpoAudioModule | null => {
   try {
     const mod = require('expo-audio');
     return typeof mod?.createAudioPlayer === 'function' ? mod : null;
@@ -40,7 +44,7 @@ const optionalExpoAudio = (): any => {
   }
 };
 
-let current: { player: any; sub: any } | null = null;
+let current: { player: AudioPlayer; sub: { remove?: () => void } | undefined } | null = null;
 /** El modo de sesión se fija una sola vez por proceso, si LOGRA fijarse. */
 let modeSet = false;
 /** Último fallo al fijar el modo de sesión, para que el diagnóstico lo nombre. */
@@ -62,7 +66,7 @@ export const voiceAudioModeStatus = (): { applied: boolean; error: string | null
 });
 
 /** Modo de mezcla de la sesión (una sola vez por proceso, como Valeria+). */
-const ensureAudioMode = (ExpoAudio: any): void => {
+const ensureAudioMode = (ExpoAudio: ExpoAudioModule): void => {
   if (modeSet) return;
   // Mezcla: la locución convive con lo que esté sonando, nunca lo pausa.
   const failed = (e: unknown): void => {
@@ -133,7 +137,7 @@ export const playVoiceAsset = async (assetModule: number | undefined): Promise<b
     const player = ExpoAudio.createAudioPlayer(assetModule);
     // La suscripción existe para SOLTAR el reproductor al terminar: sin ella
     // cada locución dejaría un objeto nativo vivo hasta el recolector.
-    const sub = player.addListener?.('playbackStatusUpdate', (status: any) => {
+    const sub = player.addListener?.('playbackStatusUpdate', (status: AudioStatus) => {
       if (!status?.didJustFinish) return;
       if (current?.player === player) cleanup();
     });
@@ -200,12 +204,12 @@ export const probeVoiceAsset = async (
     return nothing('El módulo `expo-audio` no está en este binario: el banco no puede sonar.');
   }
 
-  let player: any = null;
+  let player: AudioPlayer | null = null;
   try {
     ensureAudioMode(ExpoAudio);
     cleanup();
     player = ExpoAudio.createAudioPlayer(assetModule);
-    const sub = player.addListener?.('playbackStatusUpdate', (status: any) => {
+    const sub = player.addListener?.('playbackStatusUpdate', (status: AudioStatus) => {
       if (!status?.didJustFinish) return;
       if (current?.player === player) cleanup();
     });

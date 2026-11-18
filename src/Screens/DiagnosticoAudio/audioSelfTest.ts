@@ -78,7 +78,7 @@ export interface CheckResult {
 
 /* Metro exige literales en `require(...)`; opcional para que los targets sin
  * el módulo nativo (y los tests) sigan compilando. */
-const optionalAudioApi = (): any => {
+const optionalAudioApi = (): typeof import('react-native-audio-api') | null => {
   try {
     return require('react-native-audio-api');
   } catch (_e) {
@@ -288,7 +288,7 @@ export function checkNativeEngine(): CheckResult {
       hint: 'La compilación no enlazó el módulo nativo. Reinstale la app desde una compilación limpia (no un bundle de JS sobre un APK antiguo).',
     };
   }
-  const missing = ['AudioContext', 'AudioRecorder', 'AudioManager'].filter(k => !api[k]);
+  const missing = (['AudioContext', 'AudioRecorder', 'AudioManager'] as const).filter(k => !api[k]);
   if (missing.length) {
     return {
       id: 'engine',
@@ -732,7 +732,7 @@ export async function checkVerbalClipChain(): Promise<CheckResult> {
     resumeAudioContext();
     const bytes = Buffer.from(b64, 'base64');
     const ab = bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength);
-    const buffer: any = await ctx.decodeAudioData(ab as ArrayBuffer);
+    const buffer = await ctx.decodeAudioData(ab as ArrayBuffer);
     const duration = Number(buffer?.duration) || 0;
     if (duration <= 0) {
       return {
