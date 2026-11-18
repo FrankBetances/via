@@ -101,3 +101,20 @@ describe('respuestas incompletas', () => {
     expect(levelFromScore(scoreOf(a), true)).toBe('low');
   });
 });
+
+/* La pantalla repetía a mano el nivel y el rótulo (`score >= 8 ? … : score >= 3`).
+   Desde el 18/11/2026 llama a estas funciones; si vuelve un corte a mano, falla. */
+// Mismo patrón que `src/Lua/__tests__/luaProtocolGate.test.ts`: sin tipos de Node.
+declare function require(name: string): any;
+declare const __dirname: string;
+
+describe('la pantalla del M-CHAT-R usa la lógica de este módulo', () => {
+  it('no repite los cortes a mano', () => {
+    const fs = require('fs');
+    const path = require('path');
+    const code: string = fs.readFileSync(path.join(__dirname, '..', 'AutismScreeningScreen.tsx'), 'utf8');
+    expect(code).not.toMatch(/score\s*>=\s*\d/);
+    expect(code).toMatch(/levelFromScore\(/);
+    expect(code).toMatch(/rangeLabelFromScore\(/);
+  });
+});

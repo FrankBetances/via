@@ -6,6 +6,8 @@
 /*  reutilizable por la pantalla, el archivo de evaluaciones y el PDF.         */
 /* -------------------------------------------------------------------------- */
 
+import { MCHAT_FOLLOW, MCHAT_REFER } from '@/PDF/nlgThresholds';
+
 export type AutismRiskLevel = 'low' | 'med' | 'high';
 
 export type ScreeningAnswers = Record<number, boolean | null>;
@@ -26,10 +28,12 @@ export const isRiskAns = (id: number, v: boolean | null): boolean => {
 
 export const levelFromScore = (score: number, allAnswered: boolean): AutismRiskLevel | 'inc' => {
   if (!allAnswered) return 'inc';
-  return score >= 8 ? 'high' : score >= 3 ? 'med' : 'low';
+  return score >= MCHAT_REFER ? 'high' : score >= MCHAT_FOLLOW ? 'med' : 'low';
 };
 
 export const rangeLabelFromScore = (score: number, allAnswered: boolean): string => {
   if (!allAnswered) return 'Incompleto';
-  return score >= 8 ? 'Alto (8–20)' : score >= 3 ? 'Medio (3–7)' : 'Bajo (0–2)';
+  if (score >= MCHAT_REFER) return `Alto (${MCHAT_REFER}–20)`;
+  if (score >= MCHAT_FOLLOW) return `Medio (${MCHAT_FOLLOW}–${MCHAT_REFER - 1})`;
+  return `Bajo (0–${MCHAT_FOLLOW - 1})`;
 };

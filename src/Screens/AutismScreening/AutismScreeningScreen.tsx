@@ -41,7 +41,7 @@ import { useClassSelector } from '@/Helpers/ClassTransformer';
 import { useTelemetryTracker } from '@/Telemetry';
 import { useCreateScreeningMutation } from '@/Services/local/modules/screenings';
 import { showErrorToast, showSuccessToast } from '@/Helpers/showToast';
-import { isRiskAns } from './autismScreeningResult';
+import { isRiskAns, levelFromScore, rangeLabelFromScore } from './autismScreeningResult';
 
 import { useT } from '@/I18n';
 import { atoms } from '@/Theme/styleAtoms';
@@ -248,7 +248,9 @@ export default function AutismScreeningScreen({ navigation }: Props) {
     }
 
     const all = answered === 20;
-    const level: RiskLevel = !all ? 'inc' : score >= 8 ? 'high' : score >= 3 ? 'med' : 'low';
+    // Nivel y rótulo salen de `autismScreeningResult.ts` (cortes de nlgThresholds):
+    // la pantalla los repetía a mano y un cambio de corte no le habría llegado.
+    const level: RiskLevel = levelFromScore(score, all);
 
     return { answered, score, blockCounts, flagRows, all, level };
   }, [answers]);
@@ -303,7 +305,7 @@ export default function AutismScreeningScreen({ navigation }: Props) {
     };
   }, [level]);
 
-  const rangeText = !all ? 'Incompleto' : score >= 8 ? 'Alto (8–20)' : score >= 3 ? 'Medio (3–7)' : 'Bajo (0–2)';
+  const rangeText = rangeLabelFromScore(score, all);
 
   /* --------------------------- persistencia ----------------------------- */
   /* Guarda el resultado en la tabla `screening` (entidad Screening) ligado a  */
