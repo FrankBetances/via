@@ -418,22 +418,16 @@ Casi todos tocan `.tsx`: el hook de la regla 0 bis pide permiso a Frank en cada 
 **hacen falta con Frank delante**. En esta sesión dos ediciones se perdieron porque la sesión se
 reinició con la aprobación pendiente.
 
-1. **SAHS sin datos sale «Sospecha baja».** Media hecha: la parte de
-   `sahsScreeningResult.ts` está en
-   [`informes/2026-11-17-sahs-incompleto.patch`](./informes/2026-11-17-sahs-incompleto.patch)
-   (`git apply` limpio sobre `main`). Sola **rompe `tsc`**. Falta en `SahsScreeningScreen.tsx`:
-   - `handleNext`: en la vista `exam`, no avanzar sin Brodsky e IMC;
-   - `NavRow`: prop `nextDisabled`, y `nextDisabled={!examComplete}` en la fila de la exploración;
-   - `reportTheme`: rama `'inc'` en ámbar con `rec.desc`, y `[score.level, rec.desc]` de deps;
-   - `handleSave`: salir si `score.level === 'inc'`.
-   - Quitar los tres `it.failing` de `sahsScreeningResult.test.ts` (pasan a cumplirse).
-   - **Textos nuevos, sin aprobar por Frank:** «Cribado incompleto» / «Faltan respuestas del PSQ
-     o la exploración (Brodsky e IMC). Complete el cribado antes de valorar el resultado.» / «—».
-2. **M-CHAT-R calcula en la pantalla.** `AutismScreeningScreen.tsx:238-306` debe usar
-   `levelFromScore` y `rangeLabelFromScore` de `autismScreeningResult.ts`. Sin cambio visible.
-3. **ASHA: la «última» prueba la decide el azar.** `AshaMilestoneTestRepository` ordena solo por
-   `createdAt` (un segundo). Añadir un criterio de desempate estable; quitar su `it.failing`.
-   No toca `.tsx`.
+1. ~~SAHS sin datos sale «Sospecha baja».~~ **Hecho el 18/11/2026** (`7427c8e`): sin el PSQ
+   entero, Brodsky e IMC sale «Cribado incompleto» en ámbar y «Factores de riesgo» queda
+   deshabilitado. Textos nuevos: «Cribado incompleto» / «Faltan respuestas del PSQ o la
+   exploración (Brodsky e IMC). Complete el cribado antes de valorar el resultado.» / «—».
+   No compilado ni visto en el emulador.
+2. ~~M-CHAT-R calcula en la pantalla.~~ **Hecho el 18/11/2026** (`b535af2`): la pantalla usa
+   `levelFromScore` y `rangeLabelFromScore`, que leen `MCHAT_REFER` y `MCHAT_FOLLOW`. Sin cambio
+   visible. No compilado ni visto.
+3. ~~ASHA: la «última» prueba la decide el azar.~~ **Hecho el 18/11/2026**: desempate por
+   `rowid`. Probado sobre `sql.js`, no sobre el driver del dispositivo.
 4. **«Sesión Sellada · Informe Listo» se ve antes de finalizar** (`ResultadosFinalScreen.tsx:965`).
    Mostrarla solo con la evaluación `completed`.
 5. **El CAP no bloquea nada**: `capApproved` solo se escribe `false`. **Falta la decisión de
