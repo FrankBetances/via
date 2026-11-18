@@ -76,4 +76,35 @@ describe('banco de persistencia en memoria (sql.js)', () => {
     expect(read?.capNotes).toBe('apto');
     expect(new Date(read!.consentSignedAt as Date).toISOString()).toBe(signedAt.toISOString());
   });
+  it('markCap guarda el resultado real del CAP (antes se quedaba siempre en false)', async () => {
+    const patient = await PatientRepository.createPatient(
+      Object.assign(new Patient(), { idHash: 'hash-nhc-cap', nameEnc: 'Leo Cap', dobEnc: '2019-02-02' }),
+    );
+    const pro = await AppDataSource.getRepository(Professional).save(
+      Object.assign(new Professional(), { fullName: 'Dr. Cap', role: 'orl' }),
+    );
+    const ev = await EvaluationRepository.createEvaluation(
+      Object.assign(new Evaluation(), {
+        patient,
+        professional: pro,
+        status: 'in_progress',
+        consentSignedAt: null,
+        capApproved: false,
+        capNotes: null,
+        completedAt: null,
+      }),
+    );
+
+    await EvaluationRepository.markCap(ev.id, true, 'APTO · COMPLETO');
+    let read = await EvaluationRepository.getEvaluationById(ev.id);
+    expect(read?.capApproved).toBe(true);
+    expect(read?.capNotes).toBe('APTO · COMPLETO');
+
+    await EvaluationRepository.markCap(ev.id, false, 'NO APTO');
+    read = await EvaluationRepository.getEvaluationById(ev.id);
+    expect(read?.capApproved).toBe(false);
+    expect(read?.capNotes).toBe('NO APTO');
+    // No toca el resto de la evaluación.
+    expect(read?.status).toBe('in_progress');
+  });
 });

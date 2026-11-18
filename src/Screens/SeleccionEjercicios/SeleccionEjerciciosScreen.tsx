@@ -30,6 +30,8 @@ import { setActiveEvaluation } from '@/Store/slices/activeEvaluationSlice';
 import { logout } from '@/Store/slices/authSlice';
 import { Evaluation } from '@/Models/Evaluation/Evaluation';
 import { EvaluationRepository } from '@/Repositories/EvaluationRepository';
+import { ClinicalAssessmentRepository } from '@/Repositories/ClinicalAssessmentRepository';
+import { CAP_BLOCKED_DESC, CAP_BLOCKED_LABEL } from '@/Screens/ClinicalAssessment/clinicalAssessmentResult';
 import { PatientRepository } from '@/Repositories/PatientRepository';
 import { useClassSelector } from '@/Helpers/ClassTransformer';
 import { describePatient } from '@/Helpers/patientHeader';
@@ -116,6 +118,36 @@ export default function SeleccionEjerciciosScreen({ navigation }: Props) {
   const patient = activeEvaluation?.patient;
   const { patientLabel, initials } = describePatient(patient);
   const patientName = patient ? `${patient.name} ${patient.lastName}`.trim() : '';
+
+  // ¿El último CAP de esta evaluación salió «NO APTO»? Decisión de Frank
+  // (18/11/2026): avisar y dejar seguir. Se relee al volver al hub, porque el
+  // CAP se rehace desde aquí («Volver al CAP»).
+  const [capBlocked, setCapBlocked] = useState(false);
+  const evaluationId = activeEvaluation?.id;
+  useEffect(() => {
+    if (!evaluationId) {
+      setCapBlocked(false);
+      return;
+    }
+    let mounted = true;
+    const read = async () => {
+      try {
+        const cap = await ClinicalAssessmentRepository.getLatestByEvaluation(evaluationId);
+        if (mounted) setCapBlocked(cap?.globalResult === 'BLOCKED');
+      } catch {
+        // Sin lectura no se afirma nada: el aviso solo sale con un «NO APTO» leído.
+        if (mounted) setCapBlocked(false);
+      }
+    };
+    void read();
+    const unsubscribe = navigation.addListener('focus', () => {
+      void read();
+    });
+    return () => {
+      mounted = false;
+      unsubscribe();
+    };
+  }, [evaluationId, navigation]);
 
   useEffect(() => {
     if (!patient) {
@@ -333,6 +365,25 @@ export default function SeleccionEjerciciosScreen({ navigation }: Props) {
             />
           </View>
         </View>
+
+        {/* ==================================================================== */}
+        {/* Aviso del CAP «NO APTO»: avisa y deja seguir (Frank, 18/11/2026)     */}
+        {/* ==================================================================== */}
+        {capBlocked ? (
+          <Box pt="$2" style={{ paddingHorizontal: horizontalPadding }}>
+            <HStack space="xs" alignItems="flex-start" bg="#FEF2F2" p="$3" borderRadius={14} borderWidth={1} borderColor="#FECACA">
+              <AlertTriangle size={14} color="#DC2626" />
+              <VStack style={atoms.flex1}>
+                <Text size="2xs" weight="bold" style={atoms.flex1ColorB91C1CLineHeight15}>
+                  {CAP_BLOCKED_LABEL}
+                </Text>
+                <Text size="2xs" style={atoms.flex1ColorB91C1CLineHeight15}>
+                  {CAP_BLOCKED_DESC}
+                </Text>
+              </VStack>
+            </HStack>
+          </Box>
+        ) : null}
 
         {/* ==================================================================== */}
         {/* Aviso del motor de voz (si la locución no está disponible)           */}

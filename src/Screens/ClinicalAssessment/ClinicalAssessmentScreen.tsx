@@ -383,6 +383,9 @@ export default function ClinicalAssessmentScreen({ navigation }: Props) {
           return new Date(latest.completedAt).getTime() >= attemptTime - 60_000 ? latest : null;
         },
       );
+      // El resultado real del CAP en la evaluación: antes `capApproved` se
+      // quedaba siempre en `false`. «NO APTO» avisa en el hub, no bloquea.
+      await EvaluationRepository.markCap(evaluationId, a.global !== 'BLOCKED', a.globalLabel);
       showSuccessToast(
         'CAP generado',
         `${a.globalLabel} · ${a.activeCount}/${a.totalGames} pruebas habilitadas.`,

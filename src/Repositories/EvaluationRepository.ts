@@ -87,6 +87,17 @@ export class EvaluationRepository {
     await repository.update(evaluationId, { status: 'completed', completedAt });
   }
 
+  /**
+   * Resultado del CAP en la evaluación. Hasta el 18/11/2026 `capApproved` solo
+   * se escribía `false` al crear la evaluación y nadie lo actualizaba.
+   * Decisión de Frank: un «NO APTO» avisa y deja seguir, no bloquea.
+   */
+  static async markCap(evaluationId: number, approved: boolean, notes: string | null): Promise<void> {
+    const instance: EvaluationRepository = this.getInstance();
+    const repository: Repository<Evaluation> = await instance.getRepository();
+    await repository.update(evaluationId, { capApproved: approved, capNotes: notes });
+  }
+
   static async getEvaluationById(id: number): Promise<Evaluation | null> {
     const instance: EvaluationRepository = this.getInstance();
     try {

@@ -136,6 +136,10 @@ export interface ClinicalAnalysis {
 const allAnswered = (rec: Record<string, YesNo>, keys: string[]): boolean => keys.every(k => typeof rec[k] === 'boolean');
 
 /** Núcleo de la lógica: toma el estado y devuelve estados por dominio, gating de juegos y veredicto global. */
+/** Rótulo y frase del CAP «NO APTO». El hub los reutiliza en su aviso. */
+export const CAP_BLOCKED_LABEL = 'NO APTO';
+export const CAP_BLOCKED_DESC = 'Ninguna prueba viable hoy. Registre observaciones y reprograme la sesión.';
+
 export function analyzeClinicalAssessment(s: ClinicalAssessmentState): ClinicalAnalysis {
   // --- Otoscopia ---
   const so = earSeverity(s.od);
@@ -222,7 +226,7 @@ export function analyzeClinicalAssessment(s: ClinicalAssessmentState): ClinicalA
       desc: `${activeCount} de ${totalGames} pruebas habilitadas. Revise las restricciones antes de continuar.`,
       kind: 'warn',
     },
-    BLOCKED: { label: 'NO APTO', desc: 'Ninguna prueba viable hoy. Registre observaciones y reprograme la sesión.', kind: 'block' },
+    BLOCKED: { label: CAP_BLOCKED_LABEL, desc: CAP_BLOCKED_DESC, kind: 'block' },
   };
 
   return {
