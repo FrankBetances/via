@@ -114,20 +114,25 @@ describe('hashPassword / verifyPassword', () => {
   // `diff === 0`: devuelve TRUE para CUALQUIER contraseña. Y `hasLocalPassword` lo da
   // por «contraseña local», así que la pantalla de acceso lo VERIFICA en vez de crearla.
   // Alcanzable con una fila truncada o corrupta; no con el alta normal.
-  it.failing('FALLO REAL: un hash almacenado vacío NO verifica ninguna contraseña', () => {
+  it('un hash almacenado vacío NO verifica ninguna contraseña (arreglado el 18/11/2026)', () => {
     const [tag, it_, salt] = hashPassword('secreto1', SALT_A, FAST).split('$');
     expect(verifyPassword('cualquier cosa', `${tag}$${it_}$${salt}$`)).toBe(false);
   });
 
   // FALLO REAL (misma causa): un hash TRUNCADO es prefijo del bueno y verifica la
   // contraseña correcta; con 1 byte, además, acepta una contraseña errónea 1 de cada 256.
-  it.failing('FALLO REAL: un hash almacenado truncado (prefijo del bueno) NO verifica', () => {
+  it('un hash almacenado truncado (prefijo del bueno) NO verifica (arreglado el 18/11/2026)', () => {
     const good = hashPassword('secreto1', SALT_A, FAST);
     const truncated = good.slice(0, good.lastIndexOf('$') + 1 + 2); // 1 byte del hash
     expect(verifyPassword('secreto1', truncated)).toBe(false);
   });
 
   // FALLO REAL (misma familia): `hasLocalPassword` solo mira el prefijo de la etiqueta.
+  // ABIERTO, decisión de Frank (18/11/2026): con el hash corrupto, hoy el perfil
+  // pasa por «verificar» y, como verifyPassword ya exige el formato completo,
+  // queda BLOQUEADO. Si hasLocalPassword devolviera false, el primer acceso
+  // pediría crear contraseña y cualquiera podría quedarse con ese perfil.
+  // Lo bloqueado es lo más seguro mientras no haya recuperación de contraseña.
   it.failing('FALLO REAL: hasLocalPassword exige un formato completo, no solo la etiqueta', () => {
     expect(hasLocalPassword('pbkdf2-sha256$')).toBe(false);
     expect(hasLocalPassword('pbkdf2-sha256$10000$')).toBe(false);

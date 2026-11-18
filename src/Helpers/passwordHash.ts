@@ -181,6 +181,11 @@ export function verifyPassword(password: string, stored: string): boolean {
   if (parts.length !== 4 || parts[0] !== 'pbkdf2-sha256') return false;
   const iterations = Number(parts[1]);
   if (!Number.isInteger(iterations) || iterations < 1) return false;
+  // Formato completo o nada (18/11/2026): un hash vacío derivaba 0 bytes y
+  // aceptaba CUALQUIER contraseña, y uno recortado aceptaba la buena (y, con
+  // pocos bytes, también otras). La sal son 16 bytes y el hash 32, como los
+  // escribe `hashPassword`.
+  if (!/^[0-9a-f]{32}$/.test(parts[2]) || !/^[0-9a-f]{64}$/.test(parts[3])) return false;
   const expected = fromHex(parts[3]);
   const actual = pbkdf2Sha256(utf8(password), fromHex(parts[2]), iterations, expected.length);
   let diff = 0;
