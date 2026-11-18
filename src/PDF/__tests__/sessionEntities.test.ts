@@ -67,3 +67,15 @@ describe('Report.ts no relee los módulos por su cuenta', () => {
     expect(unexpected).toEqual([]);
   });
 });
+
+describe('Resultados finales sintetiza sobre la misma lectura que el PDF', () => {
+  it('usa loadSessionEntities para la síntesis', () => {
+    const fs = require('fs');
+    const path = require('path');
+    const code: string = fs.readFileSync(
+      path.join(__dirname, '..', '..', 'Screens', 'ResultadosFinal', 'ResultadosFinalScreen.tsx'),
+      'utf8',
+    );
+    expect(code).toMatch(/const session = await loadSessionEntities\(evaluationId\);[\s\S]{0,80}setNlgEntities\(session\)/);
+  });
+});

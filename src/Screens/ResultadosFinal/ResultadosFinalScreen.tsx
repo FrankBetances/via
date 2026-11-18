@@ -43,7 +43,6 @@ import { useTelemetryTracker, compressTelemetry } from '@/Telemetry';
 import { useLuaClosingReward, LuaEmotion, LUA_CLINICAL_BADGES } from '@/Lua';
 import { LuaCompanionWidget } from '@/Components/Mascot/LuaCompanionWidget';
 
-import { ClinicalAssessmentRepository } from '@/Repositories/ClinicalAssessmentRepository';
 import { AudiometryRepository } from '@/Repositories/AudiometryRepository';
 import { VoiceAnalysisRepository } from '@/Repositories/VoiceAnalysisRepository';
 import { DysphagiaTestRepository } from '@/Repositories/DysphagiaTestRepository';
@@ -84,6 +83,7 @@ import { useT } from '@/I18n';
 import { getUiLang } from '@/I18n/uiLang';
 import { atoms } from '@/Theme/styleAtoms';
 import { tarStatus, VOICE_REF_LABEL } from '@/PDF/nlgThresholds';
+import { loadSessionEntities } from '@/PDF/sessionEntities';
 /* -------------------------------------------------------------------------- */
 /*  ResultadosFinalScreen — Arquitectura Master-Detail en Tableta (4:3)        */
 /*  Sidebar de navegación con telemetría/QR a la izquierda y escenario         */
@@ -422,45 +422,11 @@ export default function ResultadosFinalScreen({ navigation }: Props) {
            once lecturas falla, el borrador muestra el aviso y no una lista de
            cero reglas. Las tarjetas siguen aislando su propio fallo. */
         try {
-          const [
-            clinicalAssessments,
-            screenings,
-            audiometries,
-            verbalAudiometries,
-            voiceAnalyses,
-            prosodyAnalyses,
-            executiveFunctions,
-            dysphagias,
-            sahsScreenings,
-            articulations,
-            ashaTests,
-          ] = await Promise.all([
-            ClinicalAssessmentRepository.getClinicalAssessmentsByEvaluation(evaluationId),
-            ScreeningRepository.getScreeningsByEvaluation(evaluationId),
-            AudiometryRepository.getAudiometryByEvaluation(evaluationId),
-            VerbalAudiometryRepository.getVerbalAudiometryByEvaluation(evaluationId),
-            VoiceAnalysisRepository.getVoiceAnalysisByEvaluation(evaluationId),
-            ProsodyAnalysisRepository.getProsodyAnalysisByEvaluation(evaluationId),
-            ExecutiveFunctionsRepository.getExecutiveFunctionsByEvaluation(evaluationId),
-            DysphagiaTestRepository.getDysphagiaByEvaluation(evaluationId),
-            SahsScreeningRepository.getSahsScreeningsByEvaluation(evaluationId),
-            ArticulationTestRepository.getArticulationByEvaluation(evaluationId),
-            AshaMilestoneTestRepository.getAshaTestsByEvaluation(evaluationId),
-          ]);
+          // La misma lectura que usa el PDF (A3): pantalla e informe sintetizan
+          // sobre los mismos once módulos, leídos de la misma forma.
+          const session = await loadSessionEntities(evaluationId);
           if (mounted) {
-            setNlgEntities({
-              clinicalAssessments,
-              screenings,
-              audiometries,
-              verbalAudiometries,
-              voiceAnalyses,
-              prosodyAnalyses,
-              executiveFunctions,
-              dysphagias,
-              sahsScreenings,
-              articulations,
-              ashaTests,
-            });
+            setNlgEntities(session);
             setNlgReadFailed(false);
             setNlgLoaded(true);
           }

@@ -99,7 +99,10 @@ describe('prosodia · registro del módulo en la app', () => {
   it('el bloque de informe está registrado y enganchado en la plantilla', () => {
     expect(read('src/PDF/blocks/index.ts')).toContain('ProsodyDetail');
     const report = read('src/PDF/templates/Report.ts');
-    expect(report).toContain('ProsodyAnalysisRepository');
+    // Desde el 18/11/2026 (A3) el informe no lee los repositorios por su cuenta:
+    // los recibe de la lectura única de la sesión, que sí lee el de prosodia.
+    expect(report).toContain('session.prosodyAnalyses');
+    expect(read('src/PDF/sessionEntities.ts')).toContain('ProsodyAnalysisRepository.getProsodyAnalysisByEvaluation');
     expect(report).toContain('blocks.ProsodyDetail');
   });
 
