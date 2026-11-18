@@ -53,11 +53,14 @@
 /* -------------------------------------------------------------------------- */
 
 import { AUDIO_SAMPLE_RATE } from './sharedAudioContext';
+import type { AudioRecorder as NativeAudioRecorder } from 'react-native-audio-api';
+
+type AudioApiModule = typeof import('react-native-audio-api');
 
 /* Metro exige literales en `require(...)`: un `require(variable)` no empaqueta
  * el módulo. Opcional para que los tests y los targets sin el módulo nativo
  * sigan compilando (degradación: sin motor no hay captura, pero la app va). */
-const optionalAudioApi = (): any => {
+const optionalAudioApi = (): AudioApiModule | null => {
   try {
     return require('react-native-audio-api');
   } catch (_e) {
@@ -126,7 +129,7 @@ export type RecorderHealth =
   | 'no-permission' // no se ha confirmado el permiso de micrófono
   | 'no-engine'; // el módulo nativo de captura no está en este binario
 
-let recorder: any = null;
+let recorder: NativeAudioRecorder | null = null;
 let refCount = 0;
 /** Consumidores con captura arrancada ahora mismo. */
 let activeCaptures = 0;
@@ -164,7 +167,7 @@ export function setRecorderPermissionGranted(granted: boolean): void {
 export const isRecorderPermissionGranted = (): boolean => permissionGranted;
 
 /** Motor de captura del paquete nativo, o `null` si el binario no lo trae. */
-function recorderFactory(): any | null {
+function recorderFactory(): AudioApiModule['AudioRecorder'] | null {
   if (engineMissing) return null;
   const api = optionalAudioApi();
   if (!api?.AudioRecorder) {
@@ -183,7 +186,7 @@ function recorderFactory(): any | null {
  * Se llama desde `start()`, NUNCA desde `acquireRecorder()`: abrir el stream
  * exige tener ya el permiso concedido.
  */
-function ensureRecorder(): any | null {
+function ensureRecorder(): NativeAudioRecorder | null {
   if (recorder && !suspect) return recorder;
 
   const AudioRecorderCtor = recorderFactory();

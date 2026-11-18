@@ -45,7 +45,7 @@ import type {
  * el módulo. El require es opcional para que los tests y los targets sin el
  * módulo nativo sigan compilando (degradación: sin motor no hay sonido, pero
  * la app funciona). */
-const optionalAudioApi = (): any => {
+const optionalAudioApi = (): typeof import('react-native-audio-api') | null => {
   try {
     return require('react-native-audio-api');
   } catch (_e) {
@@ -85,7 +85,7 @@ let unavailable = false;
 
 /* ------------------------------ sesión de audio --------------------------- */
 
-const audioManager = (): any => optionalAudioApi()?.AudioManager ?? null;
+const audioManager = (): (typeof import('react-native-audio-api'))['AudioManager'] | null => optionalAudioApi()?.AudioManager ?? null;
 
 /** Peticiones vivas de sesión de GRABACIÓN (sonómetro, análisis de voz…). */
 let recordingHolders = 0;
