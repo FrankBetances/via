@@ -428,22 +428,37 @@ reinició con la aprobación pendiente.
    visible. No compilado ni visto.
 3. ~~ASHA: la «última» prueba la decide el azar.~~ **Hecho el 18/11/2026**: desempate por
    `rowid`. Probado sobre `sql.js`, no sobre el driver del dispositivo.
-4. **«Sesión Sellada · Informe Listo» se ve antes de finalizar** (`ResultadosFinalScreen.tsx:965`).
-   Mostrarla solo con la evaluación `completed`.
-5. **El CAP no bloquea nada**: `capApproved` solo se escribe `false`. **Falta la decisión de
-   Frank**: ¿«NO APTO» bloquea las pruebas o solo avisa?
-6. **«Iniciar batería» solo abre la primera prueba.** **Falta la decisión de Frank**: ¿encadenar
-   la siguiente al terminar cada prueba y acabar en Resultados preliminares? (recomendado)
-7. **A0 · consentimiento ilegible en el PDF.** Decidido: se puede exportar y finalizar si el
-   profesional lo decide. Texto aprobado (es): «No se ha podido leer el consentimiento informado
-   de esta evaluación. Compruébelo antes de firmar el informe.» Falta escribirlo en `Report.ts` y
-   el catálogo, y traducirlo a gl, eu, ca y en (traducciones sin revisar por los firmantes).
+4. ~~«Sesión Sellada» antes de finalizar.~~ **Hecho el 18/11/2026** (`ebddba0`, `1dc2f40`).
+5. ~~El CAP no bloquea nada.~~ **Hecho el 18/11/2026** (`0e2bdd3`). Decisión de Frank: «NO APTO»
+   avisa y deja seguir. `capApproved` guarda el resultado real y el hub pinta el aviso con el
+   rótulo y la frase del CAP.
+6. ~~«Iniciar batería» solo abre la primera.~~ **Hecho el 18/11/2026** (`d3e1dfd`). Decisión de
+   Frank: tras cada prueba se vuelve al hub, con las hechas marcadas con un tic.
+7. ~~Consentimiento ilegible en el PDF.~~ **Hecho el 18/11/2026** (`5290f53`), en castellano como
+   el resto de la portada.
+
+Todo lo de 9.1 está escrito y con tests; **nada se ha compilado ni visto en el emulador**.
+
+### 9.1 bis Hallazgos nuevos del 18/11/2026 que esperan a Frank
+
+- **Disfagia (informe C1):** sin ningún bolo evaluado el veredicto es `safe` («Exploración
+  negativa · sin disfagia»); una SpO₂ ausente se sustituye por la basal y da caída 0. Regla 4.
+  Arreglarlo cambia lo que se ve y necesita texto: decisión de Frank. La lógica está copiada
+  en `dysphagiaResult.ts` con tres `it.failing`; la pantalla aún no la usa.
+- **Acceso:** un perfil con el hash de contraseña corrupto queda bloqueado (lo más seguro). Si
+  debe poder recrearse, hace falta un procedimiento de recuperación. Un `it.failing` lo marca.
+- **El pie falso de Lúa sigue en el catálogo** (`mascotRenderCaption`, cinco lenguas). Ninguna
+  pantalla lo usa. ¿Se borra? Es `src/I18n/`: pide permiso a Frank.
 
 ### 9.2 Paquetes del plan sin empezar
 
-- A3a/A3b · una sola lectura de resultados para pantalla y PDF (H2). A4/A5 · aviso de módulo no
+- ~~A3a/A3b~~ **Hecho el 18/11/2026**: el PDF y la síntesis de Resultados finales leen la
+  sesión con `loadSessionEntities`. Las tarjetas de detalle de la pantalla siguen con su lectura.
+  A4/A5 · aviso de módulo no
   leído. A6 · tarjeta de la evaluación clínica previa (decidido: sí; falta su texto).
-- C1 (disfagia), C4 (consentimiento), C5 (acceso del profesional).
+- ~~C1, C4, C5~~ **Hecho el 18/11/2026**: lógica copiada a `.ts` con tests y paridad con las
+  pantallas, que aún no la usan (cablearlas toca `.tsx`). C5 sacó un fallo de seguridad, ya
+  arreglado (`6d95f85`).
 - D3/D4 · cifrado de `viaplus.db`: el informe D1 recomienda `op-sqlite` con SQLCipher y
   `expo-secure-store`; **Frank decide** antes, porque no está demostrado en ningún sitio (regla 1).
   D5 · intentos y bloqueo (política de Frank). D6 · auditoría. D7 · medir PBKDF2 en Hermes.
