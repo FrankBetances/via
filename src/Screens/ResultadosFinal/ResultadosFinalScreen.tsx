@@ -963,10 +963,14 @@ export default function ResultadosFinalScreen({ navigation }: Props) {
             </View>
           </View>
 
-          <View style={styles.sealedStatusPill}>
-            <View style={styles.statusDotGreen} />
-            <Text style={styles.sealedStatusText}>{t.resultadosFinal.sesionSelladaInformeListo}</Text>
-          </View>
+          {/* Solo cuando la evaluación está cerrada: antes se pintaba siempre,
+              antes de pulsar «Finalizar», un sellado que nadie había hecho. */}
+          {activeEvaluation?.status === 'completed' ? (
+            <View style={styles.sealedStatusPill}>
+              <View style={styles.statusDotGreen} />
+              <Text style={styles.sealedStatusText}>{t.resultadosFinal.sesionSelladaInformeListo}</Text>
+            </View>
+          ) : null}
         </View>
 
         {/* ==================================================================== */}
