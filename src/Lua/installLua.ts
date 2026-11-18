@@ -19,7 +19,7 @@
 /*  botón físico, así que ni siquiera un escaneo permanente lo encontraría solo.  */
 /* -------------------------------------------------------------------------- */
 
-import { installBleLua } from './luaAdapter';
+import { installBleLua, type BleManagerLike } from './luaAdapter';
 import { installClinicalSilence } from './clinicalSilence';
 
 /**
@@ -34,7 +34,7 @@ import { installClinicalSilence } from './clinicalSilence';
  * hubiera una captura de micrófono viva, la primera cosa que recibe el aparato es
  * el silencio clínico y no una concesión.
  */
-export function installLua(manager: any): () => void {
+export function installLua(manager: BleManagerLike): () => void {
   const stopSilence = installClinicalSilence();
   const stopAdapter = installBleLua(manager);
   return () => {

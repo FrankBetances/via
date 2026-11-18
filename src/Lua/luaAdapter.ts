@@ -27,6 +27,7 @@
 /*     a la vista. Lúa no anuncia A2DP ni HFP, y en la v1 no tiene ni altavoz.    */
 /* -------------------------------------------------------------------------- */
 
+import type { BleError, Characteristic, Device, Subscription } from 'react-native-ble-plx';
 import {
   LUA_CAP,
   LUA_CHR,
@@ -221,17 +222,32 @@ export const luaUnlock = async (): Promise<boolean> => {
 /* -------------------------------------------------------------------------- */
 
 /**
+ * Superficie del `BleManager` de `react-native-ble-plx` que usan los adaptadores
+ * BLE (Lúa y pulsioxímetro). Es estructural a propósito: el `BleManager` real
+ * la cumple y los tests pasan un doble con solo estos dos métodos. Los tipos de
+ * dispositivo, característica y error son los del paquete (import de tipos).
+ */
+export interface BleManagerLike {
+  startDeviceScan(
+    uuids: string[] | null,
+    options: null,
+    listener: (error: BleError | null, device: Device | null) => void,
+  ): unknown;
+  stopDeviceScan(): unknown;
+}
+
+/**
  * Registra el adaptador BLE con `react-native-ble-plx`. Recibe el `BleManager` de
  * la app —el MISMO que usa el pulsioxímetro— y devuelve la función de limpieza.
  *
  * El aparato **solo anuncia 120 s tras pulsar su botón físico** (§6.4 del plan de
  * Valeria+), así que un escaneo que no encuentra nada es lo normal, no un fallo.
  */
-export function installBleLua(manager: any): () => void {
-  let device: any = null;
+export function installBleLua(manager: BleManagerLike): () => void {
+  let device: Device | null = null;
   let connected = false;
   let lastState: LuaState | null = null;
-  let stateSub: any = null;
+  let stateSub: Subscription | null = null;
   let cancelled = false;
 
   const stateListeners = new Set<(s: LuaState) => void>();
@@ -249,7 +265,7 @@ export function installBleLua(manager: any): () => void {
     });
   };
 
-  const connect = async (dev: any): Promise<void> => {
+  const connect = async (dev: Device): Promise<void> => {
     device = await dev.connect();
     if (cancelled) {
       try {
@@ -264,7 +280,7 @@ export function installBleLua(manager: any): () => void {
     stateSub = device.monitorCharacteristicForService(
       LUA_SERVICE_UUID,
       LUA_CHR.STATE,
-      (error: any, ch: any) => {
+      (error: BleError | null, ch: Characteristic | null) => {
         if (error || !ch?.value) return;
         const next = decodeLuaState(base64ToBytes(ch.value));
         if (!next) return;
@@ -289,7 +305,7 @@ export function installBleLua(manager: any): () => void {
   };
 
   try {
-    manager.startDeviceScan([LUA_SERVICE_UUID], null, (error: any, dev: any) => {
+    manager.startDeviceScan([LUA_SERVICE_UUID], null, (error: BleError | null, dev: Device | null) => {
       if (error || cancelled || !dev) return;
       try {
         manager.stopDeviceScan();
