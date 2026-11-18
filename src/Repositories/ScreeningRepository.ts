@@ -1,3 +1,4 @@
+import type { Evaluation } from '@/Models/Evaluation/Evaluation';
 import { Screening } from '@/Models/Screening/Screening';
 import { Repository } from 'typeorm';
 import { AppDataSource } from '@/Database/config';
@@ -80,7 +81,7 @@ export class ScreeningRepository {
     try {
       const repository: Repository<Screening> = await instance.getRepository();
       return await repository.find({
-        where: { evaluation: { id: evaluationId } as any },
+        where: { evaluation: { id: evaluationId } as Evaluation },
         relations: ['evaluation'],
         order: { completedAt: 'DESC' },
       });
@@ -97,7 +98,7 @@ export class ScreeningRepository {
     try {
       const repository: Repository<Screening> = await instance.getRepository();
       return await repository.findOne({
-        where: { evaluation: { id: evaluationId } as any, instrument },
+        where: { evaluation: { id: evaluationId } as Evaluation, instrument },
         relations: ['evaluation'],
         order: { completedAt: 'DESC' },
       });

@@ -1,3 +1,4 @@
+import type { Evaluation } from '@/Models/Evaluation/Evaluation';
 import { ArticulationTest } from '@/Models/ArticulationTest/ArticulationTest';
 import { Repository } from 'typeorm';
 import { AppDataSource } from '@/Database/config';
@@ -81,7 +82,7 @@ export class ArticulationTestRepository {
     try {
       const repository: Repository<ArticulationTest> = await instance.getRepository();
       return await repository.find({
-        where: { evaluation: { id: evaluationId } as any },
+        where: { evaluation: { id: evaluationId } as Evaluation },
         relations: ['evaluation'],
         order: { completedAt: 'DESC' },
       });

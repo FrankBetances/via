@@ -1,3 +1,4 @@
+import type { Evaluation } from '@/Models/Evaluation/Evaluation';
 import { ProsodyAnalysis } from '@/Models/ProsodyAnalysis/ProsodyAnalysis';
 import { Repository } from 'typeorm';
 import { AppDataSource } from '@/Database/config';
@@ -50,7 +51,7 @@ export class ProsodyAnalysisRepository {
   static async getProsodyAnalysisByEvaluation(evaluationId: number): Promise<ProsodyAnalysis[]> {
     const repo = await this.getInstance().getRepository();
     return repo.find({
-      where: { evaluation: { id: evaluationId } as any },
+      where: { evaluation: { id: evaluationId } as Evaluation },
       relations: ['evaluation'],
       order: { completedAt: 'DESC' },
     });

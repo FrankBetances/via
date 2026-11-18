@@ -1,3 +1,4 @@
+import type { Evaluation } from '@/Models/Evaluation/Evaluation';
 import { AudiometryTest } from '@/Models/Audiometry/AudiometryTest';
 import { Repository } from 'typeorm';
 import { AppDataSource } from '@/Database/config';
@@ -49,7 +50,7 @@ export class AudiometryRepository {
   static async getAudiometryByEvaluation(evaluationId: number): Promise<AudiometryTest[]> {
     const repo = await this.getInstance().getRepository();
     return repo.find({
-      where: { evaluation: { id: evaluationId } as any },
+      where: { evaluation: { id: evaluationId } as Evaluation },
       relations: ['evaluation'],
       order: { completedAt: 'DESC' },
     });

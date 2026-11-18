@@ -1,3 +1,4 @@
+import type { Evaluation } from '@/Models/Evaluation/Evaluation';
 import { ClinicalAssessment } from '@/Models/ClinicalAssessment/ClinicalAssessment';
 import { Repository } from 'typeorm';
 import { AppDataSource } from '@/Database/config';
@@ -81,7 +82,7 @@ export class ClinicalAssessmentRepository {
     try {
       const repository: Repository<ClinicalAssessment> = await instance.getRepository();
       return await repository.find({
-        where: { evaluation: { id: evaluationId } as any },
+        where: { evaluation: { id: evaluationId } as Evaluation },
         relations: ['evaluation'],
         order: { completedAt: 'DESC' },
       });
@@ -95,7 +96,7 @@ export class ClinicalAssessmentRepository {
     try {
       const repository: Repository<ClinicalAssessment> = await instance.getRepository();
       return await repository.findOne({
-        where: { evaluation: { id: evaluationId } as any },
+        where: { evaluation: { id: evaluationId } as Evaluation },
         relations: ['evaluation'],
         order: { completedAt: 'DESC' },
       });

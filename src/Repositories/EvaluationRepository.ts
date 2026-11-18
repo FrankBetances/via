@@ -1,3 +1,4 @@
+import type { Patient } from '@/Models/Patient/Patient';
 import { Evaluation } from '@/Models/Evaluation/Evaluation';
 import { Repository } from 'typeorm';
 import { AppDataSource } from '@/Database/config';
@@ -116,7 +117,7 @@ export class EvaluationRepository {
     try {
       const repository: Repository<Evaluation> = await instance.getRepository();
       return await repository.find({
-        where: { patient: { id: patientId } as any },
+        where: { patient: { id: patientId } as Patient },
         relations: ['patient', 'professional'],
         order: { startedAt: 'DESC' },
       });
@@ -130,7 +131,7 @@ export class EvaluationRepository {
     try {
       const repository: Repository<Evaluation> = await instance.getRepository();
       return await repository.findOne({
-        where: { patient: { id: patientId } as any, status: 'in_progress' },
+        where: { patient: { id: patientId } as Patient, status: 'in_progress' },
         relations: ['patient', 'professional'],
         order: { startedAt: 'DESC' },
       });

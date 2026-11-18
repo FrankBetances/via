@@ -1,3 +1,4 @@
+import type { Evaluation } from '@/Models/Evaluation/Evaluation';
 import { SahsScreening } from '@/Models/SahsScreening/SahsScreening';
 import { Repository } from 'typeorm';
 import { AppDataSource } from '@/Database/config';
@@ -80,7 +81,7 @@ export class SahsScreeningRepository {
     try {
       const repository: Repository<SahsScreening> = await instance.getRepository();
       return await repository.find({
-        where: { evaluation: { id: evaluationId } as any },
+        where: { evaluation: { id: evaluationId } as Evaluation },
         relations: ['evaluation'],
         order: { completedAt: 'DESC' },
       });

@@ -1,3 +1,4 @@
+import type { Evaluation } from '@/Models/Evaluation/Evaluation';
 import { ExecutiveFunctionsTest } from '@/Models/ExecutiveFunctions/ExecutiveFunctionsTest';
 import { Repository } from 'typeorm';
 import { AppDataSource } from '@/Database/config';
@@ -48,7 +49,7 @@ export class ExecutiveFunctionsRepository {
   static async getExecutiveFunctionsByEvaluation(evaluationId: number): Promise<ExecutiveFunctionsTest[]> {
     const repo = await this.getInstance().getRepository();
     return repo.find({
-      where: { evaluation: { id: evaluationId } as any },
+      where: { evaluation: { id: evaluationId } as Evaluation },
       relations: ['evaluation'],
       order: { completedAt: 'DESC' },
     });

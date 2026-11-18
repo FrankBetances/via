@@ -1,3 +1,4 @@
+import type { Evaluation } from '@/Models/Evaluation/Evaluation';
 import { InformedConsent } from '@/Models/InformedConsent/InformedConsent';
 import { Repository } from 'typeorm';
 import { AppDataSource } from '@/Database/config';
@@ -41,7 +42,7 @@ export class InformedConsentRepository {
   static async getLatestByEvaluation(evaluationId: number): Promise<InformedConsent | null> {
     const repo = await this.getInstance().getRepository();
     return repo.findOne({
-      where: { evaluation: { id: evaluationId } as any },
+      where: { evaluation: { id: evaluationId } as Evaluation },
       relations: ['evaluation'],
       order: { signedAt: 'DESC' },
     });
