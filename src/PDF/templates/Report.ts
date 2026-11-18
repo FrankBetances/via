@@ -29,6 +29,43 @@ import { NlgReportSnapshotRepository } from '@/Repositories/NlgReportSnapshotRep
 /*  y el ejemplo de uso en `code/LEEME.md`).                                 */
 /* -------------------------------------------------------------------------- */
 
+/**
+ * Aviso de la portada cuando el consentimiento no se puede leer o no existe.
+ * Texto aprobado por Frank el 17/11/2026. Antes la línea se omitía sin decir
+ * nada y el error iba solo a `console.warn`: un informe podía salir sin
+ * constancia del consentimiento y sin que nadie se enterara (regla 4). El
+ * informe se sigue pudiendo exportar y finalizar: lo decide el profesional.
+ */
+export const CONSENT_UNREADABLE_TEXT =
+  'No se ha podido leer el consentimiento informado de esta evaluación. Compruébelo antes de firmar el informe.';
+
+type ConsentRow = Awaited<ReturnType<typeof InformedConsentRepository.getLatestByEvaluation>>;
+
+/** Línea de la portada sobre el consentimiento. Nunca lanza. */
+export async function consentCoverText(
+  read: () => Promise<ConsentRow>,
+): Promise<{ text: string; missing: boolean }> {
+  let consent: ConsentRow = null;
+  try {
+    consent = await read();
+  } catch (e) {
+    console.warn('VIA+: no se pudo leer el consentimiento para el informe', e);
+  }
+  if (!consent) return { text: CONSENT_UNREADABLE_TEXT, missing: true };
+  const signed = new Date(consent.signedAt);
+  const dateStr = `${String(signed.getDate()).padStart(2, '0')}-${String(signed.getMonth() + 1).padStart(2, '0')}-${signed.getFullYear()}`;
+  const signerRole =
+    consent.signerType === 'patient'
+      ? 'el propio paciente'
+      : consent.signerType === 'guardian'
+        ? `su ${consent.signerRelation || 'tutor/a legal'}`
+        : `su ${consent.signerRelation || 'representante'} (${consent.incapacityReason || 'incapacidad para firmar'})`;
+  return {
+    text: `Consentimiento informado v${consent.consentVersion} firmado el ${dateStr} por ${consent.signerName}, ${signerRole}.`,
+    missing: false,
+  };
+}
+
 export interface GenerateReportOptions {
   evaluation: Evaluation;
   /** Texto libre del clínico. No sustituye un ClinicalFact. Solo este PDF. */
@@ -106,33 +143,15 @@ export async function generateReport({
   });
 
   // Constancia del consentimiento informado (trazabilidad legal del informe).
-  try {
-    const consent = await InformedConsentRepository.getLatestByEvaluation(evaluation.id);
-    if (consent) {
-      const signed = new Date(consent.signedAt);
-      const dateStr = `${String(signed.getDate()).padStart(2, '0')}-${String(signed.getMonth() + 1).padStart(2, '0')}-${signed.getFullYear()}`;
-      const signerRole =
-        consent.signerType === 'patient'
-          ? 'el propio paciente'
-          : consent.signerType === 'guardian'
-            ? `su ${consent.signerRelation || 'tutor/a legal'}`
-            : `su ${consent.signerRelation || 'representante'} (${consent.incapacityReason || 'incapacidad para firmar'})`;
-      cover.drawText(
-        `Consentimiento informado v${consent.consentVersion} firmado el ${dateStr} por ${consent.signerName}, ${signerRole}.`,
-        {
-          x: 48,
-          y: cover.getSize().height - 135,
-          size: 10,
-          font: fonts.regular,
-          maxWidth: cover.getSize().width - 96,
-          lineHeight: 14,
-        },
-      );
-    }
-  } catch (e) {
-    // El informe no debe fallar por no poder leer el consentimiento.
-    console.warn('VIA+: no se pudo incluir el consentimiento en el informe', e);
-  }
+  const consentLine = await consentCoverText(() => InformedConsentRepository.getLatestByEvaluation(evaluation.id));
+  cover.drawText(consentLine.text, {
+    x: 48,
+    y: cover.getSize().height - 135,
+    size: 10,
+    font: consentLine.missing ? fonts.semiBold : fonts.regular,
+    maxWidth: cover.getSize().width - 96,
+    lineHeight: 14,
+  });
 
   // Síntesis y trazabilidad, después de la portada y antes del primer módulo.
   // Las reglas se calculan en esta lectura. Notas y firma no reescriben un
