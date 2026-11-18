@@ -555,7 +555,16 @@ ya añadida).
 
 ---
 
-### 7. El banco de pruebas es el emulador de Android Studio, y Valeria+ funciona ahí
+### 7. El banco de pruebas es la TABLETA ANDROID de Frank (desde el 18/11/2026)
+
+**Frank ya no usa el emulador: lo prueba todo en su tableta Android** (orden de Frank,
+18/11/2026). Donde esta guía o los documentos digan «emulador», léase «la tableta de
+Frank»; no se le pide que abra el emulador. Las capacidades que el emulador «no traía»
+(reconocimiento en el dispositivo, micrófono real) pueden comportarse distinto en la
+tableta: no se dan por ausentes sin preguntárselo. Lo de abajo es la historia de cuando
+el banco era el emulador, y sus tres conclusiones siguen valiendo.
+
+#### Antes: el emulador de Android Studio, y Valeria+ funciona ahí
 
 Frank prueba en el **emulador de Android Studio**. En ESE MISMO emulador,
 Valeria+ locuta con voz neural y reconoce sin fallos. De ahí se siguen tres
