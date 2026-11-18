@@ -520,7 +520,7 @@ export default function DysphagiaTestScreen() {
 
       await createDysphagia(item);
       showSuccessToast('Exploración guardada', `${reportTitle} · ${analysis.recom}.`);
-      // Aterriza en los resultados, no de vuelta al hub (ver finishModule).
+      // Vuelve al hub con la prueba marcada como hecha (ver finishModule).
       finishModule(navigation);
     } catch {
       showErrorToast('Error al guardar', 'No se pudo registrar la exploración. Inténtelo de nuevo.');

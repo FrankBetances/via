@@ -1,20 +1,17 @@
 /* -------------------------------------------------------------------------- */
 /*  Cierre de un módulo de la batería.                                         */
 /*                                                                             */
-/*  Al guardar una prueba, los módulos hacían `navigation.goBack()`: el        */
-/*  profesional terminaba la exploración y aparecía otra vez en la selección   */
-/*  de pruebas, sin ver nada de lo que acababa de registrar («realizo una      */
-/*  prueba y me devuelven a la pantalla de ejercicios»). El resultado existía  */
-/*  en la base de datos, pero no había ningún camino que llevara a él.         */
+/*  Historia, porque esta decisión ya cambió dos veces:                        */
+/*  · Al principio los módulos hacían `navigation.goBack()` y el profesional   */
+/*    volvía a la selección sin ver lo registrado.                             */
+/*  · El 2/11/2026 pasó a aterrizar en Resultados preliminares.                */
+/*  · El 18/11/2026, por decisión de Frank, vuelve al HUB tras cada prueba,    */
+/*    con las pruebas ya hechas marcadas en la rejilla (`doneModules.ts`).     */
+/*    Los resultados siguen a un toque: «Ver resultados preliminares».         */
 /*                                                                             */
-/*  Ahora se aterriza en los resultados preliminares de la sesión, que ya      */
-/*  incluyen la prueba recién guardada y enlazan tanto al informe detallado    */
-/*  como de vuelta al hub.                                                      */
-/*                                                                             */
-/*  Se usa `replace` y no `navigate`: el módulo YA cerrado no debe quedarse en */
-/*  la pila (volver atrás desde los resultados llevaría a un formulario ya     */
-/*  guardado, invitando a registrarlo dos veces). Con `replace`, atrás lleva   */
-/*  al hub, que es donde se continúa la batería.                               */
+/*  Se usa `navigate` y no `push`: si el hub ya está en la pila (lo normal,    */
+/*  se llega al módulo desde él), la pila vuelve hasta él y el módulo ya       */
+/*  guardado sale de ella, así que atrás no lleva a un formulario cerrado.     */
 /* -------------------------------------------------------------------------- */
 
 /**
@@ -23,20 +20,10 @@
  * que los dobles de prueba declaren solo lo que usan.
  */
 export interface ModuleExitNavigation {
-  replace?: (name: 'ResultadosPreliminares') => void;
-  navigate: (name: 'ResultadosPreliminares') => void;
+  navigate: (name: 'SeleccionEjercicios') => void;
 }
 
-/**
- * Cierra un módulo tras guardar su resultado y lleva a la vista de resultados
- * de la sesión.
- */
+/** Cierra un módulo tras guardar su resultado y vuelve al hub de la batería. */
 export function finishModule(navigation: ModuleExitNavigation): void {
-  // `replace` solo existe en navigators de tipo pila; si no está (dobles de
-  // prueba, otro navigator), se navega y no se rompe nada.
-  if (typeof navigation.replace === 'function') {
-    navigation.replace('ResultadosPreliminares');
-    return;
-  }
-  navigation.navigate('ResultadosPreliminares');
+  navigation.navigate('SeleccionEjercicios');
 }

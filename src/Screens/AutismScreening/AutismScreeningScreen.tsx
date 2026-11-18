@@ -341,7 +341,7 @@ export default function AutismScreeningScreen({ navigation }: Props) {
       await createScreening(screening);
 
       showSuccessToast('Cribado guardado', `Cribado de autismo · ${score}/20 · ${rangeText}.`);
-      // Aterriza en los resultados, no de vuelta al hub (ver finishModule).
+      // Vuelve al hub con la prueba marcada como hecha (ver finishModule).
       finishModule(navigation);
     } catch (e) {
       showErrorToast('Error al guardar', 'No se pudo registrar el cribado. Inténtelo de nuevo.');

@@ -225,7 +225,7 @@ export default function ExecutiveFunctionsScreen({ navigation }: Props) {
 
       await createExecutiveFunctions(item);
       showSuccessToast('Exploración guardada', `Índice global ${efOverallLabel(scores)} · banda ${band}.`);
-      // Aterriza en los resultados, no de vuelta al hub (ver finishModule).
+      // Vuelve al hub con la prueba marcada como hecha (ver finishModule).
       finishModule(navigation);
     } catch {
       showErrorToast('Error al guardar', 'No se pudo registrar la exploración. Inténtelo de nuevo.');

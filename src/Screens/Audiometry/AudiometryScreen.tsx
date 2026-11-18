@@ -118,7 +118,7 @@ export default function AudiometryScreen({ navigation }: Props) {
 
       await createAudiometry(item);
       showSuccessToast('Audiometría guardada', `PTA OD ${a.ptaOD ?? '—'} · PTA OI ${a.ptaOI ?? '—'} dB HL.`);
-      // Aterriza en los resultados, no de vuelta al hub (ver finishModule).
+      // Vuelve al hub con la prueba marcada como hecha (ver finishModule).
       finishModule(navigation);
     } catch {
       showErrorToast('Error al guardar', 'No se pudo registrar la audiometría. Inténtelo de nuevo.');

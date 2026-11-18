@@ -345,7 +345,7 @@ export default function VoiceAnalysisScreen({ navigation }: Props) {
           ? `F0 ${r.f0} Hz · HNR ${r.hnr} dB · Jitter ${r.jitter}%.`
           : `Cierre manual con valoración GRBAS firmado por ${evaluatorName.trim()}.`,
       );
-      // Aterriza en los resultados, no de vuelta al hub (ver finishModule).
+      // Vuelve al hub con la prueba marcada como hecha (ver finishModule).
       finishModule(navigation);
     } catch {
       showErrorToast('Error al guardar', 'No se pudo registrar el análisis. Inténtelo de nuevo.');

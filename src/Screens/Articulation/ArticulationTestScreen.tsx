@@ -262,7 +262,7 @@ export default function ArticulationTestScreen({ navigation }: Props) {
       await createArticulation(record);
 
       showSuccessToast('Registro guardado', `T.A.R. · ${score.evaluatedCount} ítems · ${score.correctPct}% acierto.`);
-      // Aterriza en los resultados, no de vuelta al hub (ver finishModule).
+      // Vuelve al hub con la prueba marcada como hecha (ver finishModule).
       finishModule(navigation);
     } catch (e) {
       showErrorToast('Error al guardar', 'No se pudo registrar el test. Inténtelo de nuevo.');

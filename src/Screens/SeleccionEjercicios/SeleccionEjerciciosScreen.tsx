@@ -38,6 +38,7 @@ import { describePatient } from '@/Helpers/patientHeader';
 import { useTelemetryTracker } from '@/Telemetry';
 import { useVoiceEngineStatus } from '@/Voice';
 import ModuleCardItem from './ModuleCardItem';
+import { loadDoneModules } from './doneModules';
 import CategoryFilterChip from './CategoryFilterChip';
 import { MODULES } from './moduleCards';
 import { computeGridLayout } from './seleccionLayout';
@@ -123,10 +124,12 @@ export default function SeleccionEjerciciosScreen({ navigation }: Props) {
   // (18/11/2026): avisar y dejar seguir. Se relee al volver al hub, porque el
   // CAP se rehace desde aquí («Volver al CAP»).
   const [capBlocked, setCapBlocked] = useState(false);
+  const [doneIds, setDoneIds] = useState<Set<string>>(() => new Set());
   const evaluationId = activeEvaluation?.id;
   useEffect(() => {
     if (!evaluationId) {
       setCapBlocked(false);
+      setDoneIds(new Set());
       return;
     }
     let mounted = true;
@@ -138,6 +141,9 @@ export default function SeleccionEjerciciosScreen({ navigation }: Props) {
         // Sin lectura no se afirma nada: el aviso solo sale con un «NO APTO» leído.
         if (mounted) setCapBlocked(false);
       }
+      // Pruebas ya hechas en esta evaluación, para marcarlas en la rejilla.
+      const done = await loadDoneModules(evaluationId);
+      if (mounted) setDoneIds(done);
     };
     void read();
     const unsubscribe = navigation.addListener('focus', () => {
@@ -469,6 +475,7 @@ export default function SeleccionEjerciciosScreen({ navigation }: Props) {
                   onToggle={toggle}
                   cardWidth={cardWidth}
                   illustrationHeight={illustrationHeight}
+                  done={doneIds.has(m.id)}
                 />
               );
             })}

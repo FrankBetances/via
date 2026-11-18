@@ -1,30 +1,24 @@
 import { finishModule } from '../finishModule';
 
 /* -------------------------------------------------------------------------- */
-/*  Regresión de «realizo una prueba y me devuelven a la pantalla de           */
-/*  ejercicios»: al guardar, los módulos hacían `goBack()` y el resultado      */
-/*  recién registrado no se veía por ninguna parte.                            */
+/*  Decisión de Frank (18/11/2026): tras guardar cada prueba se vuelve al hub, */
+/*  con las hechas marcadas. Antes (desde el 2/11/2026) se aterrizaba en       */
+/*  Resultados preliminares.                                                   */
 /* -------------------------------------------------------------------------- */
 
 describe('finishModule', () => {
-  it('lleva a los resultados de la sesión, no de vuelta al hub', () => {
-    const navigation = { replace: jest.fn(), navigate: jest.fn(), goBack: jest.fn() };
+  it('vuelve al hub de la batería', () => {
+    const navigation = { navigate: jest.fn(), replace: jest.fn(), goBack: jest.fn() };
     finishModule(navigation);
-    expect(navigation.replace).toHaveBeenCalledWith('ResultadosPreliminares');
+    expect(navigation.navigate).toHaveBeenCalledWith('SeleccionEjercicios');
+    expect(navigation.navigate).toHaveBeenCalledTimes(1);
+  });
+
+  it('no aterriza en los resultados ni hace goBack', () => {
+    const navigation = { navigate: jest.fn(), replace: jest.fn(), goBack: jest.fn() };
+    finishModule(navigation);
+    expect(navigation.replace).not.toHaveBeenCalled();
     expect(navigation.goBack).not.toHaveBeenCalled();
-  });
-
-  it('usa replace: el formulario ya guardado no debe quedarse en la pila', () => {
-    // Si el módulo siguiera en la pila, «atrás» desde los resultados llevaría
-    // a un formulario ya registrado e invitaría a guardarlo dos veces.
-    const navigation = { replace: jest.fn(), navigate: jest.fn() };
-    finishModule(navigation);
-    expect(navigation.navigate).not.toHaveBeenCalled();
-  });
-
-  it('degrada a navigate si el navigator no ofrece replace', () => {
-    const navigation = { navigate: jest.fn() };
-    finishModule(navigation);
-    expect(navigation.navigate).toHaveBeenCalledWith('ResultadosPreliminares');
+    expect(navigation.navigate).not.toHaveBeenCalledWith('ResultadosPreliminares');
   });
 });

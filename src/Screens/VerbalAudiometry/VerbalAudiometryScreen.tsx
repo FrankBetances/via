@@ -214,7 +214,7 @@ export default function VerbalAudiometryScreen({ navigation }: Props) {
 
       await createVerbalAudiometry(item);
       showSuccessToast('Audiometría verbal guardada', `Discriminación ${v.score.discriminationPct}% a ${v.level} dB.`);
-      // Aterriza en los resultados, no de vuelta al hub (ver finishModule).
+      // Vuelve al hub con la prueba marcada como hecha (ver finishModule).
       finishModule(navigation);
     } catch {
       showErrorToast('Error al guardar', 'No se pudo registrar la audiometría verbal. Inténtelo de nuevo.');

@@ -2,7 +2,7 @@ import React, { useEffect } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { Center, HStack, VStack } from '@gluestack-ui/themed';
 import type { LucideIcon } from 'lucide-react-native';
-import { Clock, Compass, Sparkles, User } from 'lucide-react-native';
+import { CheckCircle2, Clock, Compass, Sparkles, User } from 'lucide-react-native';
 import Animated, {
   FadeInDown,
   interpolate,
@@ -53,6 +53,8 @@ interface Props {
    * la mitad de la tarjeta era hueco.
    */
   illustrationHeight?: number;
+  /** Ya hay un resultado de este módulo en la evaluación (Frank, 18/11/2026). */
+  done?: boolean;
 }
 
 const SPRING = { damping: 14, stiffness: 180 };
@@ -64,6 +66,7 @@ export default function ModuleCardItem({
   onToggle,
   cardWidth = '100%',
   illustrationHeight,
+  done = false,
 }: Props) {
   const t = useT();
   const isSelected = order !== null;
@@ -138,6 +141,9 @@ export default function ModuleCardItem({
                   </Text>
                 </Center>
               </Animated.View>
+            ) : done ? (
+              // Prueba ya hecha en esta evaluación: el hueco vacío lleva el tic.
+              <CheckCircle2 size={26} color="#059669" fill="#D1FAE5" />
             ) : (
               <Center
                 w={26}
