@@ -2,17 +2,7 @@ import { PDFDocument, StandardFonts } from 'pdf-lib';
 import { blocks } from '@/PDF/blocks';
 import { Evaluation } from '@/Models/Evaluation/Evaluation';
 import { InformedConsentRepository } from '@/Repositories/InformedConsentRepository';
-import { ClinicalAssessmentRepository } from '@/Repositories/ClinicalAssessmentRepository';
-import { ScreeningRepository } from '@/Repositories/ScreeningRepository';
-import { AudiometryRepository } from '@/Repositories/AudiometryRepository';
-import { VoiceAnalysisRepository } from '@/Repositories/VoiceAnalysisRepository';
-import { ProsodyAnalysisRepository } from '@/Repositories/ProsodyAnalysisRepository';
-import { DysphagiaTestRepository } from '@/Repositories/DysphagiaTestRepository';
-import { SahsScreeningRepository } from '@/Repositories/SahsScreeningRepository';
-import { ArticulationTestRepository } from '@/Repositories/ArticulationTestRepository';
-import { VerbalAudiometryRepository } from '@/Repositories/VerbalAudiometryRepository';
-import { ExecutiveFunctionsRepository } from '@/Repositories/ExecutiveFunctionsRepository';
-import { AshaMilestoneTestRepository } from '@/Repositories/AshaMilestoneTestRepository';
+import { loadSessionEntities } from '@/PDF/sessionEntities';
 import { getUiLang } from '@/I18n/uiLang';
 import { CATALOGUES } from '@/I18n/catalog';
 import { evaluateSessionNlg, type NlgReportSynthesis, type RuleCategory } from '@/PDF/nlgReportEngine';
@@ -157,54 +147,13 @@ export async function generateReport({
   // Las reglas se calculan en esta lectura. Notas y firma no reescriben un
   // hecho; se archivan con la síntesis en `nlg_report_snapshot` al final.
   let synthesis: NlgReportSynthesis | null = null;
-  let nlgReadFailed = false;
-  try {
-    const [
-      clinicalAssessments,
-      screenings,
-      audiometries,
-      verbalAudiometries,
-      voiceAnalyses,
-      prosodyAnalyses,
-      executiveFunctions,
-      dysphagias,
-      sahsScreenings,
-      articulations,
-      ashaTests,
-    ] = await Promise.all([
-      ClinicalAssessmentRepository.getClinicalAssessmentsByEvaluation(evaluation.id),
-      ScreeningRepository.getScreeningsByEvaluation(evaluation.id),
-      AudiometryRepository.getAudiometryByEvaluation(evaluation.id),
-      VerbalAudiometryRepository.getVerbalAudiometryByEvaluation(evaluation.id),
-      VoiceAnalysisRepository.getVoiceAnalysisByEvaluation(evaluation.id),
-      ProsodyAnalysisRepository.getProsodyAnalysisByEvaluation(evaluation.id),
-      ExecutiveFunctionsRepository.getExecutiveFunctionsByEvaluation(evaluation.id),
-      DysphagiaTestRepository.getDysphagiaByEvaluation(evaluation.id),
-      SahsScreeningRepository.getSahsScreeningsByEvaluation(evaluation.id),
-      ArticulationTestRepository.getArticulationByEvaluation(evaluation.id),
-      AshaMilestoneTestRepository.getAshaTestsByEvaluation(evaluation.id),
-    ]);
-    synthesis = evaluateSessionNlg(
-      {
-        clinicalAssessments,
-        screenings,
-        audiometries,
-        verbalAudiometries,
-        voiceAnalyses,
-        prosodyAnalyses,
-        executiveFunctions,
-        dysphagias,
-        sahsScreenings,
-        articulations,
-        ashaTests,
-      },
-      getUiLang(),
-    );
-  } catch (e) {
-    nlgReadFailed = true;
-    synthesis = null;
-    console.warn('VIA+: no se pudo leer la sesión para la síntesis NLG', e);
-  }
+  // Una sola lectura para la síntesis Y para las páginas de módulo (A3): antes
+  // eran dos lecturas que podían no coincidir. Si falla, el PDF no se genera y
+  // la pantalla muestra el error de exportación: un informe firmado no puede
+  // salir con páginas que no casan con su síntesis.
+  const session = await loadSessionEntities(evaluation.id);
+  const nlgReadFailed = false;
+  synthesis = evaluateSessionNlg(session, getUiLang());
 
   const synthesisPage = pdfDoc.addPage(PAGE_SIZE);
   await blocks.NlgClinicalSynthesis(
@@ -222,34 +171,29 @@ export async function generateReport({
   // Module-specific report sections: una página por resultado de módulo
   // asociado a la evaluación, en el orden del Contrato de Compilación §2.
 
-  const clinicalAssessments = await ClinicalAssessmentRepository.getClinicalAssessmentsByEvaluation(evaluation.id);
-  for (const assessment of clinicalAssessments) {
+  for (const assessment of session.clinicalAssessments) {
     const page = pdfDoc.addPage(PAGE_SIZE);
     await blocks.ClinicalAssessmentDetail({ assessment }, { page, fonts, t });
   }
 
-  const screenings = await ScreeningRepository.getScreeningsByEvaluation(evaluation.id);
-  for (const screening of screenings) {
+  for (const screening of session.screenings) {
     const page = pdfDoc.addPage(PAGE_SIZE);
     await blocks.ScreeningDetail({ screening }, { page, fonts, t });
   }
 
-  const audiometries = await AudiometryRepository.getAudiometryByEvaluation(evaluation.id);
-  for (const test of audiometries) {
+  for (const test of session.audiometries) {
     const page = pdfDoc.addPage(PAGE_SIZE);
     const shown = { ...test, interpretation: moduleInterpretation(synthesis, 'audiometry', test.id, test.interpretation) };
     await blocks.AudiometryDetail({ test: shown as typeof test }, { page, fonts, t });
   }
 
-  const verbalAudiometries = await VerbalAudiometryRepository.getVerbalAudiometryByEvaluation(evaluation.id);
-  for (const test of verbalAudiometries) {
+  for (const test of session.verbalAudiometries) {
     const page = pdfDoc.addPage(PAGE_SIZE);
     const shown = { ...test, interpretation: moduleInterpretation(synthesis, 'verbal', test.id, test.interpretation) };
     await blocks.VerbalAudiometryDetail({ test: shown as typeof test }, { page, fonts, t });
   }
 
-  const voiceAnalyses = await VoiceAnalysisRepository.getVoiceAnalysisByEvaluation(evaluation.id);
-  for (const analysis of voiceAnalyses) {
+  for (const analysis of session.voiceAnalyses) {
     const page = pdfDoc.addPage(PAGE_SIZE);
     const shown = { ...analysis, interpretation: moduleInterpretation(synthesis, 'voice', analysis.id, analysis.interpretation) };
     await blocks.VoiceAnalysisDetail({ analysis: shown as typeof analysis }, { page, fonts, t });
@@ -257,41 +201,35 @@ export async function generateReport({
 
   // Prosodia justo después del análisis de voz: los dos miden sobre la señal
   // acústica y se leen juntos (calidad de la fonación y dinámica del habla).
-  const prosodyAnalyses = await ProsodyAnalysisRepository.getProsodyAnalysisByEvaluation(evaluation.id);
-  for (const analysis of prosodyAnalyses) {
+  for (const analysis of session.prosodyAnalyses) {
     const page = pdfDoc.addPage(PAGE_SIZE);
     const shown = { ...analysis, interpretation: moduleInterpretation(synthesis, 'prosody', analysis.id, analysis.interpretation) };
     await blocks.ProsodyDetail({ analysis: shown as typeof analysis }, { page, fonts, t });
   }
 
-  const executiveFunctions = await ExecutiveFunctionsRepository.getExecutiveFunctionsByEvaluation(evaluation.id);
-  for (const test of executiveFunctions) {
+  for (const test of session.executiveFunctions) {
     const page = pdfDoc.addPage(PAGE_SIZE);
     const shown = { ...test, interpretation: moduleInterpretation(synthesis, 'executive', test.id, test.interpretation) };
     await blocks.ExecutiveFunctionsDetail({ test: shown as typeof test }, { page, fonts, t });
   }
 
-  const dysphagias = await DysphagiaTestRepository.getDysphagiaByEvaluation(evaluation.id);
-  for (const test of dysphagias) {
+  for (const test of session.dysphagias) {
     const page = pdfDoc.addPage(PAGE_SIZE);
     const shown = { ...test, interpretation: moduleInterpretation(synthesis, 'dysphagia', test.id, test.interpretation) };
     await blocks.DysphagiaDetail({ test: shown as typeof test }, { page, fonts, t });
   }
 
-  const sahsScreenings = await SahsScreeningRepository.getSahsScreeningsByEvaluation(evaluation.id);
-  for (const screening of sahsScreenings) {
+  for (const screening of session.sahsScreenings) {
     const page = pdfDoc.addPage(PAGE_SIZE);
     await blocks.SahsScreeningDetail({ screening }, { page, fonts, t });
   }
 
-  const articulations = await ArticulationTestRepository.getArticulationByEvaluation(evaluation.id);
-  for (const test of articulations) {
+  for (const test of session.articulations) {
     const page = pdfDoc.addPage(PAGE_SIZE);
     await blocks.ArticulationDetail({ test }, { page, fonts, t });
   }
 
-  const ashaTests = await AshaMilestoneTestRepository.getAshaTestsByEvaluation(evaluation.id);
-  for (const test of ashaTests) {
+  for (const test of session.ashaTests) {
     const page = pdfDoc.addPage(PAGE_SIZE);
     await blocks.AshaScreeningDetail({ test }, { page, fonts, t });
   }
