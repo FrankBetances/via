@@ -1,4 +1,5 @@
 import { open } from 'react-native-nitro-sqlite';
+import type { NitroSQLiteConnection, SQLiteQueryParams } from 'react-native-nitro-sqlite';
 
 /* -------------------------------------------------------------------------- */
 /*  nitroTypeOrmDriver — driver TypeORM sobre nitro-sqlite en modo SÍNCRONO.   */
@@ -25,7 +26,7 @@ interface OpenOptions {
   location?: string;
 }
 
-function sanitizeParams(params?: unknown[]): any[] | undefined {
+function sanitizeParams(params?: unknown[]): SQLiteQueryParams | undefined {
   if (!params) return params as undefined;
   return params.map(p => {
     if (p === undefined || p === null) return null;
@@ -50,7 +51,7 @@ export const nitroTypeOrmDriver = {
             failExecute(e);
           }
         },
-        transaction: (fn: unknown) => db.transaction(fn as any),
+        transaction: (fn: unknown) => db.transaction(fn as Parameters<NitroSQLiteConnection['transaction']>[0]),
         close: (okClose: () => void, failClose: SqlFail) => {
           try {
             db.close();
