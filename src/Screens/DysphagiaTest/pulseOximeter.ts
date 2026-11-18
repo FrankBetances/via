@@ -3,8 +3,13 @@
  * solo se puede escribir con máscara y desplazamiento. */
 import { useEffect, useRef, useState } from 'react';
 import { clamp } from '@/Helpers/numeric';
-import type { BleError, Characteristic, Device, Subscription } from 'react-native-ble-plx';
-import type { BleManagerLike } from '@/Lua/luaAdapter';
+import type {
+  BleCharacteristicLike,
+  BleDeviceLike,
+  BleErrorLike,
+  BleManagerLike,
+  BleSubscription,
+} from '@/Lua/luaAdapter';
 
 /* ==========================================================================
  * Pulsioxímetro — adaptador BLE + modo demo (Disfagia MECV-V)
@@ -84,8 +89,8 @@ export const PLX_CONTINUOUS_UUID = '00002a5f-0000-1000-8000-00805f9b34fb';
  */
 export function installBlePulseOximeter(manager: BleManagerLike): () => void {
   let connected = false;
-  let device: Device | null = null;
-  let monitorSub: Subscription | null = null;
+  let device: BleDeviceLike | null = null;
+  let monitorSub: BleSubscription | null = null;
   const listeners = new Set<(r: OximeterReading) => void>();
   let cancelled = false;
 
@@ -106,7 +111,7 @@ export function installBlePulseOximeter(manager: BleManagerLike): () => void {
 
   (async () => {
     try {
-      manager.startDeviceScan([PLX_SERVICE_UUID], null, async (error: BleError | null, dev: Device | null) => {
+      manager.startDeviceScan([PLX_SERVICE_UUID], null, async (error: BleErrorLike | null, dev: BleDeviceLike | null) => {
         if (error || cancelled || !dev) return;
         manager.stopDeviceScan();
         device = await dev.connect();
@@ -115,7 +120,7 @@ export function installBlePulseOximeter(manager: BleManagerLike): () => void {
         monitorSub = device.monitorCharacteristicForService(
           PLX_SERVICE_UUID,
           PLX_CONTINUOUS_UUID,
-          (err: BleError | null, ch: Characteristic | null) => {
+          (err: BleErrorLike | null, ch: BleCharacteristicLike | null) => {
             if (err || !ch?.value) return;
             const reading = decodePlxMeasurement(base64ToBytes(ch.value));
             if (reading) emit(reading);

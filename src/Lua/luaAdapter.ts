@@ -27,7 +27,6 @@
 /*     a la vista. Lúa no anuncia A2DP ni HFP, y en la v1 no tiene ni altavoz.    */
 /* -------------------------------------------------------------------------- */
 
-import type { BleError, Characteristic, Device, Subscription } from 'react-native-ble-plx';
 import {
   LUA_CAP,
   LUA_CHR,
@@ -222,16 +221,54 @@ export const luaUnlock = async (): Promise<boolean> => {
 /* -------------------------------------------------------------------------- */
 
 /**
- * Superficie del `BleManager` de `react-native-ble-plx` que usan los adaptadores
- * BLE (Lúa y pulsioxímetro). Es estructural a propósito: el `BleManager` real
- * la cumple y los tests pasan un doble con solo estos dos métodos. Los tipos de
- * dispositivo, característica y error son los del paquete (import de tipos).
+ * Superficie de `react-native-ble-plx` que usan los adaptadores BLE (Lúa y
+ * pulsioxímetro), escrita como interfaces ESTRUCTURALES y no importada del
+ * paquete a propósito: `react-native-ble-plx` está declarada pero sin uso en
+ * runtime (decisión de producto pendiente) y `nativeDependencyAudit.test.js`
+ * cuenta cualquier import de `src/`, también el de tipos, como «uso». Los
+ * nombres y firmas son los de `Device`, `Characteristic` y `BleManager` del
+ * paquete; el `BleManager` real las cumple y los tests pasan dobles.
  */
+export interface BleSubscription {
+  remove: () => void;
+}
+
+export interface BleErrorLike {
+  message?: string;
+}
+
+export interface BleCharacteristicLike {
+  /** Valor en base64, tal y como lo entrega el paquete. */
+  value?: string | null;
+}
+
+export interface BleDeviceLike {
+  connect(): Promise<BleDeviceLike>;
+  cancelConnection(): Promise<unknown>;
+  discoverAllServicesAndCharacteristics(): Promise<unknown>;
+  monitorCharacteristicForService(
+    serviceUUID: string,
+    characteristicUUID: string,
+    listener: (error: BleErrorLike | null, characteristic: BleCharacteristicLike | null) => void,
+  ): BleSubscription;
+  onDisconnected(listener: () => void): BleSubscription;
+  writeCharacteristicWithoutResponseForService(
+    serviceUUID: string,
+    characteristicUUID: string,
+    base64Value: string,
+  ): Promise<unknown>;
+  writeCharacteristicWithResponseForService(
+    serviceUUID: string,
+    characteristicUUID: string,
+    base64Value: string,
+  ): Promise<unknown>;
+}
+
 export interface BleManagerLike {
   startDeviceScan(
     uuids: string[] | null,
     options: null,
-    listener: (error: BleError | null, device: Device | null) => void,
+    listener: (error: BleErrorLike | null, device: BleDeviceLike | null) => void,
   ): unknown;
   stopDeviceScan(): unknown;
 }
@@ -244,10 +281,10 @@ export interface BleManagerLike {
  * Valeria+), así que un escaneo que no encuentra nada es lo normal, no un fallo.
  */
 export function installBleLua(manager: BleManagerLike): () => void {
-  let device: Device | null = null;
+  let device: BleDeviceLike | null = null;
   let connected = false;
   let lastState: LuaState | null = null;
-  let stateSub: Subscription | null = null;
+  let stateSub: BleSubscription | null = null;
   let cancelled = false;
 
   const stateListeners = new Set<(s: LuaState) => void>();
@@ -265,7 +302,7 @@ export function installBleLua(manager: BleManagerLike): () => void {
     });
   };
 
-  const connect = async (dev: Device): Promise<void> => {
+  const connect = async (dev: BleDeviceLike): Promise<void> => {
     device = await dev.connect();
     if (cancelled) {
       try {
@@ -280,7 +317,7 @@ export function installBleLua(manager: BleManagerLike): () => void {
     stateSub = device.monitorCharacteristicForService(
       LUA_SERVICE_UUID,
       LUA_CHR.STATE,
-      (error: BleError | null, ch: Characteristic | null) => {
+      (error: BleErrorLike | null, ch: BleCharacteristicLike | null) => {
         if (error || !ch?.value) return;
         const next = decodeLuaState(base64ToBytes(ch.value));
         if (!next) return;
@@ -305,7 +342,7 @@ export function installBleLua(manager: BleManagerLike): () => void {
   };
 
   try {
-    manager.startDeviceScan([LUA_SERVICE_UUID], null, (error: BleError | null, dev: Device | null) => {
+    manager.startDeviceScan([LUA_SERVICE_UUID], null, (error: BleErrorLike | null, dev: BleDeviceLike | null) => {
       if (error || cancelled || !dev) return;
       try {
         manager.stopDeviceScan();
