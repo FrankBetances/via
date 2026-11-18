@@ -161,13 +161,11 @@ describe('AshaMilestoneTestRepository', () => {
     expect(await AshaMilestoneTestRepository.getLatestAshaTestByEvaluation(none.id)).toBeNull();
   });
 
-  // FALLO REAL: getLatestAshaTestByEvaluation (y getAshaTestsByEvaluation) ordenan solo por createdAt,
-  // que SQLite rellena con datetime('now'), resolución de UN segundo, y la PK es un UUID sin orden
-  // temporal. Dos pruebas guardadas en el mismo segundo empatan y la «última» sale indeterminada
-  // (el desempate lo decide el UUID, es decir, el azar). Reproducido 1 de cada 5 sin forzar el empate. Sin corregir en el
-  // repositorio por orden de B2; al arreglarlo, quitar el .failing.
-  it.failing('dos pruebas ASHA guardadas en el mismo segundo: la «última» es siempre la guardada después', async () => {
-    // El desempate lo decide el UUID (aleatorio): una sola pareja acierta el 50 % de las veces,
+  // Hasta el 18/11/2026 el repositorio ordenaba solo por createdAt (resolución de UN segundo) y la PK
+  // es un UUID sin orden temporal: dos pruebas guardadas en el mismo segundo empataban y la «última»
+  // la decidía el azar. Ahora desempata por rowid (orden de inserción). Este test fallaba antes.
+  it('dos pruebas ASHA guardadas en el mismo segundo: la «última» es siempre la guardada después', async () => {
+    // Sin el desempate, una sola pareja acierta el 50 % de las veces,
     // así que se repite 16 veces para que acertar todas por azar sea 1 entre 65 536.
     for (let i = 0; i < 16; i += 1) {
       const ev = await makeEvaluation(`ashaTie${i}`);

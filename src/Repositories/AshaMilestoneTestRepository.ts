@@ -43,26 +43,32 @@ export class AshaMilestoneTestRepository {
     return await repository.save(test);
   }
 
+  /**
+   * Orden: la más reciente primero. `createdAt` lo rellena SQLite con
+   * `datetime('now')`, que tiene resolución de UN segundo, y la clave es un
+   * UUID sin orden temporal: dos pruebas guardadas en el mismo segundo
+   * empataban y la «última» la decidía el UUID, es decir, el azar (hallado por
+   * los tests de B2, 17/11/2026). El desempate es `rowid`, el orden de
+   * inserción de SQLite: la guardada después gana siempre.
+   */
+  private static byEvaluation(repository: Repository<AshaMilestoneTest>, evaluationId: number) {
+    return repository
+      .createQueryBuilder('asha')
+      .leftJoinAndSelect('asha.evaluation', 'evaluation')
+      .where('evaluation.id = :evaluationId', { evaluationId })
+      .orderBy('asha.createdAt', 'DESC')
+      .addOrderBy('asha.rowid', 'DESC');
+  }
+
   static async getAshaTestsByEvaluation(evaluationId: number): Promise<AshaMilestoneTest[]> {
     const instance = this.getInstance();
     const repository = await instance.getRepository();
-    return await repository.find({
-      // `as any` como en el resto de repositorios: TypeORM admite filtrar por
-      // la relación con un objeto parcial, pero su tipo `FindOptionsWhere`
-      // exige la entidad entera.
-      where: { evaluation: { id: evaluationId } as any },
-      relations: ['evaluation'],
-      order: { createdAt: 'DESC' },
-    });
+    return await this.byEvaluation(repository, evaluationId).getMany();
   }
 
   static async getLatestAshaTestByEvaluation(evaluationId: number): Promise<AshaMilestoneTest | null> {
     const instance = this.getInstance();
     const repository = await instance.getRepository();
-    return await repository.findOne({
-      where: { evaluation: { id: evaluationId } as any },
-      relations: ['evaluation'],
-      order: { createdAt: 'DESC' },
-    });
+    return await this.byEvaluation(repository, evaluationId).getOne();
   }
 }
