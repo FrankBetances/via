@@ -154,7 +154,8 @@ export interface SahsScore {
   breakdown: SahsScoreBreakdown;
   total: number;
   totalMax: number;
-  level: SahsSuspicion;
+  /** 'inc' mientras falte alguna respuesta del PSQ, el Brodsky o el IMC. */
+  level: SahsSuspicionOrInc;
 }
 
 /** ¿Está la respuesta marcada como de riesgo? En el PSQ, «Sí» = síntoma presente. */
@@ -184,9 +185,14 @@ export const computeSahsScore = (input: SahsInput): SahsScore => {
   const riskPts = Math.min(riskFactors.length, 3);
   const total = psqPts + apneaPts + brodskyPts + imcPts + riskPts;
 
-  let level: SahsSuspicion = total >= 6 ? 'high' : total >= 3 ? 'med' : 'low';
+  let banded: SahsSuspicion = total >= 6 ? 'high' : total >= 3 ? 'med' : 'low';
   // Override clínico: PSQ positivo + apnea presenciada eleva siempre a alta.
-  if (psqPositive && redFlag && level === 'med') level = 'high';
+  if (psqPositive && redFlag && banded === 'med') banded = 'high';
+  // Regla 4 de CLAUDE.md: sin el PSQ entero y sin la exploración, un Brodsky o
+  // un IMC sin registrar puntuaban 0 igual que uno normal y el cribado salía
+  // «Sospecha baja» con el banner verde. Sin datos completos no hay banda.
+  const complete = answeredCount === PSQ_TOTAL && brodsky != null && imc != null;
+  const level: SahsSuspicionOrInc = complete ? banded : 'inc';
 
   return {
     yesCount,
@@ -220,8 +226,14 @@ export interface SahsRecommendation {
   referral: string; // destino / vía sugerida
 }
 
-export const recommendationFor = (level: SahsSuspicion): SahsRecommendation => {
+export const recommendationFor = (level: SahsSuspicionOrInc): SahsRecommendation => {
   switch (level) {
+    case 'inc':
+      return {
+        action: 'Cribado incompleto',
+        desc: 'Faltan respuestas del PSQ o la exploración (Brodsky e IMC). Complete el cribado antes de valorar el resultado.',
+        referral: '—',
+      };
     case 'high':
       return {
         action: 'Derivar a Unidad de Sueño',
@@ -234,7 +246,7 @@ export const recommendationFor = (level: SahsSuspicion): SahsRecommendation => {
         desc: 'Sospecha intermedia. Considerar prueba terapéutica (corticoide nasal / montelukast) y/o pulsioximetría nocturna. Repetir cribado en 1–3 meses.',
         referral: 'PR · Pulsioximetría',
       };
-    default:
+    case 'low':
       return {
         action: 'Control evolutivo',
         desc: 'Hallazgos compatibles con ronquido primario. Reevaluar en las revisiones de salud. Volver a cribar si aparecen apneas presenciadas o empeoramiento.',

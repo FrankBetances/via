@@ -14,10 +14,9 @@ import {
 
 /* -------------------------------------------------------------------------- */
 /*  Fija el comportamiento ACTUAL del cálculo del cribado de SAHS infantil.   */
-/*  Los tests `it.failing` marcan un FALLO REAL (regla 4 de CLAUDE.md: un     */
-/*  estado no comprobado no se presume favorable): hoy el código lo incumple  */
-/*  y el test pasa SOLO mientras siga incumpliéndolo; al arreglarlo, Jest     */
-/*  avisará de que hay que quitar el `.failing`.                              */
+/*  Los tres fallos de la regla 4 que marcaba con `it.failing` se arreglaron  */
+/*  el 18/11/2026 (sin datos completos el nivel es 'inc', no 'low') y ahora   */
+/*  son tests normales.                                                       */
 /* -------------------------------------------------------------------------- */
 
 /** Respuestas con «Sí» en los primeros `n` ítems que NO son 6 ni 7 (alarma), el resto «No». */
@@ -233,27 +232,23 @@ describe('respuestas incompletas o ausentes', () => {
     expect(s.yesCount).toBe(1);
   });
 
-  it('hoy, sin datos: total 0 y nivel low (documenta el estado actual)', () => {
+  it('sin datos: total 0 y nivel «inc», nunca la banda favorable', () => {
     const s = computeSahsScore({ psq: {}, brodsky: null, imc: null, riskFactors: [] });
     expect(s.total).toBe(0);
-    expect(s.level).toBe('low');
+    expect(s.level).toBe('inc');
     expect(s.answeredCount).toBe(0);
   });
 
-  // FALLO REAL: regla 4 de CLAUDE.md. `computeSahsScore` no tiene estado «incompleto»:
-  // sin una sola respuesta devuelve level 'low' («Sospecha baja», banner VERDE en
-  // SahsScreeningScreen.tsx:270-280 y 739-765). `SahsSuspicionOrInc` y suspicionLabel('inc')
-  // existen, pero la función nunca devuelve 'inc'.
-  it.failing('FALLO REAL: sin ningún dato el nivel no puede ser el favorable «low»', () => {
-    // FALLO REAL: sin datos cae en la banda favorable
+  // Regla 4 de CLAUDE.md. Hasta el 18/11/2026 `computeSahsScore` no tenía estado
+  // «incompleto»: sin una sola respuesta devolvía 'low' («Sospecha baja», banner VERDE).
+  it('sin ningún dato el nivel no puede ser el favorable «low»', () => {
     const s = computeSahsScore({ psq: {}, brodsky: null, imc: null, riskFactors: [] });
     expect(s.level).not.toBe('low');
   });
 
-  // FALLO REAL: con la exploración sin registrar (Brodsky e IMC null) también da 'low';
-  // la pantalla deja llegar al informe sin exigirla (SahsScreeningScreen.tsx:228-229).
-  it.failing('FALLO REAL: PSQ casi vacío y sin exploración no da «low»', () => {
-    // FALLO REAL: Brodsky/IMC null puntúan 0 igual que un resultado normal
+  // Con la exploración sin registrar (Brodsky e IMC null) daba 'low', y la pantalla
+  // dejaba llegar al informe sin exigirla. Arreglado el 18/11/2026.
+  it('PSQ casi vacío y sin exploración no da «low»', () => {
     const s = computeSahsScore({ psq: { 1: false }, brodsky: null, imc: null, riskFactors: [] });
     expect(s.level).not.toBe('low');
   });
@@ -273,10 +268,9 @@ describe('etiquetas y recomendación', () => {
     expect(recommendationFor('low')).toMatchObject({ action: 'Control evolutivo', referral: 'Revisión de salud' });
   });
 
-  // FALLO REAL (latente, solo alcanzable saltándose el tipo): cualquier valor que no sea
-  // high/med -- incluido 'inc' -- cae en «Control evolutivo», la rama favorable.
-  it.failing('FALLO REAL (latente): un nivel incompleto no recibe «Control evolutivo»', () => {
-    // FALLO REAL: el `default` del switch es la rama favorable
+  // Hasta el 18/11/2026 cualquier valor que no fuera high/med -- incluido 'inc' --
+  // caía en «Control evolutivo», la rama favorable.
+  it('un nivel incompleto no recibe «Control evolutivo»', () => {
     const rec = recommendationFor('inc' as unknown as 'low');
     expect(rec.action).not.toBe('Control evolutivo');
   });

@@ -225,7 +225,11 @@ export default function SahsScreeningScreen({ navigation }: Props) {
       goTo(qIndex + 1, 1);
       return;
     }
-    if (view === 'exam') return setView('risk');
+    if (view === 'exam') {
+      // Sin Brodsky e IMC no se avanza: el botón va deshabilitado (ver NavRow).
+      if (brodsky == null || imc == null) return;
+      return setView('risk');
+    }
     if (view === 'risk') return setView('report');
   };
 
@@ -272,16 +276,19 @@ export default function SahsScreeningScreen({ navigation }: Props) {
     if (score.level === 'high') {
       return { bannerBg: '$error50', bannerBorder: '$error300', bannerFg: '$error700', icon: AlertCircle, iconColor: '$error500', desc: 'Alta probabilidad de SAHS. Cumple criterios de derivación a Unidad de Sueño.' };
     }
+    if (score.level === 'inc') {
+      return { bannerBg: '$warning50', bannerBorder: '$warning300', bannerFg: '$warning800', icon: AlertTriangle, iconColor: '$warning700', desc: rec.desc };
+    }
     if (score.level === 'med') {
       return { bannerBg: '$warning50', bannerBorder: '$warning300', bannerFg: '$warning800', icon: AlertTriangle, iconColor: '$warning700', desc: 'Hallazgos intermedios. Requiere seguimiento estrecho y reevaluación.' };
     }
     return { bannerBg: '$success50', bannerBorder: '$success300', bannerFg: '$success700', icon: CheckCircle2, iconColor: '$success600', desc: 'Hallazgos compatibles con ronquido primario. Sin criterios de derivación preferente.' };
-  }, [score.level]);
+  }, [score.level, rec.desc]);
 
   /* --------------------------- persistencia ----------------------------- */
 
   const handleSave = async () => {
-    if (!canSave || isSaving) return;
+    if (!canSave || isSaving || score.level === 'inc') return;
     if (!evaluatorName.trim() || !evaluatorLicense.trim()) return;
 
     if (!activeEvaluation) {
@@ -678,7 +685,13 @@ export default function SahsScreeningScreen({ navigation }: Props) {
                 </HStack>
               ) : null}
 
-              <NavRow prevLabel="PSQ" nextLabel="Factores de riesgo" onPrev={handlePrev} onNext={handleNext} />
+              <NavRow
+                prevLabel="PSQ"
+                nextLabel="Factores de riesgo"
+                onPrev={handlePrev}
+                onNext={handleNext}
+                nextDisabled={!examComplete}
+              />
             </VStack>
           )}
 
@@ -903,11 +916,13 @@ const NavRow = ({
   nextLabel,
   onPrev,
   onNext,
+  nextDisabled = false,
 }: {
   prevLabel: string;
   nextLabel: string;
   onPrev: () => void;
   onNext: () => void;
+  nextDisabled?: boolean;
 }) => (
   <HStack space="md" justifyContent="space-between">
     <Button action="secondary" variant="outline" rounded="$full" onPress={onPrev}>
@@ -918,7 +933,7 @@ const NavRow = ({
         </Text>
       </HStack>
     </Button>
-    <Button action="primary" variant="solid" rounded="$full" style={atoms.flex1} onPress={onNext}>
+    <Button action="primary" variant="solid" rounded="$full" style={atoms.flex1} isDisabled={nextDisabled} onPress={onNext}>
       <HStack space="sm" alignItems="center">
         <Text size="sm" weight="bold" color="$white">
           {nextLabel}
