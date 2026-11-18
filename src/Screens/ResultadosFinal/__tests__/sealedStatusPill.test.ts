@@ -6,6 +6,8 @@
 /*  misma figura que el «Sala verificada» del sonómetro).                     */
 /* -------------------------------------------------------------------------- */
 
+export {};
+
 // Mismo patrón que `src/Lua/__tests__/luaProtocolGate.test.ts`: sin tipos de Node.
 declare function require(name: string): any;
 declare const __dirname: string;
