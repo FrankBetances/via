@@ -439,16 +439,17 @@ reinició con la aprobación pendiente.
 
 Todo lo de 9.1 está escrito y con tests; **nada se ha compilado ni visto en el emulador**.
 
-### 9.1 bis Hallazgos nuevos del 18/11/2026 que esperan a Frank
+### 9.1 bis Hallazgos del 18/11/2026, arreglados el 19/11/2026 («arréglalo todo», Frank)
 
-- **Disfagia (informe C1):** sin ningún bolo evaluado el veredicto es `safe` («Exploración
-  negativa · sin disfagia»); una SpO₂ ausente se sustituye por la basal y da caída 0. Regla 4.
-  Arreglarlo cambia lo que se ve y necesita texto: decisión de Frank. La lógica está copiada
-  en `dysphagiaResult.ts` con tres `it.failing`; la pantalla aún no la usa.
-- **Acceso:** un perfil con el hash de contraseña corrupto queda bloqueado (lo más seguro). Si
-  debe poder recrearse, hace falta un procedimiento de recuperación. Un `it.failing` lo marca.
-- **El pie falso de Lúa sigue en el catálogo** (`mascotRenderCaption`, cinco lenguas). Ninguna
-  pantalla lo usa. ¿Se borra? Es `src/I18n/`: pide permiso a Frank.
+- ~~Disfagia~~ (`4f23a23`): la SpO₂ ya no se rellena con la basal, «Siguiente» exige una SpO₂
+  medida, y sin bolos evaluados el informe dice «Exploración incompleta · ningún bolo evaluado»
+  en ámbar y no se puede guardar.
+- ~~Perfil con el hash de contraseña dañado~~ (`d966f8a`): sigue bloqueado y ahora lo dice. Falta
+  un procedimiento de recuperación (decisión de Frank).
+- ~~Pie falso de Lúa en el catálogo~~ (`f8a4e29`): borrado de las cinco lenguas, con test.
+- ~~Botones de prosodia con texto suelto~~ (`0774814`): arreglado en el `Button` común.
+
+Nada de esto se ha compilado ni visto en la tableta de Frank.
 
 ### 9.2 Paquetes del plan sin empezar
 
