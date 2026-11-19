@@ -89,7 +89,6 @@ export const EU: UiStrings = {
     navBackA11y: 'Kredituetara itzuli',
     navTitle: 'Lúa · Maskota eta Periferikoa',
     emblemHeading: 'LAGUNTZAILE PEDIATRIKOA',
-    mascotRenderCaption: 'Lúa V5aren diseinu-irudikapena: oraindik ez dago fabrikatuta eta kuboaren argiak ez du programarik oraindik.',
     mascotImageA11y: 'Lúa V5aren diseinu-irudikapena: buru kubiko turkesa belarriekin eta laranjaz, urdinez eta berdez argitzen den kubo-gorputza.',
     emblemFootnote: 'Gailu osagarria · garatzen',
     cardTitle: 'GAILU FISIKO AUKERAKOA',

@@ -85,7 +85,6 @@ export const EN: UiStrings = {
     navBackA11y: 'Back to credits',
     navTitle: 'Lúa · Mascot and Peripheral',
     emblemHeading: 'PEDIATRIC COMPANION',
-    mascotRenderCaption: 'Design rendering of Lúa V5: not manufactured yet, and the cube light has no program yet.',
     mascotImageA11y: 'Design rendering of Lúa V5: a turquoise cube head with ears and a cube body that lights up orange, blue and green.',
     emblemFootnote: 'Companion device · in development',
     cardTitle: 'OPTIONAL PHYSICAL DEVICE',

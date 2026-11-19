@@ -85,7 +85,6 @@ export const GL: UiStrings = {
     navBackA11y: 'Volver aos créditos',
     navTitle: 'Lúa · Mascota e Periférico',
     emblemHeading: 'ACOMPAÑANTE PEDIÁTRICO',
-    mascotRenderCaption: 'Representación de deseño de Lúa V5: aínda non está fabricada e a luz do cubo aínda non ten programa.',
     mascotImageA11y: 'Representación de deseño de Lúa V5: cabeza cúbica turquesa con orellas e un corpo en cubo que se ilumina en laranxa, azul e verde.',
     emblemFootnote: 'Dispositivo complementario · en desenvolvemento',
     cardTitle: 'DISPOSITIVO FÍSICO OPCIONAL',

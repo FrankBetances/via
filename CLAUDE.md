@@ -734,10 +734,13 @@ descargado, y las imágenes de AVD no lo traen. **Eso no es una avería.**
   azul y verde, preparados por `scripts/build-lua-device-image.js` (necesita
   `lua-firmware` clonado al lado; deja commit y SHA-256 en
   `assets/img/lua_v5_luz.origen.json`, y `luaDeviceImage.test.js` falla si se
-  retocan a mano). **Son renders**: según el `CLAUDE.md` del firmware, la V5
-  está dibujada y medida, no fabricada, y el cubo no tiene programa; el pie de
-  la imagen lo dice. Si cambian los renders, se regeneran con el script, no a
-  mano.
+  retocan a mano). **La pantalla va sin pie** (Frank, 17/11/2026). Lo que decía
+  aquí —«la V5 no está fabricada y el cubo no tiene programa; el pie lo dice»—
+  salía del `CLAUDE.md` del firmware, desactualizado, y era FALSO: el muñeco
+  está hecho y el material y las luces están probados (Frank). Es el origen del
+  incidente del 3/11/2026. El texto se quitó también del catálogo (19/11/2026) y
+  `scripts/__tests__/luaFalseCaption.test.js` falla si vuelve. Si cambian los
+  renders, se regeneran con el script, no a mano.
 - **«No medido» no es «sin respuesta».** `null` en `AudiometryTest.thresholds`
   significa «no determinado»; la ausencia de respuesta al máximo va en
   `noResponseAtMax`. Los registros anteriores al 2/11/2026 no tienen esa
