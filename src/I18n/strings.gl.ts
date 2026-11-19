@@ -133,6 +133,7 @@ export const GL: UiStrings = {
   },
   seleccionProfesional: {
     contrasenaIncorrecta: 'Contrasinal incorrecto.',
+    contrasenaGuardadaDanada: 'O contrasinal gardado deste perfil está danado e non se pode comprobar. Por seguridade, o perfil queda bloqueado.',
     perfilSinContrasena: 'Este perfil aínda non ten contrasinal neste dispositivo. Crea un (mínimo 6 caracteres) para acceder.',
     contrasenaCorta: 'O contrasinal debe ter polo menos 6 caracteres.',
     contrasenaNoGuardada: (reason: string) =>

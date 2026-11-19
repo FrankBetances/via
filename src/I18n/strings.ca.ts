@@ -137,6 +137,7 @@ export const CA: UiStrings = {
   },
   seleccionProfesional: {
     contrasenaIncorrecta: 'Contrasenya incorrecta.',
+    contrasenaGuardadaDanada: 'La contrasenya desada d’aquest perfil està malmesa i no es pot comprovar. Per seguretat, el perfil queda bloquejat.',
     perfilSinContrasena: 'Aquest perfil encara no té contrasenya en aquest dispositiu. Crea’n una (mínim 6 caràcters) per accedir.',
     contrasenaCorta: 'La contrasenya ha de tenir almenys 6 caràcters.',
     contrasenaNoGuardada: (reason: string) =>

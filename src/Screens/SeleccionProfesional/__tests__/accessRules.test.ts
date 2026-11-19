@@ -9,6 +9,7 @@ import { AppDataSource } from '@/Database/config';
 import {
   hashPassword,
   hasLocalPassword,
+  isPasswordHashWellFormed,
   PASSWORD_ITERATIONS,
   PASSWORD_MIN_LENGTH,
   toHex,
@@ -128,14 +129,25 @@ describe('hashPassword / verifyPassword', () => {
   });
 
   // FALLO REAL (misma familia): `hasLocalPassword` solo mira el prefijo de la etiqueta.
-  // ABIERTO, decisión de Frank (18/11/2026): con el hash corrupto, hoy el perfil
-  // pasa por «verificar» y, como verifyPassword ya exige el formato completo,
-  // queda BLOQUEADO. Si hasLocalPassword devolviera false, el primer acceso
-  // pediría crear contraseña y cualquiera podría quedarse con ese perfil.
-  // Lo bloqueado es lo más seguro mientras no haya recuperación de contraseña.
-  it.failing('FALLO REAL: hasLocalPassword exige un formato completo, no solo la etiqueta', () => {
-    expect(hasLocalPassword('pbkdf2-sha256$')).toBe(false);
-    expect(hasLocalPassword('pbkdf2-sha256$10000$')).toBe(false);
+  // Resuelto el 19/11/2026 («arréglalo todo», Frank): un hash dañado sigue por la
+  // vía de VERIFICAR —si pasara a «crear contraseña», cualquiera podría quedarse
+  // con el perfil—, verifyPassword lo rechaza y la pantalla dice que la
+  // contraseña guardada está dañada, no «contraseña incorrecta».
+  it('un hash dañado queda bloqueado y se reconoce como dañado', () => {
+    for (const broken of ['pbkdf2-sha256$', 'pbkdf2-sha256$10000$', 'pbkdf2-sha256$10000$abc$def']) {
+      expect(hasLocalPassword(broken)).toBe(true);
+      expect(isPasswordHashWellFormed(broken)).toBe(false);
+      expect(verifyPassword('secreto1', broken)).toBe(false);
+    }
+    expect(isPasswordHashWellFormed(hashPassword('secreto1', SALT_A, FAST))).toBe(true);
+  });
+
+  it('la pantalla de acceso avisa del hash dañado antes de verificar', () => {
+    const code: string = fs.readFileSync(
+      path.join(__dirname, '..', 'SeleccionProfesionalScreen.tsx'),
+      'utf8',
+    );
+    expect(code).toMatch(/isPasswordHashWellFormed\(authTarget\.passwordHash\)[\s\S]{0,120}contrasenaGuardadaDanada/);
   });
 
   it('hasLocalPassword: vacío, nulo y otros formatos son «sin contraseña»', () => {

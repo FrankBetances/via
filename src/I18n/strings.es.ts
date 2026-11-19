@@ -203,6 +203,7 @@ export const ES = {
   },
   seleccionProfesional: {
     contrasenaIncorrecta: 'Contraseña incorrecta.',
+    contrasenaGuardadaDanada: 'La contraseña guardada de este perfil está dañada y no se puede comprobar. Por seguridad, el perfil queda bloqueado.',
     perfilSinContrasena: 'Este perfil aún no tiene contraseña en este dispositivo. Crea una (mínimo 6 caracteres) para acceder.',
     contrasenaCorta: 'La contraseña debe tener al menos 6 caracteres.',
     contrasenaNoGuardada: (reason: string) =>

@@ -24,7 +24,13 @@ import { loginSuccess } from '@/Store/slices/authSlice';
 import { Professional, ProfessionalRole } from '@/Models/Professional/Professional';
 import { ProfessionalRepository } from '@/Repositories/ProfessionalRepository';
 import { showErrorToast } from '@/Helpers/showToast';
-import { hashPassword, hasLocalPassword, PASSWORD_MIN_LENGTH, verifyPassword } from '@/Helpers/passwordHash';
+import {
+  hashPassword,
+  hasLocalPassword,
+  isPasswordHashWellFormed,
+  PASSWORD_MIN_LENGTH,
+  verifyPassword,
+} from '@/Helpers/passwordHash';
 import { writeWithVerify } from '@/Helpers/dbWrite';
 
 import { useT } from '@/I18n';
@@ -194,6 +200,12 @@ export default function SeleccionProfesionalScreen({ navigation }: Props) {
     await new Promise<void>(resolve => setTimeout(resolve, 0));
     try {
       if (!creatingPassword) {
+        // Hash dañado: no se puede comprobar ninguna contraseña. Decir
+        // «contraseña incorrecta» sería falso; el perfil queda bloqueado.
+        if (!isPasswordHashWellFormed(authTarget.passwordHash)) {
+          setAuthError(t.seleccionProfesional.contrasenaGuardadaDanada);
+          return;
+        }
         if (!verifyPassword(password, authTarget.passwordHash)) {
           setAuthError(t.seleccionProfesional.contrasenaIncorrecta);
           return;

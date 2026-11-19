@@ -136,6 +136,7 @@ export const EU: UiStrings = {
   },
   seleccionProfesional: {
     contrasenaIncorrecta: 'Pasahitz okerra.',
+    contrasenaGuardadaDanada: 'Profil honetan gordetako pasahitza hondatuta dago eta ezin da egiaztatu. Segurtasunagatik, profila blokeatuta geratzen da.',
     perfilSinContrasena: 'Profil honek ez du oraindik pasahitzik gailu honetan. Sortu bat (gutxienez 6 karaktere) sartzeko.',
     contrasenaCorta: 'Pasahitzak gutxienez 6 karaktere izan behar ditu.',
     contrasenaNoGuardada: (reason: string) =>

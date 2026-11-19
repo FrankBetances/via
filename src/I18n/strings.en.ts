@@ -133,6 +133,7 @@ export const EN: UiStrings = {
   },
   seleccionProfesional: {
     contrasenaIncorrecta: 'Incorrect password.',
+    contrasenaGuardadaDanada: 'The stored password for this profile is damaged and cannot be checked. For security, the profile is locked.',
     perfilSinContrasena: 'This profile has no password on this device yet. Create one (at least 6 characters) to sign in.',
     contrasenaCorta: 'The password must be at least 6 characters long.',
     contrasenaNoGuardada: (reason: string) =>
