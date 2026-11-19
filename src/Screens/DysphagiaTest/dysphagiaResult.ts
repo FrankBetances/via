@@ -17,10 +17,18 @@
  *  - verdict ............... líneas 476-480
  *
  * Los textos de recomendación se copian tal cual (líneas 446-448).
+ *
+ * 19/11/2026: arreglados los tres fallos de la regla 4 que marcaban los tests
+ * (orden de Frank «arréglalo todo»). Aquí, `dysphagiaVerdict` devuelve 'inc'
+ * sin bolos evaluados, con un bolo evaluado sin SpO₂ o con una basal no
+ * finita. En la pantalla: no se rellena la SpO₂ con la basal, «Siguiente» exige
+ * una SpO₂ medida, y sin bolos evaluados el informe dice «Exploración
+ * incompleta» y no se puede guardar.
  */
 
 export type Viscosity = 'nectar' | 'liquido' | 'pudin';
 export type DysphagiaVerdict = 'safe' | 'efficacy' | 'safety';
+export type DysphagiaVerdictOrInc = DysphagiaVerdict | 'inc';
 
 export interface BolusConfig {
   id: number;
@@ -92,9 +100,13 @@ export function analyzeDysphagia(boloStates: Record<number, BoloState>, basalSpO
     lBad = false,
     pBad = false;
 
+  let evaluatedCount = 0;
+  let missingReading = false;
   for (let i = 1; i <= 9; i++) {
     const s = boloStates[i];
     if (!s.evaluated) continue;
+    evaluatedCount++;
+    if (s.spo2 == null) missingReading = true;
     const cfg = BOLUS_LIST[i - 1];
     const d = deriveBolo(s, basalSpO2);
     if (d.hasSafety) hasSafetyAlt = true;
@@ -119,10 +131,19 @@ export function analyzeDysphagia(boloStates: Record<number, BoloState>, basalSpO
   else if (nSafe >= 5 && !nBad) recom = `Néctar ${nSafe} mL`;
   else if (pSafe >= 5 && !pBad) recom = `Pudin ${pSafe} mL`;
 
-  return { hasSafetyAlt, hasEfficacyAlt, minSpO2, maxDrop, recom };
+  const basalValid = Number.isFinite(basalSpO2);
+  return { hasSafetyAlt, hasEfficacyAlt, minSpO2, maxDrop, recom, evaluatedCount, missingReading, basalValid };
 }
 
-// DysphagiaTestScreen.tsx:476-480 (literal)
-export function dysphagiaVerdict(analysis: { hasSafetyAlt: boolean; hasEfficacyAlt: boolean }): DysphagiaVerdict {
+// DysphagiaTestScreen.tsx (veredicto). Sin datos completos no hay veredicto:
+// 'inc', nunca 'safe' (regla 4, 19/11/2026).
+export function dysphagiaVerdict(analysis: {
+  hasSafetyAlt: boolean;
+  hasEfficacyAlt: boolean;
+  evaluatedCount?: number;
+  missingReading?: boolean;
+  basalValid?: boolean;
+}): DysphagiaVerdictOrInc {
+  if (analysis.evaluatedCount === 0 || analysis.missingReading || analysis.basalValid === false) return 'inc';
   return analysis.hasSafetyAlt ? 'safety' : analysis.hasEfficacyAlt ? 'efficacy' : 'safe';
 }

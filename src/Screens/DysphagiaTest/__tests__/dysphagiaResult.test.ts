@@ -182,20 +182,20 @@ describe('ruta de bolos', () => {
 describe('datos ausentes (regla 4: no se presume favorable)', () => {
   // FALLO REAL: ningún bolo evaluado devuelve verdict 'safe' (exploración negativa).
   // Sin datos, la pantalla diría «Exploración negativa · sin disfagia».
-  it.failing('sin ningún bolo evaluado NO es safe', () => {
+  it('sin ningún bolo evaluado NO es safe (arreglado el 19/11/2026)', () => {
     expect(run(empty()).verdict).not.toBe('safe');
   });
 
   // FALLO REAL: SpO2 ausente (null) se sustituye por la basal => caída 0 => sin
   // desaturación. La ausencia de lectura cuenta como «sin caída».
-  it.failing('SpO2 ausente en un bolo evaluado no cuenta como lectura normal', () => {
+  it('SpO2 ausente en un bolo evaluado no cuenta como lectura normal (arreglado el 19/11/2026)', () => {
     const s = empty();
     s[1] = ev({ spo2: null });
     expect(run(s).verdict).not.toBe('safe');
   });
 
   // FALLO REAL: basal no finita (NaN) deja pasar todo como safe.
-  it.failing('basal NaN no produce veredicto safe', () => {
+  it('basal NaN no produce veredicto safe (arreglado el 19/11/2026)', () => {
     const s = empty();
     s[1] = ev({ spo2: 90 });
     expect(run(s, NaN).verdict).not.toBe('safe');
@@ -247,5 +247,26 @@ describe('paridad con DysphagiaTestScreen.tsx (lectura como texto)', () => {
   it('mínima y caída máxima', () => {
     expect(src).toContain('minSpO2 = Math.min(minSpO2, d.eff);');
     expect(src).toContain('maxDrop = Math.max(maxDrop, basalSpO2 - d.eff);');
+  });
+});
+
+describe('la pantalla de disfagia no presume una exploración favorable (19/11/2026)', () => {
+  const src: string = fs.readFileSync(path.join(__dirname, '..', 'DysphagiaTestScreen.tsx'), 'utf8');
+
+  it('no rellena la SpO₂ de un bolo con la basal', () => {
+    expect(src).not.toMatch(/spo2:\s*basalSpO2/);
+    expect(src).not.toMatch(/\.spo2 \?\? basalSpO2,/);
+  });
+
+  it('«Siguiente» exige una SpO₂ medida', () => {
+    expect(src).toContain('isDisabled={activeState.spo2 == null}');
+    expect(src).toContain('if (activeState.spo2 == null) return;');
+  });
+
+  it('sin bolos evaluados no dice «sin disfagia» ni deja guardar', () => {
+    expect(src).toContain('const noneEvaluated = analysis.evaluatedCount === 0;');
+    expect(src).toMatch(/reportTitle = noneEvaluated\s*\?/);
+    expect(src).toContain('if (isSaving || noneEvaluated) return;');
+    expect(src).toContain('isDisabled={noneEvaluated ||');
   });
 });

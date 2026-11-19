@@ -283,6 +283,16 @@ export default function DysphagiaTestScreen() {
   const activeState = boloStates[activeBolo.id];
   const setupReady = setup.every(Boolean);
 
+  // Borrador del campo de SpO₂ del bolo; se sincroniza al cambiar de bolo o al
+  // capturar del pulsioxímetro.
+  const [spo2Draft, setSpo2Draft] = useState<string>('');
+  const activeSpo2 = activeState.spo2;
+  useEffect(() => {
+    setSpo2Draft(activeSpo2 != null ? String(activeSpo2) : '');
+    // Solo al cambiar de bolo: sincronizar con cada tecla borraría lo que se escribe.
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- activeSpo2 se lee al entrar en el bolo, no se sigue.
+  }, [activeBolo.id]);
+
   // Telemetría: cada bolo del MECV-V (viscosidad × volumen) es un reactivo;
   // abre su ventana de tiempo al presentarse durante la serie.
   useEffect(() => {
@@ -313,13 +323,17 @@ export default function DysphagiaTestScreen() {
     });
   };
 
+  // Lo que se teclea va a un borrador; solo una cifra entre 50 y 100 cuenta como
+  // SpO₂ medida. Sin borrador, el campo vacío no dejaba escribir («9» de «95»
+  // se rechazaba), y antes nunca estaba vacío porque se rellenaba con la basal.
   const handleSpO2Change = (raw: string) => {
+    setSpo2Draft(raw);
     const n = parseInt(raw, 10);
-    if (isNaN(n) || n < 50 || n > 100) return;
-    setSpo2Source('manual');
+    const valid = /^\d{1,3}$/.test(raw.trim()) && n >= 50 && n <= 100;
+    if (valid) setSpo2Source('manual');
     setBoloStates(prev => ({
       ...prev,
-      [activeBolo.id]: { ...prev[activeBolo.id], spo2: n },
+      [activeBolo.id]: { ...prev[activeBolo.id], spo2: valid ? n : null },
     }));
   };
 
@@ -333,6 +347,7 @@ export default function DysphagiaTestScreen() {
     if (ox.spo2 == null) return;
     const v = ox.spo2;
     setSpo2Source(ox.source);
+    setSpo2Draft(String(v));
     setBoloStates(prev => ({
       ...prev,
       [activeBolo.id]: { ...prev[activeBolo.id], spo2: v },
@@ -340,6 +355,8 @@ export default function DysphagiaTestScreen() {
   };
 
   const handleNext = () => {
+    // Sin SpO₂ del bolo no se avanza: el botón va deshabilitado.
+    if (activeState.spo2 == null) return;
     // Telemetría: cierra el reactivo del bolo al finalizarlo y avanzar.
     tracker.classifyReactivo(`dis-${activeBolo.id}`);
     const isUnsafe = deriveBolo(activeState, basalSpO2).hasSafety;
@@ -351,15 +368,16 @@ export default function DysphagiaTestScreen() {
         ...updated[activeBolo.id],
         evaluated: true,
         skipped: false,
-        spo2: updated[activeBolo.id].spo2 ?? basalSpO2,
+        // Sin relleno: una SpO₂ que nadie midió no se iguala a la basal (regla 4).
+        spo2: updated[activeBolo.id].spo2,
       };
       if (nextId !== null) {
         for (let i = activeBolo.id + 1; i < nextId; i++) {
           updated[i] = { ...emptyBoloState(), skipped: true };
         }
-        if (updated[nextId].spo2 === null) {
-          updated[nextId] = { ...updated[nextId], spo2: basalSpO2, skipped: false };
-        }
+        // El bolo siguiente empieza SIN SpO₂: antes se le ponía la basal y,
+        // si nadie medía, contaba como medido con caída 0 (regla 4).
+        updated[nextId] = { ...updated[nextId], skipped: false };
       } else {
         for (let i = activeBolo.id + 1; i <= 9; i++) {
           updated[i] = { ...emptyBoloState(), skipped: true };
@@ -420,9 +438,11 @@ export default function DysphagiaTestScreen() {
       lBad = false,
       pBad = false;
 
+    let evaluatedCount = 0;
     for (let i = 1; i <= 9; i++) {
       const s = boloStates[i];
       if (!s.evaluated) continue;
+      evaluatedCount++;
       const cfg = BOLUS_LIST[i - 1];
       const d = deriveBolo(s, basalSpO2);
       if (d.hasSafety) hasSafetyAlt = true;
@@ -447,26 +467,31 @@ export default function DysphagiaTestScreen() {
     else if (nSafe >= 5 && !nBad) recom = `Néctar ${nSafe} mL`;
     else if (pSafe >= 5 && !pBad) recom = `Pudin ${pSafe} mL`;
 
-    return { hasSafetyAlt, hasEfficacyAlt, minSpO2, maxDrop, recom };
+    return { hasSafetyAlt, hasEfficacyAlt, minSpO2, maxDrop, recom, evaluatedCount };
   }, [boloStates, basalSpO2]);
 
   /* derived for active bolo (live) */
   const liveDerive = deriveBolo(activeState, basalSpO2);
   const liveSpO2 = activeState.spo2 ?? basalSpO2;
 
+  // Regla 4: sin un solo bolo evaluado no hay exploración, y no puede salir
+  // «Exploración negativa · sin disfagia» con el banner verde (19/11/2026).
+  const noneEvaluated = analysis.evaluatedCount === 0;
   const repBad = analysis.hasSafetyAlt;
-  const repWarn = !analysis.hasSafetyAlt && analysis.hasEfficacyAlt;
+  const repWarn = noneEvaluated || (!analysis.hasSafetyAlt && analysis.hasEfficacyAlt);
   const bannerBg = repBad ? '$error50' : repWarn ? '$warning50' : '$success50';
   const bannerBorder = repBad ? '$error300' : repWarn ? '$warning300' : '$success300';
   const bannerFg = repBad ? '$error700' : repWarn ? '$warning800' : '$success700';
-  const reportTitle = repBad
+  const reportTitle = noneEvaluated
+    ? 'Exploración incompleta · ningún bolo evaluado'
+    : repBad
     ? 'Disfagia · alteración de seguridad'
     : repWarn
       ? 'Disfagia · alteración de eficacia'
       : 'Exploración negativa · sin disfagia';
 
   const handleSave = async () => {
-    if (isSaving) return;
+    if (isSaving || noneEvaluated) return;
     if (!evaluatorName.trim() || !evaluatorLicense.trim()) return;
     if (!activeEvaluation) {
       showErrorToast('No se puede guardar', 'No hay una evaluación activa asociada al paciente.');
@@ -751,7 +776,7 @@ export default function DysphagiaTestScreen() {
                     <InputField
                       keyboardType="numeric"
                       textAlign="center"
-                      value={String(liveSpO2)}
+                      value={spo2Draft}
                       onChangeText={handleSpO2Change}
                     />
                   </Input>
@@ -794,7 +819,13 @@ export default function DysphagiaTestScreen() {
                     </Text>
                   </HStack>
                 </Button>
-                <Button action="primary" variant="solid" rounded="$full" style={atoms.flex1} onPress={handleNext}>
+                <Button
+                  action="primary"
+                  variant="solid"
+                  rounded="$full"
+                  style={atoms.flex1}
+                  isDisabled={activeState.spo2 == null}
+                  onPress={handleNext}>
                   <HStack space="sm" alignItems="center">
                     <Text size="sm" weight="bold" color="$white">
                       {activeBolo.nextSafe === null && activeBolo.nextUnsafe === null ? t.dysphagia.finalizar : t.dysphagia.registrarContinuar}
@@ -894,7 +925,7 @@ export default function DysphagiaTestScreen() {
                   variant="solid"
                   rounded="$full"
                   style={atoms.flex1}
-                  isDisabled={!evaluatorName.trim() || !evaluatorLicense.trim() || isSaving}
+                  isDisabled={noneEvaluated || !evaluatorName.trim() || !evaluatorLicense.trim() || isSaving}
                   onPress={handleSave}>
                   <HStack space="sm" alignItems="center">
                     <Icon as={ClipboardCheck} size="sm" color="$white" />
