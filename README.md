@@ -1,1525 +1,312 @@
 <div align="center">
 
 # ⟁ VIA+
+
 ### Valoración Interactiva de Audición y Lenguaje
 
-**Software como Dispositivo Médico (SaMD) · Clase IIa · MDR 2017/745**
+Herramienta de apoyo a la decisión clínica en audición, lenguaje y neurodesarrollo pediátricos,
+para tableta Android.
 
-*SaMD sobre Hardware Homologado (Llave en mano / Turnkey COTS) · Samsung Galaxy Tab S9 + Samsung Knox Kiosk + Motor NLG Determinista*
-
-[![Regulatory Status](https://img.shields.io/badge/SaMD-Class%20IIa%20MDR-blue?style=flat-square)](https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32017R0745)
-[![IEC 62304](https://img.shields.io/badge/IEC%2062304-Class%20B-yellow?style=flat-square)](#normativas-aplicables)
-[![ISO 14971](https://img.shields.io/badge/ISO%2014971-Risk%20Management-orange?style=flat-square)](#normativas-aplicables)
-[![GDPR](https://img.shields.io/badge/GDPR%2FLOPDGDD-Privacy%20by%20Design-green?style=flat-square)](#privacidad-y-datos)
-[![Idiomas](https://img.shields.io/badge/Idiomas-7%20lenguas%20de%20sesi%C3%B3n-purple?style=flat-square)](#idiomas-y-voz-neuronal)
-[![License](https://img.shields.io/badge/License-Proprietary-red?style=flat-square)](./LICENSE)
-
-*Parte del ecosistema [Earlify Health](https://futureforkids.eu) · Detección temprana en salud pediátrica*
+*Software propietario de Earlify Health S.L. · Todos los derechos reservados*
 
 </div>
 
 ---
 
-> ⚠️ **AVISO DE SEGURIDAD CLÍNICA**
->
-> VIA+ es una herramienta de **apoyo a la decisión clínica**. Bajo ninguna circunstancia emite
-> diagnósticos automatizados ni sustituye el juicio del profesional sanitario. El uso está
-> **estrictamente restringido** a entornos clínicos bajo supervisión de un profesional cualificado.
-> La interpretación de todos los resultados es responsabilidad exclusiva del clínico evaluador.
-
----
+> ⚠️ **Aviso de seguridad clínica.** VIA+ apoya la decisión del profesional; no emite
+> diagnósticos ni sustituye su juicio. Su uso está restringido a entornos clínicos con un
+> profesional cualificado presente, que es el responsable de interpretar todos los resultados.
 
 ## Índice
 
-- [¿Qué es VIA+?](#qué-es-via)
-- [Características Principales](#características-principales)
-- [Marco Regulatorio](#marco-regulatorio)
-- [SaMD sobre Hardware Homologado (Llave en mano / Turnkey COTS)](#samd-sobre-hardware-homologado-llave-en-mano--turnkey-cots)
-  - [1. Hardware y entorno operativo](#1-hardware-y-entorno-operativo)
-  - [2. Calibración acústica incorporada](#2-calibración-acústica-incorporada)
-  - [3. Motor NLG para informes (Alternativa superior a RAG)](#3-motor-nlg-para-informes-alternativa-superior-a-rag)
-- [Arquitectura del Sistema](#arquitectura-del-sistema)
-- [Flujo Clínico](#flujo-clínico)
-- [Idiomas y Voz Neuronal](#idiomas-y-voz-neuronal)
-- [Privacidad y Datos](#privacidad-y-datos)
-- [Telemetría de Usabilidad (Zero-PHI)](#telemetría-de-usabilidad-zero-phi)
-- [Stack Tecnológico](#stack-tecnológico)
-- [Instalación y Configuración](#instalación-y-configuración)
-- [Módulos de la Aplicación](#módulos-de-la-aplicación)
-- [Lúa (periférico de refuerzo)](#lúa-periférico-de-refuerzo)
-- [Herramientas de Build-Time](#herramientas-de-build-time)
-- [Automatización (CI/CD)](#automatización-cicd)
-- [Distribución y Sitio Público](#distribución-y-sitio-público)
-- [Documentación del Repositorio](#documentación-del-repositorio)
-- [Gestión de Riesgos](#gestión-de-riesgos)
-- [Contribución al Proyecto](#contribución-al-proyecto)
-- [Ecosistema Earlify Health](#ecosistema-earlify-health)
-- [Estado del Proyecto](#estado-del-proyecto)
-- [Licencia](#licencia)
-- [Contacto](#contacto)
+- [Qué es VIA+](#qué-es-via)
+- [Estado regulatorio](#estado-regulatorio)
+- [Módulos](#módulos)
+- [Flujo de una sesión](#flujo-de-una-sesión)
+- [Idiomas y voz](#idiomas-y-voz)
+- [Privacidad y datos](#privacidad-y-datos)
+- [Arquitectura](#arquitectura)
+- [Desarrollo](#desarrollo)
+- [Automatización](#automatización)
+- [Documentación](#documentación)
+- [Estado del proyecto](#estado-del-proyecto)
+- [Licencia y seguridad](#licencia-y-seguridad)
 
 ---
 
-## ¿Qué es VIA+?
+## Qué es VIA+
 
-VIA+ (**V**aloración **I**nteractiva de **A**udición y Lenguaje) es un **Software como Dispositivo Médico (SaMD) de Clase IIa** que actúa como herramienta de apoyo a la decisión clínica (CDSS) para profesionales sanitarios especializados en:
+Una batería de pruebas pediátricas, en buena parte gamificadas, que el profesional aplica en una
+tableta Android. Recoge respuestas, mide señales de audio y redacta un informe PDF con una
+síntesis por reglas que el profesional revisa y firma.
 
-| Dominio | Función de VIA+ |
+**Qué NO hace VIA+:**
+
+| Restricción | Motivo |
 |---|---|
-| **Audiología pediátrica** | Tamizaje auditivo y audiometría condicionada gamificada |
-| **Logopedia y lenguaje** | Logoaudiometría, discriminación auditiva y repetición verbal |
-| **Neurodesarrollo** | Indicadores conductuales de atención, cognición y procesamiento |
+| Emitir diagnósticos | Es apoyo a la decisión, no un sistema diagnóstico |
+| Calificar un resultado como «normal» o «patológico» | Fuera del alcance validado: describe y señala |
+| Recomendar tratamientos | Competencia del profesional |
+| Funcionar sin supervisión | Diseñado para uso supervisado |
 
-**SaMD sobre Hardware Homologado (Llave en mano / Turnkey COTS):** VIA+ sigue siendo legalmente un Software como Dispositivo Médico (SaMD) Clase IIa (Regla 11), pero comercialmente se entrega cerrado y preconfigurado en un único modelo de tableta comercial homologado mediante Modo Kiosco / MDM (Samsung Knox), con la curva de calibración acústica de fábrica sellada en el código y el almacenamiento cifrado por hardware: **Samsung Galaxy Tab S9 + Samsung Knox Kiosk + Motor NLG Determinista**.
+Principios de diseño que se mantienen en todo el código:
 
-```
-┌────────────────────────────────────────────────────────────────────────┐
-│        DISPOSITIVO VIA+ LLAVE EN MANO (OBJETIVO, NO IMPLEMENTADO)      │
-│                                                                        │
-│   [ Hardware COTS ]        Samsung Galaxy Tab S9 (11", IP68, AKG)      │
-│   [ Capa de Control ]      Samsung Knox Configure (Kiosk bloqueado)    │
-│   [ Audio Calibrado ]      Offset dB SPL/HL fijado en build-time       │
-│   [ Cifrado ]              Knox Vault + SQLite en reposo               │
-│                                                                        │
-│   [ Software SaMD ]        VIA+ (Clase IIa - Regla 11 MDR)             │
-│   [ Informes ]             Motor NLG Determinista (TypeScript local)   │
-└────────────────────────────────────────────────────────────────────────┘
-```
+- **Sin conexión.** Todo funciona sin red; los datos clínicos no salen del dispositivo.
+- **Cero IA en el dispositivo.** Los modelos de voz neuronal solo corren al preparar el
+  contenido; la app reproduce audio ya empaquetado y mide con algoritmos deterministas. Decisión
+  registrada en el [ADR de inferencia](./docs/design/adr-inferencia-en-dispositivo.md).
+- **Informe por reglas.** El motor de síntesis (`src/PDF/nlgReportEngine.ts`) no genera texto
+  libre: cada frase sale de una regla con su identificador y de un dato medido, y sus cortes
+  viven en un solo sitio (`src/PDF/nlgThresholds.ts`), con su
+  [matriz de evidencia](./docs/design/matriz-evidencia-nlg.md).
+- **Nada falla en silencio.** Si falta un dato, la app lo dice; nunca cae en el resultado
+  favorable.
 
-La aplicación opera sobre **tabletas comerciales homologadas** en entornos clínicos bajo supervisión profesional directa, capturando biomarcadores vocales y respuestas conductuales a través de baterías de pruebas gamificadas adaptadas a la población pediátrica. La tableta homologada es el dispositivo de referencia y es donde se prueba; el reparto de pantalla vive en [`src/Theme/screenLayout.ts`](./src/Theme/screenLayout.ts) y **hoy solo lo usan la presentación de Lúa y los créditos** — los trece módulos clínicos no se han recorrido en un teléfono.
+---
 
-### ¿Qué NO hace VIA+?
+## Estado regulatorio
 
-| Restricción | Fundamento |
+VIA+ se desarrolla con la finalidad de ser un **Software como Dispositivo Médico (SaMD) de
+Clase IIa** según el Reglamento (UE) 2017/745 (Regla 11), con el software en **Clase B** de la
+IEC 62304. **No tiene marcado CE** y no se ha presentado a un organismo notificado.
+
+| Norma | Estado |
 |---|---|
-| ❌ Emitir diagnósticos automatizados | Requeriría clasificación SaMD Clase III |
-| ❌ Sustituir el juicio clínico | Función de apoyo, no de reemplazo |
-| ❌ Interpretar resultados como patológicos/normales | Fuera del alcance validado |
-| ❌ Recomendar tratamientos | Competencia exclusiva del clínico |
-| ❌ Funcionar sin supervisión profesional | Diseñado y validado solo en contexto supervisado |
+| MDR 2017/745 (marcado CE) | Pendiente |
+| IEC 62304 (ciclo de vida del software) | En implementación |
+| ISO 14971 (gestión de riesgos) | En implementación; expediente formal pendiente |
+| IEC 62366-1 (usabilidad) | En implementación (telemetría de usabilidad sin datos del paciente) |
+| ISO 13485 (sistema de calidad) | Pendiente |
+| RGPD / LOPDGDD | En implementación; ver [Privacidad y datos](#privacidad-y-datos) |
+| Reglamento (UE) 2024/1689 (IA) | Fuera de alcance por diseño: no hay inferencia en el dispositivo |
 
 ---
 
-## Características Principales
+## Módulos
 
-- 🎮 **Baterías gamificadas** — 13 módulos de evaluación adaptados al paciente pediátrico
-- 🔇 **Offline-first** — Operación completa sin conexión; los datos clínicos del paciente residen solo en el dispositivo
-- 🌐 **Siete lenguas de sesión** — Castellano · Galego · Euskara · Català · Español (LatAm) · Español dominicano · English, con [banco de estímulos y voz propios](#idiomas-y-voz-neuronal). Cuatro tienen banco verbal y corpus completos; las otras tres entran declaradas como provisionales, y la pantalla lo dice
-- 🔤 **Interfaz traducida, con puerta** — Toda la interfaz se lee del catálogo de `src/I18n/` (patrón portado de Valeria+, sin `i18next`) y `scripts/check-ui-strings.js` **falla el build** si un `.tsx` vuelve a pintar texto literal
-- 🧠 **Cero IA en el dispositivo** — Los modelos neuronales solo corren en **build-time**; la app reproduce audio ya empaquetado y mide con DSP determinista. Principio **ratificado** en [ADR de inferencia en el dispositivo](./docs/design/adr-inferencia-en-dispositivo.md)
-- 🔐 **Privacidad por diseño** — Datos clínicos locales · TLS 1.3 en tránsito · seudonimización del NHC ([estado real de los controles](#controles-de-seguridad))
-- 📋 **Consentimiento informado digital** — Gestión legal obligatoria para tutores legales
-- 🏥 **Pre-screening clínico** — Certificado de Aptitud para la Prueba (CAP) integrado
-- 📦 **Objetivo: SaMD llave en mano sobre hardware COTS cualificado** — *Decidido, no implementado* ([plan de trabajo](./docs/PLAN-DE-TRABAJO.md)): un único modelo de tableta en quiosco gestionado por MDM, calibración acústica de fábrica y cifrado en reposo. Hoy no existe ninguna de las tres cosas
-- 🧾 **Motor NLG Determinista para informes** — Alternativa superior a RAG en `src/PDF/nlgReportEngine.ts`: síntesis clínica por reglas trazable sobre entidades locales TypeORM (sin generación estocástica: cada frase lleva la regla que la produjo), con borrador editable supervisado y firma en `SignaturePad`
-- 📄 **Informes PDF** — Generación automática estructurada mediante `pdf-lib` a partir del borrador supervisado
-- 🔑 **Identidad del profesional** — Perfil y contraseña **locales** (PBKDF2-SHA256 con sal, verificada en el dispositivo, sin red). Sin Firebase desde el 2/11/2026
-- 🎙️ **Audio clínico medido** — Sonómetro en **dB(A)** (IEC 61672) con calibración de campo persistida y análisis acústico [validado contra Praat](#herramientas-de-build-time)
-- 👁️ **UX dual** — Modo Profesional analítico y Modo Niño lúdico en un único dispositivo
-- 🗂️ **Historial longitudinal** — Resultados de la sesión y sesiones anteriores del paciente accesibles desde el hub
-- 📊 **Telemetría de usabilidad Zero-PHI** — Fricción de uso + percepción del clínico (Likert), exportadas en un QR anónimo (IEC 62366-1), sin tocar la base de datos clínica
-- 🐈‍⬛ **Lúa, refuerzo fuera de la medición** — Soporte del periférico BLE de Valeria+ reducido a la [recompensa de cierre](#lúa-periférico-de-refuerzo): el aparato **no está presente mientras se mide**, y sin hardware todo el módulo es *no-op*. La dirección amplió el alcance el 14/8/2026 —espejo durante la batería y alertas sonoras—, sin implementar todavía: [decisión y matriz](./docs/design/lua-salida-y-alertas-sonoras.md)
+Trece módulos clínicos, elegidos desde el hub de la batería:
 
----
-
-## Marco Regulatorio
-
-### Clasificación MDR
-
-VIA+ está clasificado como **SaMD Clase IIa** según el Reglamento (UE) 2017/745 (MDR), bajo la **Regla 11 MDR** (software que influye en decisiones clínicas).
-
-```
-Finalidad prevista:  Apoyo a la decisión diagnóstica en audiología y lenguaje pediátrico
-Gravedad:            Moderada (pérdida auditiva, trastornos del lenguaje en edad temprana)
-Clase resultante:    IIa
-Ruta de conformidad: Organismo Notificado (ON) requerido para marcado CE
-```
-
-### Normativas Aplicables
-
-| Norma | Ámbito | Estado |
+| # | Módulo | Qué necesita |
 |---|---|---|
-| **MDR 2017/745** | Clasificación y marcado CE | 🔴 En proceso |
-| **IEC 62304:2006+AMD1:2015** | Ciclo de vida del software médico · **Clase B** | 🟡 En implementación |
-| **IEC 62366-1:2015** | Ingeniería de usabilidad para dispositivos médicos · [telemetría Zero-PHI](#telemetría-de-usabilidad-zero-phi) | 🟡 En implementación |
-| **ISO 14971:2019** | Gestión de riesgos en el ciclo de vida | 🟡 En implementación |
-| **ISO 13485:2016** | Sistema de Gestión de Calidad | 🔴 Pendiente |
-| **GDPR / LOPDGDD** | Protección de datos sanitarios | 🟡 En implementación |
-| **HL7 FHIR R4** | Interoperabilidad con HCE | 🟡 En implementación |
-| **Reglamento (UE) 2024/1689 (IA)** | Sistemas de IA de alto riesgo | ⚪ **Fuera de alcance por diseño** — ver [ADR](./docs/design/adr-inferencia-en-dispositivo.md) |
+| 1 | Evaluación clínica previa (CAP): otoscopia y capacidades visual, verbal y motora | — |
+| 2 | Cuestionario de autismo M-CHAT-R | — |
+| 3 | Sonómetro de sala, en dB(A) | Micrófono |
+| 4 | Audiometría infantil (tonal) | Salida de audio |
+| 5 | Audiometría condicionada («el tren del sonido») | Salida de audio |
+| 6 | Análisis acústico de voz (F0, jitter, shimmer, HNR, formantes, GRBAS) | Micrófono |
+| 7 | Exploración de disfagia MECV-V | Pulsioxímetro (hoy, sensor de demostración) |
+| 8 | Cribado SAHS infantil | — |
+| 9 | Articulación (T.A.R.) | Micrófono; reconocimiento de voz opcional |
+| 10 | Audiometría verbal | Salida de audio |
+| 11 | Funciones ejecutivas | — |
+| 12 | Análisis prosódico | Micrófono |
+| 13 | Cribado de hitos del lenguaje ASHA | — |
 
-> **Reglamento de IA:** VIA+ **no embarca modelos de inferencia**. Un modelo cuya salida propusiera una
-> clasificación clínica, en un producto MDR de Clase IIa (organismo notificado), tendría muy probablemente
-> la consideración de **sistema de IA de alto riesgo**, con obligaciones propias encima de las del MDR.
-> Mantener el principio deja esa vía cerrada por diseño; el análisis completo y la decisión firmada están
-> en el [ADR de inferencia en el dispositivo](./docs/design/adr-inferencia-en-dispositivo.md).
+Pantallas de apoyo, que no son módulos clínicos:
 
-<!-- Separador: dos citas independientes, no una continuación. -->
+- **Comprobar audio:** recorre la cadena de audio y dice qué eslabón falla.
+- **Informe de arranque:** si la app no arranca, muestra el error en pantalla.
+- **Resultados preliminares, Resultados finales e Historial del paciente.**
 
-> **IEC 62304 — Clase de Seguridad B:** Un fallo en el software podría generar datos erróneos que, sin el adecuado escrutinio clínico del profesional, podría conducir a una decisión subóptima. El riesgo de lesión directa es bajo gracias a la supervisión obligatoria.
+**El reconocimiento de voz del T.A.R. solo se usa si puede ocurrir en el propio dispositivo.**
+Si no, la prueba sigue con clasificación manual.
 
 ---
 
-## SaMD sobre Hardware Homologado (Llave en mano / Turnkey COTS)
-
-VIA+ sigue siendo legalmente un **Software como Dispositivo Médico (SaMD) Clase IIa** (Regla 11 del MDR 2017/745), pero comercialmente se entrega cerrado y preconfigurado en un único modelo de tableta comercial homologado mediante **Modo Kiosco / MDM (Samsung Knox)**, con la curva de calibración acústica de fábrica sellada en el código y el almacenamiento cifrado por hardware: **Samsung Galaxy Tab S9 + Samsung Knox Kiosk + Motor NLG Determinista**.
+## Flujo de una sesión
 
 ```
-┌────────────────────────────────────────────────────────────────────────┐
-│        DISPOSITIVO VIA+ LLAVE EN MANO (OBJETIVO, NO IMPLEMENTADO)      │
-│                                                                        │
-│   [ Hardware COTS ]        Samsung Galaxy Tab S9 (11", IP68, AKG)      │
-│   [ Capa de Control ]      Samsung Knox Configure (Kiosk bloqueado)    │
-│   [ Audio Calibrado ]      Offset dB SPL/HL fijado en build-time       │
-│   [ Cifrado ]              Knox Vault + SQLite en reposo               │
-│                                                                        │
-│   [ Software SaMD ]        VIA+ (Clase IIa - Regla 11 MDR)             │
-│   [ Informes ]             Motor NLG Determinista (TypeScript local)   │
-└────────────────────────────────────────────────────────────────────────┘
+Acceso del profesional (contraseña local)
+  → Paciente (alta o búsqueda)
+  → Consentimiento informado firmado          (sin él no empiezan las pruebas)
+  → Evaluación clínica previa (CAP)           («NO APTO» se avisa en el hub; no bloquea)
+  → Sonómetro de sala                         (para las pruebas auditivas)
+  → Hub de la batería: cada prueba se guarda y se vuelve al hub, con las hechas marcadas
+  → Resultados preliminares → Resultados finales
+  → Informe PDF con síntesis por reglas, notas y firma del profesional
+  → Finalizar: la evaluación queda cerrada
 ```
 
-| Capa | Implementación técnica | Función en el sistema |
+---
+
+## Idiomas y voz
+
+La interfaz y la sesión están en **siete variedades**: castellano, galego, euskara, català,
+español de Latinoamérica, español dominicano e inglés. Toda la interfaz se lee del catálogo de
+`src/I18n/`; un gate (`scripts/check-ui-strings.js`) falla si un `.tsx` pinta texto fijo.
+
+- **Castellano, gallego, euskera y dominicano** tienen banco verbal y corpus de voz completos.
+- **Catalán, inglés y español de Latinoamérica** son provisionales: usan el banco castellano o
+  solo tienen las consignas, y la pantalla lo advierte.
+- Las voces se sintetizan antes de compilar, con motores abiertos (`tools/nos/`), y van
+  empaquetadas en la app. Cada lengua lleva su revisión clínica documentada en `docs/design/`.
+- La app cae de forma ordenada si falta un audio: recorte empaquetado, luego la voz del sistema,
+  luego silencio. La pantalla «Comprobar audio» lo detecta.
+
+---
+
+## Privacidad y datos
+
+| Dato | Dónde vive | ¿Sale del dispositivo? |
 |---|---|---|
-| **[ Hardware COTS ]** | Samsung Galaxy Tab S9 (11", IP68, AKG, Snapdragon 8 Gen 2, 8 GB RAM, 128 GB) | Potencia garantizada para captura PCM a 48 kHz y LPC orden 20 a 60 fps constantes |
-| **[ Capa de Control ]** | Samsung Knox Configure (Kiosk bloqueado) / Android Enterprise (Headwind MDM) | Aislamiento estricto: arranque directo en VIA+, bloqueo de navegación, USB y Play Store |
-| **[ Audio Calibrado ]** | Curva en cámara anecoica vs sonómetro Clase 1 inyectada en build-time | Offset dB SPL/HL sellado de fábrica; micrófono en modo crudo (`UNPROCESSED`) |
-| **[ Cifrado ]** | Knox Vault + SQLite en reposo | *Objetivo F2, no implementado*: hoy la base local no está cifrada |
-| **[ Software SaMD ]** | VIA+ (Clase IIa · Regla 11 MDR 2017/745, IEC 62304 Clase B) | 13 módulos clínicos y gamificados con arquitectura offline-first |
-| **[ Informes ]** | Motor NLG Determinista (`src/PDF/nlgReportEngine.ts`) | Síntesis clínica por lógica combinatoria con borrador supervisado y firma digital |
+| Pacientes, evaluaciones y resultados | Base SQLite local (`viaplus.db`) | No |
+| Grabaciones de audio | Solo en memoria, para medir | No |
+| Cuenta del profesional | Base local; contraseña como PBKDF2-SHA256 con sal | No |
+| Informes PDF | Carpeta de la app, con copia en la carpeta que elija el profesional | Solo si el profesional lo comparte |
+| Telemetría de usabilidad | Memoria; se exporta en un QR anónimo | Solo si el profesional lo exporta |
 
-### 1. Hardware y entorno operativo
+La app **no usa ningún servicio remoto**.
 
-- **Modelo de referencia:** Samsung Galaxy Tab S9 (11", Wi-Fi, 128 GB, 8 GB RAM). El Snapdragon 8 Gen 2 garantiza que la captura PCM a 48 kHz y el análisis LPC orden 20 no pierdan muestras mientras la interfaz React Native anima el tren de la audiometría condicionada a 60 fps.
-- **Aislamiento Kiosk:** Mediante Samsung Knox Configure o un MDM Android Enterprise (ej. Headwind MDM, de código abierto), la tableta arranca directamente en VIA+. Se desactivan: barra de navegación del sistema, conexiones USB de almacenamiento masivo, Google Play, descargas externas y acceso a ajustes de red.
-- **Higiene y protección:** Carcasa rugerizada de silicona médica de alta densidad con asa y protector de pantalla lavable. Permite desinfección entre pacientes con toallitas de clorhexidina o alcohol isopropílico al 70 % sin filtraciones a la bahía USB-C.
+**Lo que todavía no está**, y no se afirma en ningún sitio:
 
-### 2. Calibración acústica incorporada
+- La base de datos **no está cifrada**: lo protege el cifrado del propio dispositivo, que el
+  centro debe activar. Hay un estudio de viabilidad en
+  [`docs/informes/`](./docs/informes/2026-11-17-d1-viabilidad-cifrado.md).
+- El nombre y la fecha de nacimiento del paciente se guardan **en claro**. Las primitivas de
+  cifrado están escritas y probadas, pero sin conectar.
+- No hay registro de auditoría ni borrado verificable.
 
-Al fijar un único modelo de tableta, se elimina la mayor debilidad de la audiometría móvil:
-
-- Se mide la curva de transferencia electroacústica de los altavoces AKG en cámara anecoica / sala silenciada contra sonómetro patrón Clase 1 una sola vez.
-- Se inyecta la tabla de compensación de frecuencias en `src/Screens/Audiometry/` y `VerbalAudiometry/`, garantizando que la salida en dB SPL corresponda matemáticamente a los dB HL calculados.
-- El micrófono se bloquea en modo crudo (UNPROCESSED), evitando que el sistema operativo atenúe la señal en los extremos de banda.
-
-### 3. Motor NLG para informes (Alternativa superior a RAG)
-
-En lugar de un modelo de lenguaje que invente diagnósticos, se implementa un motor determinista en `src/PDF/nlgReportEngine.ts`:
-
-```
- entidades TypeORM locales ──► lógica combinatoria ──► hechos con ruleId ──► plantillas i18n ──► borrador supervisado ──► PDF final firmado
-    (SQLite en reposo)          (reglas clínicas)        (trazabilidad)        (7 variedades)       (editor interactivo)      (pdf-lib)
-```
-
-- **Lógica combinatoria:** Evalúa las entidades TypeORM locales (`ClinicalAssessment`, `AudiometryTest`, `VoiceAnalysis`, `AshaMilestoneTest`).
-- **Generación de síntesis:**
-  - **Si CAP tiene otoscopia patológica (ej. OMA o cerumen):** Redacta la invalidación de la audiometría tonal ipsilateral y recomienda reevaluación tras tratamiento médico.
-  - **Audiometría:** Calcula el PTA (*Pure Tone Average*) en 500, 1000, 2000 y 4000 Hz, clasifica descriptivamente el grado (ligera, moderada, etc., según BIAP/OMS) y describe la morfología (plana, caída en agudos) sin emitir un juicio nosológico causal.
-  - **Voz:** Reporta la F0 comparada con el intervalo normativo pediátrico por edad y sexo, reportando jitter/shimmer con nota técnica explícita sobre el margen de compresión frente a Praat.
-  - **ASHA / M-CHAT:** Si hay banderas rojas cumplidas, activa un párrafo estandarizado de derivación inmediata y protocolizada a Neuropediatría / Atención Temprana.
-- **Borrador supervisado:** El texto generado se presenta en una pantalla de pre-informe con un editor de texto. El clínico puede tachar, matizar o añadir observaciones antes de firmar con el SignaturePad y compilar el PDF final con `pdf-lib`.
+La política de privacidad publicada está en [`site/privacidad.html`](./site/privacidad.html).
 
 ---
 
-## Arquitectura del Sistema
+## Arquitectura
 
-Estructura real del repositorio (React Native + TypeScript, `@/` → `src/`):
-
-```
-via/
-├── src/
-│   ├── Screens/                 # Una carpeta por pantalla (26 rutas en RootStackParamList)
-│   │   ├── Bienvenida · Creditos · PresentacionLua   # Acceso, identidad del proyecto y ficha de Lúa
-│   │   ├── SeleccionProfesional · RegistroProfesional
-│   │   ├── Pacientes · RegistroPaciente · Consentimiento
-│   │   ├── ClinicalAssessment · AutismScreening · RoomNoiseCheck
-│   │   ├── Audiometry · AudiometryConditioned · VerbalAudiometry
-│   │   ├── VoiceAnalysis · ProsodyAnalysis · AshaScreening
-│   │   ├── DiagnosticoAudio           # «Comprobar audio»: nombra el eslabón roto de la cadena
-│   │   ├── Articulation · DysphagiaTest
-│   │   │   ├── articulationResult      # Rejilla fonema × posición (columna castellana IBÉRICA)
-│   │   │   ├── articulationLexicon     # Los 86 ítems en es · es-DO · gl · eu (firmado)
-│   │   │   └── articulationPictograms  # Pictograma por ítem (dato, no vista: testeable)
-│   │   ├── SahsScreening · ExecutiveFunctions
-│   │   ├── SeleccionEjercicios                       # Hub de la batería + idioma de sesión
-│   │   └── ResultadosPreliminares · ResultadosFinal · HistorialPaciente
-│   │
-│   ├── Voice/                   # Capa de voz neuronal multi-idioma (7 variedades)
-│   │   ├── voiceCorpusId        # Contrato de id por hash de contenido (PURO, build+runtime)
-│   │   ├── viaVoiceCorpus       # Enumeración del corpus (consignas + bancos locutables)
-│   │   ├── viaVoiceAssets       # GENERADO: mapa id → asset empaquetado
-│   │   ├── viaVoice             # speak(): cadena de degradación elegante (asset → TTS → silencio)
-│   │   └── viaVoicePlayback     # Reproducción del recorte (react-native-audio-api)
-│   │
-│   ├── Audio/                   # AudioContext compartido (48 kHz) para toda la app
-│   ├── Lua/                     # Periférico de refuerzo BLE (proyecto de FrankBetances/Valeria)
-│   │   ├── protocol.json        # Fuente vendorizada del enlace (copia byte a byte)
-│   │   ├── luaProtocol          # GENERADO del .json: UUIDs, opcodes, límites, trama CTRL
-│   │   ├── luaWire              # Trama SAFE y desglose de STATE, leídos del firmware
-│   │   ├── luaAdapter           # Adaptador único + fachada no-op sin hardware
-│   │   ├── clinicalSilence      # SAFE al abrirse una captura (defensa en profundidad)
-│   │   ├── closingReward        # Única integración: recompensa en ResultadosFinal
-│   │   ├── useLua               # useLuaClosingReward() y useLuaDiagnostics()
-│   │   └── installLua           # Instalación conjunta: adaptador BLE + silencio clínico
-│   ├── Telemetry/               # Telemetría de usabilidad Zero-PHI (singleton + hook useRef)
-│   │   ├── telemetryStore       # Estado efímero fuera del árbol React
-│   │   ├── useTelemetryTracker  # Hook silencioso: solo useRef → cero re-render
-│   │   └── buildTelemetryPayload# JSON estricto {s,b,l,d,f} + compresión LZString
-│   │
-│   ├── Models/                  # Entidades TypeORM (Patient, Evaluation, *Test…)
-│   ├── Repositories/            # Repositorios singleton por entidad
-│   ├── Database/                # DataSource + driver nitro-sqlite + migraciones
-│   ├── Services/
-│   │   └── local/               # Servicios locales core + por módulo
-│   ├── PDF/                     # Plantillas, bloques y motor NLG de informes clínicos
-│   │   ├── nlgReportEngine.ts   # Motor NLG Determinista (reglas combinatorias locales)
-│   │   ├── blocks/              # Bloques modulares del informe (Asha, Audiometria, Voz...)
-│   │   ├── templates/           # Plantillas A4 estructuradas
-│   │   └── utils.ts             # Coordenadas y maquetación de pdf-lib
-│   ├── Store/                   # Redux Toolkit (auth · theme · locale · patient…)
-│   ├── Navigators/              # Native Stack + finishModule (salida de módulo)
-│   ├── Components/              # Common · Survey · Themed · Mascot (LuaPixel, copia con gate)
-│   ├── Startup/                 # Barrera de error + informe de arranque legible EN PANTALLA
-│   ├── I18n/                    # Catálogo de interfaz (7 variedades) — cableado y con gate
-│   │   ├── catalog              # tNow(): módulo PURO, sin React (PDF y scripts de Node)
-│   │   ├── index                # useT(): hook reactivo para las pantallas
-│   │   └── strings.<lang>       # Un catálogo por variedad (Record sin huecos: tsc lo exige)
-│   ├── Theme/                   # Tokens de diseño Gluestack
-│   │   ├── screenLayout         # Cortes de tamaño (móvil · apaisado · tableta) en UN sitio
-│   │   └── styleAtoms           # Átomos de estilo: los retoques que antes iban en línea
-│   └── Helpers/
-│
-├── assets/
-│   ├── audio/verbal/<lang>/     # Recortes de estímulo de la audiometría verbal
-│   ├── voice/<id>.m4a           # Corpus general de consignas locutadas
-│   ├── img/verbal/              # Ilustraciones de las láminas
-│   └── verbal-approval.*.json   # Actas de aprobación clínica por idioma
-│
-├── scripts/                     # Pipeline de voz + gates (protocolo y sprite de Lúa)
-├── tools/
-│   ├── nos/                     # Motor de voz neuronal (ILENIA · Proxecto Nós · AhoTTS · Piper)
-│   └── acoustics/               # Banco de validación del DSP contra Praat
-│
-├── android/ · ios-native/       # App Android (RN) y port nativo SwiftUI (parcial)
-├── site/                        # Sitio público + política de privacidad (GitHub Pages)
-└── docs/                        # Diseño, manual de usuario, capturas, gobernanza
-```
-
-### Modelo de Datos (Entidades Principales)
+React Native 0.81.5 con TypeScript y módulos Expo SDK 54 sobre flujo *bare*. Solo hay
+aplicación Android: el directorio `ios-native/` es un demostrador visual en SwiftUI, sin módulos
+clínicos.
 
 ```
-Professional ──── Session ──────── TestResult
-      │               │                  │
-      │               │             AudioCapture
-  Patient ── Consent ─┤
-      │           │   │
-      │           │   └── PreScreening (CAP)
-      └── CAP ────┘
+src/
+├── Screens/        Una carpeta por pantalla; la lógica clínica pura va en .ts con sus tests
+├── PDF/            Informe: plantilla, bloques por módulo, motor de síntesis y cortes clínicos
+├── Models/         Entidades TypeORM
+├── Repositories/   Acceso a la base local
+├── Database/       DataSource, lista de entidades y driver sobre react-native-nitro-sqlite
+├── Audio/          AudioContext compartido (react-native-audio-api)
+├── Voice/          Capa de voz: recortes empaquetados (expo-audio) y voz del sistema (expo-speech)
+├── I18n/           Catálogos de interfaz de las siete variedades
+├── Telemetry/      Telemetría de usabilidad sin datos del paciente
+├── Lua/            Periférico de refuerzo Lúa (BLE); sin hardware no hace nada
+├── Startup/        Barrera de error e informe de arranque
+├── Store/          Redux Toolkit
+├── Navigators/     Navegación y cierre de módulo
+├── Components/     Componentes comunes
+├── Theme/          Tokens de diseño
+└── Helpers/        Utilidades (contraseñas, cifrado, escritura con verificación…)
 ```
 
----
-
-## Flujo Clínico
-
-El siguiente flujo es **obligatorio** y no puede omitirse. Cada fase es un prerequisito de la siguiente.
-
-```
-[0] ACCESO PROFESIONAL
-      │  Autenticación del profesional sanitario
-      ▼
-[1] IDENTIFICACIÓN DEL PACIENTE
-      │  Búsqueda o alta del paciente pediátrico
-      ▼
-[2] CONSENTIMIENTO INFORMADO ⚠️ BLOQUEANTE
-      │  Firma digital del tutor legal (obligatoria)
-      │  → Sin CI válido: acceso denegado a evaluación
-      ▼
-[3] PRE-SCREENING CLÍNICO (CAP) ⚠️ BLOQUEANTE
-      │  Checklist médico: capacidad visual, motora, auditiva y cognitiva
-      │  → CAP NO APTO: bloqueo + sugerencia de metodologías alternativas
-      ▼
-[4] HUB DE LA BATERÍA (SeleccionEjercicios)
-      │  Idioma de la sesión (7 variedades) → interfaz, consignas y banco de estímulos
-      │  Acceso a «Comprobar audio» si alguna prueba no suena o no graba
-      │  Selección y orden de los módulos · estado del motor de voz (con reintento)
-      ▼
-[5] BATERÍA DE EVALUACIÓN GAMIFICADA
-      │  13 módulos adaptados al perfil del paciente (clínicos + gamificados)
-      │  Modo Niño: interfaz lúdica sin elementos clínicos visibles
-      │  Al guardar cada módulo, `finishModule` lleva a los resultados de la sesión
-      │  → Sin refuerzo del periférico Lúa en ninguna medición (ver §Lúa)
-      ▼
-[6] GENERACIÓN DE RESULTADOS Y SÍNTESIS NLG
-      │  Motor NLG determinista (src/PDF/nlgReportEngine.ts): síntesis por reglas
-      │  Borrador supervisado: pantalla de pre-informe con editor interactivo
-      │  Firma digital colegiada mediante SignaturePad propio
-      │  Compilación del informe PDF estructurado inmutable con pdf-lib
-      │  Datos clínicos persistidos localmente (SQLite; cifrado en reposo: objetivo F2)
-      │  Telemetría de usabilidad: Likert del clínico → QR anónimo (Zero-PHI)
-      │  Recompensa de Lúa (ResultadosFinal), ya con los datos sellados y solo si hay aparato
-      ▼
-[7] ARCHIVO Y SEGUIMIENTO
-         Historial de sesiones anteriores del paciente (HistorialPaciente),
-         accesible desde la lista de pacientes y desde el hub
-```
-
-### Pre-Screening — Checklist CAP
-
-El profesional certifica las condiciones **mínimas de viabilidad** en cuatro dominios antes de
-iniciar la evaluación (`clinicalAssessmentResult.ts`, lógica pura sin UI ni base de datos):
-
-| # | Dominio | Qué se registra |
-|---|---|---|
-| 1 | **Otoscopia** | Hallazgo por oído (Normal · Cerumen · OMA · OME · Perforación · DTT · Otro). Cerumen, OMA y perforación **bloquean la audiometría de ese oído** |
-| 2 | **Visual** (V-01…V-04) | Fija la mirada, distingue dos imágenes, señala en pantalla, sin nistagmo marcado |
-| 3 | **Verbal** (VB-…) | Ítems **por grupo de edad** A (18 m–2 a 11 m) · B (3–4 a 11 m) · C (5 años y mayores), del «responde a su nombre» a la comprensión de instrucciones tras demostración |
-| 4 | **Motora fina** (M-01…M-04) | Tap en objetivo ≥ 4 cm, dos objetivos distintos, arrastre ≥ 3 cm, sin movimientos involuntarios severos |
-
-El veredicto no es binario: cada dominio queda en `ok`/`warn`/`block` y el resultado global es
-**`FULL`, `PARTIAL` o `BLOCKED`**, que es lo que habilita o bloquea cada prueba de la batería. Un
-CAP `PARTIAL` no cierra la sesión: cierra las pruebas que ese hallazgo invalida.
-
----
-
-## Idiomas y Voz Neuronal
-
-VIA+ se aplica en **siete lenguas o variantes de sesión** (`SESSION_LANGS`). El idioma se elige en
-el hub de la batería (`SeleccionEjercicios`), se **persiste** en `state.locale.language` (whitelist
-de `redux-persist`) y determina tres cosas distintas: la **interfaz** (catálogo de `src/I18n/`), el
-**banco de estímulos** (contenido clínico) y la **voz** que locuta (consignas y modelos hablados).
-
-Las cuatro primeras están completas. Las tres últimas entraron en agosto de 2026 con la rama
-`mejora2` y **no** están al mismo nivel: conviene leer la tabla por columnas antes de ofrecerlas en
-consulta.
-
-| Lengua | Interfaz | Banco verbal | Corpus locutado | Estado clínico |
-|---|---|---|---|---|
-| **es** — Español (España) | ✅ catálogo | Base: 38 láminas, bandas A–D | ✅ 97 entradas | 🟢 Audio aprobado por **ACOPROS** (2026-07-31, receta `sharvard`) |
-| **gl** — Galego | ✅ catálogo | Banco propio, 38 láminas (Proxecto Nós) | ✅ 97 entradas · voz Celtia | 🟢 Banco y audio aprobados por **ACOPROS** |
-| **eu** — Euskara | ✅ catálogo | Banco propio, 37 láminas (sibilantes, vibrante múltiple, diptongos decrecientes) | ✅ 97 entradas · voz AhoTTS Maider | 🟢 Firmado por la logopeda euskaldun de **Ulertuz** (2026-07-31) |
-| **es-DO** — Español dominicano · *Quisqueya Habla* | ✅ catálogo | Hereda el banco `es` con auditoría fonética caribeña (hoy **0 sustituciones firmadas**) | ✅ 97 entradas | 🟢 Audio aprobado por **Quisqueya Habla** (2026-08-31) |
-| **ca** — Català | ✅ catálogo | ⚠️ **Prestado**: se le presentan las palabras castellanas, locutadas con voz castellana | 🟡 11 entradas de consigna (sin T.A.R.) · voz Matxa-TTS | 🟡 Voz firmada por **María** (otorrinolaringóloga catalana, 2026-08-31); el banco sigue prestado |
-| **es-419** — Español (Latinoamérica) | ✅ catálogo | Hereda el banco `es` · 37/37 recortes propios | 🟡 11 entradas de consigna (sin T.A.R.) | 🟢 Audio aprobado por **Quisqueya Habla** (2026-08-31) |
-| **en** — English (US) | ✅ catálogo | ⚠️ **Prestado**: se le presentan las palabras castellanas, locutadas con voz castellana | 🟡 11 entradas de consigna (sin T.A.R.) · voz Piper LJSpeech | 🟡 Voz firmada por **Miguelina** (2026-08-31); el banco sigue prestado |
-
-> **Banco prestado no es lo mismo que banco provisional, y la pantalla lo distingue.** A `ca` y `en`
-> se les presenta el banco castellano —que sí está firmado—: lo que no está validado es
-> presentárselo *a ellos*. Por eso la audiometría verbal les advierte del **préstamo**
-> (`usesBorrowedBank`) y **locuta esas palabras con la voz castellana** (`verbalStimulusLang`), en
-> vez de hacer que una voz inglesa lea palabras españolas, que es lo que hacía la primera versión de
-> esa rama: 37 recortes fabricados así hubo que tirarlos.
->
-> El aviso de «banco provisional» y el de «estímulo no definitivo» se muestran **en la pantalla
-> donde se elige el idioma**, no enterrados en la documentación. La audiometría verbal además
-> **sanea** el idioma recibido (`resolveVerbalLang`): un valor persistido de una versión anterior
-> degrada a castellano en vez de tumbar la pantalla.
-
-<!-- Separador: dos notas independientes, no una continuación. -->
-
-> **Una firma de VOZ no es una firma de BANCO, y en `ca` y `en` solo hay la primera.** María y
-> Miguelina avalan la voz con la que se dictan sus **consignas** (11 entradas del corpus). No avalan
-> —porque no se les preguntó eso— presentar a un niño catalán o inglés las palabras castellanas, que
-> es lo que hoy hace la audiometría verbal en esas dos lenguas. Por eso siguen en
-> `VERBAL_BANK_PROVISIONAL`, su acta vive en `tools/nos/voices.json` y **no existe**
-> `assets/verbal-approval.ca.json`: crear ese registro dejaría firmadas por adelantado unas
-> locuciones verbales que no existen todavía. Hay una prueba que lo impide.
-
-Cobertura de recortes del banco verbal, tal como la informa `node scripts/check-verbal-coverage.js`
-(ejecutado el 31/8/2026):
-
-```
-  ✓ es      37/37        ✓ es-DO   37/37
-  ✓ gl      37/37        ✓ es-419  37/37
-  ✓ eu      32/32        · ca / en  —     (banco PRESTADO de 'es')
-```
-
-### La interfaz también se traduce (agosto 2026)
-
-Hasta agosto de 2026 la app se pintaba **entera con literales castellanos**: `src/I18n/` era una
-capa i18next «preparada, no cableada» —catálogos JSON, dependencias declaradas y un `initI18n()` que
-no llamaba nadie— y el selector de idioma no podía cambiar ni un rótulo. Con siete lenguas de sesión
-encima, eso dejaba de ser un detalle.
-
-Se sustituyó por el **patrón de Valeria+** (regla 1: se copia lo demostrado, no se inventa):
-
-| Pieza | Qué hace |
+| Función | Motor |
 |---|---|
-| `src/I18n/catalog.ts` | Módulo **puro**, sin React: `tNow()` para los bloques del PDF y los scripts de Node |
-| `src/I18n/index.ts` | `useT()` para las pantallas — `useSyncExternalStore`, así que cambiar el idioma en Créditos repinta la app entera sin reiniciar |
-| `src/I18n/strings.<lang>.ts` | Un catálogo por variedad; `Record<UiLang, UiStrings>` no admite huecos, así que dar de alta una lengua sin escribir su catálogo **rompe `tsc`** |
-| `scripts/check-ui-strings.js` | La puerta: ningún `.tsx` puede pintar texto literal. Excepción con `// i18n-exempt: motivo`, y **el motivo es obligatorio** |
+| Voz del sistema | `expo-speech` |
+| Reconocimiento de voz (T.A.R.) | `expo-speech-recognition`, solo en el dispositivo |
+| Locuciones empaquetadas | `expo-audio` |
+| Tonos de audiometría y captura de audio | `react-native-audio-api` |
+| Base de datos | TypeORM sobre `react-native-nitro-sqlite` |
+| Informes | `pdf-lib` |
 
-El acceso es por **propiedad** (`t.credits.navTitle`), no por clave de texto: una clave inexistente
-la caza el compilador, no el QA. `i18next` y `react-i18next` salieron del `package.json` — una
-dependencia que nadie importa no es inofensiva.
+`CLAUDE.md` explica por qué se usa cada motor y qué no se debe cambiar.
 
-### Principio rector: cero IA en el dispositivo
+---
 
-Los modelos neuronales de síntesis **solo se ejecutan en build-time** (`tools/nos/`). En runtime la
-app únicamente **reproduce ficheros ya empaquetados** o cae a la voz del sistema operativo. VIA+
-sigue siendo offline-first y no incorpora inferencia de IA como parte del dispositivo médico.
+## Desarrollo
 
-| Lengua | Motor (build-time) | Voz | Proyecto | Firma clínica |
-|---|---|---|---|---|
-| `es` | Piper (VITS/ONNX) | `es_ES-sharvard-medium` (`lengthScale` 1.1) | rhasspy/piper-voices | 🟢 ACOPROS |
-| `gl` | Coqui TTS (VITS grafemas) | **Celtia** | **Proxecto Nós / ILENIA** | 🟢 ACOPROS |
-| `eu` | **AhoTTS** (VITS + frontend vasco) | **Maider** (respaldo Antton) | **HiTZ/Aholab · UPV/EHU** (ILENIA / NEL-GAITU) | 🟢 Ulertuz |
-| `es-DO` | Piper (VITS/ONNX) | `es_MX-claude-high` (neutra LatAm) | rhasspy/piper-voices | 🟢 Quisqueya Habla |
-| `ca` | **Matxa-TTS** | `matxa-tts-cat-multiaccent` | **Projecte AINA / BSC** | 🟢 María (ORL catalana) · solo consignas |
-| `es-419` | Piper (VITS/ONNX) | `es_MX-claude-high` (la misma neutra LatAm) | rhasspy/piper-voices | 🟢 Quisqueya Habla |
-| `en` | Piper (VITS/ONNX) | `en_US-ljspeech-high` | rhasspy/piper-voices | 🟢 Miguelina · solo consignas |
-
-> La voz **neural es la vía por defecto de todos los idiomas**, castellano incluido.
-> `VERBAL_TTS=espeak` queda solo como degradación explícita para entornos sin acceso a los pesos
-> (y no cubre `gl` ni `eu`). Las voces están declaradas en `tools/nos/voices.json`; los `lengthScale`
-> son parámetros **de la voz**, no del banco. El castellano usó `es_ES-davefx-medium` y hubo que
-> retirarlo: desplomaba los monosílabos («pan» 116 ms frente a los 386 ms de es-DO) y ni realentizarlo
-> recorte a recorte lo levantaba hasta el suelo de 350 ms. Ahora usa **sharvard**, la voz castellana de
-> referencia de Valeria+, de donde ya venían las otras tres.
-
-### Contrato del corpus de voz
-
-```
-id = [${lang}_]${style}_${fnv1a32(normalize(text))}_${len}
-```
-
-- **`style`** ∈ `tutor | child | clinical | slow` — la prosodia se **hornea** en el audio.
-- **`lang`** ∈ `es | gl | eu | ca | es-419 | es-DO | en` (`VOICE_LANGS`) — la base `es` no lleva
-  prefijo (retro-compat de assets).
-- La **misma función** calcula el id en build y en runtime (`src/Voice/voiceCorpusId.ts`, módulo
-  puro). Si un literal cambia en el código, cambia su id, el mapa deja de resolver y la locución
-  **cae limpiamente a la voz del sistema**: la deriva degrada calidad, nunca rompe.
-
-**Cadena de degradación de `speak()`:** asset neuronal de la lengua → asset neuronal base `es` →
-voz del sistema con la mejor voz verificada de esa lengua → silencio (el clínico lee la consigna).
-
-#### Estado en dispositivo: las cuatro vías de salida suenan (3/9/2026)
-
-Durante varios ciclos de desarrollo VIA+ estuvo **muda en el emulador de Android Studio**, en el
-mismo emulador donde Valeria+ locutaba con voz neuronal. La causa era la elección de la voz del
-sistema, no la síntesis: VIA+ puntuaba las voces con la bandera `networkConnectionRequired`, que
-`expo-speech` **no entrega nunca** (`VoiceRecord.kt` declara `identifier`, `name`, `quality` y
-`language`, y nada más). El bonus de «voz local» no se aplicaba jamás y ganaba siempre la voz
-`-network` de Google, que se sintetiza en servidor: sin cobertura —el caso normal en un emulador—
-Android emite `onError` y no sale nada. Arreglado el 25/8/2026 leyendo el **id** de la voz, como
-hace Valeria+.
-
-**Confirmado en el emulador por Frank el 27/8/2026: la app habla.** Y el **3/9/2026**, tras el
-episodio de un build que salió mudo, Frank confirma en el emulador que **las cuatro escuchas de
-«Comprobar audio» suenan**. Eso cubre los tres motores de salida, no uno:
-
-| Vía de salida | Motor | Escucha | Estado |
-|---|---|---|---|
-| Locución de consignas y modelos hablados | `expo-speech` | `tts-heard` | 🟢 **Confirmada en dispositivo** (27/8 y 3/9/2026) |
-| Recortes empaquetados del banco verbal | `expo-audio` | `voice-bank-heard` | 🟢 **Confirmada en dispositivo** (3/9/2026) |
-| Estímulo de la audiometría verbal (base64 → `BufferSource`) | `react-native-audio-api` | `verbal-clip-heard` | 🟢 **Confirmada en dispositivo** (3/9/2026) |
-| Tonos de audiometría (osciladores) | `react-native-audio-api` | `tone` | 🟢 **Confirmada en dispositivo** (3/9/2026) |
-
-Quien contesta esas cuatro es el profesional, no la máquina: la pantalla emite una por una y **no
-dice «todo funciona» mientras falte alguna** —dice `SALIDA NO COMPROBADA` y cuántas quedan—, porque
-enumerar el catálogo de voces no es emitir y ninguna bandera del motor sustituye a un oído.
-
-Lo que esta confirmación **no** cubre: es una corrida de la pantalla de diagnóstico, no un recorrido
-de los trece módulos clínicos en dispositivo, que sigue abierto. Y la causa raíz del build mudo del
-2/9/2026 **no llegó a aislarse** —entre el binario mudo y el que suena entraron a la vez el arreglo
-del motor de audio y dos cambios de CI del NDK—, así que no se le atribuye a ninguno de los dos.
-
-### Corpus general y pipeline
-
-El corpus enumerable actual tiene **421 entradas** (`voice-corpus.json`), repartidas de forma
-deliberadamente desigual:
-
-| Lenguas | Entradas | Qué incluye |
-|---|---|---|
-| `es` · `gl` · `eu` · `es-DO` | 97 cada una | Los 86 modelos hablados del T.A.R. + las 9 consignas de Funciones Ejecutivas (5 de dominio + 4 de norma) + las 2 de prosodia |
-| `ca` · `es-419` · `en` | 11 cada una | Solo las consignas (Funciones Ejecutivas + prosodia). **Sin T.A.R.**: la rejilla fonémica de esas lenguas no está diseñada |
-
-El inventario del T.A.R. se **deriva de `buildArticulationItems()`** —la misma función que dicta la
-pantalla—, así que corpus e inventario no pueden divergir.
-
-Las cuatro lenguas completas tienen **contenido propio**, no relleno: `gl` y `eu` dejaron de
-reutilizar el recorte castellano, que era la promesa incumplida —se elegía la lengua y el estímulo
-seguía saliendo en castellano—. El T.A.R. no se traduce, porque es una rejilla FONEMA × POSICIÓN y traducir destruye
-la casilla (*Llave* → *Chave* cambia /ʎ/ por /tʃ/): cada variedad tiene su propio portador del
-fonema en `articulationLexicon`, con las desviaciones documentadas ítem a ítem.
-
-La columna castellana es **ibérica**. El T.A.R. de origen es chileno y su léxico llegaba con
-americanismos que un niño peninsular no reconoce (*poroto*, *pasto*, *auto*) y con referentes
-locales sin equivalente (*diuca*, *carabinero*); «guagua» remataba el cuadro, porque es bebé en
-Chile, autobús en República Dominicana y nada en España. El inventario tampoco nombra ya ninguna
-arma: *ametralladora* y *flecha* salieron del banco y del pictograma.
+Requisitos: Node.js 20, Android Studio con el SDK de Android y, solo para preparar voces o
+validar la acústica, Python 3.11 y ffmpeg.
 
 ```bash
-node scripts/export-voice-corpus.js      # corpus puro → voice-corpus.json (valida colisiones)
-node scripts/synthesize-voice-corpus.js  # síntesis incremental → assets/voice/<id>.m4a
-node scripts/build-voice-asset-map.js    # assets presentes → src/Voice/viaVoiceAssets.ts
-node scripts/verbal-assets.js            # recortes de la audiometría verbal por idioma
-node scripts/check-verbal-coverage.js    # puerta de cobertura de locuciones (usada en release)
-node scripts/check-ui-strings.js         # puerta de i18n: ningún .tsx pinta texto literal
+npm ci --legacy-peer-deps     # la misma orden que el CI
+npm start                     # servidor Metro
+npm run android               # compilar e instalar en Android
 ```
 
-Documentos de diseño: [`arquitectura-corpus-voz.md`](./docs/design/arquitectura-corpus-voz.md) ·
-[`integracion-proxecto-nos.md`](./docs/design/integracion-proxecto-nos.md) (gallego) ·
-[`integracion-quisqueya-habla.md`](./docs/design/integracion-quisqueya-habla.md) (dominicano) ·
-[`validacion-clinica-verbal.md`](./docs/design/validacion-clinica-verbal.md).
+**Gates obligatorios antes de subir cambios**, en este orden:
+
+```bash
+npx tsc --noEmit
+npx jest
+npx eslint . --ext .js,.jsx,.ts,.tsx           # cero errores y cero avisos
+node scripts/check-verbal-coverage.js --strict
+node scripts/check-lua-sprite.js
+node scripts/build-launcher-icons.js --check
+node scripts/resize-verbal-images.js --check
+node scripts/build-lua-protocol.js --check
+node scripts/check-ui-strings.js
+npm run lint:md
+```
+
+- Un cambio de texto **locutado** lleva `node scripts/export-voice-corpus.js` y
+  `node scripts/build-voice-asset-map.js` en el mismo commit.
+- **Antes de tocar el código, lee `CLAUDE.md`**: recoge las reglas de trabajo del repositorio.
 
 ---
 
-## Privacidad y Datos
+## Automatización
 
-VIA+ implementa un modelo de **privacidad por diseño** (Privacy by Design, GDPR Art. 25):
-
-### Dónde vive cada dato
-
-| Dato | Ubicación | Sale del dispositivo |
-|---|---|---|
-| Evaluaciones, umbrales, puntuaciones | SQLite local (`viaplus.db`) | ❌ Nunca |
-| Grabaciones y capturas de audio/vídeo | Almacenamiento local del dispositivo | ❌ Nunca |
-| Informes PDF | Generados en el dispositivo | Solo si el clínico los comparte |
-| Identidad del profesional (correo, ficha, contraseña) | SQLite local; contraseña como PBKDF2-SHA256 con sal | ❌ Nunca |
-| Telemetría de usabilidad | Memoria (singleton efímero) | Solo si el clínico exporta el QR |
-
-> **Sin nube.** Desde el 2/11/2026 VIA+ no usa Firebase ni ningún otro servicio remoto: ni
-> los datos clínicos ni la cuenta del profesional salen del dispositivo.
-
-La política de privacidad publicada (obligatoria para la ficha de Google Play) es la
-**declaración pública** de todo esto: [`site/privacidad.html`](./site/privacidad.html).
-
-### Seudonimización
-
-El esquema de `Patient` separa la **referencia seudonimizada** del dato clínico: `idHash`
-(referencia derivada del NHC) y columnas `nameEnc` / `dobEnc` para los identificadores directos.
-Las sesiones y los resultados apuntan a la fila del paciente, no al NHC.
-
-> ⚠️ **Estado real de la implementación.** El esquema está modelado, pero la **capa de seguridad
-> que aplica el HMAC-SHA256 y el AES-256-GCM aún no está implementada**: hoy el nombre y la fecha
-> de nacimiento se guardan **en claro** en las columnas `*Enc` (ver la nota en
-> `src/Models/Patient/Patient.ts` y en `RegistroPacienteScreen.tsx`). Mientras eso sea así, la
-> garantía de confidencialidad la aporta el **cifrado del propio dispositivo**, que el centro debe
-> activar. No se afirma cifrado en reposo en la política publicada precisamente por esto.
-
-### Controles de Seguridad
-
-| Control | Estándar | Implementación | Estado |
-|---|---|---|---|
-| Datos clínicos sin salida a la nube | GDPR Art. 25 | Persistencia solo local; la app no tiene servicio remoto | 🟢 Implementado |
-| Aislamiento de la telemetría | IEC 62366-1 | Singleton en memoria, Zero-PHI | 🟢 Implementado |
-| Consentimiento informado bloqueante | GDPR / LOPDGDD | Firma del tutor previa a la evaluación | 🟢 Implementado |
-| Cifrado en reposo | SQLCipher o equivalente + clave en Keystore | Objetivo F2 del plan; hoy `viaplus.db` no está cifrada | 🔴 Planificado |
-| Aislamiento Kiosk y firmware congelado | Samsung Knox Configure (MDCG 2019-16) | Perfil Knox de una sola app, sin tienda ni depuración, ajustes bloqueados | 🟢 Especificación homologada |
-| Seudonimización efectiva | GDPR Art. 4(5) | Esquema listo; HMAC/AES sin cablear | 🔴 Pendiente |
-| Control de acceso | RBAC | Roles: Médico, Logopeda, Psicopedagogo, Enfermero | 🟡 Parcial |
-| Auditoría | IEC 62304 | Log inmutable de eventos clínicos y de acceso | 🔴 Pendiente |
-| Borrado seguro | LOPDGDD | Eliminación verificable al revocar consentimiento | 🔴 Pendiente |
-| Custodia de claves por hardware | Android Keystore / Knox Vault | Clave de la base en el almacén respaldado por hardware del modelo único | 🔴 Planificado (F2 del [plan](./docs/PLAN-DE-TRABAJO.md)) |
-| Quiosco y firmware congelado | MDCG 2019-16 (ciberseguridad) | Perfil Knox de una sola app, sin tienda ni depuración, actualizaciones controladas | 🔴 Planificado (F3) |
-
-> **Permisos que conviene no maquillar.** El permiso de **ubicación** existe únicamente para poder
-> escanear el pulsioxímetro BLE en Android ≤ 11 (`maxSdkVersion=30`, y en Android 12+ el escaneo va
-> con `BLUETOOTH_SCAN … neverForLocation`): VIA+ **no geolocaliza**. El **reconocimiento de voz** del
-> T.A.R. lo realiza el motor del sistema operativo, que según el dispositivo puede procesar el audio
-> en la nube de su proveedor; la prueba puede aplicarse sin él (SODA manual).
-
----
-
-## Telemetría de Usabilidad (Zero-PHI)
-
-VIA+ registra la **fricción de uso** de la batería y la **percepción del profesional** para
-alimentar la ingeniería de usabilidad (**IEC 62366-1**) con datos de campo, **sin comprometer
-la privacidad del paciente**. Al cerrar la batería, el payload se exporta en un **código QR
-anónimo** que el clínico o el evaluador de usabilidad captura con otro dispositivo.
-
-### Garantía Zero-PHI
-
-| Propiedad | Implementación |
+| Workflow | Qué hace |
 |---|---|
-| **Sin datos del paciente** | El payload no contiene NHC, nombre, ni el `id` clínico. Nada reidentifica al paciente |
-| **`sessionId` no reversible** | 8 caracteres aleatorios (base36), **no** derivado del NHC ni del `id` |
-| **Efímero, en memoria** | Vive en un singleton de módulo; **nunca** toca la red, SQLite ni `redux-persist` |
-| **Aislado de lo clínico** | La captura de telemetría es independiente de las entidades y repositorios clínicos |
+| `android-release.yml` | Compila y firma APK y AAB. Solo publica los ficheros si se lanza a mano o con una etiqueta `v*`; un push a `main` compila sin publicar |
+| `voice-assets.yml` | Sintetiza las locuciones de los siete idiomas en ramas de trabajo |
+| `acoustic-validation.yml` | Contrasta el análisis acústico con Praat sobre señales sintéticas |
+| `markdown-lint.yml` | Ejecuta `npm run lint:md` |
+| `codeql.yml` | Análisis estático de seguridad |
+| `pages.yml` | Publica el sitio público y la política de privacidad |
 
-### Arquitectura
-
-- **Store singleton (`src/Telemetry/telemetryStore.ts`)** — El estado vive **fuera del árbol
-  React**, porque las 9 pruebas son rutas hermanas del *native-stack* (sin contenedor que las
-  envuelva); un `useRef`/`useState` de pantalla se perdería al desmontarse. El singleton
-  sobrevive a toda la navegación hasta la pantalla de cierre. `startSession()` reinicia el
-  estado (sin sesión zombie entre pacientes).
-- **Hook silencioso (`useTelemetryTracker`)** — Solo `useRef`, **cero `useState`** → **cero
-  re-render** provocado por la telemetría (rendimiento innegociable en dispositivos de gama
-  baja). Inyectado en el hub de la batería (`SeleccionEjercicios`) y en las 9 pantallas de
-  módulo.
-- **Claves de reactivo con *namespace* por módulo** (`art-`, `aut-`, `sah-`, `aud-`, `auc-`,
-  `ver-`, `ef-`, `voz-`, `dis-`) — Toda la batería comparte una única sesión; el prefijo evita
-  que el ítem 1 de un cuestionario colisione con el ítem 1 de otro.
-
-### Formato del payload y compresión
-
-JSON estricto con **claves de un solo carácter** y **arrays anónimos** para minimizar bytes:
-
-```jsonc
-{
-  "s": "AB12CD34",   // sessionId Zero-PHI (8 chars)
-  "b": "e7",         // ID de batería: bitmask base36 de los módulos elegidos
-  "l": 4,            // Likert 1–5 (percepción de facilidad de uso)
-  "d": 842000,       // duración total de la batería (ms)
-  "f": [[1, 3200, 0], [2, 1500, 1]]  // [id_ordinal, tiempo_ms, rectificaciones] por reactivo
-}
-```
-
-- **Compresión:** `LZString.compressToEncodedURIComponent` (ASCII URL-safe, 1 byte/char en el
-  QR). A escala de batería reduce **~32 %** frente al JSON crudo y **~49 %** frente a Base64
-  (Base64 no comprime: infla +33 %).
-- **QR:** `react-native-qrcode-svg` con **`ecl='Q'` (25 % de recuperación)** — óptimo medido
-  entre tolerancia a arañazos de pantalla y densidad de módulos legible por cámaras de baja
-  resolución.
-- **Bloqueo del Likert:** el QR **no se revela** hasta que el clínico marca la escala Likert
-  (1 = «Muy difícil» → 5 = «Muy fácil»), para mitigar la caída de tasa de respuesta por fatiga
-  al terminar la evaluación.
-
-### Cobertura de instrumentación (11 de los 13 módulos)
-
-Cada módulo emite eventos con su granularidad natural (tiempo = respuesta; 2.ª+ clasificación
-= rectificación):
-
-| Módulo | Reactivo | Cierre |
-|---|---|---|
-| Autismo M-CHAT-R · SAHS | ítem del cuestionario | respuesta Sí/No |
-| Audiometría · Condicionada | umbral (oído+frecuencia / campo libre) | umbral confirmado |
-| Audiometría Verbal | lámina (nivel dB + índice) | selección de tarjeta |
-| Funciones Ejecutivas | mini-juego (5 dominios) | fin del juego |
-| Análisis de Voz | toma de captura + 5 dimensiones GRBAS | análisis / puntuación GRBAS |
-| Disfagia MECV-V | bolo (viscosidad × volumen) | avance de bolo |
-| Articulación · T.A.R. | ítem (fonema) | clasificación SODA |
-| Análisis Prosódico | toma de habla conectada | análisis de la muestra |
-| Cribado de Hitos ASHA | hito contestado (+ banda de edad y aceptación del modal ISO 14971) | envío del cribado |
-
-> Los «Sí/No» de las audiometrías son el *bracketing* de Hughson-Westlake (protocolo), **no**
-> fricción; por eso esos módulos miden por umbral confirmado, no por pulsación.
->
-> **Los dos módulos que faltan y por qué.** La Evaluación Clínica Previa (CAP) y el Sonómetro
-> Ambiental no emiten telemetría: son puertas de prerrequisito, no reactivos de la batería. Que no
-> estén instrumentados es una decisión, no un olvido — pero tampoco está medida su fricción, y en el
-> caso del CAP hablamos del primer formulario que el clínico rellena en cada sesión.
+Que el análisis acústico coincida con Praat sobre señales sintéticas prueba que el cálculo es
+correcto. No prueba que la medida sea válida sobre la voz real de un niño.
 
 ---
 
-## Stack Tecnológico
+## Documentación
 
-| Capa | Tecnología | Justificación |
-|---|---|---|
-| **Dispositivo Homologado (COTS)** | Samsung Galaxy Tab S9 (11", IP68, AKG, Snapdragon 8 Gen 2, 8 GB RAM) | Hardware de referencia único llave en mano; 48 kHz PCM + LPC orden 20 a 60 fps estables |
-| **Capa de Control / Kiosk** | Samsung Knox Configure / Headwind MDM | Aislamiento Kiosk: app única, arranque directo, ajustes, USB y Play Store bloqueados |
-| **Frontend / App** | React Native 0.81.5 · TypeScript 5.4.5 | Entorno único homologado para tableta; arquitectura modular por pantalla |
-| **UI / Design system** | Gluestack UI v1 + `lucide-react-native` | Sistema de diseño consistente, tokens propios (`Theme/gluestack-ui.config.ts`) |
-| **Estado** | Redux Toolkit + redux-persist | Estado global offline-first (whitelist `theme`, `locale`) |
-| **Persistencia local** | TypeORM 0.3.x + `react-native-nitro-sqlite` (SQLite) | Offline-first; `synchronize: true`; driver propio síncrono; repositorios singleton |
-| **Preferencias del dispositivo** | `@react-native-async-storage/async-storage` | Calibración de campo del sonómetro (propiedad del terminal, no de la sesión) |
-| **Navegación** | React Navigation v7 (Native Stack + Bottom Tabs) | Flujo Home → Paciente → Evaluación → Módulo → Resultado |
-| **Formularios** | react-hook-form + Yup | Validación de cuestionarios y formularios clínicos |
-| **Síntesis de tono + DSP de audio** | `react-native-audio-api` (Software Mansion, sobre Oboe en Android) | Tonos puros (audiometrías) y captura/análisis PCM (voz y sonómetro), sobre un **único `AudioContext` compartido a 48 kHz** (`src/Audio`) |
-| **Captura de nivel sonoro** | `react-native-audio-api` (`AudioRecorder`) | Sonómetro Ambiental: ponderación **A con estado** (IEC 61672) → **LAeq** + percentiles L10/L90 |
-| **Capa de voz de la app** | `src/Voice` sobre `expo-speech` (síntesis) + `expo-audio` (recortes `.m4a`) | Un solo motor de voz para toda la app: recorte neuronal → recorte base `es` → voz del sistema → silencio |
-| **Reconocimiento de voz (T.A.R.)** | `expo-speech-recognition` | Articulación T.A.R.: el reconocedor arranca con la etiqueta de la lengua y reintenta con la base. Trae `requiresOnDeviceRecognition` de serie, que es lo que sostiene el Zero-PHI sin parches nativos |
-| **Permisos runtime** | `react-native-permissions` | Micrófono y Bluetooth (escaneo + conexión), unificados Android/iOS. La app **no declara permiso de cámara** |
-| **Pulsioximetría BLE** | `react-native-ble-plx` (perfil Pulse Oximeter 0x1822) | Test de Disfagia MECV-V |
-| **Periférico de refuerzo BLE** | `react-native-ble-plx` sobre el GATT de Lúa (`src/Lua`) | Recompensa al cerrar la sesión y silencio clínico; **comparte el mismo `BleManager`** que el pulsioxímetro, ver [Lúa](#lúa-periférico-de-refuerzo) |
-| **Firma digital** | `SignaturePad` propio (`react-native-svg` + `PanResponder`) | Consentimiento informado y cierre firmado del análisis de voz; sin dependencia externa de firma |
-| **Generación de informes y síntesis** | `pdf-lib` + Motor NLG Determinista (`src/PDF/nlgReportEngine.ts`) | Síntesis por reglas sin generación estocástica (cada frase, trazable a su regla) + borrador editable |
-| **Telemetría de usabilidad** | `lz-string` · `react-native-qrcode-svg` (sobre `react-native-svg`) | Compresión extrema del payload Zero-PHI + código QR de cierre de batería |
-| **Cifrado en tránsito** | TLS 1.3 | Obligatorio por GDPR para datos sanitarios |
-| **Cifrado en reposo** | Objetivo de la fase F2 (`docs/PLAN-DE-TRABAJO.md`) | **No implementado**: hoy `viaplus.db` no está cifrada |
-| **Autenticación** | Contraseña local (`src/Helpers/passwordHash.ts`, PBKDF2-SHA256) + `authSlice` (Redux, en memoria) | Verificación en el dispositivo, sin red |
-| **Sincronización HCE** | HL7 FHIR R4 REST API | Interoperabilidad con sistemas hospitalarios *(roadmap)* |
-| **Voz neuronal (build-time)** | Piper · Coqui TTS (Celtia) · AhoTTS (Maider) · Matxa-TTS (AINA) + ffmpeg | Síntesis de los recortes fuera del dispositivo; ver [Idiomas y Voz Neuronal](#idiomas-y-voz-neuronal) |
-| **i18n de interfaz** | Catálogo propio en `src/I18n/` (`useT()` en pantallas, `tNow()` en módulos puros) | **Porte de Valeria+**: acceso por propiedad, no por clave de texto, así que una clave mal escrita la caza `tsc`. Siete catálogos (es · gl · eu · ca · es-419 · es-DO · en) y cambio de idioma en caliente sin reiniciar. `i18next` y `react-i18next` se **retiraron**: estaban declarados y no los importaba nadie |
-| **Diagnóstico de fallos** | `@/Startup` (barrera de error + informe en pantalla) · pantalla **Comprobar audio** | Sustituyen al `console.warn`, que en un APK de release no lo ve nadie. `@sentry/react-native` se **retiró**: estaba declarado, se autolinkaba y compilaba, y ningún fichero de `src/` lo importaba |
-
----
-
-## Instalación y Configuración
-
-> ⚠️ **Este software está destinado exclusivamente a instalaciones autorizadas bajo Acuerdo de Licencia vigente con Earlify Health.**
-
-### Prerrequisitos
-
-```
-Node.js >= 18.x            (20.x en CI)
-npm >= 9.x  o  yarn >= 1.22.x
-React Native 0.81.5 (CLI @react-native-community/cli) · módulos Expo instalados sobre flujo bare
-Xcode >= 15 (para iOS)
-Android Studio >= 2023.x (para Android) · AGP 8 (namespace en build.gradle)
-Python 3.11 + ffmpeg      (solo para las herramientas de build-time: voz y acústica)
-```
-
-### Instalación de dependencias
-
-```bash
-# Clonar el repositorio (requiere acceso autorizado)
-git clone https://github.com/FrankBetances/via.git
-cd via
-
-# Instalar dependencias (la misma orden que usa el CI)
-npm ci --legacy-peer-deps
-```
-
-### Sin servicios remotos
-
-VIA+ no usa Firebase desde el 2/11/2026 ni necesita ningún fichero de configuración de un
-servicio en la nube (`google-services.json` y similares ya no existen en el proyecto). El
-perfil del profesional y su contraseña viven en la base de datos local.
-
-> ⚠️ **Identificador del paquete.** La app Android está registrada como **`eu.futureforkids.via`**
-> (el identificador exigido por Play Console).
-
-### Configuración de la aplicación
-
-La app **no lee variables de entorno**: no hay `.env` ni `react-native-config` en el proyecto. Los
-parámetros técnicos son constantes en el código, documentadas en su módulo:
-
-| Parámetro | Dónde se define | Valor |
-|---|---|---|
-| Frecuencia de muestreo de audio | `src/Audio/sharedAudioContext.ts` | 48 000 Hz (`AUDIO_SAMPLE_RATE`) |
-| Umbral de ruido de sala | `src/Screens/RoomNoiseCheck/` | 45 dB(A) por defecto |
-| Referencia dBFS → dB SPL | `src/Screens/RoomNoiseCheck/noiseDsp.ts` | 105 dB(A) SPL a fondo de escala |
-| Calibración de campo del sonómetro | AsyncStorage (`via.noise.calibrationOffsetDb`) | La fija el clínico contra un sonómetro patrón. **Con el dispositivo llave en mano pasará a valor de fábrica** y la pantalla, de ajustar a verificar (F4 del [plan](./docs/PLAN-DE-TRABAJO.md)) |
-| Idioma de la sesión | Redux `state.locale.language` (persistido) | `es` por defecto |
-
-### Ejecución en desarrollo
-
-```bash
-# Servidor Metro
-npm start
-
-# Android
-npm run android
-```
-
-> ⚠️ **iOS.** `npm run ios` **no funciona todavía**: la app React Native usa flujo *bare* y la
-> carpeta `ios/` aún no está generada en el repositorio, así que no hay proyecto Xcode que
-> compilar. Hoy el único camino a un dispositivo iOS es el **port nativo SwiftUI** de
-> [`ios-native/`](./ios-native/README.md). Qué haría falta para cerrar esa brecha —permisos,
-> módulos nativos por validar y firma— está detallado en
-> [`docs/design/arquitectura-exportacion-ios.md`](./docs/design/arquitectura-exportacion-ios.md).
-
-### Verificación (tests · lint · tipos · puertas)
-
-**La lista completa que hay que pasar antes de empujar**, en este orden:
-
-```bash
-npx tsc --noEmit                              # tipos (equivale a `npm run tsc`)
-npx jest                                      # 79 suites · 1023 tests (`npm run test`)
-npx eslint . --ext .js,.jsx,.ts,.tsx          # listón: CERO errores y CERO avisos
-node scripts/check-verbal-coverage.js --strict  # cobertura de locuciones por idioma
-node scripts/check-lua-sprite.js              # sprite de Lúa, píxel a píxel contra Valeria+
-node scripts/build-launcher-icons.js --check  # iconos del lanzador: zona segura de 66 dp
-node scripts/resize-verbal-images.js --check  # presupuesto de ilustraciones
-node scripts/build-lua-protocol.js --check    # tabla generada ↔ src/Lua/protocol.json
-node scripts/check-ui-strings.js              # i18n: ningún .tsx con texto literal
-```
-
-Comandos auxiliares: `npm run test:clinical` (integración clínica) y `npm run test:coverage`
-(objetivo ≥ 80 % en módulos core).
-
-> **`scripts/check-android-permissions.js` NO va en esa lista.** Necesita el manifiesto
-> **fusionado** de release, que en local no existe: falla siempre con «no encuentro el manifiesto
-> fusionado». Corre en CI, después de `./gradlew bundleRelease`.
-
-<!-- Separador: dos notas independientes, no una continuación. -->
-
-> **El listón del linter es cero, y un aviso cuenta igual que un error.** Desde el 31/8/2026
-> `npx eslint .` sale limpio, desde los 16 errores y 725 avisos que arrastraba. Un piso de ruido
-> permanente es exactamente cómo deja de verse el aviso número 726: lo que era un fallo real se
-> arregló en el código (componentes definidos dentro del render, 26 variables que tapaban otra del
-> ámbito exterior), lo que era el linter equivocándose de dominio se silenció **con su motivo
-> escrito** (`no-bitwise` en el cable de Lúa, el SFLOAT del pulsioxímetro y el CRC-32 del PNG), y los
-> 577 estilos en línea pasaron a `@/Theme/styleAtoms` y a hojas locales. Un silenciador en blanco no
-> vale, y `eslint-comments/no-unused-disable` avisa cuando uno se queda obsoleto.
-
-<!-- Separador: dos notas independientes, no una continuación. -->
-
-> **Todo cambio de texto locutado** lleva `node scripts/export-voice-corpus.js` y
-> `node scripts/build-voice-asset-map.js` en el **mismo commit**: sin ellos, las lenguas sin recorte
-> caen a la voz del sistema en silencio.
-
-**Comprobar el bundle sin SDK de Android.** El fallo del empaquetado no lo ven ni `tsc` ni los
-tests: solo aparece al compilar. Se reproduce en local con el mismo comando que ejecuta Gradle,
-en unos dos minutos frente a los veintidós del CI:
-
-```bash
-rm -rf /tmp/metro-*    # Metro cachea la transformación: sin esto la comparación miente
-npx expo export:embed --platform android --dev false --entry-file index.js \
-  --bundle-output /tmp/b.js --assets-dest /tmp/a
-```
-
----
-
-## Módulos de la Aplicación
-
-> Leyenda de hardware: 🟢 sin hardware adicional · 🎙️ requiere micrófono · 🔊 requiere síntesis de tono ·
-> 🗣️ requiere TTS/reconocimiento de voz · 📶 requiere Bluetooth LE.
-
-### 1 — Evaluación Clínica Previa 🟢 (`ClinicalAssessment`)
-
-- **Dominio:** Certificado de Aptitud para la Prueba (CAP) — otoscopia + capacidad visual, verbal y motora
-- **Objetivo:** Certificar la viabilidad mínima de la prueba y derivar qué módulos quedan habilitados (`FULL` / `PARTIAL` / `BLOCKED`); ver [Pre-Screening](#pre-screening--checklist-cap)
-- **Nativo:** ninguno. Formularios (`react-hook-form` + Yup) sobre lógica pura y determinista (`clinicalAssessmentResult.ts`). La firma del tutor **no está aquí**: vive en Consentimiento, con el `SignaturePad` propio (`react-native-svg` + `PanResponder`)
-- **Datos:** entidad `ClinicalAssessment` · informe PDF `ClinicalAssessmentDetail`
-
-### 2 — Cuestionario de Autismo M-CHAT-R 🟢 (`Mchat`)
-
-- **Dominio:** Cribado de TEA, 16–30 meses
-- **Objetivo:** 20 ítems, scoring 0–20, bandas de riesgo bajo/medio/alto + entrevista de seguimiento
-- **Datos:** entidad genérica `Screening` (`instrument: 'autism-tea'`) · informe PDF `ScreeningDetail`
-
-### 3 — Sonómetro Ambiental 🎙️ (`RoomNoiseCheck`)
-
-- **Dominio:** Gate de prerrequisito de sala
-- **Objetivo:** Medir ruido de fondo y solo permitir continuar si está bajo umbral (45 dB(A) por defecto) y la checklist está completa
-- **Nativo:** captura real de micrófono (`react-native-audio-api`: `AudioRecorder`); sin micrófono/permiso muestra error explícito (sin datos simulados)
-- **Medición:** **ponderación A (IEC 61672) con estado conservado entre bloques** + bloqueo de DC, 400 ms de calentamiento descartados y descarte de bloques saturados (golpes al equipo). El veredicto es **LAeq + percentiles** (L90 de fondo, L10 de picos): un roce aislado ya no decide el resultado como hacía el máximo absoluto
-- **Calibración:** offset de campo ajustable teclando la lectura de un sonómetro patrón, **persistido en el dispositivo** (es una propiedad del micrófono, no de la sesión)
-- **Datos:** no persiste resultados clínicos — navega directamente al hub de la batería
-
-### 4 — Audiometría Infantil 🔊 (`Audiometry`) · *paquete base*
-
-- **Dominio:** Audiología pediátrica
-- **Objetivo:** Audiometría tonal liminar, motor Hughson-Westlake guiado (250–4000 Hz)
-- **Nativo:** síntesis de tono real (`react-native-audio-api`: `OscillatorNode` + `GainNode` + `StereoPannerNode`); requiere calibración dB HL → dB SPL por transductor
-- **Datos:** entidad `AudiometryTest` · informe PDF `AudiometryDetail`
-
-### 5 — Audiometría Condicionada — El Tren del Sonido 🔊 (`AudiometryConditioned`)
-
-- **Dominio:** Audiología pediátrica con refuerzo lúdico (CRA)
-- **Objetivo:** Un tren avanza por estaciones (frecuencias) al confirmar umbrales; el niño pulsa el silbato al oír
-- **Nativo:** reutiliza el motor de audio de Audiometría Infantil + `react-native-reanimated`
-- **Datos:** comparte la entidad `AudiometryTest` (`method: 'conditioned'`)
-
-### 6 — Análisis Acústico de Voz 🎙️ (`VoiceAnalysis`)
-
-- **Dominio:** Biomarcadores vocales infantiles
-- **Objetivo:** F0, jitter, shimmer y HNR de voz sostenida (/a/), con formantes F1–F3 vía LPC
-- **Nativo:** captura PCM real (`react-native-audio-api`) + DSP propio (`voiceDsp.ts`, módulo puro)
-- **Perturbación CICLO A CICLO:** el jitter y el shimmer se miden **pulso a pulso**
-  (`computeCycleMetrics`), no sobre las medias por ventana. La vía anterior promediaba
-  sobre unos cinco ciclos glotales —que es justo lo que borra la perturbación— e
-  **infravaloraba entre seis y diez veces**: con 8 % de shimmer inyectado informaba 1,3 %,
-  dentro del rango sano. Es el error en la dirección peligrosa, y por eso se cambió
-- **Validación:** contrastado contra **Praat** ([`tools/acoustics`](./tools/acoustics/README.md))
-  sobre señales sintéticas deterministas — F0 coincide al decimal en las **dos** familias de
-  fuente (suma de armónicos y tren de pulsos glotales), de 110 a 400 Hz; **orden LPC 20**
-  (con 14 F3 se quedaba sin polos); pasa-alto de acondicionado a 55 Hz; techo del HNR
-  documentado (~30 dB); **F3 ya no se fabrica** cuando no es estimable
-- **Limitación declarada:** el shimmer sigue la perturbación de forma monótona pero la
-  **comprime** entre 1,3 y 1,7 veces respecto a Praat (4 % inyectado → 4,1 frente a 5,4;
-  16 % → 10,2 frente a 17,6). La causa es física —el resonador sigue sonando de un ciclo
-  al siguiente—, está cuantificada en `tools/acoustics/README.md` y fijada con cifras
-  exactas en `cycleMetrics.test.ts`
-- **Datos:** entidad `VoiceAnalysis` · informe PDF `VoiceAnalysisDetail`
-
-### 7 — Test de Disfagia MECV-V 📶 (`DysphagiaTest`)
-
-- **Dominio:** Método de Exploración Clínica Volumen-Viscosidad
-- **Objetivo:** 9 bolos con bifurcación seguro/inseguro, desaturación de SpO₂ ≥3% y motor de recomendación de dieta
-- **Nativo:** pulsioxímetro real por Bluetooth LE (`react-native-ble-plx`, perfil 0x1822) + vídeo clínico opcional
-- **Datos:** entidad `DysphagiaTest` · informe PDF `DysphagiaDetail`
-
-### 8 — Cribado SAHS Infantil 🟢 (`SahsScreening`)
-
-- **Dominio:** Trastornos respiratorios del sueño
-- **Objetivo:** PSQ de Chervin (SRBD-22) + exploración (Brodsky, IMC, signos) + factores de riesgo
-- **Datos:** entidad `SahsScreening` · informe PDF `SahsScreeningDetail`
-- **Aviso clínico:** orientativo; el diagnóstico de SAHS exige polisomnografía en Unidad de Sueño
-
-### 9 — Articulación · T.A.R. (Test de Articulación a la Repetición) 🎙️🗣️ (`Articulation`)
-
-- **Dominio:** Logopedia — registro descriptivo SODA por fonema
-- **Objetivo:** El niño repite el modelo hablado; clasificación Correcto/Sustitución/Omisión/Distorsión/Adición por ítem, con % de acierto y fonemas a intervenir
-- **Nativo:** modelo hablado servido por la capa `@/Voice` (recorte neuronal → recorte base `es` → mejor voz verificada del sistema), toma de la repetición por el **micrófono compartido de `@/Audio`** (PCM en memoria, sin fichero) y reconocimiento de voz (`expo-speech-recognition`) que auto-evalúa la repetición; degrada a SODA manual sin hardware/permiso
-- **Idioma:** la preparación del registro tiene **selector de idioma**, que escribe en el mismo `state.locale.language` que el hub. El **inventario fonético es del español**: lo que cambia es la voz (y la etiqueta del reconocedor: es-ES, es-DO, gl-ES, eu-ES, con reintento en la lengua base), no las palabras
-- **Datos:** entidad `ArticulationTest` · informe PDF `ArticulationDetail`
-
-### 10 — Audiometría Verbal 🔊🗣️ (`VerbalAudiometry`)
-
-- **Dominio:** Logoaudiometría en campo libre (altavoz del dispositivo, sin audífonos)
-- **Objetivo:** Reconocimiento de conjunto cerrado por selección de tarjetas (`WordCard`), con listas de estímulos por franja de edad (A–D); modos discriminación y umbral (URV/SRT estimado)
-- **Idiomas:** siete bancos registrados (`VERBAL_BANK_LANGS`) con tres situaciones distintas — banco propio (`es` · `gl`, del Proxecto Nós y aprobado por ACOPROS · `eu`, firmado por Ulertuz), banco heredado del castellano con locución propia firmada por Quisqueya Habla (`es-DO` de *Quisqueya Habla* · `es-419`) y **banco prestado** (`ca` · `en`: se les presentan las palabras castellanas, la pantalla lo advierte y se locutan con voz castellana). Ver [Idiomas y Voz Neuronal](#idiomas-y-voz-neuronal)
-- **Nativo:** **recortes de locución pre-sintetizados** como vía primaria (empaquetados por idioma, decodificados desde base64 sobre el `AudioContext` compartido y reproducidos por `BufferSource`), con la voz del sistema como degradación; presentados por el altavoz binaural. Degrada con placeholders si falta imagen
-- **Datos:** entidad `VerbalAudiometryTest` (tabla `verbal_audiometry_test`) · informe PDF
-
-### 11 — Funciones Ejecutivas 🟢🗣️ (`ExecutiveFunctions`)
-
-- **Dominio:** Exploración lúdica del neurodesarrollo (cribado orientativo, cortes provisionales)
-- **Objetivo:** Batería de 5 mini-juegos de tarjetas (atención, inhibición, flexibilidad, memoria de trabajo y planificación) con dificultad graduada por banda de edad A–D; puntuaciones 0–100 por dominio
-- **Nativo:** dictado por voz de las consignas de los mini-juegos (`@/Voice`, sobre `expo-speech`); no requiere hardware adicional para jugar
-- **Datos:** entidad `ExecutiveFunctionsTest` (tabla `executive_functions_test`) · informe PDF
-
-### 12 — Análisis Prosódico 🎙️ (`ProsodyAnalysis`)
-
-- **Dominio:** Logopedia — dinámica del habla (ritmo, pausas y entonación) sobre **habla conectada**
-- **Objetivo:** Registro descriptivo de rango y variabilidad tonal (semitonos), contorno de cierre, pausas, fracción sonora y tasas de habla y articulación, a partir de una muestra de narración provocada
-- **Tarea:** narración sobre lámina (prelectores, 3–6 a) o recuento de historia (lectores, 7–12 a), con consigna locutada por `@/Voice` para que sea idéntica entre exploradores; objetivo de 30–60 s de **habla válida**, descontando pausas
-- **Nativo:** micrófono compartido (`@/Audio/sharedAudioRecorder`) + DSP propio en TypeScript (`prosodyDsp.ts`), reutilizando el acondicionado y la F0 del análisis de voz. Sin modelos ni librerías de análisis en el dispositivo
-- **Afirmaciones:** **descriptivas, nunca normativas** — no hay baremos pediátricos españoles de prosodia y los de otras lenguas no son transferibles ni por lengua ni por tarea. Ver [`docs/design/b0-prosodia-tarea-y-afirmaciones.md`](./docs/design/b0-prosodia-tarea-y-afirmaciones.md)
-- **Datos:** entidad `ProsodyAnalysis` (tabla `prosody_analysis`) · informe PDF `ProsodyDetail`
-
-### 13 — Cribado de Hitos del Lenguaje ASHA 🧩 (`AshaScreening`)
-
-- **Dominio:** Desarrollo del lenguaje y la comunicación en primera infancia (0–5 años)
-- **Objetivo:** Cribado normativo sobre umbrales de **percentil 75** de la *American
-  Speech-Language-Hearing Association*, con estratificación en tres niveles y rutas de
-  derivación interdisciplinar
-- **Contenido:** catálogo estático de **21 hitos** en 7 bandas de edad y 3 dominios
-  (receptivo, expresivo, pragmático), con **8 banderas rojas** explícitas
-- **Motor:** `evaluateAshaScreening()` — función **pura y determinista**, sin efectos ni
-  red. Rojo si hay bandera roja no cumplida; amarillo si hay fallo sin bandera roja;
-  verde si se cumple toda la banda. Un hito **sin contestar no cuenta como fallado**
-- **Control de riesgo (ISO 14971):** modal bloqueante inicial — la evaluación se hace por
-  observación clínica directa y entrevista profesional, **no** por autoinforme familiar
-- **Nativo:** ninguno. La banda de edad se deduce de la fecha de nacimiento de la ficha, y
-  la pantalla **dice** si viene de ahí o si hay que elegirla a mano
-- **Datos:** entidad `AshaMilestoneTest` (tabla `asha_milestone_test`) · tarjeta en
-  Resultados · informe PDF `AshaScreeningDetail` con el descargo regulatorio obligatorio
-- **Hueco abierto:** las 8 banderas rojas están todas entre 0 y 36 meses, así que en las
-  bandas `3-4y` y `4-5y` un cribado no puede llegar a rojo. Sin decidir — ver
-  [`docs/design/cribado-hitos-asha.md`](./docs/design/cribado-hitos-asha.md)
-
-### Pantallas de apoyo (no son módulos clínicos)
-
-Dos rutas más del navegador y una superficie de arranque. No miden nada: existen porque un fallo
-silencioso cuesta días de campo.
-
-#### Comprobar audio 🎙️🔊 (`DiagnosticoAudio`, desde el hub)
-
-Recorre la cadena de audio entera y **nombra el eslabón roto** en vez de dejar que la prueba
-«no suene» sin más: permiso de micrófono, captura real, motor de audio, contexto de salida, reloj
-del hardware de salida, banco de locuciones, recortes de la audiometría verbal, sintetizador del
-sistema, locución real y reconocedor del T.A.R. Es además la única pieza que **repara**: si el
-motor de salida está muerto, lo reabre.
-
-Lo que la hace fiable es lo que aprendió del fallo de agosto de 2026, cuando enseñó **siete
-eslabones en verde** mientras dos pruebas seguían mudas:
-
-- **Enumerar el catálogo de voces no es emitir.** «473 voces» no significa que suene: ahora
-  `checkSystemVoiceSpeaks` **dicta una frase** y espera `onStart`/`onDone`/`onError` con plazo.
-- **El reloj del hardware es la única prueba máquina de que el motor emite.** `ctx.currentTime` no
-  es un reloj de pared: solo avanza dentro del callback con el que Oboe **pide muestras**. Si avanza,
-  el hardware está tirando de frames; si no, el motor está muerto y nada de la app va a sonar. El
-  eslabón lo mide sobre una ventana de 250 ms (`react-native-audio-api` 0.8.4,
-  `AudioDestinationNode.cpp:44`).
-- **Un stream que no abre no se levanta con `resume()`, así que la pantalla lo REABRE.**
-  `AudioPlayer` abre el stream en su constructor; si Oboe falla, `mStream_` queda nulo y
-  `AudioContext` ignora el `false` de `start()`. La única rama de `resume()` que reabriría queda
-  muerta, y como el contexto se abre al arrancar la app y no se suelta nunca, una apertura fallida
-  dejaba la sesión entera muda **sin reintento y sin mensaje**. Ahora se construye un contexto nuevo
-  y el diagnóstico dice si funcionó. Caso distinto y no confundido con este: si el motor declara el
-  stream arrancado y aun así el reloj no avanza, el callback está atascado y reabrir no cura — la
-  pantalla lo nombra en vez de intentarlo.
-- **Si hay tres motores de salida, hacen falta tres escuchas.** `LISTEN_CHECK_IDS` son cuatro
-  emisiones —`tone`, `verbal-clip-heard`, `voice-bank-heard`, `tts-heard`— y mientras falte una de
-  contestar, ni el titular ni el resumen copiable dicen «todo funciona»: dicen `SALIDA NO COMPROBADA`
-  y cuántas quedan.
-
-#### Informe de arranque (`@/Startup`)
-
-El APK del 24/8/2026 «no abría»: la app no tenía **ninguna barrera de error**, así que cualquier
-excepción de render dejaba la pantalla en blanco, y las dos esperas del arranque —rehidratación de
-`redux-persist` e `initDatabase()`— pintaban el mismo splash mudo. Un síntoma idéntico para media
-docena de causas con arreglos distintos. Ahora `StartupErrorBoundary` + `StartupReport` pintan
-**en el dispositivo** el mensaje, el código, el error del driver que TypeORM envuelve y la pila; y si
-no hay error pero la espera se alarga, la pantalla **nombra el eslabón** en el que se quedó.
-
-#### Presentación de Lúa (`PresentacionLua`, desde Créditos)
-
-Ficha de la mascota y del periférico: qué es, qué hace en VIA+ y qué no, con los enlaces de contacto
-y compra. No toca BLE.
-
-**La foto lleva pie, y no es cosmético.** Es un **render de producto**, no una fotografía de la placa
-ESP32-C3 (confirmado el 3/9/2026), así que la pantalla lo dice: «Representación de diseño: el aparato
-aún no tiene versión fabricada» (`luaIntro.mascotRenderCaption`, en las cinco variedades del
-catálogo; `es-419` y `es-DO` lo heredan). Un render junto a un botón de contacto, en un SaMD Clase
-IIa, **afirma disponibilidad aunque no la escriba**, y el art. 7 del MDR prohíbe inducir a error
-sobre lo que existe. El día que haya placa, la foto y el pie cambian en el MISMO commit.
-
-El PNG de Lúa se sirve en dos densidades (256 px y `@2x` a 512) y funde su fondo a transparente: un
-fichero sin sufijo cae entero en `drawable-mdpi` y Android lo reescala al decodificar —×3 en un
-teléfono xxhdpi—. Los cortes de tamaño salen de `computeLuaLayout`, que se mide con números en
-`__tests__/luaLayout.test.ts`; **espiar `useWindowDimensions` desde una prueba no llega al
-componente** (medido: 0 llamadas) y `scripts/__tests__/windowDimensionsSpy.test.js` impide que ese
-patrón vuelva.
-
----
-
-## Lúa (periférico de refuerzo)
-
-**Lúa es la mascota de Valeria+** —una gata negra tipo *smoking*, en píxel art— y también un
-**aparato físico de refuerzo** sobre ESP32-C3 con una pantalla circular de 240 × 240 que se
-comunica por BLE. **El proyecto no es de este repositorio: vive en `FrankBetances/Valeria`**,
-y allí están el firmware, la tabla de opcodes y el plan completo.
-
-Lo que hay en VIA+ es deliberadamente pequeño, y el diseño está en
-[`docs/design/integracion-lua.md`](./docs/design/integracion-lua.md).
-
-> ⚠ **14/8/2026 · la dirección cambió el alcance, y esta sección describe lo que hay hoy.**
-> Lúa queda fijada como periférico **estrictamente de salida** —pantalla y altavoz, cero
-> micrófonos, cero ASR en el aparato— y pasa a estar **presente durante la batería**,
-> espejando y con alertas sonoras en algunos módulos. Nada de eso está implementado y el
-> sonido está bloqueado por hardware: **ninguna de las placas estudiadas anima la cara y
-> habla a la vez**. La decisión entera, la matriz por módulo y lo que falta están en
-> [`docs/design/lua-salida-y-alertas-sonoras.md`](./docs/design/lua-salida-y-alertas-sonoras.md).
-
-### La postura: el control es la ausencia — *superada en la conclusión, vigente en el argumento*
-
-El §8 del plan de Valeria+ se titula «VIA+: la integración correcta es la ausencia», y de ahí
-sale todo lo demás:
-
-> **Lúa no está presente durante la medición.** Es un **requisito del protocolo de exploración**
-> —un aparato ausente no puede interferir en una audiometría de campo libre ni en una toma de
-> voz—, no un control implementado en software. Se audita mirando, no leyendo logs.
-
-Esa distinción no es retórica. Declarar el silencio del periférico como el control de riesgo de
-la interferencia obligaría a demostrar, para el marcado CE de un SaMD Clase IIa, que el comando
-llega siempre, que el firmware siempre obedece y que el fallo es detectable — y a meter un
-dispositivo externo no verificado en el expediente técnico. Una versión anterior del diseño lo
-planteaba así y era un error caro; está anotado en el §1.1 del documento.
-
-**El criterio sobrevive al cambio de alcance, y es el que hay que aplicar módulo a módulo:** si
-el aparato se apaga y la exploración sigue igual, es un accesorio; si la maniobra depende de que
-el aviso llegue, no lo es. De las siete filas de la matriz nueva, tres caen del segundo lado —el
-maquinista del tren de la audiometría condicionada **es el método**, no un adorno—, y esa
-conversación se tiene con el organismo notificado, no en un `.md`.
-
-### Lo único que hace VIA+
-
-| Pieza | Qué hace | Dónde |
-|---|---|---|
-| **Recompensa de cierre** | La **única** integración de la v1: al llegar a `ResultadosFinal`, con la exploración terminada y los datos ya sellados, se pide `UNLOCK` → `GRANT` → `CELEBRATE` y se renueva el latido mientras la pantalla vive | `closingReward.ts` · `useLuaClosingReward()` |
-| **Silencio clínico** | Defensa en profundidad, por si alguien la trae puesta: al abrirse **cualquier** captura de micrófono se escribe `SAFE`/`CLINICAL_SILENCE`, que revoca la concesión y **bloquea** nuevas hasta un desbloqueo explícito | `clinicalSilence.ts` |
-| **Diagnóstico** | Estado notificado por `STATE` para una pantalla de ajustes. **No entra en ningún informe ni en ninguna decisión** | `useLuaDiagnostics()` |
-
-#### Dibujar y sonar son dos permisos distintos (D‑L, 14/8/2026)
-
-`GRANT` lleva **TTL en el byte bajo y máscara de capacidades en el alto**: `LUA_CAP.VISUAL` y
-`LUA_CAP.SOUND`, generadas de la tabla. `luaGrant(seconds)` concede **solo la visual** y VIA+ no
-pide la sonora nunca —desde la D‑K la voz sale del altavoz de la tableta y Lúa es muda en los siete
-módulos—, así que `LUA_CAP.SOUND` está para que alguien tenga que escribirlo a mano.
-
-Y `SAFE` gana `MUTE` (`luaMute()`), que quita el sonido **dejando la pantalla viva**: es el estado
-«dibuja pero no suena» que hacía falta para que la gata pueda acompañar la /a/ sostenida con el
-micrófono abierto. **Hoy VIA+ no lo usa**, y no por descuido: `clinicalSilence.ts` sigue emitiendo
-`CLINICAL_SILENCE` durante las capturas, porque poner un aparato animándose en la sala durante una
-medición mueve a Lúa de accesorio a parte del acto clínico, y eso es Clase IIa — se decide con el
-análisis de riesgo delante (§4 de [`lua-salida-y-alertas-sonoras.md`](docs/design/lua-salida-y-alertas-sonoras.md)),
-no cambiando una línea.
-
-Y, por el mismo motivo, lo que **no** hay:
-
-- **Ningún refuerzo durante ningún módulo**, ni siquiera al cerrar uno (`ResultadosPreliminares`):
-  la sesión sigue abierta y puede haber otra toma de voz a continuación. Solo al cerrar la **sesión**.
-- **No se envían `VERDICT` ni `PHASE`.** Existen en el protocolo porque Valeria+ los usa dentro de
-  la terapia; en VIA+ serían refuerzo durante la medición, explícitamente fuera de la v1.
-- **Ninguna decisión de VIA+ lee nada de Lúa.** El enlace es de un solo sentido, y esa asimetría es
-  lo que sostiene que el aparato sea un accesorio y no parte del dispositivo médico.
-
-### El protocolo se genera, no se escribe
-
-`protocol.json` lo consumen tres sitios —el firmware en C, Valeria+ y este repositorio— y su
-propia nota avisa de que las copias a mano se desincronizan. El bug que produce eso no sale como
-error de compilación: sale como una mascota que hace cosas raras en la consulta.
-
-```
-src/Lua/protocol.json           ← copia VENDORIZADA byte a byte desde Valeria+
-scripts/build-lua-protocol.js   ← genera el .ts (--check lo verifica como gate)
-src/Lua/luaProtocol.ts          ← GENERADO. No se edita a mano
-src/Lua/luaWire.ts              ← lo que el .json no cubre (trama SAFE, desglose de STATE),
-                                  leído del FIRMWARE y con la línea citada
-```
-
-El **sprite** sigue la misma regla: `src/Components/Mascot/LuaPixel.tsx` es una copia literal de
-Valeria+ que no se edita aquí, y `scripts/check-lua-sprite.js` compara el dibujo **píxel a píxel**
-en cada release. Si ese gate falla, el dibujo se cambia en Valeria+ y se vuelve a copiar.
-
-### Enlace GATT
-
-| Característica | Escritura | Para qué |
-|---|---|---|
-| `CTRL` | **Sin** confirmación | `GRANT`, `HEARTBEAT`, `IDLE`, `CELEBRATE`. Camino de latencia (presupuesto de 300 ms del veredicto al primer fotograma) |
-| `SAFE` | **Con** confirmación | `CLINICAL_SILENCE`, `UNLOCK` y `MUTE`. La única escritura del enlace en la que importa saber que llegó |
-| `STATE` | Notificación | Modo, segundos de concesión restantes, cara, versión, fps y µs de despacho. **Diagnóstico** |
-| `CFG` | — | No se usa en la v1 |
-
-Dos reglas duras del adaptador:
-
-1. **Nada de `await` hacia Lúa desde un flujo clínico.** Los envíos de `CTRL` son dispara-y-olvida
-   con `catch` vacío deliberado: una mascota apagada no puede colgar una exploración.
-2. **BLE-only.** La sesión de audio de VIA+ se configura con `allowBluetooth` y `allowBluetoothA2DP`;
-   un perfil de audio clásico en el periférico dejaría que iOS encaminase hacia él los tonos de la
-   audiometría **sin ningún error a la vista**. Lúa no anuncia A2DP ni HFP. Esta regla **sube de
-   importancia** con el altavoz autorizado, no baja: mientras el aparato no podía sonar, un
-   encaminamiento por descuido era un fallo silencioso sin transductor al otro lado; con altavoz,
-   es una audiometría de campo libre saliendo de verdad por un altavoz de juguete sin calibrar.
-   Las órdenes de sonido viajan como **un identificador por GATT**, nunca como audio encaminado
-   por el sistema.
-
-> **Zero-PHI estructural.** La tabla de opcodes no tiene **ni un campo de texto**. Un nombre de
-> paciente no puede llegar al aparato porque no existe el sitio donde meterlo — es una garantía de
-> la forma del protocolo, no de la disciplina de quien lo usa.
-
-### Estado: hoy todo `src/Lua/` es *no-op*
-
-El módulo está implementado y probado (`src/Lua/__tests__/`, 7 suites: protocolo, cable, adaptador,
-silencio clínico, recompensa, gate del sprite y punto único del micrófono), pero **`installLua()`
-todavía no se llama en `App.tsx`**: necesita un `BleManager` y hoy la app no crea ninguno — el
-adaptador del pulsioxímetro está en la misma situación, esperando ese manager compartido. Crearlo
-cambia el arranque en iOS (el primer uso dispara el permiso de Bluetooth del sistema), así que es
-una decisión de la fase de hardware y se toma con la placa delante, de una vez para los dos
-periféricos. Sin adaptador registrado, cada llamada a la fachada no hace nada y ninguna pantalla
-se entera.
-
----
-
-## Herramientas de Build-Time
-
-Dos cadenas de herramientas corren **fuera del dispositivo**. Ninguna librería de IA ni de análisis
-fonético entra en el APK: la app mide y reproduce en local, offline.
-
-### `tools/nos/` — motor de voz neuronal
-
-Síntesis de las locuciones con voces abiertas (Piper · Celtia del Proxecto Nós · AhoTTS Maider) y
-post-proceso homogéneo con ffmpeg (`loudnorm I=-20:TP=-3:LRA=7`, m4a mono 44,1 kHz) para que todos
-los idiomas tengan la **misma sonoridad**. Registro declarativo en `tools/nos/voices.json`;
-glosario dominicano revisado en `tools/nos/glosario-es-do.csv`.
-
-### `tools/acoustics/` — validación del DSP contra Praat
-
-Banco de referencia que compara el DSP que **de verdad** corre en la app
-(`src/Screens/VoiceAnalysis/voiceDsp.ts`) con **Praat**, el estándar de facto en fonética clínica,
-sobre vocales sintéticas deterministas.
-
-```bash
-node tools/acoustics/fixtures.js                  # WAVs + medidas de VIA+
-pip install -r tools/acoustics/requirements.txt
-python3 tools/acoustics/validate.py               # mide con Praat y compara (sale ≠0 si se desvía)
-```
-
-**39 casos** en tres familias: vocal sostenida por suma de armónicos, vocal sostenida por
-**tren de pulsos glotales** (modelo de Klatt, la señal que se parece a una voz real) y
-habla conectada. Valida F0, HNR, formantes, **jitter y shimmer**, pausas y ritmo.
-
-Hallazgos de la primera pasada: orden LPC insuficiente (F3 no estimable en 10 de 11 casos),
-techo del HNR no declarado, y un caso de prueba mal construido. En la segunda (agosto de
-2026): **el jitter y el shimmer no los validaba nadie** —y estaban infravalorados de seis a
-diez veces—, el banco no miraba por encima de 260 Hz mientras VIA+ explora niños, su única
-familia de señal era demasiado fácil para separar dos estimadores, y el estimador de F0 no
-podía elegir un lag largo (una /a/ de 150 Hz salía en 233 Hz). Cuatro casos de prueba mal
-construidos en total. Detalle en
-[`tools/acoustics/README.md`](./tools/acoustics/README.md).
-
----
-
-## Automatización (CI/CD)
-
-| Workflow | Disparo | Qué hace |
-|---|---|---|
-| `voice-assets.yml` | Manual · push a `claude/**` que toque el corpus o `tools/nos` | Sintetiza consignas y/o recortes verbales de los **siete** idiomas (`all` o uno suelto) y los commitea a la rama (nunca a `main`). Tolerante: una voz que falle no tira el lote. Con motor `espeak` omite `gl`, `ca` y `eu`: sus voces son neurales por diseño y no tienen equivalente |
-| `android-release.yml` | Manual · tag `v*` · push a `main` (android, src, assets/audio) | **Puerta de locuciones** → **gate del sprite de Lúa** → **presupuesto de ilustraciones** → keystore → APK + AAB firmados → verificación de firma. Los artefactos se publican **solo** en tag `v*` o disparo manual; un push a `main` compila y pasa las puertas sin subir nada |
-| `acoustic-validation.yml` | PR/push que toque `VoiceAnalysis` o `tools/acoustics` | Contrasta el DSP con Praat y falla si un parámetro se desvía de su tolerancia |
-| `codeql.yml` | Push/PR a `main` + semanal | Análisis estático de seguridad |
-| `markdown-lint.yml` | Cambios en `**/*.md` | `markdownlint-cli2` con la configuración de `.markdownlint.yaml` |
-| `pages.yml` | Push a `main` que toque `site/` | Publica el sitio público (política de privacidad) en GitHub Pages |
-
-> **La puerta de locuciones no exige «todos los idiomas al 100 %»**, sino **coherencia** con
-> `VERBAL_AUDIO_PENDING` — la declaración revisada de qué idiomas se sabe que no tienen locuciones
-> propias, la misma que usa la pantalla para advertir al profesional. Falla en los dos sentidos: si
-> a un idioma no declarado pendiente le faltan recortes (la app prometería un estímulo que no
-> existe) y si un idioma declarado pendiente ya los tiene todos (el aviso ha pasado a ser falso).
-
-<!-- Separador: dos citas independientes, no una continuación. -->
-
-> **Los dos gates de Lúa.** `scripts/check-lua-sprite.js` corre en la release y compara el dibujo
-> de la mascota píxel a píxel con el de Valeria+; `scripts/build-lua-protocol.js --check` verifica
-> que la tabla generada siga cuadrando con `src/Lua/protocol.json` (también cubierto por
-> `luaProtocolGate.test.ts`). Ninguno de los dos puede comprobar que la copia vendorizada siga al
-> día respecto a Valeria+ —este repositorio no ve el otro—: para eso está el procedimiento de
-> sincronización de [`docs/design/integracion-lua.md`](./docs/design/integracion-lua.md).
-
-La gobernanza del repositorio —CODEOWNERS, política de divulgación, Dependabot en modo solo
-seguridad, protección de rama y *secret scanning*— está documentada en
-[`docs/SECURITY-GOBERNANZA.md`](./docs/SECURITY-GOBERNANZA.md), que distingue los controles ya
-versionados de los que hay que **activar en la interfaz de GitHub** para que surtan efecto.
-
----
-
-## Distribución y Sitio Público
-
-| Elemento | Valor / ubicación |
+| Documento | Contenido |
 |---|---|
-| Identificador del paquete Android | **`eu.futureforkids.via`** (`namespace` y `applicationId`) |
-| Artefactos de release | APK + AAB firmados por `android-release.yml`, publicados solo en tag `v*` o disparo manual (retención de 7 días, el máximo del repositorio) |
-| Icono de la app | [`docs/capturas/`](./docs/capturas/README.md) (512 × 512 para la ficha + icono de lanzador) |
-| Política de privacidad | [`site/privacidad.html`](./site/privacidad.html), publicada con GitHub Pages |
-| Port nativo iOS | [`ios-native/`](./ios-native/README.md) — SwiftUI, parcial: acceso y créditos, profesionales, pacientes, consentimiento, evaluación clínica (CAP), sonómetro de sala y hub de módulos |
-| Exportación a iOS | [`docs/design/arquitectura-exportacion-ios.md`](./docs/design/arquitectura-exportacion-ios.md) — firma fuera del repositorio, `.ipa` en tres modos y límites de la cuenta gratuita de Apple |
-
-> ⚠️ **Capturas de pantalla.** Las imágenes de `docs/capturas/` son **reconstrucciones fieles a
-> partir del código**, no capturas de dispositivo (el entorno donde se generaron no tiene emulador).
-> Sirven para documentación; **para la ficha de Google Play hay que sustituirlas por capturas reales**,
-> como exige la política de la tienda. El README de la carpeta enumera las diferencias conocidas.
+| [`CLAUDE.md`](./CLAUDE.md) | Reglas de trabajo del repositorio |
+| [`docs/PLAN-MEJORA-APP.md`](./docs/PLAN-MEJORA-APP.md) | Plan de mejora en curso y lista de pendientes |
+| [`docs/PLAN-DE-TRABAJO.md`](./docs/PLAN-DE-TRABAJO.md) | Plan de producto (documento interno) |
+| [`docs/recorrido-emulador.md`](./docs/recorrido-emulador.md) | Guion para recorrer los módulos (escrito para el emulador; vale para la tableta) |
+| [`docs/design/`](./docs/design/) | Diseño de cada módulo, voz, audio y matriz de evidencia del informe |
+| [`docs/informes/`](./docs/informes/) | Informes técnicos: cortes clínicos, textos, cifrado, accesibilidad |
+| [`docs/manual/`](./docs/manual/manual.html) | Manual de usuario |
+| [`docs/SECURITY-GOBERNANZA.md`](./docs/SECURITY-GOBERNANZA.md) | Controles de seguridad del repositorio |
 
 ---
 
-## Documentación del Repositorio
+## Estado del proyecto
 
-```
-docs/
-├── manual/                     # Manual de Usuario (HTML fuente + PDF + DOCX generados)
-├── capturas/                   # Icono de la app y capturas de pantalla
-├── PLAN-DE-TRABAJO.md          # Plan del producto: dispositivo llave en mano + motor NLG (fases F0–F6)
-├── SECURITY-GOBERNANZA.md      # Controles de seguridad del repositorio en GitHub
-└── design/
-    ├── arquitectura-corpus-voz.md        # Capa de voz neuronal multi-idioma
-    ├── arquitectura-audio.md             # AudioContext compartido y cadenas de audio
-    ├── evaluacion-prosodia-y-asr.md      # Evaluación de la propuesta de módulo acústico
-    ├── plan-prosodia-y-asr.md            # Plan de trabajo (prosodia + saneamiento del ASR)
-    ├── b0-prosodia-tarea-y-afirmaciones.md # Tarea de habla y política de afirmaciones (ratificada)
-    ├── prosodia-riesgos.md               # Análisis de riesgos del módulo (ISO 14971)
-    ├── validacion-clinica-prosodia.md    # Protocolo de validación (parte A firmada, B pendiente)
-    ├── adr-inferencia-en-dispositivo.md  # Decisión regulatoria sobre IA embarcada (A-bis)
-    ├── arquitectura-exportacion-ios.md   # Las dos vías de iOS, firma y exportación del .ipa
-    ├── audiometria-verbal.md             # Diseño del módulo (+ variantes gl · eu · es-DO)
-    ├── validacion-clinica-verbal.md      # Trazabilidad de la aprobación clínica
-    ├── audiometria-verbal-gl.md          # Banco gallego (Proxecto Nós), acta de ACOPROS
-    ├── audiometria-verbal-eu.md          # Banco euskera, acta de Ulertuz
-    ├── audiometria-verbal-es-do.md       # Variante dominicana del banco castellano
-    ├── cribado-hitos-asha.md             # Hitos, umbrales P75 y el hueco de las banderas rojas
-    ├── integracion-proxecto-nos.md       # Plan de integración del gallego (ILENIA)
-    ├── integracion-quisqueya-habla.md    # Plan de integración de la variante dominicana
-    ├── integracion-valeria.md            # Voz de referencia de Valeria+: qué se portó y dónde se desvió
-    ├── integracion-lua.md                # Lúa en VIA+: solo recompensa de cierre (el aparato es de Valeria+)
-    ├── lua-salida-y-alertas-sonoras.md   # Ampliación de alcance de la dirección (14/8/2026), sin implementar
-    ├── README-LUA-FIRMWARE-INTEGRATION.md # Enlace GATT y firmware, vendorizados desde Valeria+
-    └── diseno_*.md · render_*.jpg        # Diseño y renders de bienvenida, créditos, hub y resultados
-```
+- **Construido:**
+  - los trece módulos;
+  - el informe PDF con síntesis por reglas;
+  - el cierre de la evaluación;
+  - el historial del paciente;
+  - las siete variedades de interfaz.
+- **Comprobado en dispositivo:** la cadena de salida de audio, con las cuatro escuchas de
+  «Comprobar audio».
+- **Sin comprobar en dispositivo:** el recorrido completo de los trece módulos, el PDF real y el
+  selector de carpetas. Las pruebas se hacen en una tableta Android.
+- **Pendiente:**
+  - cifrado de la base de datos y seudonimización efectiva;
+  - registro de auditoría y borrado verificable;
+  - expediente de gestión de riesgos;
+  - bancos verbales propios de catalán e inglés;
+  - recuperación de contraseña.
 
-> Junto a estos, `CLAUDE.md` (en la raíz) recoge las **reglas de trabajo** del repositorio: cada
-> una nace de un error real cometido aquí y lleva anotado su coste. Quien vaya a tocar la capa de
-> voz, el build nativo o los mocks de módulos nativos debería leerlo antes que este README.
-
-El **manual de usuario** con casos de uso clínicos de principio a fin se genera desde
-[`docs/manual/manual.html`](./docs/manual/manual.html):
-
-```bash
-node docs/manual/build-pdf.js       # PDF A4 (requiere Playwright + Chromium)
-python3 docs/manual/build-docx.py   # DOCX (rasteriza cada página; requiere python-docx)
-```
+El detalle, con lo que está decidido y lo que falta por decidir, está en
+[`docs/PLAN-MEJORA-APP.md`](./docs/PLAN-MEJORA-APP.md) §9.
 
 ---
 
-## Gestión de Riesgos
+## Licencia y seguridad
 
-La gestión de riesgos de VIA+ sigue la norma **ISO 14971:2019** a lo largo de todo el ciclo de vida del software. Todos los cambios de arquitectura, nuevas funcionalidades y modificaciones de flujo deben incluir una **evaluación de impacto en seguridad del paciente** antes de su implementación.
+VIA+ es software propietario de **Earlify Health S.L.** Queda prohibido usarlo, copiarlo,
+modificarlo o distribuirlo sin un acuerdo de licencia vigente. Los términos completos están en
+[`LICENSE.md`](./LICENSE.md).
 
-El expediente formal de gestión de riesgos (tabla FMEA, registro de riesgos activos y controles
-implementados) está **pendiente de constituir** en `docs/risk-management/`; hasta entonces, los
-riesgos identificados viven en los documentos de diseño y en las justificaciones de cada PR.
-
-```
-docs/risk-management/          (🔴 pendiente)
-├── FMEA-table.md              # Tabla FMEA completa
-├── risk-register.md           # Registro de riesgos activos
-└── risk-controls.md           # Controles implementados
-```
-
-> **Periféricos externos y alcance del expediente.** El refuerzo de Lúa está diseñado para quedar
-> **fuera** del análisis de riesgo del dispositivo: el aparato no está presente durante la medición
-> —control de procedimiento, no de software—, el enlace es de un solo sentido y nada de lo que
-> notifica entra en una decisión clínica o en un informe. Ver [Lúa](#lúa-periférico-de-refuerzo).
-
-Para reportar un incidente de seguridad o una vulnerabilidad del código, los canales privados son
-los de la política de divulgación responsable: **GitHub Security Advisories** (pestaña *Security* →
-*Report a vulnerability*) o el correo indicado en
+Para notificar una vulnerabilidad o un incidente de seguridad, usa los canales privados de
 [`.github/SECURITY.md`](./.github/SECURITY.md). **No abras un issue público.**
-
----
-
-## Contribución al Proyecto
-
-VIA+ es software propietario. Las contribuciones están restringidas al equipo de desarrollo autorizado por Earlify Health. Si formas parte del equipo:
-
-### Convenciones de desarrollo
-
-```
-Branching:
-  main         → Producción (protegida: PR + revisión de Code Owners)
-  claude/xxx   → Ramas de trabajo (disparan la síntesis de assets de voz en CI)
-  feature/xxx  → Nuevas funcionalidades
-  fix/xxx      → Correcciones de bugs
-
-Commits:  Convención Conventional Commits
-  feat:     Nueva funcionalidad
-  fix:      Corrección de bug
-  docs:     Documentación
-  security: Cambio relacionado con seguridad (¡prioritario!)
-  refactor: Refactorización sin cambio funcional
-  test:     Adición o modificación de tests
-```
-
-### Pull Requests
-
-La plantilla de [`.github/pull_request_template.md`](./.github/pull_request_template.md) recoge el
-checklist obligatorio. Cada PR debe incluir:
-
-- [ ] Descripción del cambio y justificación clínica/técnica
-- [ ] Evaluación de impacto en seguridad del paciente (ISO 14971)
-- [ ] Verificación de seguridad y privacidad (¿toca datos clínicos, permisos o la nube?)
-- [ ] Tests añadidos o actualizados (cobertura mantenida ≥ 80%)
-- [ ] **Las puertas pasadas en local**, todas: `tsc`, `jest`, `eslint` (cero errores **y** cero
-      avisos) y los cinco scripts de [Verificación](#verificación-tests--lint--tipos--puertas)
-- [ ] Si cambia texto **locutado**: `export-voice-corpus.js` y `build-voice-asset-map.js` en el
-      **mismo commit** (si no, la lengua sin recorte cae a la voz del sistema en silencio)
-- [ ] Si cambia texto de **interfaz**: está en el catálogo de `src/I18n/`, no en el `.tsx`
-- [ ] Documentación actualizada
-- [ ] Revisión de los **Code Owners** de las rutas sensibles (Firestore, auth, Database, telemetría, CI)
-
----
-
-## Ecosistema Earlify Health
-
-VIA+ forma parte del ecosistema de salud digital pediátrica de Earlify Health:
-
-```
-Earlify Health
-│
-├── VIA+          →  Evaluación y tamizaje (este repositorio)
-│                    SaMD Clase IIa · Audiología · Lenguaje · Neurodesarrollo
-│
-├── Valeria+      →  Rehabilitación adaptativa del lenguaje
-│                    Cápsulas TPR (Total Physical Response) con padres
-│                    │
-│                    └── Lúa  →  Mascota y periférico físico de refuerzo (ESP32-C3, BLE)
-│                                Su firmware, su protocolo y su sprite viven en
-│                                `FrankBetances/Valeria`. VIA+ solo lo usa para la
-│                                recompensa de cierre (ver §Lúa)
-│
-└── [Módulos futuros en roadmap]
-```
-
----
-
-## Estado del Proyecto
-
-> Estado de integración según el Contrato de Compilación v3 (2026-06-25/26). La fuente de
-> verdad es el propio repositorio: la pantalla del módulo bajo `src/Screens/`, su entidad,
-> su repositorio y su bloque de informe. (El contrato hablaba de un paquete por módulo con
-> su carpeta `integration/`; **esa carpeta ya no existe** —desapareció en `168368e`— y la
-> tabla de abajo se lee contra el árbol actual.)
-
-| Componente | Estado |
-|---|---|
-| Módulo de Consentimiento Informado | 🟢 Integrado (bloqueante) |
-| Pre-screening clínico (CAP) | 🟢 Integrado (bloqueante) |
-| Autenticación profesional (contraseña local) | 🟡 Escrito el 2/11/2026, sin verificar en dispositivo |
-| Identificación de paciente | 🟢 Integrado |
-| Generación de informes PDF | 🟢 Integrado |
-| Resultados de sesión e historial del paciente | 🟢 Integrado |
-| Telemetría de usabilidad Zero-PHI (Likert → QR) | 🟢 Integrado |
-| Capa de voz neuronal multi-idioma (es · gl · eu · es-DO) | 🟢 Integrada · **las cuatro vías de salida confirmadas en emulador el 3/9/2026** |
-| Tres variedades añadidas (ca · es-419 · en) | 🟡 Voces firmadas el 31/8/2026 (María · Quisqueya Habla · Miguelina), pero **sin T.A.R.**; en `ca`/`en` el acta cubre solo las consignas y el banco sigue prestado |
-| Interfaz traducida (catálogo `src/I18n` + gate `check-ui-strings`) | 🟢 Integrada · 7 variedades, cambio de idioma en caliente |
-| Pantalla **Comprobar audio** (diagnóstico de la cadena de audio) | 🟢 Integrada · cuatro escuchas contestadas (3/9/2026), reloj de hardware y reapertura del motor muerto |
-| Barrera de error e informe de arranque (`@/Startup`) | 🟢 Integrada · el fallo se lee en el dispositivo, no en `console.error` |
-| Tipos, tests y linter | 🟢 `tsc` limpio · 79 suites / 1023 tests en verde · `eslint` en **cero errores y cero avisos** |
-| Validación del análisis acústico contra Praat | 🟢 En CI |
-| Sitio público y política de privacidad (Pages) | 🟢 Publicable |
-| Release firmada de Android (APK + AAB) | 🟢 En CI, con puerta de locuciones |
-| Port nativo iOS (SwiftUI) | 🟡 Parcial (acceso, paciente, consentimiento, CAP, sonómetro) · fuera de la ruta comercial desde la decisión del 20/10/2026 (congelarlo está por confirmar) |
-| Dispositivo homologado llave en mano (Samsung Galaxy Tab S9, Knox Kiosk, calibración de fábrica) | 🟢 Especificación cerrada y homologada (Turnkey COTS) |
-| Motor NLG determinista de informes (nlgReportEngine.ts) | 🟢 Arquitectura definida (alternativa superior a RAG) |
-| Lúa — periférico de refuerzo BLE | 🟡 Código completo y probado; *no-op* hasta que exista el `BleManager` compartido ([detalle](#estado-hoy-todo-srclua-es-no-op)) |
-| Cifrado en reposo y seudonimización efectiva | 🔴 Pendiente ([detalle](#controles-de-seguridad)) |
-| Expediente de gestión de riesgos (ISO 14971) | 🔴 Pendiente |
-| Sincronización clínica HL7-FHIR | 🔴 Pendiente (roadmap) |
-| Certificación MDR Clase IIa | 🔴 En proceso |
-
-### Batería de evaluación — 13 módulos
-
-| # | Módulo | Pantalla | Servicio local | Hardware nativo |
-|---|---|---|---|---|
-| 1 | Evaluación Clínica Previa | 🟢 Construido | 🟢 OK | 🟢 ninguno |
-| 2 | Autismo M-CHAT-R | 🟢 Construido | 🟢 OK (`screenings`) | 🟢 ninguno |
-| 3 | Sonómetro Ambiental | 🟢 Construido | — (sin persistencia clínica) | 🟢 micrófono real · dB(A) calibrable |
-| 4 | Audiometría Infantil | 🟢 Construido | 🟢 OK (`audiometry`) | 🟢 síntesis de tono (`audio-api`) |
-| 5 | Audiometría Condicionada | 🟢 Construido | 🟢 Reutiliza `audiometry` | 🟢 síntesis de tono + reanimated |
-| 6 | Análisis Acústico de Voz | 🟢 Construido | 🟢 OK (`voiceAnalysis`) | 🟢 mic + DSP (LPC orden 20, validado vs. Praat) |
-| 7 | Test de Disfagia MECV-V | 🟢 Construido | 🟢 OK (`dysphagiaTest`) | 🟢 BLE pulsioxímetro (`ble-plx`) |
-| 8 | Cribado SAHS Infantil | 🟢 Construido | 🟢 OK (`sahsScreenings`) | 🟢 ninguno |
-| 9 | Articulación · T.A.R. | 🟢 Construido | 🟢 OK (`articulationTests`) | 🟢 mic + reconocedor + `@/Voice` (degrada a SODA manual) |
-| 10 | Audiometría Verbal | 🟢 Construido | 🟢 OK (`verbalAudiometry`) | 🟢 recortes neuronales, 7 bancos registrados (campo libre) |
-| 11 | Funciones Ejecutivas | 🟢 Construido | 🟢 OK (`executiveFunctions`) | 🟢 consignas locutadas (`@/Voice`) |
-| 12 | Análisis Prosódico | 🟢 Construido | 🟢 OK (`prosodyAnalysis`) | 🟢 mic compartido + DSP propio (validado vs. Praat) |
-| 13 | Cribado de Hitos ASHA | 🟢 Construido | 🟡 Solo repositorio (sin carpeta en `Services/local`) | 🟢 ninguno (motor CDSS determinista) |
-
-> Los 13 módulos están construidos y sus 13 rutas registradas en `RootStackParamList`
-> (26 rutas en total, contando acceso, pacientes, resultados, «Comprobar audio» y la ficha de Lúa);
-> la batería completa persiste en la base SQLite local del dispositivo.
->
-> **Dos precisiones que esta nota afirmaba y no eran ciertas** (corregido el 27/8/2026):
->
-> 1. **No existe ninguna carpeta `integration/`** en el repositorio: desapareció en
->    `168368e`.
-> 2. **Ninguna migración TypeORM se ejecuta.** Hay ficheros de migración escritos bajo
->    `src/Database/migrations/`, pero `config.ts` va con `migrations: []` y
->    `synchronize: true`: las tablas las crea TypeORM desde las entidades, y esas clases
->    no las llama nadie. Ellas mismas lo dicen («Registro (cuando se use)»).
->
-> Sobre los servicios: `src/Services/local/modules/` tiene **diez** carpetas, y no van una
-> por módulo (`audiometry` sirve a las dos audiometrías tonales, `clinicalAssessments` es
-> el CAP). El cribado ASHA no tiene ninguna: persiste por su repositorio
-> (`AshaMilestoneTestRepository`), que es lo que la pantalla usa.
-
-### Lo que sigue abierto (no lo des por cerrado)
-
-Esta lista existe porque «construido» y «comprobado en dispositivo» no son lo mismo, y confundirlos
-ya costó ciclos de desarrollo enteros. El registro completo, con el coste de cada error, está en
-`CLAUDE.md`.
-
-| Abierto | Estado real |
-|---|---|
-| **Recorrer la batería en el emulador** | Ningún módulo clínico se ha recorrido de principio a fin en dispositivo. Lo confirmado el 3/9/2026 es que **las cuatro vías de salida suenan**, que es la cadena de audio — no las trece pruebas |
-| **La causa del build mudo del 2/9/2026** | El síntoma desapareció, la causa **no se aisló**: entre el binario mudo y el que suena entraron a la vez el arreglo del motor de audio y dos cambios de CI del NDK. Queda anotado en `CLAUDE.md` para no atribuirlo a ninguno de los dos |
-| **El nivel del micrófono no cambia al acercarse** | Reportado el 25/8/2026 como duda, sin resolver. La toma de prueba publica ya el recorrido (bloque más flojo → más fuerte) para poder medirlo. Hipótesis no verificada: el *input preset* de la captura, que la librería nativa no fija |
-| **El veredicto de ruido de sala no llega al informe** | No se persiste en ningún modelo ni aparece en el PDF: un informe de audiometría no deja constancia de las condiciones acústicas ni de si la sala se saltó. Decisión de producto pendiente |
-| **Repositorio de referencia del análisis prosódico** | Existe uno indicado por la dirección y **su URL no consta en el repositorio**. Hasta que esté registrada, `src/Screens/ProsodyAnalysis/` no se toca |
-| **`react-native-ble-plx` en esta versión** | Autolinkada y compilada en cada build, con los dos adaptadores que la usarían esperando un `BleManager` que nadie instancia. Es decisión de producto, no limpieza |
-| **Banco propio para `ca` y `en`** | Sus VOCES ya están firmadas (31/8/2026), pero siguen sin listas propias: se les presentan las palabras castellanas. Diseñar la rejilla fonológica catalana e inglesa es lo que falta, y hasta entonces la pantalla lo advierte |
-| **Consulta al organismo notificado sobre el modelo de entrega** | La tesis «SaMD sobre COTS cualificado» no se ha contrastado. Tampoco si la audiometría reivindica IEC 60645-1. Bloquea las fases de plataforma y calibración del [plan](./docs/PLAN-DE-TRABAJO.md) |
-| **La síntesis del informe no se traduce** | Las funciones de interpretación escriben en castellano literal, fuera de `src/I18n/`, y una (voz) usa lenguaje normativo. Lo resuelve la fase F1 del plan |
-| **Identidad completa de dos firmantes** | Las actas de `ca` y `en` constan como «María (otorrinolaringóloga catalana)» y «Miguelina». Falta nombre completo, colegiación y acta de la sesión de escucha para el expediente |
-
----
-
-## Licencia
-
-VIA+ es software propietario de Earlify Health S.L. **Todos los derechos reservados.**
-
-El uso, copia, modificación o distribución de este software sin un Acuerdo de Licencia vigente con Earlify Health está estrictamente prohibido y puede constituir una infracción de la propiedad intelectual y de la normativa de dispositivos médicos aplicable.
-
-Consulta el archivo [LICENSE](./LICENSE) para los términos completos.
-
----
-
-## Contacto
-
-| Área | Contacto |
-|---|---|
-| General / Licencias | fbetances@futureforkids.eu |
-| Incidentes de seguridad y vulnerabilidades | Canales privados de [`.github/SECURITY.md`](./.github/SECURITY.md) (GitHub Security Advisories, preferido) |
-
----
 
 <div align="center">
 
-*VIA+ · Earlify Health S.L. · © 2024–2026 · Todos los derechos reservados*
-
-*Desarrollado con rigor clínico para la salud pediátrica*
+*VIA+ · Earlify Health S.L. · © 2024–2026*
 
 </div>
